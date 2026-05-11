@@ -19,7 +19,7 @@ class StampsController < ApplicationController
 
     unless file_uploaded?
       @stamp.errors.add(:original_file, "select a file to upload")
-      return render :index, status: :unprocessable_entity
+      return render :index, status: :unprocessable_content
     end
 
     extract_file_metadata!(@stamp)
@@ -29,7 +29,7 @@ class StampsController < ApplicationController
       StampProcessingJob.perform_now(@stamp.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
     else
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
 

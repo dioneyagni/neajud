@@ -46,7 +46,7 @@ RSpec.describe "Stamps", type: :request do
 
     it "returns 422 when no file is submitted" do
       post stamps_path, params: { stamp: { filename: "test" } }
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("select a file to upload")
     end
 
@@ -70,7 +70,7 @@ RSpec.describe "Stamps", type: :request do
       params = { stamp: { original_file: file, extension: "jpg" } }
 
       post stamps_path, params: params
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "rejects file with unsupported extension" do
@@ -81,7 +81,7 @@ RSpec.describe "Stamps", type: :request do
       params = { stamp: { original_file: file, extension: "docx" } }
 
       post stamps_path, params: params
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 
