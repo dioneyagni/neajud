@@ -9,6 +9,17 @@ async function run() {
   const browser = await chromium.launch({ headless: !HEADED, slowMo: HEADED ? 300 : 0 });
   const context = await browser.newContext();
   const page = await context.newPage();
+  const consoleErrors = [];
+
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      consoleErrors.push(msg.text());
+    }
+  });
+
+  page.on("pageerror", (err) => {
+    consoleErrors.push(`PAGE ERROR: ${err.message}`);
+  });
 
   let passed = 0;
   let failed = 0;
@@ -143,6 +154,14 @@ async function run() {
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
   console.log(summary);
+
+  if (consoleErrors.length > 0) {
+    console.log("Console errors:");
+    for (const err of [...new Set(consoleErrors)].slice(0, 10)) {
+      console.log(`  ${err}`);
+    }
+    console.log("");
+  }
 
   await browser.close();
   process.exit(failed > 0 ? 1 : 0);

@@ -44,8 +44,9 @@ class StampsController < ApplicationController
 
   def preview
     path = @stamp.preview_file
-    send_file path, type: "image/png", disposition: "inline"
-  rescue Errno::ENOENT
+    raise ActionController::MissingFile unless path && File.exist?(path.to_s)
+    send_file path.to_s, type: "image/png", disposition: "inline"
+  rescue ActionController::MissingFile, Errno::ENOENT
     head :not_found
   end
 
