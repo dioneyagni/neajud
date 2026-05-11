@@ -15,6 +15,12 @@ class StampsController < ApplicationController
 
   def create
     @stamp = Stamp.new(stamp_params)
+    @stamps = Stamp.order(created_at: :desc)
+
+    unless file_uploaded?
+      @stamp.errors.add(:original_file, "select a file to upload")
+      return render :index, status: :unprocessable_entity
+    end
 
     extract_file_metadata!(@stamp)
 
@@ -23,7 +29,6 @@ class StampsController < ApplicationController
       StampProcessingJob.perform_now(@stamp.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
     else
-      @stamps = Stamp.order(created_at: :desc)
       render :index, status: :unprocessable_entity
     end
   end
@@ -83,6 +88,11 @@ class StampsController < ApplicationController
   end
 
   STORAGE_BASE = Rails.root.join("storage", "stamps")
+
+  def file_uploaded?
+    upload = params[:stamp][:original_file]
+    upload.respond_to?(:tempfile) || upload.respond_to?(:original_filename)
+  end
 
   def extract_file_metadata!(stamp)
     upload = params[:stamp][:original_file]

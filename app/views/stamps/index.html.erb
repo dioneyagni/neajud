@@ -2,7 +2,14 @@
 
 <section>
   <h3>Upload New Stamp</h3>
-  <%= form_with model: @stamp, data: { turbo: false } do |f| %>
+  <%= form_with model: @stamp, html: { enctype: "multipart/form-data", data: { turbo: false } } do |f| %>
+    <% if @stamp.errors.any? %>
+      <div class="form-errors">
+        <% @stamp.errors.full_messages.each do |msg| %>
+          <p class="error"><%= msg %></p>
+        <% end %>
+      </div>
+    <% end %>
     <div>
       <%= f.label :original_file, "Graphic File" %>
       <%= f.file_field :original_file, accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr" %>

@@ -22,38 +22,36 @@ RSpec.describe "Stamps", type: :request do
   end
 
   describe "POST /stamps" do
-    let(:valid_params) do
-      {
-        stamp: {
-          filename: "test",
-          extension: "tif",
-          mime_type: "image/tiff"
-        }
-      }
+    let(:file_params) do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/tiff"
+      )
+      { stamp: { original_file: file } }
     end
 
     it "creates a stamp" do
-      expect { post stamps_path, params: valid_params }.to change(Stamp, :count).by(1)
+      expect { post stamps_path, params: file_params }.to change(Stamp, :count).by(1)
     end
 
     it "redirects to gallery" do
-      post stamps_path, params: valid_params
+      post stamps_path, params: file_params
       expect(response).to redirect_to(stamps_path)
     end
 
     it "processes the stamp synchronously" do
       expect_any_instance_of(StampProcessingJob).to receive(:perform).once.and_call_original
-      post stamps_path, params: valid_params
+      post stamps_path, params: file_params
+    end
+
+    it "returns 422 when no file is submitted" do
+      post stamps_path, params: { stamp: { filename: "test" } }
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("select a file to upload")
     end
 
     it "extracts filename, extension and mime_type from uploaded file when not provided" do
-      file = Rack::Test::UploadedFile.new(
-        Rails.root.join("e2e/test-image.tif"),
-        "image/tiff"
-      )
-      params = { stamp: { original_file: file } }
-
-      expect { post stamps_path, params: params }.to change(Stamp, :count).by(1)
+      expect { post stamps_path, params: file_params }.to change(Stamp, :count).by(1)
 
       stamp = Stamp.last
       expect(stamp.filename).to eq("test-image")
@@ -85,7 +83,6 @@ RSpec.describe "Stamps", type: :request do
       post stamps_path, params: params
       expect(response).to have_http_status(:unprocessable_entity)
     end
-
   end
 
   describe "GET / (gallery) with stale preview" do
