@@ -16,9 +16,17 @@ class FileValidator
 
   def real_format
     @real_format ||= begin
-      result = `identify -ping -format '%m' #{Shellwords.escape(@file_path)} 2>/dev/null`
+      result = `identify -ping -format '%m\\n' #{Shellwords.escape(@file_path)} 2>/dev/null`
       fmt = result.lines.first&.strip
       fmt.present? ? fmt : nil
+    end
+  end
+
+  def colorspace
+    @colorspace ||= begin
+      result = `identify -ping -format '%[colorspace]\\n' #{Shellwords.escape(@file_path)} 2>/dev/null`
+      cs = result.lines.first&.strip
+      cs.present? ? cs : nil
     end
   end
 

@@ -62,6 +62,16 @@ RSpec.describe "Stamps", type: :request do
       expect(File.exist?(stamp.preview_file)).to be true
     end
 
+    it "accepts multi-frame TIFFs" do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/multi-frame-test.tif"),
+        "image/tiff"
+      )
+      expect { post stamps_path, params: { stamp: { original_file: file } } }
+        .to change(Stamp, :count).by(1)
+      expect(response).to redirect_to(stamps_path)
+    end
+
     it "rejects file when extension does not match actual format" do
       file = Rack::Test::UploadedFile.new(
         Rails.root.join("e2e/test-image.tif"),

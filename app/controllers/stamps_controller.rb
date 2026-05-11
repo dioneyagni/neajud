@@ -136,6 +136,8 @@ class StampsController < ApplicationController
       return false
     end
 
+    @stamp.colorspace = validator.colorspace if @stamp.colorspace.blank?
+
     true
   end
 

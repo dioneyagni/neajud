@@ -19,6 +19,12 @@ RSpec.describe FileValidator do
       expect(validator.real_format).to eq("TIFF")
     end
 
+    it "handles multi-frame TIFFs" do
+      path = Rails.root.join("e2e/multi-frame-test.tif")
+      validator = FileValidator.new(path.to_s)
+      expect(validator.real_format).to eq("TIFF")
+    end
+
     it "returns nil for nonexistent file" do
       validator = FileValidator.new("/nonexistent.tif")
       expect(validator.real_format).to be_nil

@@ -44,10 +44,11 @@ class StampProcessingJob < ApplicationJob
   end
 
   def build_convert_command(input, output, stamp)
+    src = "#{Shellwords.escape(input)}[0]"
     if stamp.colorspace == "CMYK"
-      "convert #{Shellwords.escape(input)} -colorspace sRGB -type TrueColorAlpha #{Shellwords.escape(output)}"
+      "convert #{src} -colorspace sRGB -type TrueColorAlpha #{Shellwords.escape(output)}"
     else
-      "convert #{Shellwords.escape(input)} -resize 1200x1200\\> -type TrueColorAlpha #{Shellwords.escape(output)}"
+      "convert #{src} -resize 1200x1200\\> -type TrueColorAlpha #{Shellwords.escape(output)}"
     end
   end
 
@@ -55,7 +56,7 @@ class StampProcessingJob < ApplicationJob
     return unless %w[tif tiff psd].include?(stamp.extension.downcase)
 
     input_path = storage_path(stamp, "original", stamp.original_file)
-    result = `identify -verbose #{Shellwords.escape(input_path)}`
+    result = `identify -verbose #{Shellwords.escape(input_path)}[0]`
 
     if result.include?("Channel")
       spot_channels = result.scan(/Channel (\w+):/).flatten
