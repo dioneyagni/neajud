@@ -102,6 +102,13 @@ RSpec.describe "Stamps", type: :request do
     end
   end
 
+  describe "GET /.well-known/*path" do
+    it "returns 204 for Chrome DevTools probe" do
+      get "/.well-known/appspecific/com.chrome.devtools.json"
+      expect(response).to have_http_status(:no_content)
+    end
+  end
+
   describe "PATCH /stamps/:id/update_time" do
     it "updates annotated time and creates log" do
       stamp = create(:stamp, estimated_seconds: 120)
