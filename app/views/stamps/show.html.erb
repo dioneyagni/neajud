@@ -65,3 +65,7 @@
 </section>
 
 <%= link_to "Back to Gallery", stamps_path %>
+
+<%= button_to "Delete Stamp", stamp_path(@stamp), method: :delete,
+      data: { turbo_confirm: "Are you sure?" },
+      style: "margin-top: 1rem; color: red;" %>

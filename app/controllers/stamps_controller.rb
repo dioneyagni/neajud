@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time preview]
+  before_action :set_stamp, only: %i[show update_time preview destroy]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -44,6 +44,12 @@ class StampsController < ApplicationController
     send_file path, type: "image/png", disposition: "inline"
   rescue Errno::ENOENT
     head :not_found
+  end
+
+  def destroy
+    FileUtils.rm_rf(File.join(STORAGE_BASE, @stamp.uuid))
+    @stamp.destroy!
+    redirect_to stamps_path, notice: "Stamp deleted."
   end
 
   private

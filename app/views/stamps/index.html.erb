@@ -34,7 +34,7 @@
           <p>Status: <%= stamp.status %></p>
           <p>Time: <%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></p>
           <% if stamp.preview_file.present? %>
-            <%= image_tag stamp.preview_file, alt: stamp.filename %>
+            <%= image_tag stamp_preview_path(stamp), alt: stamp.filename %>
           <% end %>
         </div>
       <% end %>

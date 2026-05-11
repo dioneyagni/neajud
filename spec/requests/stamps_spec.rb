@@ -55,4 +55,17 @@ RSpec.describe "Stamps", type: :request do
       expect(stamp.reload.annotated_seconds).to eq(300)
     end
   end
+
+  describe "DELETE /stamps/:id" do
+    it "destroys the stamp" do
+      stamp = create(:stamp)
+      expect { delete stamp_path(stamp) }.to change(Stamp, :count).by(-1)
+    end
+
+    it "redirects to gallery" do
+      stamp = create(:stamp)
+      delete stamp_path(stamp)
+      expect(response).to redirect_to(stamps_path)
+    end
+  end
 end
