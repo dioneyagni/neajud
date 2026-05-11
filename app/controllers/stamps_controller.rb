@@ -26,8 +26,9 @@ class StampsController < ApplicationController
 
   def update_time
     previous_seconds = @stamp.annotated_seconds || @stamp.estimated_seconds
+    new_seconds = parse_hmm(params[:annotated_seconds])
 
-    if @stamp.update(annotated_seconds: params[:annotated_seconds])
+    if @stamp.update(annotated_seconds: new_seconds)
       @stamp.stamp_time_logs.create!(
         previous_seconds: previous_seconds,
         new_seconds: @stamp.annotated_seconds,
@@ -77,6 +78,13 @@ class StampsController < ApplicationController
   end
 
   STORAGE_BASE = Rails.root.join("storage", "stamps")
+
+  def parse_hmm(value)
+    return value.to_i unless value.to_s.include?(":")
+
+    hours, minutes = value.to_s.split(":").map(&:to_i)
+    (hours * 3600) + (minutes * 60)
+  end
 
   def not_found
     render plain: "Not found", status: :not_found
