@@ -2,22 +2,10 @@
 
 <section>
   <h3>Upload New Stamp</h3>
-  <%= form_with model: @stamp, local: true do |f| %>
+  <%= form_with model: @stamp, data: { turbo: false } do |f| %>
     <div>
       <%= f.label :original_file, "Graphic File" %>
       <%= f.file_field :original_file, accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr" %>
-    </div>
-    <div>
-      <%= f.label :filename %>
-      <%= f.text_field :filename %>
-    </div>
-    <div>
-      <%= f.label :extension %>
-      <%= f.text_field :extension %>
-    </div>
-    <div>
-      <%= f.label :mime_type %>
-      <%= f.text_field :mime_type %>
     </div>
     <%= f.submit "Upload" %>
   <% end %>

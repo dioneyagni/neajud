@@ -45,6 +45,22 @@ RSpec.describe "Stamps", type: :request do
       expect_any_instance_of(StampProcessingJob).to receive(:perform).once.and_call_original
       post stamps_path, params: valid_params
     end
+
+    it "extracts filename, extension and mime_type from uploaded file when not provided" do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/tiff"
+      )
+      params = { stamp: { original_file: file } }
+
+      expect { post stamps_path, params: params }.to change(Stamp, :count).by(1)
+
+      stamp = Stamp.last
+      expect(stamp.filename).to eq("test-image")
+      expect(stamp.extension).to eq("tif")
+      expect(stamp.mime_type).to eq("image/tiff")
+      expect(stamp.status).to eq("processed")
+    end
   end
 
   describe "PATCH /stamps/:id/update_time" do

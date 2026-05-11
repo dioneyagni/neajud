@@ -16,6 +16,8 @@ class StampsController < ApplicationController
   def create
     @stamp = Stamp.new(stamp_params)
 
+    extract_file_metadata!(@stamp)
+
     if validate_file_size! && validate_file_type! && @stamp.save
       save_uploaded_file(@stamp)
       StampProcessingJob.perform_now(@stamp.id)
@@ -81,6 +83,15 @@ class StampsController < ApplicationController
   end
 
   STORAGE_BASE = Rails.root.join("storage", "stamps")
+
+  def extract_file_metadata!(stamp)
+    upload = params[:stamp][:original_file]
+    return unless upload.respond_to?(:original_filename)
+
+    stamp.filename = File.basename(upload.original_filename, ".*") if stamp.filename.blank?
+    stamp.extension = File.extname(upload.original_filename).delete(".").downcase if stamp.extension.blank?
+    stamp.mime_type = upload.content_type if stamp.mime_type.blank?
+  end
 
   def validate_file_size!
     upload = params[:stamp][:original_file]
