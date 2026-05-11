@@ -38,6 +38,7 @@ class StampProcessingJob < ApplicationJob
 
     cmd = build_convert_command(input_path, preview_path, stamp)
     system(cmd) || raise("ImageMagick command failed: #{cmd}")
+    raise("Preview file not created after convert") unless File.exist?(preview_path)
 
     stamp.update!(preview_file: preview_path.to_s)
   end

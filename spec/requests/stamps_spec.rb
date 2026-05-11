@@ -60,6 +60,8 @@ RSpec.describe "Stamps", type: :request do
       expect(stamp.extension).to eq("tif")
       expect(stamp.mime_type).to eq("image/tiff")
       expect(stamp.status).to eq("processed")
+      expect(stamp.preview_file).not_to be_nil
+      expect(File.exist?(stamp.preview_file)).to be true
     end
   end
 

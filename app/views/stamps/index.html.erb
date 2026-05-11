@@ -21,8 +21,10 @@
           <p>Extension: <%= stamp.extension %></p>
           <p>Status: <%= stamp.status %></p>
           <p>Time: <%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></p>
-          <% if stamp.preview_file.present? %>
+          <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
             <%= image_tag preview_stamp_path(stamp), alt: stamp.filename %>
+          <% elsif stamp.failed? %>
+            <span class="error">Processing failed</span>
           <% end %>
         </div>
       <% end %>
