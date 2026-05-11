@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -e
+
+echo "=== Neajud E2E Test Runner ==="
+echo ""
+
+export PATH="$HOME/.local/share/mise/installs/node/22.22.2/bin:$PATH"
+export LD_LIBRARY_PATH="$HOME/.local/chromium-libs/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+export RAILS_ENV=test
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Step 1: Kill any existing Rails/Puma server
+echo "[1/5] Killing existing server processes..."
+pkill -f "puma" 2>/dev/null || true
+pkill -f "rails server" 2>/dev/null || true
+sleep 1
+
+# Confirm server is dead
+if lsof -i :3000 >/dev/null 2>&1; then
+  echo "ERROR: Port 3000 still in use. Forcing kill..."
+  fuser -k 3000/tcp 2>/dev/null || true
+  sleep 1
+fi
+echo "       Done."
+
+# Step 2: Prepare test database
+echo "[2/5] Preparing test database..."
+bin/rails db:test:prepare 2>&1 | tail -1
+echo "       Done."
+
+# Step 3: Start Rails server in background
+echo "[3/5] Starting Rails server (port 3000)..."
+bin/rails server -p 3000 -b 0.0.0.0 -e test &>/tmp/neajud_server.log &
+SERVER_PID=$!
+echo "       PID: $SERVER_PID"
+
+# Wait for server to be ready
+echo "       Waiting for server..."
+for i in $(seq 1 30); do
+  if curl -s http://localhost:3000/up >/dev/null 2>&1; then
+    echo "       Server is ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: Server failed to start within 30s."
+    echo "--- Last 20 lines of server log ---"
+    tail -20 /tmp/neajud_server.log
+    kill $SERVER_PID 2>/dev/null || true
+    exit 1
+  fi
+  sleep 1
+done
+
+# Step 4: Run Playwright E2E tests
+echo "[4/5] Running Playwright E2E tests..."
+set +e
+node e2e/stamps.spec.js
+EXIT_CODE=$?
+set -e
+
+echo "       Exit code: $EXIT_CODE"
+
+# Step 5: Kill server
+echo "[5/5] Stopping server (PID $SERVER_PID)..."
+kill $SERVER_PID 2>/dev/null || true
+sleep 1
+if lsof -i :3000 >/dev/null 2>&1; then
+  fuser -k 3000/tcp 2>/dev/null || true
+fi
+echo "       Done."
+
+echo ""
+echo "=== E2E tests complete ==="
+exit $EXIT_CODE
