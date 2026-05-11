@@ -7,7 +7,7 @@ module StampsHelper
     format("%d:%02d", hours, mins)
   end
 
-  def stamp_preview_url(stamp)
-    stamp_preview_path(stamp) if stamp.preview_file.present?
+  def preview_stamp_url(stamp)
+    preview_stamp_path(stamp) if stamp.preview_file.present?
   end
 end

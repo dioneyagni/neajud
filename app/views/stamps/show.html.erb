@@ -19,7 +19,7 @@
 <section>
   <h3>Preview</h3>
   <% if @stamp.preview_file.present? %>
-    <%= image_tag stamp_preview_path(@stamp), alt: @stamp.filename %>
+    <%= image_tag preview_stamp_path(@stamp), alt: @stamp.filename %>
   <% else %>
     <p>Preview not available yet.</p>
   <% end %>
