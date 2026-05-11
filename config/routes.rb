@@ -10,5 +10,5 @@ Rails.application.routes.draw do
 
   root "stamps#index"
 
-  match "/.well-known/*path", via: :all, to: proc { |_| [204, {}, []] }
+  match "/.well-known/*path", via: :all, to: proc { |_| [ 204, {}, [] ] }
 end

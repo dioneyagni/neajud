@@ -16,8 +16,9 @@ class FileValidator
 
   def real_format
     @real_format ||= begin
-      result = `identify -format '%m' #{Shellwords.escape(@file_path)} 2>&1`
-      result.strip unless result.include?("error") || result.include?("Warning")
+      result = `identify -ping -format '%m' #{Shellwords.escape(@file_path)} 2>/dev/null`
+      fmt = result.lines.first&.strip
+      fmt if fmt.present? && EXTENSION_TO_FORMAT.value?(fmt)
     end
   end
 
