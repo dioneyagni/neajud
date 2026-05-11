@@ -18,7 +18,7 @@ class FileValidator
     @real_format ||= begin
       result = `identify -ping -format '%m' #{Shellwords.escape(@file_path)} 2>/dev/null`
       fmt = result.lines.first&.strip
-      fmt if fmt.present? && EXTENSION_TO_FORMAT.value?(fmt)
+      fmt.present? ? fmt : nil
     end
   end
 
