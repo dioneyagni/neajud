@@ -46,10 +46,10 @@ async function run() {
     if (!body.includes("Gallery")) throw new Error("Gallery section not found");
   });
 
-  const testImagePath = path.join(__dirname, "test-image.png");
+  const testImagePath = path.join(__dirname, "test-image.tif");
   if (!fs.existsSync(testImagePath)) {
     const { execSync } = require("child_process");
-    execSync(`convert -size 100x100 xc:red 'PNG:${testImagePath}'`);
+    execSync(`convert -size 100x100 xc:red -compress none 'TIFF:${testImagePath}'`);
   }
 
   await test("Upload a file creates a stamp visible in gallery", async () => {
@@ -59,8 +59,8 @@ async function run() {
 
     await fileInput.setInputFiles(testImagePath);
     await page.fill("#stamp_filename", "e2e-test-image");
-    await page.fill("#stamp_extension", "png");
-    await page.fill("#stamp_mime_type", "image/png");
+    await page.fill("#stamp_extension", "tif");
+    await page.fill("#stamp_mime_type", "image/tiff");
     await page.click('input[type="submit"]');
 
     await page.waitForURL("**/stamps");

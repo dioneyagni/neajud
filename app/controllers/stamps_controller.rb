@@ -16,7 +16,7 @@ class StampsController < ApplicationController
   def create
     @stamp = Stamp.new(stamp_params)
 
-    if validate_file_size! && @stamp.save
+    if validate_file_size! && validate_file_type! && @stamp.save
       save_uploaded_file(@stamp)
       StampProcessingJob.perform_later(@stamp.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
@@ -91,6 +91,29 @@ class StampsController < ApplicationController
       AbuseDetectionJob.perform_later(ip_address: request.remote_ip, file_size: real_size)
       return false
     end
+    true
+  end
+
+  def validate_file_type!
+    upload = params[:stamp][:original_file]
+    return true unless upload.respond_to?(:tempfile)
+
+    ext = params[:stamp][:extension].to_s.strip
+    return true if ext.blank?
+
+    validator = FileValidator.new(upload.tempfile.path)
+    real_fmt = validator.real_format
+
+    unless real_fmt
+      @stamp.errors.add(:original_file, "unable to identify file format")
+      return false
+    end
+
+    unless validator.valid_extension?(ext)
+      @stamp.errors.add(:extension, "declared '#{ext.upcase}' but file is '#{real_fmt}'")
+      return false
+    end
+
     true
   end
 
