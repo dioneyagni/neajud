@@ -33,3 +33,8 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+# Node dependencies for E2E tests
+/node_modules/
+/package.json
+/package-lock.json
+
