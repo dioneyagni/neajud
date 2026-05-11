@@ -46,5 +46,8 @@ O primeiro módulo do sistema será o Stamp Tracker:
 ## Troubleshooting
 - [docs/troubleshooting.md](docs/troubleshooting.md)
 
+## Testes
+- [docs/testing.md](docs/testing.md)
+
 ## Modelagem de domínio
 - [docs/domain-models.md](docs/domain-models.md)
