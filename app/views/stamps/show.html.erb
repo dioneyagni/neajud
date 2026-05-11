@@ -19,7 +19,7 @@
 <section>
   <h3>Preview</h3>
   <% if @stamp.preview_file.present? %>
-    <%= image_tag stamp_preview_path(@stamp), alt: @stamp.filename %>
+    <%= image_tag preview_stamp_path(@stamp), alt: @stamp.filename %>
   <% else %>
     <p>Preview not available yet.</p>
   <% end %>
@@ -27,10 +27,13 @@
 
 <section>
   <h3>Update Time</h3>
-  <%= form_with url: update_time_stamp_path(@stamp), method: :patch, local: true do |f| %>
+  <%= form_with url: update_time_stamp_path(@stamp), method: :patch, local: true,
+        data: { controller: "time-mask" } do |f| %>
     <div>
-      <%= f.label :annotated_seconds, "Time (seconds)" %>
-      <%= f.number_field :annotated_seconds, value: @stamp.annotated_seconds || @stamp.estimated_seconds, min: 0 %>
+      <%= f.label :annotated_seconds, "Time (h:mm)" %>
+      <%= f.text_field :annotated_seconds,
+            value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
+            data: { time_mask_target: "input", action: "input->time-mask#format" } %>
     </div>
     <%= f.submit "Update Time" %>
   <% end %>
