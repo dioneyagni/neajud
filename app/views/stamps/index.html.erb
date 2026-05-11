@@ -23,8 +23,10 @@
           <p>Time: <%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></p>
           <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
             <%= image_tag preview_stamp_path(stamp), alt: stamp.filename %>
-          <% elsif stamp.failed? %>
-            <span class="error">Processing failed</span>
+          <% elsif stamp.preview_file.present? %>
+            <span class="error">Preview unavailable</span>
+          <% elsif stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
+            <span class="error"><%= stamp.status.humanize %></span>
           <% end %>
         </div>
       <% end %>

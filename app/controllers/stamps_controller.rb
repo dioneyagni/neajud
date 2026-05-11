@@ -110,7 +110,7 @@ class StampsController < ApplicationController
     upload = params[:stamp][:original_file]
     return true unless upload.respond_to?(:tempfile)
 
-    ext = params[:stamp][:extension].to_s.strip
+    ext = @stamp.extension.to_s.strip
     return true if ext.blank?
 
     validator = FileValidator.new(upload.tempfile.path)
