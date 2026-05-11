@@ -1,0 +1,45 @@
+<h2>Stamp Tracker</h2>
+
+<section>
+  <h3>Upload New Stamp</h3>
+  <%= form_with model: @stamp, local: true do |f| %>
+    <div>
+      <%= f.label :original_file, "Graphic File" %>
+      <%= f.file_field :original_file, accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr" %>
+    </div>
+    <div>
+      <%= f.label :filename %>
+      <%= f.text_field :filename %>
+    </div>
+    <div>
+      <%= f.label :extension %>
+      <%= f.text_field :extension %>
+    </div>
+    <div>
+      <%= f.label :mime_type %>
+      <%= f.text_field :mime_type %>
+    </div>
+    <%= f.submit "Upload" %>
+  <% end %>
+</section>
+
+<section>
+  <h3>Gallery</h3>
+  <% if @stamps.any? %>
+    <div class="gallery">
+      <% @stamps.each do |stamp| %>
+        <div class="stamp-card">
+          <h4><%= link_to stamp.filename, stamp_path(stamp) %></h4>
+          <p>Extension: <%= stamp.extension %></p>
+          <p>Status: <%= stamp.status %></p>
+          <p>Time: <%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></p>
+          <% if stamp.preview_file.present? %>
+            <%= image_tag stamp.preview_file, alt: stamp.filename %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p>No stamps uploaded yet.</p>
+  <% end %>
+</section>

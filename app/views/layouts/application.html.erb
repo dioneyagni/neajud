@@ -24,6 +24,19 @@
   </head>
 
   <body>
-    <%= yield %>
+    <header>
+      <h1><%= link_to "Neajud", root_path %></h1>
+    </header>
+
+    <main>
+      <% if notice %>
+        <p class="notice"><%= notice %></p>
+      <% end %>
+      <% if alert %>
+        <p class="alert"><%= alert %></p>
+      <% end %>
+
+      <%= yield %>
+    </main>
   </body>
 </html>
