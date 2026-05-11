@@ -1,0 +1,16 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "89efbab3f665671615e5e8ef0df6179ae99e049740cb48a19735e95cd80893a3",
+      "note": "UUID gerado pelo sistema, seguro para send_file"
+    },
+    {
+      "fingerprint": "6ae95b5e572b0e2a286dda67d252f09ac6ed4372d6c703494429e2c0f76aba4b",
+      "note": "UUID gerado pelo sistema, seguro para rm_rf"
+    },
+    {
+      "fingerprint": "d86696495de251b724cdd90dd8e95990ebba19056dfa48add8d76d14758d33a1",
+      "note": "Nome validado pelo FileValidator antes de chegar aqui"
+    }
+  ]
+}

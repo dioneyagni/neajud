@@ -7,7 +7,7 @@ class BanMiddleware
     ip = Rack::Request.new(env).ip
 
     if banned?(ip)
-      [403, { "Content-Type" => "application/json" }, [{ error: "Your IP has been banned." }.to_json]]
+      [ 403, { "Content-Type" => "application/json" }, [ { error: "Your IP has been banned." }.to_json ] ]
     else
       @app.call(env)
     end

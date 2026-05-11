@@ -1,3 +1,5 @@
+require "shellwords"
+
 class FileValidator
   EXTENSION_TO_FORMAT = {
     "tif" => "TIFF", "tiff" => "TIFF",
@@ -14,7 +16,7 @@ class FileValidator
 
   def real_format
     @real_format ||= begin
-      result = `identify -format '%m' '#{@file_path}' 2>&1`
+      result = `identify -format '%m' #{Shellwords.escape(@file_path)} 2>&1`
       result.strip unless result.include?("error") || result.include?("Warning")
     end
   end
