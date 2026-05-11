@@ -1,0 +1,67 @@
+<h2>Stamp: <%= @stamp.filename %>.<%= @stamp.extension %></h2>
+
+<section>
+  <h3>Details</h3>
+  <dl>
+    <dt>Status</dt>
+    <dd><%= @stamp.status %></dd>
+    <dt>Colorspace</dt>
+    <dd><%= @stamp.colorspace || "Unknown" %></dd>
+    <dt>Has Spots</dt>
+    <dd><%= @stamp.has_spots? ? "Yes" : "No" %></dd>
+    <dt>Estimated Time</dt>
+    <dd><%= format_time(@stamp.estimated_seconds) %></dd>
+    <dt>Annotated Time</dt>
+    <dd><%= format_time(@stamp.annotated_seconds) %></dd>
+  </dl>
+</section>
+
+<section>
+  <h3>Preview</h3>
+  <% if @stamp.preview_file.present? %>
+    <%= image_tag stamp_preview_path(@stamp), alt: @stamp.filename %>
+  <% else %>
+    <p>Preview not available yet.</p>
+  <% end %>
+</section>
+
+<section>
+  <h3>Update Time</h3>
+  <%= form_with url: update_time_stamp_path(@stamp), method: :patch, local: true do |f| %>
+    <div>
+      <%= f.label :annotated_seconds, "Time (seconds)" %>
+      <%= f.number_field :annotated_seconds, value: @stamp.annotated_seconds || @stamp.estimated_seconds, min: 0 %>
+    </div>
+    <%= f.submit "Update Time" %>
+  <% end %>
+</section>
+
+<section>
+  <h3>Time History</h3>
+  <% if @time_logs.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Previous</th>
+          <th>New</th>
+          <th>Changed By</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @time_logs.each do |log| %>
+          <tr>
+            <td><%= format_time(log.previous_seconds) %></td>
+            <td><%= format_time(log.new_seconds) %></td>
+            <td><%= log.changed_by %></td>
+            <td><%= l log.created_at, format: :short %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No time changes recorded.</p>
+  <% end %>
+</section>
+
+<%= link_to "Back to Gallery", stamps_path %>

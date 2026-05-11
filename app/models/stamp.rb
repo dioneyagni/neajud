@@ -20,6 +20,10 @@ class Stamp < ApplicationRecord
 
   SUPPORTED_EXTENSIONS = %w[tif tiff psd jpg jpeg ai eps cdr].freeze
 
+  def to_param
+    uuid
+  end
+
   private
 
   def set_uuid
