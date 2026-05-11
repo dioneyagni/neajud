@@ -11,10 +11,12 @@ class StampsController < ApplicationController
     @time_logs = @stamp.stamp_time_logs.order(created_at: :desc)
   end
 
+  MAX_FILE_SIZE = 1.gigabyte
+
   def create
     @stamp = Stamp.new(stamp_params)
 
-    if @stamp.save
+    if validate_file_size! && @stamp.save
       save_uploaded_file(@stamp)
       StampProcessingJob.perform_later(@stamp.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
@@ -78,6 +80,19 @@ class StampsController < ApplicationController
   end
 
   STORAGE_BASE = Rails.root.join("storage", "stamps")
+
+  def validate_file_size!
+    upload = params[:stamp][:original_file]
+    return true unless upload.respond_to?(:tempfile)
+
+    real_size = upload.tempfile.size
+    if real_size > MAX_FILE_SIZE
+      @stamp.errors.add(:original_file, "exceeds maximum size of 1GB")
+      AbuseDetectionJob.perform_later(ip_address: request.remote_ip, file_size: real_size)
+      return false
+    end
+    true
+  end
 
   def parse_hmm(value)
     return value.to_i unless value.to_s.include?(":")
