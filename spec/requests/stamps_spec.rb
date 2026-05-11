@@ -63,6 +63,43 @@ RSpec.describe "Stamps", type: :request do
       expect(stamp.preview_file).not_to be_nil
       expect(File.exist?(stamp.preview_file)).to be true
     end
+
+    it "rejects file when extension does not match actual format" do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/jpeg"
+      )
+      params = { stamp: { original_file: file, extension: "jpg" } }
+
+      post stamps_path, params: params
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "rejects file with unsupported extension" do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/tiff"
+      )
+      params = { stamp: { original_file: file, extension: "docx" } }
+
+      post stamps_path, params: params
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+  end
+
+  describe "GET / (gallery) with stale preview" do
+    it "shows Preview unavailable when preview_file is set but file is missing" do
+      stamp = create(:stamp, preview_file: "/tmp/nonexistent-preview.png")
+      get root_path
+      expect(response.body).to include("Preview unavailable")
+    end
+
+    it "shows status when processing failed" do
+      stamp = create(:stamp, status: :failed)
+      get root_path
+      expect(response.body).to include("Failed")
+    end
   end
 
   describe "PATCH /stamps/:id/update_time" do
