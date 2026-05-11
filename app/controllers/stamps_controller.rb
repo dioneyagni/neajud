@@ -18,7 +18,7 @@ class StampsController < ApplicationController
 
     if validate_file_size! && validate_file_type! && @stamp.save
       save_uploaded_file(@stamp)
-      StampProcessingJob.perform_later(@stamp.id)
+      StampProcessingJob.perform_now(@stamp.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
     else
       @stamps = Stamp.order(created_at: :desc)

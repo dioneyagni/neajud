@@ -41,8 +41,9 @@ RSpec.describe "Stamps", type: :request do
       expect(response).to redirect_to(stamps_path)
     end
 
-    it "enqueues processing job" do
-      expect { post stamps_path, params: valid_params }.to have_enqueued_job(StampProcessingJob)
+    it "processes the stamp synchronously" do
+      expect_any_instance_of(StampProcessingJob).to receive(:perform).once.and_call_original
+      post stamps_path, params: valid_params
     end
   end
 
