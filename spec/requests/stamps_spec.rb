@@ -21,6 +21,29 @@ RSpec.describe "Stamps", type: :request do
     end
   end
 
+  describe "GET / (upload form)" do
+    it "renders the drop zone" do
+      get root_path
+      expect(response.body).to include("upload-dropzone")
+      expect(response.body).to include("Drag & drop files here")
+    end
+
+    it "renders multi-file input with accepted formats" do
+      get root_path
+      expect(response.body).to include('multiple="multiple"')
+      expect(response.body).to include('accept=".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr"')
+    end
+
+    it "renders Stimulus data attributes for upload controller" do
+      get root_path
+      expect(response.body).to include('data-controller="upload"')
+      expect(response.body).to include('data-upload-target="dropzone"')
+      expect(response.body).to include('data-upload-target="input"')
+      expect(response.body).to include('data-upload-target="fileList"')
+      expect(response.body).to include('data-upload-target="submit"')
+    end
+  end
+
   describe "POST /stamps" do
     let(:file_params) do
       file = Rack::Test::UploadedFile.new(

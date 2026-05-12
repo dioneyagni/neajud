@@ -24,7 +24,7 @@
 ## Tests
 
 - Tests run with a single command: `<project-specific>`.
-- Every new function gets a test. Bug fixes get a regression test.
+- Every new function gets a test and test e2e. Bug fixes get a regression test.
 - Mock external I/O (API, DB, filesystem) with named fake classes,
   not inline stubs.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,

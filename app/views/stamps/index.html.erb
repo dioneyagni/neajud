@@ -2,7 +2,7 @@
 
 <section>
   <h3>Upload New Stamp</h3>
-  <%= form_with model: @stamp, html: { enctype: "multipart/form-data", data: { turbo: false } } do |f| %>
+  <%= form_with model: @stamp, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false } } do |f| %>
     <% if @stamp.errors.any? %>
       <div class="form-errors">
         <% @stamp.errors.full_messages.each do |msg| %>
@@ -10,11 +10,17 @@
         <% end %>
       </div>
     <% end %>
-    <div>
-      <%= f.label :original_file, "Graphic File" %>
-      <%= f.file_field :original_file, accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr" %>
+    <div class="upload-dropzone" data-upload-target="dropzone"
+         data-action="dragenter->upload#dragOver dragover->upload#dragOver dragleave->upload#dragLeave drop->upload#drop click->upload#click">
+      <p>Drag & drop files here, or click to select</p>
+      <p class="upload-hint">Supported: TIF, TIFF, PSD, JPG, JPEG, AI, EPS, CDR</p>
+      <%= f.file_field :original_file, multiple: true,
+            data: { upload_target: "input", action: "change->upload#fileSelected" },
+            accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr",
+            style: "display: none" %>
     </div>
-    <%= f.submit "Upload" %>
+    <div class="upload-file-list" data-upload-target="fileList"></div>
+    <%= f.submit "Upload", data: { upload_target: "submit" } %>
   <% end %>
 </section>
 

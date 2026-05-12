@@ -8,3 +8,65 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+.upload-dropzone {
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.upload-dropzone.dragover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.upload-hint {
+  font-size: 0.85em;
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.upload-file-list {
+  margin-top: 0.5rem;
+}
+
+.upload-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.9em;
+}
+
+.upload-file-name {
+  flex: 1;
+}
+
+.upload-file-size {
+  color: #888;
+  min-width: 4em;
+  text-align: right;
+}
+
+.upload-file-status {
+  min-width: 10em;
+  text-align: right;
+  font-size: 0.85em;
+}
+
+.upload-file-remove {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.form-errors .error {
+  color: #dc2626;
+  margin: 0.25rem 0;
+}

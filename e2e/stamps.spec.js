@@ -63,21 +63,103 @@ async function run() {
     execSync(`convert -size 100x100 xc:red -compress none 'TIFF:${testImagePath}'`);
   }
 
+  await test("Clicking drop zone triggers hidden file input", async () => {
+    await page.goto(BASE_URL);
+    const dropzone = await page.$(".upload-dropzone");
+    if (!dropzone) throw new Error("Drop zone not found");
+
+    const clicked = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const input = document.querySelector('input[type="file"]');
+        if (!input) { resolve(false); return; }
+        input.addEventListener("click", () => resolve(true), { once: true });
+        document.querySelector(".upload-dropzone").click();
+        setTimeout(() => resolve(false), 500);
+      });
+    });
+    if (!clicked) throw new Error("Drop zone click did not trigger file input click");
+  });
+
+  await test("Drop zone shows dragover style", async () => {
+    await page.goto(BASE_URL);
+    const dropzone = await page.$(".upload-dropzone");
+    if (!dropzone) throw new Error("Drop zone not found");
+
+    await dropzone.dispatchEvent("dragenter");
+    await page.waitForTimeout(100);
+    const hasClass = await page.$eval(".upload-dropzone", el => el.classList.contains("dragover"));
+    if (!hasClass) throw new Error("dragover class not applied");
+
+    await dropzone.dispatchEvent("dragleave");
+    await page.waitForTimeout(100);
+    const stillHas = await page.$eval(".upload-dropzone", el => el.classList.contains("dragover"));
+    if (stillHas) throw new Error("dragover class not removed on dragleave");
+  });
+
+  await test("File list shows after selecting a file", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    if (!fileInput) throw new Error("File input not found");
+
+    await fileInput.setInputFiles(testImagePath);
+    const fileList = await page.$(".upload-file-list");
+    const html = await fileList.innerHTML();
+    if (!html.includes("test-image")) throw new Error("Selected file not shown in file list");
+  });
+
+  await test("Remove button clears file from list", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(testImagePath);
+
+    const removeBtn = await page.$(".upload-file-remove");
+    if (!removeBtn) throw new Error("Remove button not found");
+    await removeBtn.click();
+    await page.waitForTimeout(100);
+
+    const fileList = await page.$(".upload-file-list");
+    const html = await fileList.innerHTML();
+    if (html.includes("test-image")) throw new Error("File still shown after remove");
+  });
+
+  await test("Upload multiple files creates stamps in gallery", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    if (!fileInput) throw new Error("File input not found");
+
+    const secondImagePath = path.join(__dirname, "multi-frame-test.tif");
+    await fileInput.setInputFiles([testImagePath, secondImagePath]);
+
+    const fileList = await page.$(".upload-file-list");
+    const html = await fileList.innerHTML();
+    if (!html.includes("test-image")) throw new Error("First file not in list");
+    if (!html.includes("multi-frame-test")) throw new Error("Second file not in list");
+
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(3000);
+
+    const stampCards = await page.$$(".stamp-card");
+    if (stampCards.length < 2) throw new Error("Less than 2 stamp cards after multi-upload");
+  });
+
   await test("Upload a file creates a stamp visible in gallery", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
     if (!fileInput) throw new Error("File input not found");
 
     await fileInput.setInputFiles(testImagePath);
+
+    const fileList = await page.$(".upload-file-list");
+    const listHtml = await fileList.innerHTML();
+    if (!listHtml.includes("test-image")) throw new Error("File not shown in list after selection");
+
     await page.click('input[type="submit"]');
 
-    await page.waitForURL("**/stamps");
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1500);
 
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
     const body = await page.textContent("body");
-    if (!body.includes("uploaded")) throw new Error("Success notice not shown");
-    const hasCard = await page.$(".stamp-card");
-    if (!hasCard) throw new Error("No stamp card appeared in gallery");
+    if (!body.includes("test-image")) throw new Error("Uploaded file not found in gallery");
   });
 
   await test("Stamp show page displays all sections", async () => {
@@ -122,6 +204,8 @@ async function run() {
 
   await test("Delete stamp removes it from gallery", async () => {
     await page.goto(BASE_URL);
+    const initialCount = await page.$$eval(".stamp-card", els => els.length);
+
     await page.waitForSelector(".stamp-card a");
     await page.click(".stamp-card a");
     await page.waitForSelector("h2");
@@ -132,18 +216,18 @@ async function run() {
 
     const body = await page.textContent("body");
     if (!body.includes("Stamp deleted")) throw new Error("Delete notice not shown");
-    const hasCard = await page.$(".stamp-card");
-    if (hasCard) throw new Error("Stamp card still visible after delete");
+
+    const newCount = await page.$$eval(".stamp-card", els => els.length);
+    if (newCount >= initialCount) throw new Error("Stamp count did not decrease after delete");
   });
 
-  await test("Empty gallery shows fallback message", async () => {
+  await test("Gallery shows stamps or fallback message", async () => {
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     const body = await page.textContent("body");
     const hasCard = await page.$(".stamp-card");
     if (hasCard) {
-      const count = await page.$$eval(".stamp-card", els => els.length);
-      await page.waitForSelector('h2');
+      if (!body.includes("Stamp Tracker")) throw new Error("Gallery heading not shown");
     } else {
       if (!body.includes("No stamps uploaded yet")) throw new Error("Fallback message not shown");
     }
