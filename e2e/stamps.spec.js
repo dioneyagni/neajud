@@ -69,9 +69,6 @@ async function run() {
     if (!fileInput) throw new Error("File input not found");
 
     await fileInput.setInputFiles(testImagePath);
-    await page.fill("#stamp_filename", "e2e-test-image");
-    await page.fill("#stamp_extension", "tif");
-    await page.fill("#stamp_mime_type", "image/tiff");
     await page.click('input[type="submit"]');
 
     await page.waitForURL("**/stamps");
