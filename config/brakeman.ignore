@@ -9,8 +9,24 @@
       "note": "UUID gerado pelo sistema, seguro para rm_rf"
     },
     {
-      "fingerprint": "d86696495de251b724cdd90dd8e95990ebba19056dfa48add8d76d14758d33a1",
-      "note": "Nome validado pelo FileValidator antes de chegar aqui"
+      "fingerprint": "0f0fff2e1c90d052b8c05ddcc41208a19117d0ea6fc2f79d4effb81bba229891",
+      "note": "storage_dir usa UUID + version_number gerados pelo sistema, seguro"
+    },
+    {
+      "fingerprint": "8be2aecf90d2b5d505e981db7c3656507d7e31f39d9a22bfeffff2edb945925a",
+      "note": "version_id escopo de uuid seguro, preview_file definido pelo sistema"
+    },
+    {
+      "fingerprint": "19af8a46f7e6dc9ccb6566c73aca2c6d1e83943c6f318c1157cb2a34decc84cb",
+      "note": "approved_original_path usa UUID gerado pelo sistema, filename/extension validados"
+    },
+    {
+      "fingerprint": "a8855a2a3f81e158bebb22c77a884e8909ac433d713076e6ed8f503251ec5e81",
+      "note": "storage_dir usa UUID + version_number gerados pelo sistema, seguro"
+    },
+    {
+      "fingerprint": "04c0440e2f1e10458899b6ef2c8baa1d8f1c030f7e315dc7cfb557679b716b37",
+      "note": "original_filename validado pelo FileValidator antes de ser usado"
     }
   ]
 }
