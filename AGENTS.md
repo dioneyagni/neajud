@@ -101,6 +101,20 @@ bash bin/e2e --headed         # Playwright E2E (visible browser)
 
 Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --exit-on-warn`
 
+## Workflow: CI-first merge
+
+After finishing a bug fix or feature:
+
+1. Push the branch to origin.
+2. Wait for CI to complete on GitHub.
+3. Check CI output (expand the `test` and `e2e` jobs).
+4. If CI fails → fix the errors locally, re-push, and repeat from step 2.
+5. If CI passes → merge into main and push to origin.
+   ```bash
+   git checkout main && git merge <branch> && git push origin main
+   ```
+   Or, if already on main (squash workflow), simply verify CI passed before pushing.
+
 ## Architecture
 
 Monolithic Rails 8.1, SQLite3, Hotwire, SolidQueue, ImageMagick.
