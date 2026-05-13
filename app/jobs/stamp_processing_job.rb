@@ -47,12 +47,19 @@ class StampProcessingJob < ApplicationJob
     dims = `identify -format '%w %h\\n' #{src} 2>/dev/null`.strip.split
     dpi_raw = `identify -format '%x %y\\n' #{src} 2>/dev/null`.strip.split
     icc = extract_icc_name(input_path)
+    other_raw = `identify -format '%[compression]|%[depth]|%[channels]\\n' #{src} 2>/dev/null`.strip.split("|")
 
     stamp.update!(
       icc_profile: icc.presence,
       width_px: dims[0].to_i,
       height_px: dims[1].to_i,
-      dpi: dpi_raw[0].to_f
+      dpi: dpi_raw[0].to_f,
+      metadata: {
+        compression: other_raw[0].presence,
+        depth: other_raw[1].to_i > 0 ? other_raw[1].to_i : nil,
+        channels: other_raw[2].presence,
+        file_size: File.size(input_path)
+      }.compact
     )
   end
 

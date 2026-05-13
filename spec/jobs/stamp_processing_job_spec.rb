@@ -204,6 +204,15 @@ RSpec.describe StampProcessingJob do
       stamp.reload
       expect(stamp.dpi).to eq(300.0)
     end
+
+    it "extracts metadata JSON (compression, depth, channels, file_size)" do
+      job.send(:extract_metadata, stamp)
+      stamp.reload
+      expect(stamp.metadata["compression"]).to eq("LZW")
+      expect(stamp.metadata["depth"]).to eq(8)
+      expect(stamp.metadata["channels"]).to eq("srgb")
+      expect(stamp.metadata["file_size"]).to be > 0
+    end
   end
 
   describe "routing in #process_image" do
@@ -262,6 +271,8 @@ RSpec.describe StampProcessingJob do
       expect(real_stamp.width_px).to eq(609)
       expect(real_stamp.height_px).to eq(486)
       expect(real_stamp.dpi).to eq(300.0)
+      expect(real_stamp.metadata["compression"]).to eq("LZW")
+      expect(real_stamp.metadata["file_size"]).to be > 0
     end
   end
 end

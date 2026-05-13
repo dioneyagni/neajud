@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_020707) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_022432) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -57,6 +57,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_020707) do
     t.boolean "has_spots", default: false
     t.integer "height_px"
     t.string "icc_profile"
+    t.json "metadata", default: {}
     t.string "mime_type", null: false
     t.string "original_file"
     t.string "overlay_file"
