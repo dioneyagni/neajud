@@ -85,6 +85,8 @@ export default class extends Controller {
     this.submitTarget.value = "Uploading..."
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+    const batchStartedAt = new Date().toISOString()
+    const batchSize = this.files.length
 
     let success = 0
     let failure = 0
@@ -94,6 +96,8 @@ export default class extends Controller {
 
       const fd = new FormData()
       fd.append("stamp[original_file]", file)
+      fd.append("stamp[batch_started_at]", batchStartedAt)
+      fd.append("stamp[batch_size]", batchSize)
       if (csrf) fd.append("authenticity_token", csrf)
 
       try {

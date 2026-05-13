@@ -23,6 +23,7 @@ class StampsController < ApplicationController
     end
 
     extract_file_metadata!(@stamp)
+    estimate_time!(@stamp) if params.dig(:stamp, :batch_started_at).present?
 
     if validate_file_size! && validate_file_type! && @stamp.save
       save_uploaded_file(@stamp)
@@ -150,6 +151,19 @@ class StampsController < ApplicationController
 
   def not_found
     render plain: "Not found", status: :not_found
+  end
+
+  def estimate_time!(stamp)
+    batch_started_at = Time.parse(params[:stamp][:batch_started_at])
+    batch_size = params[:stamp][:batch_size].to_i
+    last_stamp_time = Stamp.where("created_at < ?", batch_started_at).maximum(:created_at)
+
+    if last_stamp_time
+      interval = (batch_started_at - last_stamp_time).to_i
+      stamp.estimated_seconds = [ interval / batch_size, 0 ].max
+    else
+      stamp.estimated_seconds = 0
+    end
   end
 
   def stamp_params

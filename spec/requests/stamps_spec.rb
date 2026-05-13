@@ -116,6 +116,35 @@ RSpec.describe "Stamps", type: :request do
       post stamps_path, params: params
       expect(response).to have_http_status(:unprocessable_content)
     end
+
+    describe "estimated_seconds" do
+      before do
+        Stamp.delete_all
+        create(:stamp, created_at: reference_time)
+      end
+
+      let(:reference_time) { 10.minutes.ago }
+      let(:file) { Rack::Test::UploadedFile.new(Rails.root.join("e2e/test-image.tif"), "image/tiff") }
+
+      it "sets 0 when no previous stamp exists" do
+        Stamp.delete_all
+        params = { stamp: { original_file: file, batch_started_at: reference_time.iso8601, batch_size: 1 } }
+        post stamps_path, params: params
+        expect(Stamp.last.estimated_seconds).to eq(0)
+      end
+
+      it "sets interval divided by batch_size when previous stamp exists" do
+        params = { stamp: { original_file: file, batch_started_at: Time.current.iso8601, batch_size: 4 } }
+        post stamps_path, params: params
+        # interval ~= 10.minutes = 600s, /4 = ~150
+        expect(Stamp.last.estimated_seconds).to be_between(140, 160)
+      end
+
+      it "stays 0 when no batch params are sent" do
+        post stamps_path, params: { stamp: { original_file: file } }
+        expect(Stamp.last.estimated_seconds).to eq(0)
+      end
+    end
   end
 
   describe "GET / (gallery) with stale preview" do
