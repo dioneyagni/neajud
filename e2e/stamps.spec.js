@@ -236,7 +236,7 @@ async function run() {
 
   // ── 4 preview strategies ──
 
-  const testImagesDir = path.join(__dirname, "..", "tmp", "files-upload");
+  const testImagesDir = path.join(__dirname, "..", "spec", "fixtures", "files");
 
   async function uploadAndVerify(label, filename, expectedCs, checkPixels = true) {
     await test(`${label}: ${filename} processes and shows preview`, async () => {

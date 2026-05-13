@@ -44,7 +44,7 @@
   (decompress IDAT and check non-zero alpha + RGB).
 - CMYK spot via UTIF.js is a known limitation — test only file validity,
   not pixel content.
-- `detect_spots` tests use real files from `tmp/files-upload/` to verify
+- `detect_spots` tests use real files from `spec/fixtures/files/` to verify
   spot detection accuracy (including `Transparency` filtering).
 
 ### E2E tests

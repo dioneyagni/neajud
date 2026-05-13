@@ -4,7 +4,7 @@ require "open3"
 RSpec.describe StampProcessingJob do
   let(:stamp) { create(:stamp) }
   let(:job) { described_class.new }
-  let(:original_path) { Rails.root.join("tmp", "files-upload") }
+  let(:original_path) { Rails.root.join("spec", "fixtures", "files") }
 
   def png_dimensions(path)
     return nil unless File.exist?(path)
