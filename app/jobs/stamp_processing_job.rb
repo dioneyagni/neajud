@@ -11,6 +11,7 @@ class StampProcessingJob < ApplicationJob
 
     validate_format!(stamp)
     detect_spots(stamp)
+    extract_metadata(stamp)
     process_image(stamp)
 
     stamp.update!(status: :processed)
@@ -37,6 +38,22 @@ class StampProcessingJob < ApplicationJob
     names = result.split(",").map(&:strip).reject(&:empty?)
     real_spots = names.reject { |n| n == "Transparency" }
     stamp.update!(has_spots: real_spots.any?)
+  end
+
+  def extract_metadata(stamp)
+    input_path = storage_path(stamp, "original", stamp.original_file)
+    src = "#{Shellwords.escape(input_path)}[0]"
+
+    icc = `identify -format '%[icc:description]\\n' #{src} 2>/dev/null`.strip
+    dims = `identify -format '%w %h\\n' #{src} 2>/dev/null`.strip.split
+    dpi_raw = `identify -format '%x %y\\n' #{src} 2>/dev/null`.strip.split
+
+    stamp.update!(
+      icc_profile: icc.presence,
+      width_px: dims[0].to_i,
+      height_px: dims[1].to_i,
+      dpi: dpi_raw[0].to_f
+    )
   end
 
   def process_image(stamp)

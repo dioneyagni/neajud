@@ -174,6 +174,38 @@ RSpec.describe StampProcessingJob do
     end
   end
 
+  describe "#extract_metadata" do
+    before do
+      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", stamp.uuid, "original"))
+      FileUtils.cp(original_path.join("02-no_spot.tif"),
+                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.tif"))
+      stamp.update!(original_file: "test.tif")
+    end
+
+    after do
+      FileUtils.rm_rf(Rails.root.join("storage", "stamps", stamp.uuid))
+    end
+
+    it "extracts ICC profile name" do
+      job.send(:extract_metadata, stamp)
+      stamp.reload
+      expect(stamp.icc_profile).to eq("Adobe RGB (1998)")
+    end
+
+    it "extracts pixel dimensions" do
+      job.send(:extract_metadata, stamp)
+      stamp.reload
+      expect(stamp.width_px).to eq(609)
+      expect(stamp.height_px).to eq(486)
+    end
+
+    it "extracts DPI" do
+      job.send(:extract_metadata, stamp)
+      stamp.reload
+      expect(stamp.dpi).to eq(300.0)
+    end
+  end
+
   describe "routing in #process_image" do
     before do
       FileUtils.mkdir_p(Rails.root.join("storage", "stamps", stamp.uuid, "original"))
@@ -226,6 +258,10 @@ RSpec.describe StampProcessingJob do
       expect(File.exist?(real_stamp.preview_file)).to be true
       dims = png_dimensions(real_stamp.preview_file)
       expect(dims).to eq([ 609, 486 ])
+      expect(real_stamp.icc_profile).to eq("Adobe RGB (1998)")
+      expect(real_stamp.width_px).to eq(609)
+      expect(real_stamp.height_px).to eq(486)
+      expect(real_stamp.dpi).to eq(300.0)
     end
   end
 end

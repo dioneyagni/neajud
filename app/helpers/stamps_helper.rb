@@ -10,4 +10,9 @@ module StampsHelper
   def preview_stamp_url(stamp)
     preview_stamp_path(stamp) if stamp.preview_file.present?
   end
+
+  def format_cm(pixels, dpi)
+    return nil unless pixels && dpi&.positive?
+    format("%.1f", pixels * 2.54 / dpi)
+  end
 end

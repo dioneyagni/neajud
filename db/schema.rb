@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_11_141535) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_020707) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -50,10 +50,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_11_141535) do
     t.string "batch_id"
     t.string "colorspace"
     t.datetime "created_at", null: false
+    t.float "dpi"
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
     t.boolean "has_spots", default: false
+    t.integer "height_px"
+    t.string "icc_profile"
     t.string "mime_type", null: false
     t.string "original_file"
     t.string "overlay_file"
@@ -61,6 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_11_141535) do
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "width_px"
     t.index ["status"], name: "index_stamps_on_status"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
   end

@@ -9,6 +9,10 @@
     <dd><%= @stamp.colorspace || "Unknown" %></dd>
     <dt>Has Spots</dt>
     <dd><%= @stamp.has_spots? ? "Yes" : "No" %></dd>
+    <dt>ICC Profile</dt>
+    <dd><%= @stamp.icc_profile.presence || "None" %></dd>
+    <dt>Dimensions</dt>
+    <dd><%= @stamp.width_px %>x<%= @stamp.height_px %> px (<%= format_cm(@stamp.width_px, @stamp.dpi) %>x<%= format_cm(@stamp.height_px, @stamp.dpi) %> cm)</dd>
     <dt>Estimated Time</dt>
     <dd><%= format_time(@stamp.estimated_seconds) %></dd>
     <dt>Annotated Time</dt>
