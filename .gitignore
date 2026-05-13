@@ -36,5 +36,4 @@
 # Node dependencies for E2E tests
 /node_modules/
 /package.json
-/package-lock.json
 
