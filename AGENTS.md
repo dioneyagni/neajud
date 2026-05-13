@@ -103,13 +103,16 @@ Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --exit-on-warn`
 
 ## Workflow: CI-first merge
 
-After finishing a bug fix or feature:
+After finishing a bug fix or feature, run through this cycle:
 
-1. Push the branch to origin.
-2. Wait for CI to complete on GitHub.
-3. Check CI output (expand the `test` and `e2e` jobs).
-4. If CI fails → fix the errors locally, re-push, and repeat from step 2.
-5. If CI passes → merge into main and push to origin.
+0. **Ask the user** whether to proceed with commit → push → wait for CI → merge.
+   Only proceed if they explicitly confirm.
+1. Commit all changes (descriptive message with WHAT and WHY).
+2. Push the branch to origin.
+3. Wait for CI to complete on GitHub.
+4. Check CI output (expand the `test` and `e2e` jobs).
+5. If CI fails → fix the errors locally, re-push, and repeat from step 3.
+6. If CI passes → merge into main and push to origin.
    ```bash
    git checkout main && git merge <branch> && git push origin main
    ```
