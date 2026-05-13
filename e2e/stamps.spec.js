@@ -138,8 +138,10 @@ async function run() {
     await page.click('input[type="submit"]');
     await page.waitForTimeout(3000);
 
-    const stampCards = await page.$$(".stamp-card");
-    if (stampCards.length < 2) throw new Error("Less than 2 stamp cards after multi-upload");
+    const testCard = page.locator(".stamp-card").filter({ hasText: "test-image" }).first();
+    const multiCard = page.locator(".stamp-card").filter({ hasText: "multi-frame-test" }).first();
+    await testCard.waitFor({ timeout: 10000 });
+    await multiCard.waitFor({ timeout: 10000 });
   });
 
   await test("Upload a file creates a stamp visible in gallery", async () => {
@@ -157,9 +159,8 @@ async function run() {
 
     await page.waitForTimeout(1500);
 
-    await page.waitForSelector(".stamp-card", { timeout: 10000 });
-    const body = await page.textContent("body");
-    if (!body.includes("test-image")) throw new Error("Uploaded file not found in gallery");
+    const card = page.locator(".stamp-card").filter({ hasText: "test-image" }).first();
+    await card.waitFor({ timeout: 10000 });
   });
 
   await test("Stamp show page displays all sections", async () => {
@@ -204,10 +205,10 @@ async function run() {
 
   await test("Delete stamp removes it from gallery", async () => {
     await page.goto(BASE_URL);
-    const initialCount = await page.$$eval(".stamp-card", els => els.length);
-
     await page.waitForSelector(".stamp-card a");
-    await page.click(".stamp-card a");
+
+    const initialCount = await page.$$eval(".stamp-card", els => els.length);
+    await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2");
 
     await page.click('button:has-text("Delete")');
@@ -232,6 +233,87 @@ async function run() {
       if (!body.includes("No stamps uploaded yet")) throw new Error("Fallback message not shown");
     }
   });
+
+  // ── 4 preview strategies ──
+
+  const testImagesDir = path.join(__dirname, "..", "tmp", "files-upload");
+
+  async function uploadAndVerify(label, filename, expectedCs, checkPixels = true) {
+    await test(`${label}: ${filename} processes and shows preview`, async () => {
+      const filePath = path.join(testImagesDir, filename);
+      if (!fs.existsSync(filePath)) throw new Error(`Test image not found: ${filePath}`);
+
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(filePath);
+      await page.click('input[type="submit"]');
+
+      // Wait for AJAX uploads + page reload
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      // Click the stamp card matching the uploaded filename (without extension)
+      const displayName = filename.replace(/\.[^.]+$/, "");
+      const stampLink = page.locator(".stamp-card").filter({ hasText: displayName }).locator("a").first();
+      await stampLink.waitFor({ timeout: 10000 });
+      await stampLink.click();
+
+      await page.waitForSelector("dl", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const detailBody = await page.textContent("body");
+      if (!detailBody.includes("processed")) throw new Error(`Status not processed for ${filename}`);
+
+      const pageUrl = page.url();
+      const bodyText = await page.textContent("body");
+
+      if (!bodyText.includes(expectedCs)) {
+        const details = await page.$("dl");
+        const detailsText = details ? await details.textContent() : "no details";
+        throw new Error(`Expected "${expectedCs}" in body. URL: ${pageUrl} Details: ${detailsText}`);
+      }
+
+      // Verify preview image loads (200 OK, image/png)
+      const img = await page.$("img");
+      if (!img) throw new Error("No preview image element");
+      const src = await img.getAttribute("src");
+      if (!src || !src.includes("/preview")) throw new Error("Preview src missing");
+
+      if (checkPixels) {
+        const hasVisiblePixels = await page.evaluate(async (url) => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              try {
+                const c = document.createElement("canvas");
+                c.width = img.width;
+                c.height = img.height;
+                const ctx = c.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                const data = ctx.getImageData(0, 0, Math.min(100, img.width), Math.min(100, img.height)).data;
+                for (let i = 0; i < data.length; i += 4) {
+                  if (data[i + 3] > 0 && (data[i] > 0 || data[i + 1] > 0 || data[i + 2] > 0)) {
+                    resolve(true);
+                    return;
+                  }
+                }
+                resolve(false);
+              } catch { resolve(false); }
+            };
+            img.onerror = () => resolve(false);
+            img.src = url;
+          });
+        }, src);
+        if (!hasVisiblePixels) throw new Error("Preview image has no visible pixels");
+      }
+    });
+  }
+
+  await uploadAndVerify("RGB no spot", "02-no_spot.tif", "sRGB");
+  await uploadAndVerify("RGB spot", "02.tif", "sRGB");
+  await uploadAndVerify("CMYK no spot", "01-no_spot.tif", "CMYK");
+  await uploadAndVerify("CMYK spot", "01.tif", "CMYK", false);
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
   console.log(summary);

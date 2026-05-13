@@ -10,8 +10,8 @@ class StampProcessingJob < ApplicationJob
     stamp.update!(status: :processing)
 
     validate_format!(stamp)
-    process_image(stamp)
     detect_spots(stamp)
+    process_image(stamp)
 
     stamp.update!(status: :processed)
   rescue StandardError => e
@@ -29,6 +29,16 @@ class StampProcessingJob < ApplicationJob
     end
   end
 
+  def detect_spots(stamp)
+    return unless %w[tif tiff psd].include?(stamp.extension.downcase)
+
+    input_path = storage_path(stamp, "original", stamp.original_file)
+    result = `exiftool -s3 -AlphaChannelsNames #{Shellwords.escape(input_path)} 2>/dev/null`.strip
+    names = result.split(",").map(&:strip).reject(&:empty?)
+    real_spots = names.reject { |n| n == "Transparency" }
+    stamp.update!(has_spots: real_spots.any?)
+  end
+
   def process_image(stamp)
     input_path = storage_path(stamp, "original", stamp.original_file)
     output_dir = storage_path(stamp, "preview")
@@ -36,34 +46,35 @@ class StampProcessingJob < ApplicationJob
 
     preview_path = File.join(output_dir, "preview.png")
 
-    cmd = build_convert_command(input_path, preview_path, stamp)
-    system(cmd) || raise("ImageMagick command failed: #{cmd}")
-    raise("Preview file not created after convert") unless File.exist?(preview_path)
+    if stamp.has_spots?
+      generate_preview_utif(input_path, preview_path)
+    elsif stamp.colorspace == "CMYK"
+      generate_preview_cmyk(input_path, preview_path)
+    else
+      generate_preview_rgb(input_path, preview_path)
+    end
 
+    raise("Preview file not created") unless File.exist?(preview_path)
     stamp.update!(preview_file: preview_path.to_s)
   end
 
-  def build_convert_command(input, output, stamp)
-    src = "#{Shellwords.escape(input)}[0]"
-    if stamp.colorspace == "CMYK"
-      "convert #{src} -colorspace sRGB -type TrueColorAlpha #{Shellwords.escape(output)}"
-    else
-      "convert #{src} -resize 1200x1200\\> -type TrueColorAlpha #{Shellwords.escape(output)}"
-    end
+  def generate_preview_rgb(input, output)
+    system("convert", "#{input}[0]",
+           "-resize", "1200x1200>",
+           "-type", "TrueColorAlpha",
+           output.to_s) || raise("ImageMagick command failed")
   end
 
-  def detect_spots(stamp)
-    return unless %w[tif tiff psd].include?(stamp.extension.downcase)
+  def generate_preview_cmyk(input, output)
+    system("convert", "#{input}[0]",
+           "-profile", Rails.root.join("config", "icc", "USWebCoatedSWOP.icc").to_s,
+           "-profile", Rails.root.join("config", "icc", "sRGB.icc").to_s,
+           "-type", "TrueColorAlpha",
+           output.to_s) || raise("ImageMagick command failed")
+  end
 
-    input_path = storage_path(stamp, "original", stamp.original_file)
-    result = `identify -verbose #{Shellwords.escape(input_path)}[0]`
-
-    if result.include?("Channel")
-      spot_channels = result.scan(/Channel (\w+):/).flatten
-      cmyk_channels = %w[Cyan Magenta Yellow Black]
-      non_cmyk = spot_channels.reject { |c| cmyk_channels.include?(c) || c =~ /^(Gray|Alpha|Red|Green|Blue)$/ }
-      stamp.update!(has_spots: non_cmyk.any?)
-    end
+  def generate_preview_utif(input, output)
+    system("node", Rails.root.join("bin", "generate-preview.js").to_s, input, output) || raise("UTIF preview failed")
   end
 
   def storage_path(stamp, type, filename = nil)

@@ -17,7 +17,7 @@
       <%= f.file_field :original_file, multiple: true,
             data: { upload_target: "input", action: "change->upload#fileSelected" },
             accept: ".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr",
-            style: "display: none" %>
+            class: "upload-file-input" %>
     </div>
     <div class="upload-file-list" data-upload-target="fileList"></div>
     <%= f.submit "Upload", data: { upload_target: "submit" } %>

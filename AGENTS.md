@@ -29,7 +29,43 @@
   not inline stubs.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
   self-validating, timely.
-- Test the Rails server, observe any errors in the console and correct them, shut down and restart the server and all related processes. When there are no errors in the console, test e2e, then e2e --headed and check if everything goes through. Correct what is necessary and test again.
+- Test the Rails server, observe any errors in the console and correct them,
+  shut down and restart the server and all related processes. When there are
+  no errors in the console, test e2e, then e2e --headed and check if
+  everything goes through. Correct what is necessary and test again.
+
+### Job & image processing tests
+
+- `spec/jobs/stamp_processing_job_spec.rb` tests each conversion method
+  (`generate_preview_rgb`, `generate_preview_cmyk`, `generate_preview_utif`,
+  `detect_spots`, `process_image` routing).
+- Each conversion test **must** verify: (1) a valid PNG is produced,
+  (2) dimensions match the source, (3) the PNG contains visible pixels
+  (decompress IDAT and check non-zero alpha + RGB).
+- CMYK spot via UTIF.js is a known limitation — test only file validity,
+  not pixel content.
+- `detect_spots` tests use real files from `tmp/files-upload/` to verify
+  spot detection accuracy (including `Transparency` filtering).
+
+### E2E tests
+
+- `e2e/stamps.spec.js` covers all 4 preview strategies: RGB no-spot,
+  RGB spot, CMYK no-spot, CMYK spot.
+- Each preview test **must** verify: (1) status is `processed`,
+  (2) colorspace label matches expected, (3) preview image loads (200 OK,
+  `image/*` content-type), (4) preview has visible pixels (load into canvas,
+  check first 100x100 region for non-zero alpha + RGB).
+- CMYK spot is exempt from pixel validation (UTIF.js limitation).
+- Stamp card selectors must match by **filename without extension** using
+  `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
+  flaky clicks on wrong cards when multiple stamps exist.
+- Run 3 times in succession to verify stability.
+
+### Preventing false positives
+
+Tests that only check "does an image load at the URL" miss bugs where
+the image is all-transparent or wrong colorspace. Every image conversion
+test must validate **pixel content**, not just file existence.
 
 ## Dependencies
 
@@ -99,10 +135,69 @@ Shellwords.escape(input) + "[0]"
 
 Always use `2>/dev/null` (not `2>&1`) — ImageMagick stderr is noisy.
 
+## Preview generation (4 cases)
+
+StampProcessingJob selects strategy based on colorspace + spot detection:
+
+| Case | Method | Tool |
+|------|--------|------|
+| RGB, no spot | `generate_preview_rgb` | ImageMagick convert (resize + TrueColorAlpha) |
+| RGB, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
+| CMYK, no spot | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
+| CMYK, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
+
+Spot detection uses `exiftool -s3 -AlphaChannelsNames` (faster and more reliable than `identify -verbose`). Channels named `Transparency` are ignored — only real spot names count.
+
+## RGB no-spot preview
+
+Simple ImageMagick resize with `-type TrueColorAlpha` to preserve transparency:
+
+```ruby
+convert input.tif[0] -resize 1200x1200> -type TrueColorAlpha output.png
+```
+
+The `>` after dimensions means "shrink only" — images smaller than 1200px are
+not upscaled. `-type TrueColorAlpha` ensures the PNG has an alpha channel so
+transparent backgrounds remain transparent.
+
+## CMYK no-spot preview
+
+Uses two explicit ICC profiles — source and destination — which ImageMagick
+interprets as a colorspace conversion:
+
+```ruby
+convert input.tif[0] -profile USWebCoatedSWOP.icc -profile sRGB.icc -type TrueColorAlpha output.png
+```
+
+`USWebCoatedSWOP.icc` (557KB, "U.S. Web Coated (SWOP) v2") was extracted from
+the reference test files. The two `-profile` flags (source then destination)
+tell ImageMagick to convert between them, producing correct sRGB output.
+
+The `system()` call uses the array form (`system("convert", arg1, arg2, ...)`)
+to avoid shell injection and keep Brakeman's Command Injection check clean.
+
+## UTIF.js known bugs (RGB spot)
+
+UTIF.js `toRGBA8()` only handles `smpls==3` (RGB) and `smpls==4` (RGBA) for
+RGB photometric interpretation (intp==2). Files with extra channels
+(spots/alpha) have `smpls>=5` and neither branch is entered, returning an
+all-zero buffer (fully transparent image).
+
+The fix is in `bin/generate-preview.js`: after `toRGBA8()`, if `spp > 4`,
+copy the first 3 raw samples as RGB and set alpha=255, ignoring extra
+channels. This affects RGB+spot TIFFs (e.g. 02.tif has 5 samples:
+R,G,B,alpha,Spot_1 → we use R,G,B only).
+
+## Dependencies
+
+- `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
+- UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
+- ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
+
 ## Key constraints
 
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
 - Stamp routes use `uuid` (`Stamp.find_by!(uuid:)`), not integer id
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Stamp::SUPPORTED_EXTENSIONS`
 - CI runs brakeman → bundler-audit → importmap audit → rubocop → rspec → e2e
-- System dependency: `imagemagick` package required
+- System dependencies: `imagemagick`, `exiftool` packages required
