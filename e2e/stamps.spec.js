@@ -314,6 +314,8 @@ async function run() {
   await uploadAndVerify("RGB spot", "02.tif", "sRGB");
   await uploadAndVerify("CMYK no spot", "01-no_spot.tif", "CMYK");
   await uploadAndVerify("CMYK spot", "01.tif", "CMYK", false);
+  await uploadAndVerify("PSD RGB no spot", "02-no_spot.psd", "sRGB");
+  await uploadAndVerify("PSD CMYK no spot", "01-no_spot.psd", "CMYK");
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
   console.log(summary);

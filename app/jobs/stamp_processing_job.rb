@@ -88,7 +88,8 @@ class StampProcessingJob < ApplicationJob
 
     preview_path = File.join(output_dir, "preview.png")
 
-    if stamp.has_spots?
+    extension = stamp.extension.downcase
+    if stamp.has_spots? && %w[tif tiff].include?(extension)
       generate_preview_utif(input_path, preview_path)
     elsif stamp.colorspace == "CMYK"
       generate_preview_cmyk(input_path, preview_path)

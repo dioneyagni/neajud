@@ -149,16 +149,18 @@ Shellwords.escape(input) + "[0]"
 
 Always use `2>/dev/null` (not `2>&1`) — ImageMagick stderr is noisy.
 
-## Preview generation (4 cases)
+## Preview generation
 
-StampProcessingJob selects strategy based on colorspace + spot detection:
+StampProcessingJob selects strategy based on extension, spots + colorspace:
 
 | Case | Method | Tool |
 |------|--------|------|
-| RGB, no spot | `generate_preview_rgb` | ImageMagick convert (resize + TrueColorAlpha) |
-| RGB, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
-| CMYK, no spot | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
-| CMYK, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
+| TIFF, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
+| CMYK | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
+| RGB (or PSD spot) | `generate_preview_rgb` | ImageMagick convert (resize + TrueColorAlpha) |
+
+PSD files with spots use ImageMagick (not UTIF.js, which only handles TIFF). PSD
+CMYK without spots also uses the ICC convert path from the table above.
 
 Spot detection uses `exiftool -s3 -AlphaChannelsNames` (faster and more reliable than `identify -verbose`). Channels named `Transparency` are ignored — only real spot names count.
 

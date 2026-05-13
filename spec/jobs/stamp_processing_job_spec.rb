@@ -47,47 +47,61 @@ RSpec.describe StampProcessingJob do
   end
 
   describe "#generate_preview_rgb" do
-    let(:input) { original_path.join("02-no_spot.tif").to_s }
-    let(:output) { Rails.root.join("tmp", "test-rgb-output.png").to_s }
+    shared_examples "RGB preview" do |label, input_file|
+      context "with #{label}" do
+        let(:input) { original_path.join(input_file).to_s }
+        let(:output) { Rails.root.join("tmp", "test-rgb-#{label.parameterize}.png").to_s }
 
-    after { File.delete(output) if File.exist?(output) }
+        after { File.delete(output) if File.exist?(output) }
 
-    it "produces a valid PNG" do
-      job.send(:generate_preview_rgb, input, output)
-      expect(File.exist?(output)).to be true
-      dims = png_dimensions(output)
-      expect(dims).to eq([ 609, 486 ])
+        it "produces a valid PNG" do
+          job.send(:generate_preview_rgb, input, output)
+          expect(File.exist?(output)).to be true
+          dims = png_dimensions(output)
+          expect(dims).to eq([ 609, 486 ])
+        end
+
+        it "produces a PNG with visible pixels" do
+          job.send(:generate_preview_rgb, input, output)
+          expect(png_has_visible_pixels?(output)).to be true
+        end
+      end
     end
 
-    it "produces a PNG with visible pixels" do
-      job.send(:generate_preview_rgb, input, output)
-      expect(png_has_visible_pixels?(output)).to be true
-    end
+    include_examples "RGB preview", "TIFF RGB no-spot", "02-no_spot.tif"
+    include_examples "RGB preview", "PSD RGB no-spot", "02-no_spot.psd"
   end
 
   describe "#generate_preview_cmyk" do
-    let(:input) { original_path.join("01-no_spot.tif").to_s }
-    let(:output) { Rails.root.join("tmp", "test-cmyk-output.png").to_s }
+    shared_examples "CMYK preview" do |label, input_file|
+      context "with #{label}" do
+        let(:input) { original_path.join(input_file).to_s }
+        let(:output) { Rails.root.join("tmp", "test-cmyk-#{label.parameterize}.png").to_s }
 
-    after { File.delete(output) if File.exist?(output) }
+        after { File.delete(output) if File.exist?(output) }
 
-    it "produces a valid PNG" do
-      job.send(:generate_preview_cmyk, input, output)
-      expect(File.exist?(output)).to be true
-      dims = png_dimensions(output)
-      expect(dims).to eq([ 609, 486 ])
+        it "produces a valid PNG" do
+          job.send(:generate_preview_cmyk, input, output)
+          expect(File.exist?(output)).to be true
+          dims = png_dimensions(output)
+          expect(dims).to eq([ 609, 486 ])
+        end
+
+        it "produces a PNG with visible pixels" do
+          job.send(:generate_preview_cmyk, input, output)
+          expect(png_has_visible_pixels?(output)).to be true
+        end
+
+        it "converts to sRGB colorspace" do
+          job.send(:generate_preview_cmyk, input, output)
+          cs = `identify -format '%[colorspace]' #{Shellwords.escape(output)} 2>/dev/null`.strip
+          expect(cs).to eq("sRGB")
+        end
+      end
     end
 
-    it "produces a PNG with visible pixels" do
-      job.send(:generate_preview_cmyk, input, output)
-      expect(png_has_visible_pixels?(output)).to be true
-    end
-
-    it "converts to sRGB colorspace" do
-      job.send(:generate_preview_cmyk, input, output)
-      cs = `identify -format '%[colorspace]' #{Shellwords.escape(output)} 2>/dev/null`.strip
-      expect(cs).to eq("sRGB")
-    end
+    include_examples "CMYK preview", "TIFF CMYK no-spot", "01-no_spot.tif"
+    include_examples "CMYK preview", "PSD CMYK no-spot", "01-no_spot.psd"
   end
 
   describe "#generate_preview_utif" do
@@ -167,8 +181,16 @@ RSpec.describe StampProcessingJob do
       expect(stamp.reload.has_spots).to be false
     end
 
-    it "skips detection for non-TIFF formats" do
+    it "skips detection for non-TIFF/PSD formats" do
       stamp.update!(extension: "jpg")
+      job.send(:detect_spots, stamp)
+      expect(stamp.reload.has_spots).to be false
+    end
+
+    it "runs spot detection on PSD files" do
+      FileUtils.cp(original_path.join("02-no_spot.psd"),
+                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.psd"))
+      stamp.update!(original_file: "test.psd", extension: "psd")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be false
     end
@@ -239,9 +261,22 @@ RSpec.describe StampProcessingJob do
       job.send(:process_image, stamp)
     end
 
-    it "routes files with spots to generate_preview_utif regardless of colorspace" do
-      stamp.update!(has_spots: true, colorspace: "CMYK")
+    it "routes TIFF files with spots to generate_preview_utif regardless of colorspace" do
+      stamp.update!(has_spots: true, colorspace: "CMYK", extension: "tif")
       expect(job).to receive(:generate_preview_utif).and_call_original
+      job.send(:process_image, stamp)
+    end
+
+    it "routes PSD files with spots to generate_preview_rgb (not utif)" do
+      stamp.update!(has_spots: true, colorspace: "sRGB", extension: "psd")
+      expect(job).not_to receive(:generate_preview_utif)
+      expect(job).to receive(:generate_preview_rgb).and_call_original
+      job.send(:process_image, stamp)
+    end
+
+    it "routes PSD CMYK no-spot to generate_preview_cmyk" do
+      stamp.update!(has_spots: false, colorspace: "CMYK", extension: "psd")
+      expect(job).to receive(:generate_preview_cmyk).and_call_original
       job.send(:process_image, stamp)
     end
   end
@@ -259,7 +294,7 @@ RSpec.describe StampProcessingJob do
       FileUtils.rm_rf(Rails.root.join("storage", "stamps", real_stamp.uuid))
     end
 
-    it "processes a stamp end-to-end" do
+    it "processes a TIFF stamp end-to-end" do
       described_class.perform_now(real_stamp.id)
       real_stamp.reload
       expect(real_stamp.status).to eq("processed")
@@ -273,6 +308,25 @@ RSpec.describe StampProcessingJob do
       expect(real_stamp.dpi).to eq(300.0)
       expect(real_stamp.metadata["compression"]).to eq("LZW")
       expect(real_stamp.metadata["file_size"]).to be > 0
+    end
+
+    it "processes a PSD stamp end-to-end" do
+      psd_stamp = create(:stamp, original_file: "test.psd", extension: "psd", colorspace: "sRGB")
+      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", psd_stamp.uuid, "original"))
+      FileUtils.cp(original_path.join("02-no_spot.psd"),
+                   Rails.root.join("storage", "stamps", psd_stamp.uuid, "original", "test.psd"))
+
+      described_class.perform_now(psd_stamp.id)
+      psd_stamp.reload
+      expect(psd_stamp.status).to eq("processed")
+      expect(psd_stamp.preview_file).not_to be_nil
+      expect(File.exist?(psd_stamp.preview_file)).to be true
+      dims = png_dimensions(psd_stamp.preview_file)
+      expect(dims).to eq([ 609, 486 ])
+      expect(psd_stamp.icc_profile).to eq("Adobe RGB (1998)")
+
+      FileUtils.rm_rf(Rails.root.join("storage", "stamps", psd_stamp.uuid))
+      psd_stamp.destroy!
     end
   end
 end
