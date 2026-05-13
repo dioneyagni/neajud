@@ -42,11 +42,11 @@ class StampProcessingJob < ApplicationJob
 
   def extract_metadata(stamp)
     input_path = storage_path(stamp, "original", stamp.original_file)
-    src = "#{Shellwords.escape(input_path)}[0]"
+    src = Shellwords.escape("#{input_path}[0]")
 
-    icc = `identify -format '%[icc:description]\\n' #{src} 2>/dev/null`.strip
     dims = `identify -format '%w %h\\n' #{src} 2>/dev/null`.strip.split
     dpi_raw = `identify -format '%x %y\\n' #{src} 2>/dev/null`.strip.split
+    icc = extract_icc_name(input_path)
 
     stamp.update!(
       icc_profile: icc.presence,
@@ -54,6 +54,24 @@ class StampProcessingJob < ApplicationJob
       height_px: dims[1].to_i,
       dpi: dpi_raw[0].to_f
     )
+  end
+
+  def extract_icc_name(path)
+    src = Shellwords.escape("#{path}[0]")
+
+    name = `identify -format '%[icc:description]\\n' #{src} 2>/dev/null`.strip
+    return name unless name.blank?
+
+    name = `identify -format '%[photoshop:ICCProfile]\\n' #{src} 2>/dev/null`.strip
+    return name unless name.blank?
+
+    verbose = `identify -verbose #{src} 2>/dev/null`
+    name = verbose[/icc:description:\s*(.+)/, 1]
+    return name.strip if name
+    name = verbose[/photoshop:ICCProfile:\s*(.+)/, 1]
+    return name.strip if name
+
+    nil
   end
 
   def process_image(stamp)
