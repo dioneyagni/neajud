@@ -33,7 +33,7 @@ export default class extends Controller {
   }
 
   addFiles(newFiles) {
-    const allowed = [".tif", ".tiff", ".psd", ".jpg", ".jpeg", ".ai", ".eps", ".cdr"]
+    const allowed = (this.element.dataset.allowedExtensions || ".tif,.tiff,.psd,.ai,.eps,.cdr,.pdf,.dxf,.svg,.dwg,.cad").split(",")
     for (const f of newFiles) {
       const ext = "." + f.name.split(".").pop().toLowerCase()
       if (allowed.includes(ext)) {

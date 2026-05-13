@@ -17,8 +17,9 @@ class Stamp < ApplicationRecord
   validates :extension, presence: true
   validates :mime_type, presence: true
   validates :status, presence: true
+  validates :category, inclusion: { in: FileCategory.keys }, allow_nil: true
 
-  SUPPORTED_EXTENSIONS = %w[tif tiff psd jpg jpeg ai eps cdr].freeze
+  SUPPORTED_EXTENSIONS = FileCategory.extensions
 
   def to_param
     uuid

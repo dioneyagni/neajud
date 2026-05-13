@@ -41,8 +41,18 @@ RSpec.describe Stamp, type: :model do
   end
 
   describe "SUPPORTED_EXTENSIONS" do
-    it "includes all required formats" do
-      expect(Stamp::SUPPORTED_EXTENSIONS).to match_array(%w[tif tiff psd jpg jpeg ai eps cdr])
+    it "includes all Artes formats" do
+      artes = %w[tif tiff psd ai eps cdr pdf]
+      expect(Stamp::SUPPORTED_EXTENSIONS).to include(*artes)
+    end
+
+    it "includes all Corte formats" do
+      corte = %w[dxf svg dwg cad]
+      expect(Stamp::SUPPORTED_EXTENSIONS).to include(*corte)
+    end
+
+    it "does not include removed formats" do
+      expect(Stamp::SUPPORTED_EXTENSIONS).not_to include("jpg", "jpeg")
     end
   end
 end

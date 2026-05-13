@@ -316,6 +316,32 @@ async function run() {
   await uploadAndVerify("CMYK spot", "01.tif", "CMYK", false);
   await uploadAndVerify("PSD RGB no spot", "02-no_spot.psd", "sRGB");
   await uploadAndVerify("PSD CMYK no spot", "01-no_spot.psd", "CMYK");
+  await uploadAndVerify("EPS RGB no spot", "eps-rgb.eps", "sRGB");
+  await uploadAndVerify("EPS CMYK no spot", "eps-cmyk.eps", "CMYK");
+
+  await test("Corte SVG: test.svg uploads and processes (no preview)", async () => {
+    const filePath = path.join(testImagesDir, "test.svg");
+    if (!fs.existsSync(filePath)) throw new Error(`Test image not found: ${filePath}`);
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(filePath);
+    await page.click('input[type="submit"]');
+
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "Extension: svg" }).locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+
+    await page.waitForSelector("dl", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("processed")) throw new Error("Status not processed");
+    if (!body.includes("corte")) throw new Error("Category not corte");
+  });
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
   console.log(summary);

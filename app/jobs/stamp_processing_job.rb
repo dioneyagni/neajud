@@ -12,7 +12,7 @@ class StampProcessingJob < ApplicationJob
     validate_format!(stamp)
     detect_spots(stamp)
     extract_metadata(stamp)
-    process_image(stamp)
+    process_image(stamp) if preview_enabled?(stamp)
 
     stamp.update!(status: :processed)
   rescue StandardError => e
@@ -31,7 +31,8 @@ class StampProcessingJob < ApplicationJob
   end
 
   def detect_spots(stamp)
-    return unless %w[tif tiff psd].include?(stamp.extension.downcase)
+    return unless FileCategory.spot_detection_enabled?(stamp.category) &&
+      FileCategory.for_extension(stamp.extension) == stamp.category
 
     input_path = storage_path(stamp, "original", stamp.original_file)
     result = `exiftool -s3 -AlphaChannelsNames #{Shellwords.escape(input_path)} 2>/dev/null`.strip
@@ -104,7 +105,7 @@ class StampProcessingJob < ApplicationJob
   def generate_preview_rgb(input, output)
     system("convert", "#{input}[0]",
            "-resize", "1200x1200>",
-           "-type", "TrueColorAlpha",
+           "-define", "png:color-type=6",
            output.to_s) || raise("ImageMagick command failed")
   end
 
@@ -112,12 +113,16 @@ class StampProcessingJob < ApplicationJob
     system("convert", "#{input}[0]",
            "-profile", Rails.root.join("config", "icc", "USWebCoatedSWOP.icc").to_s,
            "-profile", Rails.root.join("config", "icc", "sRGB.icc").to_s,
-           "-type", "TrueColorAlpha",
+           "-define", "png:color-type=6",
            output.to_s) || raise("ImageMagick command failed")
   end
 
   def generate_preview_utif(input, output)
     system("node", Rails.root.join("bin", "generate-preview.js").to_s, input, output) || raise("UTIF preview failed")
+  end
+
+  def preview_enabled?(stamp)
+    FileCategory.preview_enabled?(stamp.category)
   end
 
   def storage_path(stamp, type, filename = nil)

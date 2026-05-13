@@ -70,6 +70,7 @@ RSpec.describe StampProcessingJob do
 
     include_examples "RGB preview", "TIFF RGB no-spot", "02-no_spot.tif"
     include_examples "RGB preview", "PSD RGB no-spot", "02-no_spot.psd"
+    include_examples "RGB preview", "EPS RGB no-spot", "eps-rgb.eps"
   end
 
   describe "#generate_preview_cmyk" do
@@ -102,6 +103,7 @@ RSpec.describe StampProcessingJob do
 
     include_examples "CMYK preview", "TIFF CMYK no-spot", "01-no_spot.tif"
     include_examples "CMYK preview", "PSD CMYK no-spot", "01-no_spot.psd"
+    include_examples "CMYK preview", "EPS CMYK no-spot", "eps-cmyk.eps"
   end
 
   describe "#generate_preview_utif" do
@@ -160,7 +162,7 @@ RSpec.describe StampProcessingJob do
     it "detects spots in RGB spot file" do
       FileUtils.cp(original_path.join("02.tif"),
                    Rails.root.join("storage", "stamps", stamp.uuid, "original", "02.tif"))
-      stamp.update!(original_file: "02.tif")
+      stamp.update!(original_file: "02.tif", category: "artes")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be true
     end
@@ -168,7 +170,7 @@ RSpec.describe StampProcessingJob do
     it "detects spots in CMYK spot file" do
       FileUtils.cp(original_path.join("01.tif"),
                    Rails.root.join("storage", "stamps", stamp.uuid, "original", "01.tif"))
-      stamp.update!(original_file: "01.tif")
+      stamp.update!(original_file: "01.tif", category: "artes")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be true
     end
@@ -176,13 +178,13 @@ RSpec.describe StampProcessingJob do
     it "does not detect spots in no-spot files" do
       FileUtils.cp(original_path.join("02-no_spot.tif"),
                    Rails.root.join("storage", "stamps", stamp.uuid, "original", "02-no_spot.tif"))
-      stamp.update!(original_file: "02-no_spot.tif")
+      stamp.update!(original_file: "02-no_spot.tif", category: "artes")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be false
     end
 
-    it "skips detection for non-TIFF/PSD formats" do
-      stamp.update!(extension: "jpg")
+    it "skips detection for corte category (spot_detection: false)" do
+      stamp.update!(extension: "svg", category: "corte")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be false
     end
@@ -190,7 +192,7 @@ RSpec.describe StampProcessingJob do
     it "runs spot detection on PSD files" do
       FileUtils.cp(original_path.join("02-no_spot.psd"),
                    Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.psd"))
-      stamp.update!(original_file: "test.psd", extension: "psd")
+      stamp.update!(original_file: "test.psd", extension: "psd", category: "artes")
       job.send(:detect_spots, stamp)
       expect(stamp.reload.has_spots).to be false
     end
@@ -279,6 +281,18 @@ RSpec.describe StampProcessingJob do
       expect(job).to receive(:generate_preview_cmyk).and_call_original
       job.send(:process_image, stamp)
     end
+
+    it "routes EPS RGB no-spot to generate_preview_rgb" do
+      stamp.update!(has_spots: false, colorspace: "sRGB", extension: "eps")
+      expect(job).to receive(:generate_preview_rgb).and_call_original
+      job.send(:process_image, stamp)
+    end
+
+    it "routes EPS CMYK no-spot to generate_preview_cmyk" do
+      stamp.update!(has_spots: false, colorspace: "CMYK", extension: "eps")
+      expect(job).to receive(:generate_preview_cmyk).and_call_original
+      job.send(:process_image, stamp)
+    end
   end
 
   describe "#perform" do
@@ -327,6 +341,42 @@ RSpec.describe StampProcessingJob do
 
       FileUtils.rm_rf(Rails.root.join("storage", "stamps", psd_stamp.uuid))
       psd_stamp.destroy!
+    end
+
+    it "processes an EPS RGB stamp end-to-end" do
+      eps_stamp = create(:stamp, original_file: "eps-rgb.eps", extension: "eps", colorspace: "sRGB", category: "artes")
+      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", eps_stamp.uuid, "original"))
+      FileUtils.cp(original_path.join("eps-rgb.eps"),
+                   Rails.root.join("storage", "stamps", eps_stamp.uuid, "original", "eps-rgb.eps"))
+
+      described_class.perform_now(eps_stamp.id)
+      eps_stamp.reload
+      expect(eps_stamp.status).to eq("processed")
+      expect(eps_stamp.preview_file).not_to be_nil
+      expect(File.exist?(eps_stamp.preview_file)).to be true
+      dims = png_dimensions(eps_stamp.preview_file)
+      expect(dims).to eq([ 609, 486 ])
+      expect(eps_stamp.category).to eq("artes")
+
+      FileUtils.rm_rf(Rails.root.join("storage", "stamps", eps_stamp.uuid))
+      eps_stamp.destroy!
+    end
+
+    it "processes a Corte file (SVG) without generating preview" do
+      svg_stamp = create(:stamp, original_file: "test.svg", extension: "svg", colorspace: "sRGB", category: "corte")
+      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", svg_stamp.uuid, "original"))
+      FileUtils.cp(original_path.join("test.svg"),
+                   Rails.root.join("storage", "stamps", svg_stamp.uuid, "original", "test.svg"))
+
+      described_class.perform_now(svg_stamp.id)
+      svg_stamp.reload
+      expect(svg_stamp.status).to eq("processed")
+      expect(svg_stamp.preview_file).to be_nil
+      expect(svg_stamp.width_px).to eq(200)
+      expect(svg_stamp.height_px).to eq(100)
+
+      FileUtils.rm_rf(Rails.root.join("storage", "stamps", svg_stamp.uuid))
+      svg_stamp.destroy!
     end
   end
 end

@@ -129,6 +129,7 @@ Key files:
 - `app/services/file_validator.rb` — format/colorspace detection via `identify -ping`
 - `app/jobs/stamp_processing_job.rb` — preview generation, spot channel detection
 - `app/models/stamp.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
+- `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
 
 ## ImageMagick gotchas (multi-frame TIFFs)
 
@@ -157,24 +158,24 @@ StampProcessingJob selects strategy based on extension, spots + colorspace:
 |------|--------|------|
 | TIFF, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
 | CMYK | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
-| RGB (or PSD spot) | `generate_preview_rgb` | ImageMagick convert (resize + TrueColorAlpha) |
+| RGB (or PSD/EPS spot) | `generate_preview_rgb` | ImageMagick convert (resize + `-define png:color-type=6`) |
 
-PSD files with spots use ImageMagick (not UTIF.js, which only handles TIFF). PSD
+PSD/EPS files with spots use ImageMagick (not UTIF.js, which only handles TIFF). PSD/EPS
 CMYK without spots also uses the ICC convert path from the table above.
 
-Spot detection uses `exiftool -s3 -AlphaChannelsNames` (faster and more reliable than `identify -verbose`). Channels named `Transparency` are ignored — only real spot names count.
+Spot detection uses `exiftool -s3 -AlphaChannelsNames` (faster and more reliable than `identify -verbose`). Channels named `Transparency` are ignored — only real spot names count. Controlled by `FileCategory.spot_detection_enabled?` per category.
 
 ## RGB no-spot preview
 
-Simple ImageMagick resize with `-type TrueColorAlpha` to preserve transparency:
+Simple ImageMagick resize with `-define png:color-type=6` to force RGBA output:
 
 ```ruby
-convert input.tif[0] -resize 1200x1200> -type TrueColorAlpha output.png
+convert input.tif[0] -resize 1200x1200> -define png:color-type=6 output.png
 ```
 
 The `>` after dimensions means "shrink only" — images smaller than 1200px are
-not upscaled. `-type TrueColorAlpha` ensures the PNG has an alpha channel so
-transparent backgrounds remain transparent.
+not upscaled. `-define png:color-type=6` forces truecolor+alpha PNG (avoids
+palette optimization that breaks pixel-validity checks).
 
 ## CMYK no-spot preview
 
@@ -182,7 +183,7 @@ Uses two explicit ICC profiles — source and destination — which ImageMagick
 interprets as a colorspace conversion:
 
 ```ruby
-convert input.tif[0] -profile USWebCoatedSWOP.icc -profile sRGB.icc -type TrueColorAlpha output.png
+convert input.tif[0] -profile USWebCoatedSWOP.icc -profile sRGB.icc -define png:color-type=6 output.png
 ```
 
 `USWebCoatedSWOP.icc` (557KB, "U.S. Web Coated (SWOP) v2") was extracted from

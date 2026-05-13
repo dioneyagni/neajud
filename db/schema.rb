@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_022432) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_114004) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -48,6 +48,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_022432) do
   create_table "stamps", force: :cascade do |t|
     t.integer "annotated_seconds"
     t.string "batch_id"
+    t.string "category"
+    t.text "category_notes"
     t.string "colorspace"
     t.datetime "created_at", null: false
     t.float "dpi"

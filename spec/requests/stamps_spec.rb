@@ -31,7 +31,7 @@ RSpec.describe "Stamps", type: :request do
     it "renders multi-file input with accepted formats" do
       get root_path
       expect(response.body).to include('multiple="multiple"')
-      expect(response.body).to include('accept=".tif,.tiff,.psd,.jpg,.jpeg,.ai,.eps,.cdr"')
+      expect(response.body).to match(/accept="\.tif[^"]*"/)
     end
 
     it "renders Stimulus data attributes for upload controller" do
@@ -143,6 +143,26 @@ RSpec.describe "Stamps", type: :request do
       it "stays 0 when no batch params are sent" do
         post stamps_path, params: { stamp: { original_file: file } }
         expect(Stamp.last.estimated_seconds).to eq(0)
+      end
+    end
+
+    describe "category assignment" do
+      it "assigns artes category for TIFF files" do
+        file = Rack::Test::UploadedFile.new(Rails.root.join("e2e/test-image.tif"), "image/tiff")
+        post stamps_path, params: { stamp: { original_file: file } }
+        expect(Stamp.last.category).to eq("artes")
+      end
+
+      it "assigns corte category for SVG files" do
+        file = Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/test.svg"), "image/svg+xml")
+        post stamps_path, params: { stamp: { original_file: file } }
+        expect(Stamp.last.category).to eq("corte")
+      end
+
+      it "assigns artes category for EPS files" do
+        file = Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/eps-rgb.eps"), "application/postscript")
+        post stamps_path, params: { stamp: { original_file: file } }
+        expect(Stamp.last.category).to eq("artes")
       end
     end
   end

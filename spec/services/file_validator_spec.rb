@@ -40,7 +40,7 @@ RSpec.describe FileValidator do
 
     it "returns false when extension does not match" do
       validator = FileValidator.new(tiff_path.to_s)
-      expect(validator.valid_extension?("jpg")).to be false
+      expect(validator.valid_extension?("png")).to be false
       expect(validator.valid_extension?("psd")).to be false
     end
 
@@ -54,9 +54,8 @@ RSpec.describe FileValidator do
     {
       "tif" => "TIFF", "tiff" => "TIFF",
       "psd" => "PSD",
-      "jpg" => "JPEG", "jpeg" => "JPEG",
       "ai" => "PDF",
-      "eps" => "EPT",
+      "eps" => "PS",
       "cdr" => "CDR"
     }.each do |ext, fmt|
       it "maps #{ext} to #{fmt}" do

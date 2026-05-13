@@ -4,11 +4,15 @@ class FileValidator
   EXTENSION_TO_FORMAT = {
     "tif" => "TIFF", "tiff" => "TIFF",
     "psd" => "PSD",
-    "jpg" => "JPEG", "jpeg" => "JPEG",
     "ai" => "PDF",
-    "eps" => "EPT",
-    "cdr" => "CDR"
+    "eps" => "PS",
+    "cdr" => "CDR",
+    "pdf" => "PDF",
+    "svg" => "SVG",
+    "dxf" => nil, "dwg" => nil, "cad" => nil
   }.freeze
+
+  UNVERIFIABLE_EXTENSIONS = %w[dxf dwg cad].freeze
 
   def initialize(file_path)
     @file_path = file_path
@@ -31,14 +35,14 @@ class FileValidator
   end
 
   def valid_extension?(extension)
-    expected = EXTENSION_TO_FORMAT[extension.downcase]
+    ext = extension.downcase
+    return true if UNVERIFIABLE_EXTENSIONS.include?(ext)
+
+    expected = EXTENSION_TO_FORMAT[ext]
     return false unless expected
     return true if real_format == expected
-
-    if extension.downcase == "ai" && real_format == "PDF"
-      return true
-    end
-
+    return true if ext == "ai" && real_format == "PDF"
+    return true if ext == "eps" && %w[PS EPT].include?(real_format)
     false
   end
 
@@ -55,10 +59,10 @@ class FileValidator
     {
       "TIFF" => "image/tiff",
       "PSD" => "image/vnd.adobe.photoshop",
-      "JPEG" => "image/jpeg",
       "PDF" => "application/pdf",
       "EPT" => "application/postscript",
-      "CDR" => "application/coreldraw"
+      "CDR" => "application/coreldraw",
+      "SVG" => "image/svg+xml"
     }[format]
   end
 end

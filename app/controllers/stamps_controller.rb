@@ -102,6 +102,9 @@ class StampsController < ApplicationController
     stamp.filename = File.basename(upload.original_filename, ".*") if stamp.filename.blank?
     stamp.extension = File.extname(upload.original_filename).delete(".").downcase if stamp.extension.blank?
     stamp.mime_type = upload.content_type if stamp.mime_type.blank?
+
+    stamp.category = FileCategory.for_extension(stamp.extension) if stamp.category.blank?
+    stamp.category_notes = FileCategory.notes(stamp.extension, stamp.category) if stamp.category_notes.blank?
   end
 
   def validate_file_size!

@@ -5,6 +5,12 @@
   <dl>
     <dt>Status</dt>
     <dd><%= @stamp.status %></dd>
+    <dt>Category</dt>
+    <dd><%= @stamp.category.presence || "Uncategorized" %></dd>
+    <% if @stamp.category_notes.present? %>
+      <dt>Category Notes</dt>
+      <dd><%= @stamp.category_notes %></dd>
+    <% end %>
     <dt>Colorspace</dt>
     <dd><%= @stamp.colorspace || "Unknown" %></dd>
     <dt>Has Spots</dt>
