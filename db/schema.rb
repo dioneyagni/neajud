@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_114004) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -45,8 +45,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_114004) do
     t.index ["uuid"], name: "index_stamp_time_logs_on_uuid", unique: true
   end
 
+  create_table "stamp_versions", force: :cascade do |t|
+    t.boolean "approved", default: false, null: false
+    t.string "category"
+    t.text "category_notes"
+    t.string "colorspace"
+    t.string "colorspace_error"
+    t.datetime "created_at", null: false
+    t.integer "dpi"
+    t.string "extension", null: false
+    t.string "filename", null: false
+    t.boolean "has_spots", default: false
+    t.integer "height_px"
+    t.string "icc_profile"
+    t.json "metadata"
+    t.string "mime_type", null: false
+    t.string "original_file", null: false
+    t.string "preview_file"
+    t.integer "stamp_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.integer "version_number", null: false
+    t.integer "width_px"
+    t.index ["stamp_id", "version_number"], name: "index_stamp_versions_on_stamp_id_and_version_number", unique: true
+    t.index ["stamp_id"], name: "index_stamp_versions_on_stamp_id"
+    t.index ["uuid"], name: "index_stamp_versions_on_uuid", unique: true
+  end
+
   create_table "stamps", force: :cascade do |t|
     t.integer "annotated_seconds"
+    t.integer "approved_version_id"
     t.string "batch_id"
     t.string "category"
     t.text "category_notes"
@@ -68,9 +97,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_114004) do
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.integer "width_px"
+    t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
     t.index ["status"], name: "index_stamps_on_status"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
   end
 
   add_foreign_key "stamp_time_logs", "stamps"
+  add_foreign_key "stamp_versions", "stamps"
+  add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"
 end

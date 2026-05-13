@@ -5,6 +5,10 @@ Rails.application.routes.draw do
     member do
       patch :update_time
       get :preview
+      get :download
+      post :upload_version
+      patch :approve_version
+      get :version_preview
     end
   end
 

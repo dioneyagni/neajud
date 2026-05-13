@@ -3,54 +3,58 @@ require "shellwords"
 class StampProcessingJob < ApplicationJob
   queue_as :default
 
-  STORAGE_BASE = Rails.root.join("storage", "stamps")
+  def perform(version_id)
+    version = StampVersion.find(version_id)
+    version.update!(status: :processing)
 
-  def perform(stamp_id)
-    stamp = Stamp.find(stamp_id)
-    stamp.update!(status: :processing)
+    validate_format!(version)
+    detect_spots(version)
+    extract_metadata(version)
+    process_image(version) if preview_enabled?(version)
 
-    validate_format!(stamp)
-    detect_spots(stamp)
-    extract_metadata(stamp)
-    process_image(stamp) if preview_enabled?(stamp)
-
-    stamp.update!(status: :processed)
+    version.update!(status: :processed)
   rescue StandardError => e
-    stamp.update!(status: :failed)
-    Rails.logger.error "[StampProcessingJob] Failed stamp #{stamp_id}: #{e.message}"
+    version.update!(status: :failed)
+    Rails.logger.error "[StampProcessingJob] Failed version #{version_id}: #{e.message}"
   end
 
   private
 
-  def validate_format!(stamp)
-    ext = stamp.extension.downcase
+  def validate_format!(version)
+    ext = version.extension.downcase
     unless Stamp::SUPPORTED_EXTENSIONS.include?(ext)
-      stamp.update!(status: :unsupported_format)
+      version.update!(status: :unsupported_format)
       raise "Unsupported format: #{ext}"
     end
   end
 
-  def detect_spots(stamp)
-    return unless FileCategory.spot_detection_enabled?(stamp.category) &&
-      FileCategory.for_extension(stamp.extension) == stamp.category
+  def detect_spots(version)
+    return unless FileCategory.spot_detection_enabled?(version.category) &&
+      FileCategory.for_extension(version.extension) == version.category
 
-    input_path = storage_path(stamp, "original", stamp.original_file)
+    input_path = version.original_path
+    return unless File.exist?(input_path)
+
     result = `exiftool -s3 -AlphaChannelsNames #{Shellwords.escape(input_path)} 2>/dev/null`.strip
     names = result.split(",").map(&:strip).reject(&:empty?)
     real_spots = names.reject { |n| n == "Transparency" }
-    stamp.update!(has_spots: real_spots.any?)
+    version.update!(has_spots: real_spots.any?)
   end
 
-  def extract_metadata(stamp)
-    input_path = storage_path(stamp, "original", stamp.original_file)
+  def extract_metadata(version)
+    input_path = version.original_path
+    return unless File.exist?(input_path)
+
     src = Shellwords.escape("#{input_path}[0]")
 
     dims = `identify -format '%w %h\\n' #{src} 2>/dev/null`.strip.split
     dpi_raw = `identify -format '%x %y\\n' #{src} 2>/dev/null`.strip.split
+    cs = `identify -ping -format '%[colorspace]\\n' #{src} 2>/dev/null`.strip
     icc = extract_icc_name(input_path)
     other_raw = `identify -format '%[compression]|%[depth]|%[channels]\\n' #{src} 2>/dev/null`.strip.split("|")
 
-    stamp.update!(
+    version.update!(
+      colorspace: cs.presence,
       icc_profile: icc.presence,
       width_px: dims[0].to_i,
       height_px: dims[1].to_i,
@@ -82,24 +86,25 @@ class StampProcessingJob < ApplicationJob
     nil
   end
 
-  def process_image(stamp)
-    input_path = storage_path(stamp, "original", stamp.original_file)
-    output_dir = storage_path(stamp, "preview")
-    FileUtils.mkdir_p(output_dir)
+  def process_image(version)
+    input_path = version.original_path
+    return unless File.exist?(input_path)
 
+    output_dir = File.join(version.storage_dir, "preview")
+    FileUtils.mkdir_p(output_dir)
     preview_path = File.join(output_dir, "preview.png")
 
-    extension = stamp.extension.downcase
-    if stamp.has_spots? && %w[tif tiff].include?(extension)
+    extension = version.extension.downcase
+    if version.has_spots? && %w[tif tiff].include?(extension)
       generate_preview_utif(input_path, preview_path)
-    elsif stamp.colorspace == "CMYK"
+    elsif version.colorspace == "CMYK"
       generate_preview_cmyk(input_path, preview_path)
     else
       generate_preview_rgb(input_path, preview_path)
     end
 
     raise("Preview file not created") unless File.exist?(preview_path)
-    stamp.update!(preview_file: preview_path.to_s)
+    version.update!(preview_file: preview_path.to_s)
   end
 
   def generate_preview_rgb(input, output)
@@ -121,13 +126,7 @@ class StampProcessingJob < ApplicationJob
     system("node", Rails.root.join("bin", "generate-preview.js").to_s, input, output) || raise("UTIF preview failed")
   end
 
-  def preview_enabled?(stamp)
-    FileCategory.preview_enabled?(stamp.category)
-  end
-
-  def storage_path(stamp, type, filename = nil)
-    path = File.join(STORAGE_BASE, stamp.uuid, type.to_s)
-    FileUtils.mkdir_p(path) unless File.directory?(path)
-    filename ? File.join(path, filename) : path
+  def preview_enabled?(version)
+    FileCategory.preview_enabled?(version.category)
   end
 end

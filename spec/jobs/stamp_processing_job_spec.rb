@@ -3,6 +3,7 @@ require "open3"
 
 RSpec.describe StampProcessingJob do
   let(:stamp) { create(:stamp) }
+  let!(:version) { create(:stamp_version, stamp: stamp, version_number: 1, approved: true) }
   let(:job) { described_class.new }
   let(:original_path) { Rails.root.join("spec", "fixtures", "files") }
 
@@ -44,6 +45,17 @@ RSpec.describe StampProcessingJob do
       PYTHON
     )
     status.success?
+  end
+
+  def version_storage_dir(v)
+    File.join(Rails.root, "storage", "stamps", v.stamp.uuid, "v#{v.version_number}")
+  end
+
+  def copy_to_version(v, filename)
+    dir = File.join(version_storage_dir(v), "original")
+    FileUtils.mkdir_p(dir)
+    FileUtils.cp(original_path.join(filename), File.join(dir, filename))
+    v.update!(original_file: filename)
   end
 
   describe "#generate_preview_rgb" do
@@ -151,231 +163,217 @@ RSpec.describe StampProcessingJob do
   end
 
   describe "#detect_spots" do
-    before do
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", stamp.uuid, "original"))
-    end
-
     after do
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(version))
     end
 
     it "detects spots in RGB spot file" do
-      FileUtils.cp(original_path.join("02.tif"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "02.tif"))
-      stamp.update!(original_file: "02.tif", category: "artes")
-      job.send(:detect_spots, stamp)
-      expect(stamp.reload.has_spots).to be true
+      copy_to_version(version, "02.tif")
+      version.update!(category: "artes")
+      job.send(:detect_spots, version)
+      expect(version.reload.has_spots).to be true
     end
 
     it "detects spots in CMYK spot file" do
-      FileUtils.cp(original_path.join("01.tif"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "01.tif"))
-      stamp.update!(original_file: "01.tif", category: "artes")
-      job.send(:detect_spots, stamp)
-      expect(stamp.reload.has_spots).to be true
+      copy_to_version(version, "01.tif")
+      version.update!(category: "artes")
+      job.send(:detect_spots, version)
+      expect(version.reload.has_spots).to be true
     end
 
     it "does not detect spots in no-spot files" do
-      FileUtils.cp(original_path.join("02-no_spot.tif"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "02-no_spot.tif"))
-      stamp.update!(original_file: "02-no_spot.tif", category: "artes")
-      job.send(:detect_spots, stamp)
-      expect(stamp.reload.has_spots).to be false
+      copy_to_version(version, "02-no_spot.tif")
+      version.update!(category: "artes")
+      job.send(:detect_spots, version)
+      expect(version.reload.has_spots).to be false
     end
 
     it "skips detection for corte category (spot_detection: false)" do
-      stamp.update!(extension: "svg", category: "corte")
-      job.send(:detect_spots, stamp)
-      expect(stamp.reload.has_spots).to be false
+      version.update!(extension: "svg", category: "corte")
+      job.send(:detect_spots, version)
+      expect(version.reload.has_spots).to be false
     end
 
     it "runs spot detection on PSD files" do
-      FileUtils.cp(original_path.join("02-no_spot.psd"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.psd"))
-      stamp.update!(original_file: "test.psd", extension: "psd", category: "artes")
-      job.send(:detect_spots, stamp)
-      expect(stamp.reload.has_spots).to be false
+      copy_to_version(version, "02-no_spot.psd")
+      version.update!(original_file: "test.psd", extension: "psd", category: "artes")
+      job.send(:detect_spots, version)
+      expect(version.reload.has_spots).to be false
     end
   end
 
   describe "#extract_metadata" do
     before do
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("02-no_spot.tif"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.tif"))
-      stamp.update!(original_file: "test.tif")
+      copy_to_version(version, "02-no_spot.tif")
     end
 
     after do
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(version))
     end
 
     it "extracts ICC profile name" do
-      job.send(:extract_metadata, stamp)
-      stamp.reload
-      expect(stamp.icc_profile).to eq("Adobe RGB (1998)")
+      job.send(:extract_metadata, version)
+      version.reload
+      expect(version.icc_profile).to eq("Adobe RGB (1998)")
     end
 
     it "extracts pixel dimensions" do
-      job.send(:extract_metadata, stamp)
-      stamp.reload
-      expect(stamp.width_px).to eq(609)
-      expect(stamp.height_px).to eq(486)
+      job.send(:extract_metadata, version)
+      version.reload
+      expect(version.width_px).to eq(609)
+      expect(version.height_px).to eq(486)
     end
 
     it "extracts DPI" do
-      job.send(:extract_metadata, stamp)
-      stamp.reload
-      expect(stamp.dpi).to eq(300.0)
+      job.send(:extract_metadata, version)
+      version.reload
+      expect(version.dpi).to eq(300.0)
     end
 
     it "extracts metadata JSON (compression, depth, channels, file_size)" do
-      job.send(:extract_metadata, stamp)
-      stamp.reload
-      expect(stamp.metadata["compression"]).to eq("LZW")
-      expect(stamp.metadata["depth"]).to eq(8)
-      expect(stamp.metadata["channels"]).to eq("srgb")
-      expect(stamp.metadata["file_size"]).to be > 0
+      job.send(:extract_metadata, version)
+      version.reload
+      expect(version.metadata["compression"]).to eq("LZW")
+      expect(version.metadata["depth"]).to eq(8)
+      expect(version.metadata["channels"]).to eq("srgb")
+      expect(version.metadata["file_size"]).to be > 0
     end
   end
 
   describe "routing in #process_image" do
     before do
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("02-no_spot.tif"),
-                   Rails.root.join("storage", "stamps", stamp.uuid, "original", "test.tif"))
-      stamp.update!(original_file: "test.tif")
+      copy_to_version(version, "02-no_spot.tif")
     end
 
     after do
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(version))
     end
 
     it "routes RGB no-spot to generate_preview_rgb" do
-      stamp.update!(has_spots: false, colorspace: "sRGB")
+      version.update!(has_spots: false, colorspace: "sRGB")
       expect(job).to receive(:generate_preview_rgb).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes CMYK no-spot to generate_preview_cmyk" do
-      stamp.update!(has_spots: false, colorspace: "CMYK")
+      version.update!(has_spots: false, colorspace: "CMYK")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes TIFF files with spots to generate_preview_utif regardless of colorspace" do
-      stamp.update!(has_spots: true, colorspace: "CMYK", extension: "tif")
+      version.update!(has_spots: true, colorspace: "CMYK", extension: "tif")
       expect(job).to receive(:generate_preview_utif).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes PSD files with spots to generate_preview_rgb (not utif)" do
-      stamp.update!(has_spots: true, colorspace: "sRGB", extension: "psd")
+      version.update!(has_spots: true, colorspace: "sRGB", extension: "psd")
       expect(job).not_to receive(:generate_preview_utif)
       expect(job).to receive(:generate_preview_rgb).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes PSD CMYK no-spot to generate_preview_cmyk" do
-      stamp.update!(has_spots: false, colorspace: "CMYK", extension: "psd")
+      version.update!(has_spots: false, colorspace: "CMYK", extension: "psd")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes EPS RGB no-spot to generate_preview_rgb" do
-      stamp.update!(has_spots: false, colorspace: "sRGB", extension: "eps")
+      version.update!(has_spots: false, colorspace: "sRGB", extension: "eps")
       expect(job).to receive(:generate_preview_rgb).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
 
     it "routes EPS CMYK no-spot to generate_preview_cmyk" do
-      stamp.update!(has_spots: false, colorspace: "CMYK", extension: "eps")
+      version.update!(has_spots: false, colorspace: "CMYK", extension: "eps")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
-      job.send(:process_image, stamp)
+      job.send(:process_image, version)
     end
   end
 
   describe "#perform" do
     let(:real_stamp) { create(:stamp, original_file: "test.tif", extension: "tif", colorspace: "sRGB") }
+    let!(:real_version) { create(:stamp_version, stamp: real_stamp, version_number: 1, approved: true) }
 
     before do
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", real_stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("02-no_spot.tif"),
-                   Rails.root.join("storage", "stamps", real_stamp.uuid, "original", "test.tif"))
+      copy_to_version(real_version, "02-no_spot.tif")
     end
 
     after do
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", real_stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(real_version))
+      real_stamp.destroy!
     end
 
     it "processes a TIFF stamp end-to-end" do
-      described_class.perform_now(real_stamp.id)
-      real_stamp.reload
-      expect(real_stamp.status).to eq("processed")
-      expect(real_stamp.preview_file).not_to be_nil
-      expect(File.exist?(real_stamp.preview_file)).to be true
-      dims = png_dimensions(real_stamp.preview_file)
+      described_class.perform_now(real_version.id)
+      real_version.reload
+      expect(real_version.status).to eq("processed")
+      expect(real_version.preview_file).not_to be_nil
+      expect(File.exist?(real_version.preview_file)).to be true
+      dims = png_dimensions(real_version.preview_file)
       expect(dims).to eq([ 609, 486 ])
-      expect(real_stamp.icc_profile).to eq("Adobe RGB (1998)")
-      expect(real_stamp.width_px).to eq(609)
-      expect(real_stamp.height_px).to eq(486)
-      expect(real_stamp.dpi).to eq(300.0)
-      expect(real_stamp.metadata["compression"]).to eq("LZW")
-      expect(real_stamp.metadata["file_size"]).to be > 0
+      expect(real_version.icc_profile).to eq("Adobe RGB (1998)")
+      expect(real_version.width_px).to eq(609)
+      expect(real_version.height_px).to eq(486)
+      expect(real_version.dpi).to eq(300.0)
+      expect(real_version.metadata["compression"]).to eq("LZW")
+      expect(real_version.metadata["file_size"]).to be > 0
     end
 
     it "processes a PSD stamp end-to-end" do
       psd_stamp = create(:stamp, original_file: "test.psd", extension: "psd", colorspace: "sRGB")
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", psd_stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("02-no_spot.psd"),
-                   Rails.root.join("storage", "stamps", psd_stamp.uuid, "original", "test.psd"))
+      psd_version = create(:stamp_version, stamp: psd_stamp, version_number: 1, approved: true)
 
-      described_class.perform_now(psd_stamp.id)
-      psd_stamp.reload
-      expect(psd_stamp.status).to eq("processed")
-      expect(psd_stamp.preview_file).not_to be_nil
-      expect(File.exist?(psd_stamp.preview_file)).to be true
-      dims = png_dimensions(psd_stamp.preview_file)
+      copy_to_version(psd_version, "02-no_spot.psd")
+
+      described_class.perform_now(psd_version.id)
+      psd_version.reload
+      expect(psd_version.status).to eq("processed")
+      expect(psd_version.preview_file).not_to be_nil
+      expect(File.exist?(psd_version.preview_file)).to be true
+      dims = png_dimensions(psd_version.preview_file)
       expect(dims).to eq([ 609, 486 ])
-      expect(psd_stamp.icc_profile).to eq("Adobe RGB (1998)")
+      expect(psd_version.icc_profile).to eq("Adobe RGB (1998)")
 
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", psd_stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(psd_version))
       psd_stamp.destroy!
     end
 
     it "processes an EPS RGB stamp end-to-end" do
       eps_stamp = create(:stamp, original_file: "eps-rgb.eps", extension: "eps", colorspace: "sRGB", category: "artes")
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", eps_stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("eps-rgb.eps"),
-                   Rails.root.join("storage", "stamps", eps_stamp.uuid, "original", "eps-rgb.eps"))
+      eps_version = create(:stamp_version, stamp: eps_stamp, version_number: 1, approved: true)
 
-      described_class.perform_now(eps_stamp.id)
-      eps_stamp.reload
-      expect(eps_stamp.status).to eq("processed")
-      expect(eps_stamp.preview_file).not_to be_nil
-      expect(File.exist?(eps_stamp.preview_file)).to be true
-      dims = png_dimensions(eps_stamp.preview_file)
+      copy_to_version(eps_version, "eps-rgb.eps")
+
+      described_class.perform_now(eps_version.id)
+      eps_version.reload
+      expect(eps_version.status).to eq("processed")
+      expect(eps_version.preview_file).not_to be_nil
+      expect(File.exist?(eps_version.preview_file)).to be true
+      dims = png_dimensions(eps_version.preview_file)
       expect(dims).to eq([ 609, 486 ])
-      expect(eps_stamp.category).to eq("artes")
+      expect(eps_version.category).to eq("artes")
 
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", eps_stamp.uuid))
+      FileUtils.rm_rf(version_storage_dir(eps_version))
       eps_stamp.destroy!
     end
 
     it "processes a Corte file (SVG) without generating preview" do
       svg_stamp = create(:stamp, original_file: "test.svg", extension: "svg", colorspace: "sRGB", category: "corte")
-      FileUtils.mkdir_p(Rails.root.join("storage", "stamps", svg_stamp.uuid, "original"))
-      FileUtils.cp(original_path.join("test.svg"),
-                   Rails.root.join("storage", "stamps", svg_stamp.uuid, "original", "test.svg"))
+      svg_version = create(:stamp_version, stamp: svg_stamp, version_number: 1, approved: true)
 
-      described_class.perform_now(svg_stamp.id)
-      svg_stamp.reload
-      expect(svg_stamp.status).to eq("processed")
-      expect(svg_stamp.preview_file).to be_nil
-      expect(svg_stamp.width_px).to eq(200)
-      expect(svg_stamp.height_px).to eq(100)
+      copy_to_version(svg_version, "test.svg")
 
-      FileUtils.rm_rf(Rails.root.join("storage", "stamps", svg_stamp.uuid))
+      described_class.perform_now(svg_version.id)
+      svg_version.reload
+      expect(svg_version.status).to eq("processed")
+      expect(svg_version.preview_file).to be_nil
+      expect(svg_version.width_px).to eq(200)
+      expect(svg_version.height_px).to eq(100)
+
+      FileUtils.rm_rf(version_storage_dir(svg_version))
       svg_stamp.destroy!
     end
   end

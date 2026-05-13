@@ -178,11 +178,11 @@ async function run() {
     if (!body.includes("Time History")) throw new Error("Time History section not found");
     if (!body.includes("Delete")) throw new Error("Delete button not found");
 
-    const previewImg = await page.$("img");
-    if (!previewImg) throw new Error("Preview image not rendered");
+      const previewImg = await page.$(".stamp-detail-preview img");
+      if (!previewImg) throw new Error("Preview image not rendered");
 
-    const src = await previewImg.getAttribute("src");
-    if (!src || !src.includes("/preview")) throw new Error("Preview image src missing or wrong");
+      const src = await previewImg.getAttribute("src");
+      if (!src || !src.includes("/preview")) throw new Error("Preview image src missing or wrong");
   });
 
   await test("Edit time updates the stamp and creates history log", async () => {
@@ -261,7 +261,7 @@ async function run() {
       await page.waitForSelector("dl", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      const detailBody = await page.textContent("body");
+      const detailBody = (await page.textContent("body")).toLowerCase();
       if (!detailBody.includes("processed")) throw new Error(`Status not processed for ${filename}`);
 
       const pageUrl = page.url();
@@ -274,7 +274,7 @@ async function run() {
       }
 
       // Verify preview image loads (200 OK, image/png)
-      const img = await page.$("img");
+      const img = await page.$(".stamp-detail-preview img");
       if (!img) throw new Error("No preview image element");
       const src = await img.getAttribute("src");
       if (!src || !src.includes("/preview")) throw new Error("Preview src missing");
@@ -331,14 +331,14 @@ async function run() {
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "Extension: svg" }).locator("a").first();
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "test.svg" }).locator("a").first();
     await stampLink.waitFor({ timeout: 10000 });
     await stampLink.click();
 
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    const body = await page.textContent("body");
+    const body = (await page.textContent("body")).toLowerCase();
     if (!body.includes("processed")) throw new Error("Status not processed");
     if (!body.includes("corte")) throw new Error("Category not corte");
   });

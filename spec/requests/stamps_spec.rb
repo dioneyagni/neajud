@@ -81,6 +81,8 @@ RSpec.describe "Stamps", type: :request do
       expect(stamp.extension).to eq("tif")
       expect(stamp.mime_type).to eq("image/tiff")
       expect(stamp.status).to eq("processed")
+      expect(stamp.approved_version).to be_present
+      expect(stamp.approved_version.status).to eq("processed")
       expect(stamp.preview_file).not_to be_nil
       expect(File.exist?(stamp.preview_file)).to be true
     end
@@ -119,7 +121,7 @@ RSpec.describe "Stamps", type: :request do
 
     describe "estimated_seconds" do
       before do
-        Stamp.delete_all
+        Stamp.destroy_all
         create(:stamp, created_at: reference_time)
       end
 
@@ -127,7 +129,7 @@ RSpec.describe "Stamps", type: :request do
       let(:file) { Rack::Test::UploadedFile.new(Rails.root.join("e2e/test-image.tif"), "image/tiff") }
 
       it "sets 0 when no previous stamp exists" do
-        Stamp.delete_all
+        Stamp.destroy_all
         params = { stamp: { original_file: file, batch_started_at: reference_time.iso8601, batch_size: 1 } }
         post stamps_path, params: params
         expect(Stamp.last.estimated_seconds).to eq(0)
@@ -169,13 +171,18 @@ RSpec.describe "Stamps", type: :request do
 
   describe "GET / (gallery) with stale preview" do
     it "shows Preview unavailable when preview_file is set but file is missing" do
-      stamp = create(:stamp, preview_file: "/tmp/nonexistent-preview.png")
+      stamp = create(:stamp)
+      create(:stamp_version, stamp: stamp, version_number: 1, approved: true, preview_file: "/tmp/nonexistent-preview.png")
+      stamp.update!(approved_version_id: stamp.stamp_versions.first.id)
       get root_path
       expect(response.body).to include("Preview unavailable")
     end
 
     it "shows status when processing failed" do
-      stamp = create(:stamp, status: :failed)
+      stamp = create(:stamp)
+      create(:stamp_version, stamp: stamp, version_number: 1, approved: true, status: :failed,
+             original_file: "test.tif", filename: "test", extension: "tif", mime_type: "image/tiff")
+      stamp.update!(approved_version_id: stamp.stamp_versions.first.id)
       get root_path
       expect(response.body).to include("Failed")
     end

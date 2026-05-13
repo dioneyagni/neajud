@@ -7,11 +7,11 @@ RSpec.describe Stamp, type: :model do
     it { should validate_presence_of(:filename) }
     it { should validate_presence_of(:extension) }
     it { should validate_presence_of(:mime_type) }
-    it { should validate_presence_of(:status) }
   end
 
   describe "associations" do
     it { should have_many(:stamp_time_logs).dependent(:destroy) }
+    it { should have_many(:stamp_versions) }
   end
 
   describe "enums" do
@@ -24,11 +24,6 @@ RSpec.describe Stamp, type: :model do
         "invalid_colorspace" => "invalid_colorspace",
         "unsupported_format" => "unsupported_format"
       })
-    end
-
-    it "defaults to pending" do
-      stamp = Stamp.new
-      expect(stamp.status).to eq("pending")
     end
   end
 

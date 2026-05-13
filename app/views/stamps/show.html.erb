@@ -6,7 +6,7 @@
 
 <div class="stamp-detail">
   <div class="stamp-detail-preview">
-    <% if @stamp.preview_file.present? %>
+    <% if @stamp.preview_file.present? && File.exist?(@stamp.preview_file) %>
       <%= image_tag preview_stamp_path(@stamp), alt: @stamp.filename %>
     <% else %>
       <div class="no-preview">
@@ -19,8 +19,14 @@
     <div class="stamp-detail-section">
       <h3>Details</h3>
       <dl class="detail-grid">
-        <dt>Status</dt>
-        <dd><%= @stamp.status %></dd>
+        <dt>Update</dt>
+        <dd>
+          <% if @stamp.approved_version %>
+            <%= l @stamp.approved_version.updated_at, format: :short %> — v-<%= @stamp.approved_version.version_number %>
+          <% else %>
+            Not approved yet
+          <% end %>
+        </dd>
         <dt>Category</dt>
         <dd><%= @stamp.category.presence || "Uncategorized" %></dd>
         <% if @stamp.category_notes.present? %>
@@ -82,6 +88,11 @@
       <% end %>
     </div>
 
+    <div class="stamp-detail-section">
+      <h3>Download</h3>
+      <%= link_to "Download Original", download_stamp_path(@stamp), class: "btn btn-primary" %>
+    </div>
+
     <%= link_to "Back to Gallery", stamps_path, class: "back-link" %>
 
     <%= button_to "Delete Stamp", stamp_path(@stamp), method: :delete,
@@ -89,3 +100,55 @@
           class: "btn btn-danger", style: "margin-top: 0.5rem;" %>
   </div>
 </div>
+
+<section>
+  <h3>Versions</h3>
+  <% if @versions.any? %>
+    <div class="version-list">
+      <% @versions.each do |version| %>
+        <div class="version-card">
+          <div class="version-card-thumb">
+            <% if version.preview_file.present? && File.exist?(version.preview_file) %>
+              <%= image_tag version_preview_stamp_path(@stamp, version_id: version.id), alt: "v#{version.version_number}" %>
+            <% else %>
+              <%= image_tag "#{FileCategory.extension_icon(version.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: version.extension %>
+            <% end %>
+          </div>
+          <div class="version-card-body">
+            <div class="version-card-header">
+              <strong>v<%= version.version_number %></strong>
+              <% if version.approved? %>
+                <span class="stamp-card-badge badge-processed">Approved</span>
+              <% end %>
+            </div>
+            <div class="version-card-meta">
+              <span class="version-filename"><%= version.filename %>.<%= version.extension %></span>
+              <span class="version-status badge-<%= version.status %>"><%= version.status.humanize %></span>
+              <span class="version-date"><%= l version.created_at, format: :short %></span>
+            </div>
+            <div class="version-card-actions">
+              <% unless version.approved? %>
+                <%= button_to "Approve", approve_version_stamp_path(@stamp, version_id: version.id), method: :patch, class: "btn btn-primary btn-sm" %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="gallery-empty">No versions yet.</p>
+  <% end %>
+</section>
+
+<section>
+  <h3>Upload New Version</h3>
+  <div class="upload-form-wrapper">
+    <%= form_with url: upload_version_stamp_path(@stamp), multipart: true, class: "version-upload-form" do |f| %>
+      <div class="upload-dropzone" style="padding: 1.5rem;">
+        <p>Select a file to upload as a new version</p>
+        <%= f.file_field :original_file, class: "upload-file-input", style: "position: static; width: auto; height: auto; clip: auto; margin: 0.5rem 0;" %>
+      </div>
+      <%= f.submit "Upload Version", class: "upload-submit" %>
+    <% end %>
+  </div>
+</section>

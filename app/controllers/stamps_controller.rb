@@ -1,14 +1,16 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time preview destroy]
+  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
-    @stamps = Stamp.order(created_at: :desc)
+    @stamps = Stamp.includes(:approved_version).order(created_at: :desc)
     @stamp = Stamp.new
   end
 
   def show
     @time_logs = @stamp.stamp_time_logs.order(created_at: :desc)
+    @versions = @stamp.stamp_versions.order(version_number: :desc)
+    @stamp_version = StampVersion.new
   end
 
   MAX_FILE_SIZE = 1.gigabyte
@@ -26,12 +28,59 @@ class StampsController < ApplicationController
     estimate_time!(@stamp) if params.dig(:stamp, :batch_started_at).present?
 
     if validate_file_size! && validate_file_type! && @stamp.save
-      save_uploaded_file(@stamp)
-      StampProcessingJob.perform_now(@stamp.id)
+      upload = params[:stamp][:original_file]
+      version = create_and_save_version!(@stamp, upload)
+      StampProcessingJob.perform_now(version.id)
       redirect_to stamps_path, notice: "Stamp uploaded successfully. Processing started."
     else
       render :index, status: :unprocessable_content
     end
+  end
+
+  def upload_version
+    upload = params[:original_file]
+    unless upload.respond_to?(:original_filename)
+      return redirect_to @stamp, alert: "Select a file to upload."
+    end
+
+    version_number = @stamp.next_version_number
+    version = @stamp.stamp_versions.build(
+      version_number: version_number,
+      uuid: SecureRandom.uuid,
+      filename: File.basename(upload.original_filename, ".*"),
+      extension: File.extname(upload.original_filename).delete(".").downcase,
+      mime_type: upload.content_type,
+      status: :pending,
+      category: @stamp.category
+    )
+
+    unless validate_file_type!(version, upload)
+      return redirect_to @stamp, alert: "Invalid file type."
+    end
+
+    FileUtils.mkdir_p(version.storage_dir)
+    dest_dir = File.join(version.storage_dir, "original")
+    FileUtils.mkdir_p(dest_dir)
+    dest_path = File.join(dest_dir, upload.original_filename)
+    File.open(dest_path, "wb") { |f| f.write(upload.read) }
+    version.original_file = upload.original_filename
+
+    version.save!
+
+    @stamp.stamp_versions.where(approved: true).update_all(approved: false)
+    version.update!(approved: true)
+    @stamp.update!(approved_version_id: version.id)
+
+    StampProcessingJob.perform_now(version.id)
+    redirect_to @stamp, notice: "Version #{version_number} uploaded and processing."
+  end
+
+  def approve_version
+    version = @stamp.stamp_versions.find(params[:version_id])
+    @stamp.stamp_versions.update_all(approved: false)
+    version.update!(approved: true)
+    @stamp.update!(approved_version_id: version.id)
+    redirect_to @stamp, notice: "Version #{version.version_number} approved."
   end
 
   def update_time
@@ -58,6 +107,26 @@ class StampsController < ApplicationController
     head :not_found
   end
 
+  def version_preview
+    version = @stamp.stamp_versions.find(params[:version_id])
+    raise ActionController::MissingFile if version.preview_file.blank?
+    path = version.preview_file
+    raise ActionController::MissingFile unless File.exist?(path)
+    send_file path, type: "image/png", disposition: "inline"
+  rescue ActionController::MissingFile, Errno::ENOENT
+    head :not_found
+  end
+
+  def download
+    path = @stamp.approved_original_path
+    raise ActionController::MissingFile unless path && File.exist?(path.to_s)
+    version = @stamp.approved_version
+    filename = "#{version.filename}.#{version.extension}"
+    send_file path.to_s, type: version.mime_type, disposition: "attachment", filename: filename
+  rescue ActionController::MissingFile, Errno::ENOENT
+    head :not_found
+  end
+
   def destroy
     FileUtils.rm_rf(File.join(STORAGE_BASE, @stamp.uuid))
     @stamp.destroy!
@@ -70,22 +139,35 @@ class StampsController < ApplicationController
     @stamp = Stamp.find_by!(uuid: params[:id])
   end
 
-  def save_uploaded_file(stamp)
-    upload = params[:stamp][:original_file]
-    return unless upload.respond_to?(:original_filename)
+  def create_and_save_version!(stamp, upload)
+    version = stamp.stamp_versions.create!(
+      version_number: 1,
+      uuid: SecureRandom.uuid,
+      filename: stamp.filename,
+      extension: stamp.extension,
+      mime_type: stamp.mime_type,
+      original_file: upload.original_filename,
+      status: :pending,
+      approved: true,
+      colorspace: stamp.colorspace,
+      category: stamp.category,
+      category_notes: stamp.category_notes
+    )
+    stamp.update!(approved_version_id: version.id)
 
-    ext = File.extname(upload.original_filename).delete(".").downcase
-    dest_dir = File.join(STORAGE_BASE, stamp.uuid, "original")
+    dest_dir = File.join(version.storage_dir, "original")
     FileUtils.mkdir_p(dest_dir)
     dest_path = File.join(dest_dir, upload.original_filename)
-
     File.open(dest_path, "wb") { |f| f.write(upload.read) }
+
     stamp.update!(
       original_file: upload.original_filename,
       filename: File.basename(upload.original_filename, ".*"),
-      extension: ext,
+      extension: File.extname(upload.original_filename).delete(".").downcase,
       mime_type: upload.content_type
     )
+
+    version
   end
 
   STORAGE_BASE = Rails.root.join("storage", "stamps")
@@ -120,27 +202,26 @@ class StampsController < ApplicationController
     true
   end
 
-  def validate_file_type!
-    upload = params[:stamp][:original_file]
+  def validate_file_type!(record = nil, upload = nil)
+    record ||= @stamp
+    upload ||= params[:stamp][:original_file]
     return true unless upload.respond_to?(:tempfile)
 
-    ext = @stamp.extension.to_s.strip
+    ext = record.extension.to_s.strip
     return true if ext.blank?
 
     validator = FileValidator.new(upload.tempfile.path)
     real_fmt = validator.real_format
 
     unless real_fmt
-      @stamp.errors.add(:original_file, "unable to identify file format")
+      @stamp&.errors&.add(:original_file, "unable to identify file format")
       return false
     end
 
     unless validator.valid_extension?(ext)
-      @stamp.errors.add(:extension, "declared '#{ext.upcase}' but file is '#{real_fmt}'")
+      @stamp&.errors&.add(:extension, "declared '#{ext.upcase}' but file is '#{real_fmt}'")
       return false
     end
-
-    @stamp.colorspace = validator.colorspace if @stamp.colorspace.blank?
 
     true
   end
