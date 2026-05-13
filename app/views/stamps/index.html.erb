@@ -2,6 +2,7 @@
 
 <section>
   <h3>Upload New Stamp</h3>
+  <div class="upload-form-wrapper">
   <% accept_ext = FileCategory.extensions.map { |e| ".#{e}" }.join(",") %>
   <% hint_parts = FileCategory.all.map { |_name, config| "#{config[:label]}: #{config[:extensions].map(&:upcase).join(', ')}" }.join(" | ") %>
   <%= form_with model: @stamp, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false, allowed_extensions: FileCategory.extensions.map { |e| ".#{e}" }.join(",") } } do |f| %>
@@ -22,8 +23,9 @@
             class: "upload-file-input" %>
     </div>
     <div class="upload-file-list" data-upload-target="fileList"></div>
-    <%= f.submit "Upload", data: { upload_target: "submit" } %>
+    <%= f.submit "Upload", data: { upload_target: "submit" }, class: "upload-submit" %>
   <% end %>
+  </div>
 </section>
 
 <section>
@@ -31,23 +33,48 @@
   <% if @stamps.any? %>
     <div class="gallery">
       <% @stamps.each do |stamp| %>
-        <div class="stamp-card">
-          <h4><%= link_to stamp.filename, stamp_path(stamp) %></h4>
-          <p>Extension: <%= stamp.extension %></p>
-          <p>Category: <%= stamp.category.presence || "-" %></p>
-          <p>Status: <%= stamp.status %></p>
-          <p>Time: <%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></p>
-          <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
-            <%= image_tag preview_stamp_path(stamp), alt: stamp.filename %>
-          <% elsif stamp.preview_file.present? %>
-            <span class="error">Preview unavailable</span>
-          <% elsif stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
-            <span class="error"><%= stamp.status.humanize %></span>
+         <div class="stamp-card">
+          <%= link_to stamp_path(stamp) do %>
+            <div class="stamp-card-thumb">
+              <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
+                <%= image_tag preview_stamp_path(stamp), alt: stamp.filename %>
+                <div class="stamp-card-icons-overlay">
+                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
+                </div>
+              <% elsif stamp.preview_file.present? %>
+                <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
+                <span class="stamp-card-preview-missing">Preview unavailable</span>
+                <div class="stamp-card-icons-overlay">
+                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
+                </div>
+              <% elsif stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
+                <span class="file-icon">&#9888;</span>
+              <% else %>
+                <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
+                <div class="stamp-card-icons-overlay">
+                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
+                </div>
+              <% end %>
+            </div>
+            <div class="stamp-card-body">
+              <div class="stamp-card-name"><%= stamp.filename %>.<%= stamp.extension %></div>
+              <div class="stamp-card-meta">
+                <% if stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
+                  <span class="stamp-card-badge badge-<%= stamp.status %>"><%= stamp.status.humanize %></span>
+                <% end %>
+                <% if stamp.annotated_seconds || stamp.estimated_seconds&.positive? %>
+                  <span><%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></span>
+                <% end %>
+              </div>
+            </div>
           <% end %>
         </div>
       <% end %>
     </div>
   <% else %>
-    <p>No stamps uploaded yet.</p>
+    <p class="gallery-empty">No stamps uploaded yet.</p>
   <% end %>
 </section>

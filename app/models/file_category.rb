@@ -53,4 +53,40 @@ class FileCategory
   def self.notes(extension, category)
     CATEGORIES.dig(category, :notes, extension.downcase) || ""
   end
+
+  EXTENSION_ICONS = {
+    "tif" => "icons/extensions/image",
+    "tiff" => "icons/extensions/image",
+    "psd" => "icons/extensions/psd",
+    "ai" => "icons/extensions/ai",
+    "eps" => "icons/extensions/eps",
+    "cdr" => "icons/extensions/cdr",
+    "pdf" => "icons/extensions/pdf",
+    "dxf" => "icons/extensions/dxf",
+    "svg" => "icons/extensions/svg",
+    "dwg" => "icons/extensions/dwg",
+    "cad" => "icons/extensions/cad"
+  }.freeze
+
+  PROGRAM_ICONS = {
+    "tif" => "icons/programs/photoshop",
+    "tiff" => "icons/programs/photoshop",
+    "psd" => "icons/programs/photoshop",
+    "ai" => "icons/programs/illustrator",
+    "eps" => "icons/programs/illustrator",
+    "cdr" => "icons/programs/coreldraw",
+    "pdf" => "icons/programs/illustrator",
+    "dxf" => "icons/programs/autodesk",
+    "svg" => "icons/programs/illustrator",
+    "dwg" => "icons/programs/autodesk",
+    "cad" => "icons/programs/autodesk"
+  }.freeze
+
+  def self.extension_icon(ext)
+    EXTENSION_ICONS[ext.downcase] || "icons/extensions/image"
+  end
+
+  def self.program_icon(ext)
+    PROGRAM_ICONS[ext.downcase] || "icons/programs/photoshop"
+  end
 end
