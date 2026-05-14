@@ -143,10 +143,12 @@
 <section>
   <h3>Upload New Version</h3>
   <div class="upload-form-wrapper">
-    <%= form_with url: upload_version_stamp_path(@stamp), multipart: true, class: "version-upload-form" do |f| %>
+    <%= form_with url: upload_version_stamp_path(@stamp), multipart: true, class: "version-upload-form", data: { turbo: false } do |f| %>
       <div class="upload-dropzone" style="padding: 1.5rem;">
-        <p>Select a file to upload as a new version</p>
-        <%= f.file_field :original_file, class: "upload-file-input", style: "position: static; width: auto; height: auto; clip: auto; margin: 0.5rem 0;" %>
+        <label for="original_file" style="display: block; cursor: pointer;">
+          <p>Click to select a file for the new version</p>
+        </label>
+        <%= f.file_field :original_file, class: "upload-file-input", id: "original_file" %>
       </div>
       <%= f.submit "Upload Version", class: "upload-submit" %>
     <% end %>

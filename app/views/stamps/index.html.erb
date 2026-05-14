@@ -15,8 +15,10 @@
     <% end %>
     <div class="upload-dropzone" data-upload-target="dropzone"
          data-action="dragenter->upload#dragOver dragover->upload#dragOver dragleave->upload#dragLeave drop->upload#drop click->upload#click">
-      <p>Drag & drop files here, or click to select</p>
-      <p class="upload-hint"><%= hint_parts %></p>
+      <label for="stamp_original_file" style="display: block; cursor: pointer;">
+        <p>Drag & drop files here, or click to select</p>
+        <p class="upload-hint"><%= hint_parts %></p>
+      </label>
       <%= f.file_field :original_file, multiple: true,
             data: { upload_target: "input", action: "change->upload#fileSelected" },
             accept: accept_ext,
