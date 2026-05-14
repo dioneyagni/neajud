@@ -80,6 +80,22 @@ async function run() {
     if (!clicked) throw new Error("Drop zone click did not trigger file input click");
   });
 
+  await test("Clicking label text triggers file input via native label behavior", async () => {
+    await page.goto(BASE_URL);
+    const clicked = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const input = document.querySelector('input[type="file"]');
+        if (!input) { resolve(false); return; }
+        input.addEventListener("click", () => resolve(true), { once: true });
+        const labelText = document.querySelector(".upload-dropzone label p");
+        if (!labelText) { resolve(false); return; }
+        labelText.click();
+        setTimeout(() => resolve(false), 500);
+      });
+    });
+    if (!clicked) throw new Error("Clicking label text did not trigger file input");
+  });
+
   await test("Drop zone shows dragover style", async () => {
     await page.goto(BASE_URL);
     const dropzone = await page.$(".upload-dropzone");

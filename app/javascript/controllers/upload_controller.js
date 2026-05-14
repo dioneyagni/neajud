@@ -18,7 +18,7 @@ export default class extends Controller {
   }
 
   click(event) {
-    event.preventDefault()
+    if (event.target.closest("label")) return
     this.inputTarget.click()
   }
 

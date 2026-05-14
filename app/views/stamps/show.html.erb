@@ -7,7 +7,7 @@
 <div class="stamp-detail">
   <div class="stamp-detail-preview">
     <% if @stamp.preview_file.present? && File.exist?(@stamp.preview_file) %>
-      <%= image_tag preview_stamp_path(@stamp), alt: @stamp.filename %>
+      <%= image_tag preview_stamp_path(@stamp, t: @stamp.approved_version&.updated_at&.to_i), alt: @stamp.filename %>
     <% else %>
       <div class="no-preview">
         <p>Preview not available yet.</p>

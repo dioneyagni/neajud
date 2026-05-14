@@ -33,47 +33,10 @@
 <section>
   <h3>Gallery</h3>
   <% if @stamps.any? %>
+    <%= turbo_stream_from "stamps" %>
     <div class="gallery">
       <% @stamps.each do |stamp| %>
-         <div class="stamp-card">
-          <%= link_to stamp_path(stamp) do %>
-            <div class="stamp-card-thumb">
-              <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
-                <%= image_tag preview_stamp_path(stamp), alt: stamp.filename %>
-                <div class="stamp-card-icons-overlay">
-                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
-                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
-                </div>
-              <% elsif stamp.preview_file.present? %>
-                <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
-                <span class="stamp-card-preview-missing">Preview unavailable</span>
-                <div class="stamp-card-icons-overlay">
-                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
-                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
-                </div>
-              <% elsif stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
-                <span class="file-icon">&#9888;</span>
-              <% else %>
-                <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
-                <div class="stamp-card-icons-overlay">
-                  <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
-                  <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
-                </div>
-              <% end %>
-            </div>
-            <div class="stamp-card-body">
-              <div class="stamp-card-name"><%= stamp.filename %>.<%= stamp.extension %></div>
-              <div class="stamp-card-meta">
-                <% if stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
-                  <span class="stamp-card-badge badge-<%= stamp.status %>"><%= stamp.status.humanize %></span>
-                <% end %>
-                <% if stamp.annotated_seconds || stamp.estimated_seconds&.positive? %>
-                  <span><%= format_time(stamp.annotated_seconds || stamp.estimated_seconds) %></span>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
-        </div>
+        <%= render partial: "stamp_card", locals: { stamp: stamp } %>
       <% end %>
     </div>
   <% else %>

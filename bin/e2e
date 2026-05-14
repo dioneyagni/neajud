@@ -7,6 +7,7 @@ echo ""
 export PATH="$HOME/.local/share/mise/installs/node/22.22.2/bin:$PATH"
 export LD_LIBRARY_PATH="$HOME/.local/chromium-libs/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 export RAILS_ENV=test
+export CABLE_ADAPTER=async
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"

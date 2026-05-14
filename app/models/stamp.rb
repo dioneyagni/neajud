@@ -4,6 +4,7 @@ class Stamp < ApplicationRecord
   belongs_to :approved_version, class_name: "StampVersion", optional: true
 
   before_validation :set_uuid, on: :create
+  after_update_commit :broadcast_stamp_card, if: :saved_change_to_approved_version_id?
   before_destroy :destroy_stamp_with_versions, prepend: true
 
   validates :uuid, presence: true, uniqueness: true
@@ -48,6 +49,10 @@ class Stamp < ApplicationRecord
   end
 
   private
+
+  def broadcast_stamp_card
+    broadcast_replace_to "stamps", target: ActionView::RecordIdentifier.dom_id(self), partial: "stamps/stamp_card", locals: { stamp: self }
+  end
 
   def destroy_stamp_with_versions
     update_column(:approved_version_id, nil)
