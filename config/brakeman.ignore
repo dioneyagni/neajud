@@ -1,8 +1,12 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "89efbab3f665671615e5e8ef0df6179ae99e049740cb48a19735e95cd80893a3",
-      "note": "UUID gerado pelo sistema, seguro para send_file"
+      "fingerprint": "2024b9c8814506192df672266dc739919658aa4ad5df1297fddf9d01bfd5927a",
+      "note": "preview_file definido pelo sistema (UUID), seguro para send_file"
+    },
+    {
+      "fingerprint": "eea03efcdfdba9785de1f29613a200ceec452a785bd2d03cdfb897dda34c4304",
+      "note": "version_preview: preview_file definido pelo sistema (UUID), seguro para send_file"
     },
     {
       "fingerprint": "6ae95b5e572b0e2a286dda67d252f09ac6ed4372d6c703494429e2c0f76aba4b",
@@ -11,10 +15,6 @@
     {
       "fingerprint": "0f0fff2e1c90d052b8c05ddcc41208a19117d0ea6fc2f79d4effb81bba229891",
       "note": "storage_dir usa UUID + version_number gerados pelo sistema, seguro"
-    },
-    {
-      "fingerprint": "8be2aecf90d2b5d505e981db7c3656507d7e31f39d9a22bfeffff2edb945925a",
-      "note": "version_id escopo de uuid seguro, preview_file definido pelo sistema"
     },
     {
       "fingerprint": "19af8a46f7e6dc9ccb6566c73aca2c6d1e83943c6f318c1157cb2a34decc84cb",
