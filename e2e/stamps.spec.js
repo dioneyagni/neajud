@@ -96,6 +96,31 @@ async function run() {
     if (stillHas) throw new Error("dragover class not removed on dragleave");
   });
 
+  await test("Show page version upload dropzone triggers file input", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(testImagePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(3000);
+    await page.waitForSelector(".stamp-card a");
+
+    await page.locator(".stamp-card a").first().click();
+    await page.waitForSelector(".version-upload-form", { timeout: 10000 });
+
+    const clicked = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const form = document.querySelector(".version-upload-form");
+        const input = form?.querySelector('input[type="file"]');
+        if (!input) { resolve(false); return; }
+        input.addEventListener("click", () => resolve(true), { once: true });
+        const label = form?.querySelector("label");
+        if (label) label.click();
+        setTimeout(() => resolve(false), 500);
+      });
+    });
+    if (!clicked) throw new Error("Version upload label click did not trigger file input");
+  });
+
   await test("File list shows after selecting a file", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
