@@ -1,6 +1,9 @@
 class StampVersion < ApplicationRecord
   belongs_to :stamp
 
+  has_one :image_metadata, class_name: "StampImageMetadata", dependent: :destroy
+  has_many :cut_layers, dependent: :destroy
+
   before_validation :set_uuid, on: :create
 
   validates :uuid, presence: true, uniqueness: true

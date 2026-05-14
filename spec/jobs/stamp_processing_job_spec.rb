@@ -171,34 +171,34 @@ RSpec.describe StampProcessingJob do
       copy_to_version(version, "02.tif")
       version.update!(category: "artes")
       job.send(:detect_spots, version)
-      expect(version.reload.has_spots).to be true
+      expect(version.reload.image_metadata.has_spots).to be true
     end
 
     it "detects spots in CMYK spot file" do
       copy_to_version(version, "01.tif")
       version.update!(category: "artes")
       job.send(:detect_spots, version)
-      expect(version.reload.has_spots).to be true
+      expect(version.reload.image_metadata.has_spots).to be true
     end
 
     it "does not detect spots in no-spot files" do
       copy_to_version(version, "02-no_spot.tif")
       version.update!(category: "artes")
       job.send(:detect_spots, version)
-      expect(version.reload.has_spots).to be false
+      expect(version.reload.image_metadata.has_spots).to be false
     end
 
-    it "skips detection for corte category (spot_detection: false)" do
+    it "skips detection for corte category (no image_metadata created)" do
       version.update!(extension: "svg", category: "corte")
       job.send(:detect_spots, version)
-      expect(version.reload.has_spots).to be false
+      expect(version.reload.image_metadata).to be_nil
     end
 
     it "runs spot detection on PSD files" do
       copy_to_version(version, "02-no_spot.psd")
-      version.update!(original_file: "test.psd", extension: "psd", category: "artes")
+      version.update!(extension: "psd", category: "artes")
       job.send(:detect_spots, version)
-      expect(version.reload.has_spots).to be false
+      expect(version.reload.image_metadata.has_spots).to be false
     end
   end
 
@@ -213,30 +213,28 @@ RSpec.describe StampProcessingJob do
 
     it "extracts ICC profile name" do
       job.send(:extract_metadata, version)
-      version.reload
-      expect(version.icc_profile).to eq("Adobe RGB (1998)")
+      expect(version.reload.image_metadata.icc_profile).to eq("Adobe RGB (1998)")
     end
 
     it "extracts pixel dimensions" do
       job.send(:extract_metadata, version)
-      version.reload
-      expect(version.width_px).to eq(609)
-      expect(version.height_px).to eq(486)
+      meta = version.reload.image_metadata
+      expect(meta.width_px).to eq(609)
+      expect(meta.height_px).to eq(486)
     end
 
     it "extracts DPI" do
       job.send(:extract_metadata, version)
-      version.reload
-      expect(version.dpi).to eq(300.0)
+      expect(version.reload.image_metadata.dpi).to eq(300.0)
     end
 
     it "extracts metadata JSON (compression, depth, channels, file_size)" do
       job.send(:extract_metadata, version)
-      version.reload
-      expect(version.metadata["compression"]).to eq("LZW")
-      expect(version.metadata["depth"]).to eq(8)
-      expect(version.metadata["channels"]).to eq("srgb")
-      expect(version.metadata["file_size"]).to be > 0
+      meta = version.reload.image_metadata
+      expect(meta.metadata["compression"]).to eq("LZW")
+      expect(meta.metadata["depth"]).to eq(8)
+      expect(meta.metadata["channels"]).to eq("srgb")
+      expect(meta.metadata["file_size"]).to be > 0
     end
   end
 
@@ -250,51 +248,56 @@ RSpec.describe StampProcessingJob do
     end
 
     it "routes RGB no-spot to generate_preview_rgb" do
-      version.update!(has_spots: false, colorspace: "sRGB")
+      version.create_image_metadata!(has_spots: false, colorspace: "sRGB")
       expect(job).to receive(:generate_preview_rgb).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes CMYK no-spot to generate_preview_cmyk" do
-      version.update!(has_spots: false, colorspace: "CMYK")
+      version.create_image_metadata!(has_spots: false, colorspace: "CMYK")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes TIFF files with spots to generate_preview_utif regardless of colorspace" do
-      version.update!(has_spots: true, colorspace: "CMYK", extension: "tif")
+      version.create_image_metadata!(has_spots: true, colorspace: "CMYK")
+      version.update!(extension: "tif")
       expect(job).to receive(:generate_preview_utif).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes PSD files with spots to generate_preview_rgb (not utif)" do
-      version.update!(has_spots: true, colorspace: "sRGB", extension: "psd")
+      version.create_image_metadata!(has_spots: true, colorspace: "sRGB")
+      version.update!(extension: "psd")
       expect(job).not_to receive(:generate_preview_utif)
       expect(job).to receive(:generate_preview_rgb).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes PSD CMYK no-spot to generate_preview_cmyk" do
-      version.update!(has_spots: false, colorspace: "CMYK", extension: "psd")
+      version.create_image_metadata!(has_spots: false, colorspace: "CMYK")
+      version.update!(extension: "psd")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes EPS RGB no-spot to generate_preview_rgb" do
-      version.update!(has_spots: false, colorspace: "sRGB", extension: "eps")
+      version.create_image_metadata!(has_spots: false, colorspace: "sRGB")
+      version.update!(extension: "eps")
       expect(job).to receive(:generate_preview_rgb).and_call_original
       job.send(:process_image, version)
     end
 
     it "routes EPS CMYK no-spot to generate_preview_cmyk" do
-      version.update!(has_spots: false, colorspace: "CMYK", extension: "eps")
+      version.create_image_metadata!(has_spots: false, colorspace: "CMYK")
+      version.update!(extension: "eps")
       expect(job).to receive(:generate_preview_cmyk).and_call_original
       job.send(:process_image, version)
     end
   end
 
   describe "#perform" do
-    let(:real_stamp) { create(:stamp, original_file: "test.tif", extension: "tif", colorspace: "sRGB") }
+    let(:real_stamp) { create(:stamp, extension: "tif") }
     let!(:real_version) { create(:stamp_version, stamp: real_stamp, version_number: 1, approved: true) }
 
     before do
@@ -314,16 +317,17 @@ RSpec.describe StampProcessingJob do
       expect(File.exist?(real_version.preview_file)).to be true
       dims = png_dimensions(real_version.preview_file)
       expect(dims).to eq([ 609, 486 ])
-      expect(real_version.icc_profile).to eq("Adobe RGB (1998)")
-      expect(real_version.width_px).to eq(609)
-      expect(real_version.height_px).to eq(486)
-      expect(real_version.dpi).to eq(300.0)
-      expect(real_version.metadata["compression"]).to eq("LZW")
-      expect(real_version.metadata["file_size"]).to be > 0
+      meta = real_version.image_metadata
+      expect(meta.icc_profile).to eq("Adobe RGB (1998)")
+      expect(meta.width_px).to eq(609)
+      expect(meta.height_px).to eq(486)
+      expect(meta.dpi).to eq(300.0)
+      expect(meta.metadata["compression"]).to eq("LZW")
+      expect(meta.metadata["file_size"]).to be > 0
     end
 
     it "processes a PSD stamp end-to-end" do
-      psd_stamp = create(:stamp, original_file: "test.psd", extension: "psd", colorspace: "sRGB")
+      psd_stamp = create(:stamp, extension: "psd")
       psd_version = create(:stamp_version, stamp: psd_stamp, version_number: 1, approved: true)
 
       copy_to_version(psd_version, "02-no_spot.psd")
@@ -335,14 +339,14 @@ RSpec.describe StampProcessingJob do
       expect(File.exist?(psd_version.preview_file)).to be true
       dims = png_dimensions(psd_version.preview_file)
       expect(dims).to eq([ 609, 486 ])
-      expect(psd_version.icc_profile).to eq("Adobe RGB (1998)")
+      expect(psd_version.image_metadata.icc_profile).to eq("Adobe RGB (1998)")
 
       FileUtils.rm_rf(version_storage_dir(psd_version))
       psd_stamp.destroy!
     end
 
     it "processes an EPS RGB stamp end-to-end" do
-      eps_stamp = create(:stamp, original_file: "eps-rgb.eps", extension: "eps", colorspace: "sRGB", category: "artes")
+      eps_stamp = create(:stamp, extension: "eps", category: "artes")
       eps_version = create(:stamp_version, stamp: eps_stamp, version_number: 1, approved: true)
 
       copy_to_version(eps_version, "eps-rgb.eps")
@@ -361,7 +365,7 @@ RSpec.describe StampProcessingJob do
     end
 
     it "processes a Corte file (SVG) without generating preview" do
-      svg_stamp = create(:stamp, original_file: "test.svg", extension: "svg", colorspace: "sRGB", category: "corte")
+      svg_stamp = create(:stamp, extension: "svg", category: "corte")
       svg_version = create(:stamp_version, stamp: svg_stamp, version_number: 1, approved: true)
 
       copy_to_version(svg_version, "test.svg")
@@ -370,8 +374,8 @@ RSpec.describe StampProcessingJob do
       svg_version.reload
       expect(svg_version.status).to eq("processed")
       expect(svg_version.preview_file).to be_nil
-      expect(svg_version.width_px).to eq(200)
-      expect(svg_version.height_px).to eq(100)
+      expect(svg_version.image_metadata.width_px).to eq(200)
+      expect(svg_version.image_metadata.height_px).to eq(100)
 
       FileUtils.rm_rf(version_storage_dir(svg_version))
       svg_stamp.destroy!

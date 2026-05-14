@@ -15,10 +15,18 @@ class Stamp < ApplicationRecord
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
-  delegate :preview_file, :colorspace, :has_spots,
-           :icc_profile, :width_px, :height_px, :dpi, :metadata,
-           :category_notes, :colorspace_error,
+  delegate :preview_file, :category_notes,
            to: :approved_version, allow_nil: true, prefix: false
+
+  %i[colorspace colorspace_error has_spots icc_profile width_px height_px dpi metadata].each do |attr|
+    define_method(attr) do
+      approved_version&.image_metadata&.public_send(attr)
+    end
+  end
+
+  def has_spots?
+    has_spots
+  end
 
   STATUS_VALUES = %w[pending processing processed failed invalid_colorspace unsupported_format].freeze
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_083701) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -33,6 +33,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
     t.index ["uuid"], name: "index_batch_uploads_on_uuid", unique: true
   end
 
+  create_table "cut_layers", force: :cascade do |t|
+    t.string "annotation", default: "cut"
+    t.string "color", null: false
+    t.datetime "created_at", null: false
+    t.string "layer_name", null: false
+    t.integer "position"
+    t.integer "stamp_version_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["stamp_version_id"], name: "index_cut_layers_on_stamp_version_id"
+  end
+
+  create_table "stamp_image_metadata", force: :cascade do |t|
+    t.string "colorspace"
+    t.string "colorspace_error"
+    t.datetime "created_at", null: false
+    t.float "dpi"
+    t.boolean "has_spots", default: false
+    t.integer "height_px"
+    t.string "icc_profile"
+    t.json "metadata"
+    t.integer "stamp_version_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "width_px"
+    t.index ["stamp_version_id"], name: "idx_stamp_image_metadata_on_version", unique: true
+    t.index ["stamp_version_id"], name: "index_stamp_image_metadata_on_stamp_version_id"
+  end
+
   create_table "stamp_time_logs", force: :cascade do |t|
     t.string "changed_by"
     t.datetime "created_at", null: false
@@ -49,16 +76,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
     t.boolean "approved", default: false, null: false
     t.string "category"
     t.text "category_notes"
-    t.string "colorspace"
-    t.string "colorspace_error"
     t.datetime "created_at", null: false
-    t.integer "dpi"
     t.string "extension", null: false
     t.string "filename", null: false
-    t.boolean "has_spots", default: false
-    t.integer "height_px"
-    t.string "icc_profile"
-    t.json "metadata"
     t.string "mime_type", null: false
     t.string "original_file", null: false
     t.string "preview_file"
@@ -67,7 +87,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.integer "version_number", null: false
-    t.integer "width_px"
     t.index ["stamp_id", "version_number"], name: "index_stamp_versions_on_stamp_id_and_version_number", unique: true
     t.index ["stamp_id"], name: "index_stamp_versions_on_stamp_id"
     t.index ["uuid"], name: "index_stamp_versions_on_uuid", unique: true
@@ -79,29 +98,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_184326) do
     t.string "batch_id"
     t.string "category"
     t.text "category_notes"
-    t.string "colorspace"
     t.datetime "created_at", null: false
-    t.float "dpi"
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
-    t.boolean "has_spots", default: false
-    t.integer "height_px"
-    t.string "icc_profile"
-    t.json "metadata", default: {}
     t.string "mime_type", null: false
-    t.string "original_file"
-    t.string "overlay_file"
-    t.string "preview_file"
-    t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
-    t.integer "width_px"
     t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
-    t.index ["status"], name: "index_stamps_on_status"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
   end
 
+  add_foreign_key "cut_layers", "stamp_versions"
+  add_foreign_key "stamp_image_metadata", "stamp_versions"
   add_foreign_key "stamp_time_logs", "stamps"
   add_foreign_key "stamp_versions", "stamps"
   add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"

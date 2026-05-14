@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       post :upload_version
       patch :approve_version
       get :version_preview
+      patch :configure_layers
     end
   end
 

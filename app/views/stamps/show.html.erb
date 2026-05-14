@@ -101,6 +101,13 @@
   </div>
 </div>
 
+<% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
+  <section>
+    <h3>Layer Configuration</h3>
+    <%= render "layer_configuration", version: @stamp.approved_version %>
+  </section>
+<% end %>
+
 <section>
   <h3>Versions</h3>
   <% if @versions.any? %>

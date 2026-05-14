@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview]
+  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview configure_layers]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -83,6 +83,23 @@ class StampsController < ApplicationController
     redirect_to @stamp, notice: "Version #{version.version_number} approved."
   end
 
+  def configure_layers
+    version = @stamp.stamp_versions.find(params[:version_id])
+    annotations = params[:layer_annotations]
+    raise "Invalid layer_annotations" unless annotations.is_a?(ActionController::Parameters) || annotations.is_a?(Hash)
+
+    version.cut_layers.destroy_all
+    annotations.values.map(&:permit!).map(&:to_h).each_with_index do |layer, idx|
+      version.cut_layers.create!(
+        layer_name: layer["layer_name"],
+        color: layer["color"],
+        annotation: layer["annotation"] || "cut",
+        position: idx
+      )
+    end
+    redirect_to @stamp, notice: "Layer configuration saved."
+  end
+
   def update_time
     previous_seconds = @stamp.annotated_seconds || @stamp.estimated_seconds
     new_seconds = parse_hmm(params[:annotated_seconds])
@@ -102,7 +119,9 @@ class StampsController < ApplicationController
   def preview
     path = @stamp.preview_file
     raise ActionController::MissingFile unless path && File.exist?(path.to_s)
-    send_file path.to_s, type: "image/png", disposition: "inline"
+
+    mime = path.to_s.end_with?(".svg") ? "image/svg+xml" : "image/png"
+    send_file path.to_s, type: mime, disposition: "inline"
   rescue ActionController::MissingFile, Errno::ENOENT
     head :not_found
   end
@@ -112,7 +131,8 @@ class StampsController < ApplicationController
     raise ActionController::MissingFile if version.preview_file.blank?
     path = version.preview_file
     raise ActionController::MissingFile unless File.exist?(path)
-    send_file path, type: "image/png", disposition: "inline"
+    mime = path.end_with?(".svg") ? "image/svg+xml" : "image/png"
+    send_file path, type: mime, disposition: "inline"
   rescue ActionController::MissingFile, Errno::ENOENT
     head :not_found
   end
@@ -149,7 +169,6 @@ class StampsController < ApplicationController
       original_file: upload.original_filename,
       status: :pending,
       approved: true,
-      colorspace: stamp.colorspace,
       category: stamp.category,
       category_notes: stamp.category_notes
     )
@@ -161,7 +180,6 @@ class StampsController < ApplicationController
     File.open(dest_path, "wb") { |f| f.write(upload.read) }
 
     stamp.update!(
-      original_file: upload.original_filename,
       filename: File.basename(upload.original_filename, ".*"),
       extension: File.extname(upload.original_filename).delete(".").downcase,
       mime_type: upload.content_type
@@ -210,6 +228,8 @@ class StampsController < ApplicationController
     ext = record.extension.to_s.strip
     return true if ext.blank?
 
+    return true if FileValidator::UNVERIFIABLE_EXTENSIONS.include?(ext)
+
     validator = FileValidator.new(upload.tempfile.path)
     real_fmt = validator.real_format
 
@@ -251,6 +271,6 @@ class StampsController < ApplicationController
   end
 
   def stamp_params
-    params.require(:stamp).permit(:original_file, :filename, :extension, :mime_type)
+    params.require(:stamp).permit(:filename, :extension, :mime_type)
   end
 end

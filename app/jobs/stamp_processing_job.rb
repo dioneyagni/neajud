@@ -1,4 +1,5 @@
 require "shellwords"
+require "set"
 
 class StampProcessingJob < ApplicationJob
   queue_as :default
@@ -10,7 +11,8 @@ class StampProcessingJob < ApplicationJob
     validate_format!(version)
     detect_spots(version)
     extract_metadata(version)
-    process_image(version) if preview_enabled?(version)
+    process_image(version) if preview_enabled?(version) || version.extension.downcase == "dxf"
+    extract_cut_layers_from_preview(version)
 
     version.update!(status: :processed)
   rescue StandardError => e
@@ -38,7 +40,51 @@ class StampProcessingJob < ApplicationJob
     result = `exiftool -s3 -AlphaChannelsNames #{Shellwords.escape(input_path)} 2>/dev/null`.strip
     names = result.split(",").map(&:strip).reject(&:empty?)
     real_spots = names.reject { |n| n == "Transparency" }
-    version.update!(has_spots: real_spots.any?)
+    meta = version.image_metadata || version.build_image_metadata
+    meta.update!(has_spots: real_spots.any?)
+  end
+
+  def extract_cut_layers_from_preview(version)
+    preview_path = version.preview_file
+    return unless preview_path && File.exist?(preview_path)
+
+    colors = case version.extension.downcase
+    when "dxf" then extract_colors_from_svg(preview_path)
+    else return
+    end
+
+    return if colors.blank?
+
+    version.cut_layers.destroy_all
+    colors.each_with_index do |color, idx|
+      version.cut_layers.create!(
+        layer_name: "Camada #{idx + 1}",
+        color: color,
+        annotation: "cut",
+        position: idx
+      )
+    end
+  end
+
+  def extract_colors_from_svg(path)
+    svg = File.read(path)
+    colors = Set.new
+
+    # Match strokes on drawing <g> groups (those wrapping <path> elements).
+    # Pattern: <g stroke="..."> optionally followed by <g><path, <path, etc.
+    # This excludes container <g> whose stroke is inherited but never rendered.
+    svg.scan(/<g stroke="(#[^"]*|rgb\([^)]*\))">(?:<g>)?<(?:path|polyline|line|rect|circle|ellipse|polygon)\b/) do
+      match = Regexp.last_match[1]
+      hex = if match.start_with?("#")
+              match.upcase
+      elsif match.start_with?("rgb(")
+              m = match.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+              "#%02X%02X%02X" % [ m[1].to_i, m[2].to_i, m[3].to_i ] if m
+      end
+      colors << hex if hex
+    end
+
+    colors.to_a
   end
 
   def extract_metadata(version)
@@ -53,7 +99,8 @@ class StampProcessingJob < ApplicationJob
     icc = extract_icc_name(input_path)
     other_raw = `identify -format '%[compression]|%[depth]|%[channels]\\n' #{src} 2>/dev/null`.strip.split("|")
 
-    version.update!(
+    meta = version.image_metadata || version.build_image_metadata
+    meta.update!(
       colorspace: cs.presence,
       icc_profile: icc.presence,
       width_px: dims[0].to_i,
@@ -92,12 +139,16 @@ class StampProcessingJob < ApplicationJob
 
     output_dir = File.join(version.storage_dir, "preview")
     FileUtils.mkdir_p(output_dir)
-    preview_path = File.join(output_dir, "preview.png")
+    preview_ext = version.extension.downcase == "dxf" ? "svg" : "png"
+    preview_path = File.join(output_dir, "preview.#{preview_ext}")
 
     extension = version.extension.downcase
-    if version.has_spots? && %w[tif tiff].include?(extension)
+    meta = version.image_metadata
+    if extension == "dxf"
+      generate_preview_dxf(input_path, preview_path)
+    elsif meta&.has_spots? && %w[tif tiff].include?(extension)
       generate_preview_utif(input_path, preview_path)
-    elsif version.colorspace == "CMYK"
+    elsif meta&.colorspace == "CMYK"
       generate_preview_cmyk(input_path, preview_path)
     else
       generate_preview_rgb(input_path, preview_path)
@@ -124,6 +175,10 @@ class StampProcessingJob < ApplicationJob
 
   def generate_preview_utif(input, output)
     system("node", Rails.root.join("bin", "generate-preview.js").to_s, input, output) || raise("UTIF preview failed")
+  end
+
+  def generate_preview_dxf(input, output)
+    system("node", Rails.root.join("bin", "generate-dxf-preview.js").to_s, input, output) || raise("DXF preview failed")
   end
 
   def preview_enabled?(version)

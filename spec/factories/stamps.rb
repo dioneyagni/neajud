@@ -3,6 +3,5 @@ FactoryBot.define do
     filename { "test_stamp" }
     extension { "tif" }
     mime_type { "image/tiff" }
-    status { "pending" }
   end
 end

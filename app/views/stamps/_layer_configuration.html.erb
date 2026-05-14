@@ -1,0 +1,18 @@
+<div data-controller="layer-config" data-layer-config-version-id-value="<%= version.id %>" data-layer-config-url-value="<%= configure_layers_stamp_path(@stamp) %>">
+  <div class="layer-config-list">
+    <% version.cut_layers.order(:position).each_with_index do |layer, idx| %>
+      <div class="layer-config-row">
+        <span class="layer-swatch" style="background-color: <%= layer.color %>; width: 24px; height: 24px; border: 1px solid #ccc; border-radius: 3px; display: inline-block;"></span>
+        <span class="layer-name"><%= layer.layer_name %></span>
+        <span class="layer-color-code"><%= layer.color %></span>
+        <select class="layer-annotation-select" data-layer-config-target="select" data-index="<%= idx %>">
+          <option value="cut" <%= "selected" if layer.annotation == "cut" %>>Corte</option>
+          <option value="hole" <%= "selected" if layer.annotation == "hole" %>>Furo</option>
+          <option value="engraving" <%= "selected" if layer.annotation == "engraving" %>>Gravação</option>
+          <option value="ignore" <%= "selected" if layer.annotation == "ignore" %>>Ignore</option>
+        </select>
+      </div>
+    <% end %>
+  </div>
+  <button data-action="click->layer-config#save" class="layer-config-save">Salvar configuração</button>
+</div>

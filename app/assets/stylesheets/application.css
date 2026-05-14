@@ -606,6 +606,60 @@ section {
   padding: 1rem 0;
 }
 
+/* Layer configuration */
+
+.layer-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.layer-config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.layer-name {
+  font-weight: 600;
+  min-width: 120px;
+}
+
+.layer-color-code {
+  font-family: monospace;
+  color: #666;
+  font-size: 0.85rem;
+  min-width: 70px;
+}
+
+.layer-annotation-select {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.9rem;
+}
+
+.layer-config-save {
+  padding: 0.5rem 1.5rem;
+  background: #1967d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.layer-config-save:hover {
+  background: #1557b0;
+}
+
 /* Version list */
 
 .version-list {
