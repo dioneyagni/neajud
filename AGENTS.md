@@ -103,33 +103,30 @@ Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 
 ## Workflow: feature branches + CI guard
 
-Every change (feature or bug fix) goes through a feature branch:
-
 ```bash
 git checkout main
 git pull
 git checkout -b fix/descricao-curta
-# faz as alterações, commit
-git push -u origin fix/descricao-curta
 ```
 
-Then open a PR on GitHub:
-- CI roda automaticamente (RSpec + RuboCop + Brakeman + E2E)
-- Só fazer merge se CI estiver verde
-- Merge pelo GitHub UI (botão "Merge pull request")
-- Depois do merge, deletar o branch remoto
+1. **Alterações** — faz as mudanças no código
+2. **Teste no servidor** — sobe o Rails server, testa a funcionalidade no navegador, observa o `log/development.log` em busca de erros. Corrigir e conferir novamente até o log limpo
+3. **Console do navegador** — abre DevTools, interage com a UI nova, verifica se há erros no console. Corrigir e conferir novamente
+4. **Testes unitários** — escrever testes para novas funções, adicionar testes de regressão para bugs corrigidos. Rodar `bin/rspec` e corrigir código até passar.
+5. **Testes E2E** — escrever testes no Playwright cobrindo todos os novos casos de uso e interações com a interface nova (botões, campos, drag-and-drop, etc). Não quebrar testes existentes.
+6. **Verificação final** — volta ao Rails server, testa de novo, confere o `log/development.log` e console do navegador mais uma vez. Corrigir se necessário.
+7. **Alterações finais** — ajusta o que apareceu na verificação
+8. **Commit** — `git add -A && git commit -m "mensagem descritiva (WHAT + WHY)"`
+9. **Push** — `git push -u origin fix/descricao-curta`
+10. **PR no GitHub** — abrir Pull Request
+11. **CI** — roda automaticamente (RSpec + RuboCop + Brakeman + E2E)
+12. **Merge** — pelo GitHub UI se CI estiver verde
+13. **Limpeza** — deletar branch remoto
 
 ⚠️ **Branch protection não está ativa** (GitHub Free + repo privado). A
-disciplina é manual: nunca fazer merge com CI vermelho. Sempre rodar o
-pre-commit local antes de subir.
+disciplina é manual: nunca fazer merge com CI vermelho.
 
-Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
-
-Para commits diretos em main (casos simples):
-1. Rodar pre-commit local
-2. Commit + push
-3. Verificar CI no GitHub
-4. Se CI falhar → corrigir e re-push
+Pre-commit antes de todo push: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 
 ## Architecture
 
