@@ -114,4 +114,192 @@ RSpec.describe StampProcessingJob do
       stamp.destroy!
     end
   end
+
+  describe "#organize_dxf integration" do
+    it "detects 5 tamanhos in CABEDAL DXF" do
+      stamp = create(:stamp, extension: "dxf", category: "corte", filename: "CABEDAL - 35 AO 43")
+      version = create(:stamp_version, stamp: stamp, version_number: 1, extension: "dxf")
+
+      dir = File.join(Rails.root, "storage", "stamps", stamp.uuid, "v1", "original")
+      FileUtils.mkdir_p(dir)
+      src = Rails.root.join("spec/fixtures/files/CABEDAL - 35 AO 43.dxf").to_s
+      dest = File.join(dir, "CABEDAL - 35 AO 43.dxf")
+      FileUtils.cp(src, dest)
+      version.update!(original_file: "CABEDAL - 35 AO 43.dxf")
+
+      stamp.update!(approved_version_id: version.id)
+      described_class.new.send(:organize_dxf, version)
+
+      stamp.reload
+      expect(stamp.tamanhos.count).to eq(5)
+      expect(stamp.tamanhos.first.nome).to eq("Tamanho 1")
+      expect(stamp.tamanhos.first.width_mm).to be_within(0.1).of(296.9)
+      expect(stamp.tamanhos.last.width_mm).to be_within(0.1).of(254.5)
+
+      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
+      stamp.destroy!
+    end
+
+    it "detects 1 tamanho in 29-30 DXF" do
+      stamp = create(:stamp, extension: "dxf", category: "corte", filename: "29-30")
+      version = create(:stamp_version, stamp: stamp, version_number: 1, extension: "dxf")
+
+      dir = File.join(Rails.root, "storage", "stamps", stamp.uuid, "v1", "original")
+      FileUtils.mkdir_p(dir)
+      src = Rails.root.join("spec/fixtures/files/29-30.dxf").to_s
+      dest = File.join(dir, "29-30.dxf")
+      FileUtils.cp(src, dest)
+      version.update!(original_file: "29-30.dxf")
+
+      stamp.update!(approved_version_id: version.id)
+      described_class.new.send(:organize_dxf, version)
+
+      stamp.reload
+      expect(stamp.tamanhos.count).to eq(1)
+      expect(stamp.tamanhos.first.nome).to eq("Tamanho 1")
+      expect(stamp.tamanhos.first.area_mm2).to be_within(0.1).of(31182.9)
+
+      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
+      stamp.destroy!
+    end
+
+    it "detects 5 tamanhos in REFORÇO DXF (not inner lines)" do
+      stamp = create(:stamp, extension: "dxf", category: "corte", filename: "REFORÇO - 35 AO 43")
+      version = create(:stamp_version, stamp: stamp, version_number: 1, extension: "dxf")
+
+      dir = File.join(Rails.root, "storage", "stamps", stamp.uuid, "v1", "original")
+      FileUtils.mkdir_p(dir)
+      src = Rails.root.join("spec/fixtures/files/REFORÇO - 35 AO 43.dxf").to_s
+      dest = File.join(dir, "REFORÇO - 35 AO 43.dxf")
+      FileUtils.cp(src, dest)
+      version.update!(original_file: "REFORÇO - 35 AO 43.dxf")
+
+      stamp.update!(approved_version_id: version.id)
+      described_class.new.send(:organize_dxf, version)
+
+      stamp.reload
+      expect(stamp.tamanhos.count).to eq(5)
+
+      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
+      stamp.destroy!
+    end
+
+    it "creates stamp with default organized=false and default names" do
+      stamp = create(:stamp, extension: "dxf", category: "corte")
+      expect(stamp.organized).to be false
+      expect(stamp.molde_nome).to eq("Novo Molde")
+      expect(stamp.peca_nome).to eq("Nova Peça")
+      stamp.destroy!
+    end
+  end
+
+  describe "#organize_dxf overlap detection" do
+    def write_overlap_dxf(path, color_a: 1, color_b: 3)
+      lines = [
+        "0", "SECTION",
+        "2", "HEADER",
+        "9", "$INSUNITS",
+        "70", "4",
+        "0", "ENDSEC",
+        "0", "SECTION",
+        "2", "TABLES",
+        "0", "TABLE",
+        "2", "LAYER",
+        "70", "2",
+        "0", "LAYER",
+        "2", "0",
+        "70", "0",
+        "62", "7",
+        "6", "Continuous",
+        "0", "LAYER",
+        "2", "Camada 1",
+        "70", "0",
+        "62", "7",
+        "6", "Continuous",
+        "0", "ENDTAB",
+        "0", "ENDSEC",
+        "0", "SECTION",
+        "2", "ENTITIES",
+        "0", "LWPOLYLINE",
+        "8", "0",
+        "62", color_a.to_s,
+        "90", "4",
+        "70", "1",
+        "10", "0", "20", "0",
+        "10", "100", "20", "0",
+        "10", "100", "20", "100",
+        "10", "0", "20", "100",
+        "0", "LWPOLYLINE",
+        "8", "0",
+        "62", color_b.to_s,
+        "90", "4",
+        "70", "1",
+        "10", "50", "20", "50",
+        "10", "150", "20", "50",
+        "10", "150", "20", "150",
+        "10", "50", "20", "150",
+        "0", "ENDSEC",
+        "0", "EOF"
+      ]
+      File.write(path, lines.join("\n"))
+    end
+
+    it "detects overlapping outer polylines and sets organize_error" do
+      tmp = Rails.root.join("tmp", "test-overlap.dxf")
+      write_overlap_dxf(tmp)
+
+      stamp = create(:stamp, extension: "dxf", category: "corte", filename: "overlap")
+      version = create(:stamp_version, stamp: stamp, version_number: 1, extension: "dxf",
+        original_file: "overlap.dxf")
+      dir = File.join(Rails.root, "storage", "stamps", stamp.uuid, "v1", "original")
+      FileUtils.mkdir_p(dir)
+      FileUtils.cp(tmp, File.join(dir, "overlap.dxf"))
+      stamp.update!(approved_version_id: version.id)
+
+      described_class.new.send(:organize_dxf, version)
+
+      stamp.reload
+      expect(stamp.organize_error).to eq(DxfOrganizationService::OVERLAP_ERROR)
+      expect(stamp.tamanhos.count).to eq(2)
+
+      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
+      File.delete(tmp) if File.exist?(tmp)
+      stamp.destroy!
+    end
+
+    it "removes overlapping tamanho when its color is marked as hole in cut_layers" do
+      tmp = Rails.root.join("tmp", "test-overlap-hole.dxf")
+      write_overlap_dxf(tmp, color_a: 1, color_b: 3)
+
+      stamp = create(:stamp, extension: "dxf", category: "corte", filename: "overlap-hole")
+      version = create(:stamp_version, stamp: stamp, version_number: 1, extension: "dxf",
+        original_file: "overlap-hole.dxf")
+      dir = File.join(Rails.root, "storage", "stamps", stamp.uuid, "v1", "original")
+      FileUtils.mkdir_p(dir)
+      FileUtils.cp(tmp, File.join(dir, "overlap-hole.dxf"))
+      stamp.update!(approved_version_id: version.id)
+
+      # Generate SVG preview so cut_layers get created with colors
+      svg_out = Rails.root.join("tmp", "test-overlap-svg.svg").to_s
+      system("node", Rails.root.join("bin/generate-dxf-preview.js").to_s, tmp.to_s, svg_out) || raise("SVG gen failed")
+      version.update!(preview_file: svg_out.to_s)
+
+      described_class.new.send(:extract_cut_layers_from_preview, version)
+      version.reload
+      # Mark the red layer as hole
+      red = version.cut_layers.find_by(color: "#FF0000")
+      red&.update!(annotation: "hole") if red
+
+      described_class.new.send(:organize_dxf, version)
+
+      stamp.reload
+      expect(stamp.organize_error).to be_nil
+      expect(stamp.tamanhos.count).to eq(1)
+
+      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
+      File.delete(tmp) if File.exist?(tmp)
+      File.delete(svg_out) if File.exist?(svg_out)
+      stamp.destroy!
+    end
+  end
 end

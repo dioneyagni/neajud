@@ -1,6 +1,7 @@
 class Stamp < ApplicationRecord
   has_many :stamp_time_logs, dependent: :destroy
   has_many :stamp_versions
+  has_many :tamanhos, dependent: :destroy
   belongs_to :approved_version, class_name: "StampVersion", optional: true
 
   before_validation :set_uuid, on: :create
