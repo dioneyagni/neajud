@@ -76,17 +76,18 @@ class FileCategory
     "eps" => "icons/programs/illustrator",
     "cdr" => "icons/programs/coreldraw",
     "pdf" => "icons/programs/illustrator",
-    "dxf" => "icons/programs/autodesk",
+    "dxf" => "icons/programs/autocad",
     "svg" => "icons/programs/illustrator",
-    "dwg" => "icons/programs/autodesk",
-    "cad" => "icons/programs/autodesk"
+    "dwg" => "icons/programs/autocad",
+    "cad" => "icons/programs/autocad"
   }.freeze
 
   def self.extension_icon(ext)
     EXTENSION_ICONS[ext.downcase] || "icons/extensions/image"
   end
 
-  def self.program_icon(ext)
+  def self.program_icon(ext, detected_program: nil)
+    return "icons/programs/#{detected_program}" if detected_program
     PROGRAM_ICONS[ext.downcase] || "icons/programs/photoshop"
   end
 end

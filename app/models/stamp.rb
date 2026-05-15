@@ -28,6 +28,14 @@ class Stamp < ApplicationRecord
     has_spots
   end
 
+  def detected_program
+    metadata&.dig("source_program")
+  end
+
+  def program_icon
+    FileCategory.program_icon(extension, detected_program: detected_program)
+  end
+
   STATUS_VALUES = %w[pending processing processed failed invalid_colorspace unsupported_format].freeze
 
   def self.statuses

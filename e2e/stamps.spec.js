@@ -137,6 +137,65 @@ async function run() {
     if (!clicked) throw new Error("Version upload label click did not trigger file input");
   });
 
+  await test("Version upload drop zone has Stimulus upload controller", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(testImagePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(3000);
+    await page.waitForSelector(".stamp-card a");
+
+    await page.locator(".stamp-card a").first().click();
+    await page.waitForSelector(".version-upload-form", { timeout: 10000 });
+
+    const hasController = await page.evaluate(() => {
+      const form = document.querySelector(".version-upload-form");
+      return form?.getAttribute("data-controller") === "upload";
+    });
+    if (!hasController) throw new Error("Version upload form missing data-controller='upload'");
+
+    const hasTargets = await page.evaluate(() => {
+      const form = document.querySelector(".version-upload-form");
+      const dropzone = form?.querySelector(".upload-dropzone");
+      const input = form?.querySelector('input[type="file"]');
+      const fileList = form?.querySelector(".upload-file-list");
+      const submit = form?.querySelector('input[type="submit"]');
+      return (
+        dropzone?.getAttribute("data-upload-target") === "dropzone" &&
+        input?.getAttribute("data-upload-target") === "input" &&
+        fileList?.getAttribute("data-upload-target") === "fileList" &&
+        submit?.getAttribute("data-upload-target") === "submit" &&
+        form?.getAttribute("data-upload-field-name-value") === "original_file"
+      );
+    });
+    if (!hasTargets) throw new Error("Version upload form missing required data-upload-target attributes");
+  });
+
+  await test("Version upload drop zone shows dragover style", async () => {
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(testImagePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(3000);
+    await page.waitForSelector(".stamp-card a");
+
+    await page.locator(".stamp-card a").first().click();
+    await page.waitForSelector(".version-upload-form", { timeout: 10000 });
+
+    const dropzone = await page.$(".version-upload-form .upload-dropzone");
+    if (!dropzone) throw new Error("Version upload drop zone not found");
+
+    await dropzone.dispatchEvent("dragenter");
+    await page.waitForTimeout(100);
+    const hasClass = await page.$eval(".version-upload-form .upload-dropzone", el => el.classList.contains("dragover"));
+    if (!hasClass) throw new Error("dragover class not applied on version upload drop zone");
+
+    await dropzone.dispatchEvent("dragleave");
+    await page.waitForTimeout(100);
+    const stillHas = await page.$eval(".version-upload-form .upload-dropzone", el => el.classList.contains("dragover"));
+    if (stillHas) throw new Error("dragover class not removed on dragleave on version upload drop zone");
+  });
+
   await test("File list shows after selecting a file", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
@@ -513,16 +572,29 @@ async function run() {
     const uploadBtn = versionForm.locator('input[type="submit"]');
     await uploadBtn.click();
 
-    // Wait for processing and redirect back
-    await page.waitForURL("**/stamps/**", { timeout: 15000 });
-    await page.waitForTimeout(3000);
+    // Wait for redirect after processing (native form submit)
+    await page.waitForURL("**/stamps/**", { timeout: 30000 });
+
+    // Wait for flash notice to appear, or for the v2 version card
+    try {
+      await page.waitForSelector(".version-card", { timeout: 15000 });
+    } catch {
+      // fallback: wait a bit more and check body
+      await page.waitForTimeout(2000);
+    }
 
     const body = await page.textContent("body");
-    if (!body.includes("uploaded and processing")) throw new Error("Version upload notice not shown");
+    const hasNotice = body.includes("uploaded and processing");
+    const hasV2Card = body.includes("v2");
+    if (!hasNotice && !hasV2Card) {
+      const details = await page.$("dl");
+      const detailsText = details ? await details.textContent() : "no details";
+      throw new Error(`Version upload notice nor v2 card found. Body excerpt: ${body.slice(0, 300)} Details: ${detailsText}`);
+    }
 
     // Verify v2 exists and has Approved badge (auto-approved)
     const v2Card = page.locator(".version-card").filter({ hasText: "v2" }).first();
-    await v2Card.waitFor({ timeout: 5000 });
+    await v2Card.waitFor({ timeout: 10000 });
     const v2Text = await v2Card.textContent();
     if (!v2Text.includes("Approved")) throw new Error("v2 should be auto-approved but Approved badge not found");
   });

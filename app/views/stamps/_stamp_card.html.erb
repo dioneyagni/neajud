@@ -4,14 +4,14 @@
       <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
         <%= image_tag preview_stamp_path(stamp, t: stamp.approved_version&.updated_at&.to_i), alt: stamp.filename %>
         <div class="stamp-card-icons-overlay">
-          <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <%= image_tag "#{stamp.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
           <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
         </div>
       <% elsif stamp.preview_file.present? %>
         <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
         <span class="stamp-card-preview-missing">Preview unavailable</span>
         <div class="stamp-card-icons-overlay">
-          <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <%= image_tag "#{stamp.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
           <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
         </div>
       <% elsif stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
@@ -19,7 +19,7 @@
       <% else %>
         <%= image_tag "#{FileCategory.extension_icon(stamp.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: stamp.extension %>
         <div class="stamp-card-icons-overlay">
-          <%= image_tag "#{FileCategory.program_icon(stamp.extension)}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <%= image_tag "#{stamp.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
           <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
         </div>
       <% end %>

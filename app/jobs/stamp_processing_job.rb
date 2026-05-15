@@ -91,6 +91,11 @@ class StampProcessingJob < ApplicationJob
     input_path = version.original_path
     return unless File.exist?(input_path)
 
+    extra = {}
+    if version.extension.downcase == "dxf"
+      extra.merge!(extract_dxf_header_info(input_path))
+    end
+
     src = Shellwords.escape("#{input_path}[0]")
 
     dims = `identify -format '%w %h\\n' #{src} 2>/dev/null`.strip.split
@@ -111,8 +116,56 @@ class StampProcessingJob < ApplicationJob
         depth: other_raw[1].to_i > 0 ? other_raw[1].to_i : nil,
         channels: other_raw[2].presence,
         file_size: File.size(input_path)
-      }.compact
+      }.compact.merge(extra)
     )
+  end
+
+  def extract_dxf_header_info(path)
+    lines = File.readlines(path, encoding: "ISO-8859-1", fallback: "UTF-8").map(&:strip)
+    header = {}
+    inside = false
+    i = 0
+    while i < lines.length - 1
+      group_code = lines[i]
+      value = lines[i + 1]
+
+      if !inside && group_code == "0" && value == "SECTION"
+        if i + 3 < lines.length && lines[i + 2] == "2" && lines[i + 3] == "HEADER"
+          inside = true
+          i += 4
+        else
+          i += 2
+        end
+        next
+      end
+
+      if inside && group_code == "0" && value == "ENDSEC"
+        break
+      end
+
+      if inside && group_code == "9"
+        var_name = value
+        i += 2
+        if i < lines.length - 1
+          val_value = lines[i + 1]
+          header[var_name] = val_value if val_value
+          i += 2
+        end
+        next
+      end
+
+      i += 2
+    end
+    return {} if header.empty?
+
+    acadver = header["$ACADVER"]
+    savedby = header["$LASTSAVEDBY"]
+
+    source = "autocad" if acadver&.start_with?("AC")
+    source ||= "coreldraw" if savedby&.downcase&.include?("corel")
+    source ||= "illustrator" if savedby&.downcase&.include?("illustrator")
+
+    { source_program: source, acadver: acadver, last_saved_by: savedby }.compact
   end
 
   def extract_icc_name(path)

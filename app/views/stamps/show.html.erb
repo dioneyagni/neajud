@@ -1,6 +1,6 @@
 <h2>
   <%= image_tag "#{FileCategory.extension_icon(@stamp.extension)}.svg", class: "stamp-detail-ext-icon", alt: @stamp.extension %>
-  <%= image_tag "#{FileCategory.program_icon(@stamp.extension)}.svg", class: "stamp-detail-program-icon", alt: "Program" %>
+  <%= image_tag "#{@stamp.program_icon}.svg", class: "stamp-detail-program-icon", alt: "Program" %>
   Stamp: <%= @stamp.filename %>.<%= @stamp.extension %>
 </h2>
 
@@ -150,14 +150,19 @@
 <section>
   <h3>Upload New Version</h3>
   <div class="upload-form-wrapper">
-    <%= form_with url: upload_version_stamp_path(@stamp), multipart: true, class: "version-upload-form", data: { turbo: false } do |f| %>
-      <div class="upload-dropzone" style="padding: 1.5rem;">
+    <%= form_with url: upload_version_stamp_path(@stamp), multipart: true, class: "version-upload-form",
+          data: { controller: "upload", turbo: false, upload_field_name_value: "original_file" } do |f| %>
+      <div class="upload-dropzone" style="padding: 1.5rem;"
+           data-upload-target="dropzone"
+           data-action="dragenter->upload#dragOver dragover->upload#dragOver dragleave->upload#dragLeave drop->upload#drop click->upload#click">
         <label for="original_file" style="display: block; cursor: pointer;">
-          <p>Click to select a file for the new version</p>
+          <p>Drag & drop a file here, or click to select</p>
         </label>
-        <%= f.file_field :original_file, class: "upload-file-input", id: "original_file" %>
+        <%= f.file_field :original_file, class: "upload-file-input", id: "original_file",
+              data: { upload_target: "input", action: "change->upload#fileSelected" } %>
       </div>
-      <%= f.submit "Upload Version", class: "upload-submit" %>
+      <div class="upload-file-list" data-upload-target="fileList"></div>
+      <%= f.submit "Upload Version", data: { upload_target: "submit" }, class: "upload-submit" %>
     <% end %>
   </div>
 </section>

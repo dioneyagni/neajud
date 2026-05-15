@@ -19,6 +19,28 @@ RSpec.describe "Stamps", type: :request do
       get stamp_path("nonexistent")
       expect(response).to have_http_status(:not_found)
     end
+
+    it "renders version upload form with Stimulus upload controller data attributes" do
+      stamp = create(:stamp)
+      get stamp_path(stamp)
+      expect(response.body).to include('data-controller="upload"')
+      expect(response.body).to include('data-upload-target="dropzone"')
+      expect(response.body).to include('data-upload-target="input"')
+      expect(response.body).to include('data-upload-target="fileList"')
+      expect(response.body).to include('data-upload-target="submit"')
+      expect(response.body).to include('data-upload-field-name-value="original_file"')
+    end
+
+    it "renders version upload drop zone drag-and-drop event handlers" do
+      stamp = create(:stamp)
+      get stamp_path(stamp)
+      expect(response.body).to include('dragenter->upload#dragOver')
+      expect(response.body).to include('dragover->upload#dragOver')
+      expect(response.body).to include('dragleave->upload#dragLeave')
+      expect(response.body).to include('drop->upload#drop')
+      expect(response.body).to include('click->upload#click')
+      expect(response.body).to include("change-&gt;upload#fileSelected")
+    end
   end
 
   describe "GET / (upload form)" do
@@ -185,6 +207,53 @@ RSpec.describe "Stamps", type: :request do
       stamp.update!(approved_version_id: stamp.stamp_versions.first.id)
       get root_path
       expect(response.body).to include("Failed")
+    end
+  end
+
+  describe "POST /stamps/:id/upload_version" do
+    let(:file_params) do
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/tiff"
+      )
+      { original_file: file }
+    end
+
+    it "creates a new version" do
+      stamp = create(:stamp)
+      expect {
+        post upload_version_stamp_path(stamp), params: file_params
+      }.to change(StampVersion, :count).by(1)
+    end
+
+    it "auto-approves the new version" do
+      stamp = create(:stamp)
+      post upload_version_stamp_path(stamp), params: file_params
+      version = stamp.stamp_versions.last
+      expect(version.approved?).to be true
+      expect(stamp.reload.approved_version_id).to eq(version.id)
+    end
+
+    it "redirects to stamp show page with notice" do
+      stamp = create(:stamp)
+      post upload_version_stamp_path(stamp), params: file_params
+      expect(response).to redirect_to(stamp_path(stamp))
+      follow_redirect!
+      expect(response.body).to include("uploaded and processing")
+    end
+
+    it "processes the version synchronously" do
+      stamp = create(:stamp)
+      expect_any_instance_of(StampProcessingJob).to receive(:perform).once.and_call_original
+      post upload_version_stamp_path(stamp), params: file_params
+    end
+
+    it "returns error when no file is submitted" do
+      stamp = create(:stamp)
+      post upload_version_stamp_path(stamp), params: {}
+      expect(response).to redirect_to(stamp_path(stamp))
+      follow_redirect!
+      expect(response.body).to include("Select a file to upload")
     end
   end
 
