@@ -106,7 +106,7 @@ Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 ```bash
 git checkout main
 git pull
-git checkout -b fix/descricao-curta
+git checkout -b fix/o-que-foi-feito   # ex: fix/per-color-measurements, add/png-export
 ```
 
 1. **Alterações** — faz as mudanças no código
@@ -117,7 +117,7 @@ git checkout -b fix/descricao-curta
 6. **Verificação final** — volta ao Rails server, testa de novo, confere o `log/development.log` e console do navegador mais uma vez. Corrigir se necessário.
 7. **Alterações finais** — ajusta o que apareceu na verificação
 8. **Commit** — `git add -A && git commit -m "mensagem descritiva (WHAT + WHY)"`
-9. **Push** — `git push -u origin fix/descricao-curta`
+9. **Push** — `git push -u origin fix/o-que-foi-feito`
 10. **PR no GitHub** — abrir Pull Request
 11. **CI** — roda automaticamente (RSpec + RuboCop + Brakeman + E2E)
 12. **Merge** — pelo GitHub UI se CI estiver verde
