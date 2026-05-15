@@ -99,24 +99,37 @@ bash bin/e2e                  # Playwright E2E (headless)
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
-Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --exit-on-warn`
+Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 
-## Workflow: CI-first merge
+## Workflow: feature branches + CI guard
 
-After finishing a bug fix or feature, run through this cycle:
+Every change (feature or bug fix) goes through a feature branch:
 
-0. **Ask the user** whether to proceed with commit → push → wait for CI → merge.
-   Only proceed if they explicitly confirm.
-1. Commit all changes (descriptive message with WHAT and WHY).
-2. Push the branch to origin.
-3. Wait for CI to complete on GitHub.
-4. Check CI output (expand the `test` and `e2e` jobs).
-5. If CI fails → fix the errors locally, re-push, and repeat from step 3.
-6. If CI passes → merge into main and push to origin.
-   ```bash
-   git checkout main && git merge <branch> && git push origin main
-   ```
-   Or, if already on main (squash workflow), simply verify CI passed before pushing.
+```bash
+git checkout main
+git pull
+git checkout -b fix/descricao-curta
+# faz as alterações, commit
+git push -u origin fix/descricao-curta
+```
+
+Then open a PR on GitHub:
+- CI roda automaticamente (RSpec + RuboCop + Brakeman + E2E)
+- Só fazer merge se CI estiver verde
+- Merge pelo GitHub UI (botão "Merge pull request")
+- Depois do merge, deletar o branch remoto
+
+⚠️ **Branch protection não está ativa** (GitHub Free + repo privado). A
+disciplina é manual: nunca fazer merge com CI vermelho. Sempre rodar o
+pre-commit local antes de subir.
+
+Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
+
+Para commits diretos em main (casos simples):
+1. Rodar pre-commit local
+2. Commit + push
+3. Verificar CI no GitHub
+4. Se CI falhar → corrigir e re-push
 
 ## Architecture
 
