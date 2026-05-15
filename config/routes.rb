@@ -10,6 +10,7 @@ Rails.application.routes.draw do
       patch :approve_version
       get :version_preview
       patch :configure_layers
+      patch :organize
     end
   end
 

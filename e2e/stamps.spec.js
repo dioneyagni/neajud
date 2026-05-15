@@ -801,6 +801,273 @@ async function run() {
     if (!body.includes("Annotated Time")) throw new Error("Annotated Time label not found");
   });
 
+  // ── DXF Mold Organization ──
+
+  await test("DXF Mold Organization: unorganized badge on stamp card", async () => {
+    const dxfPath = path.join(testImagesDir, "29-30.dxf");
+    if (!fs.existsSync(dxfPath)) throw new Error("DXF not found");
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(dxfPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
+    const badge = card.locator(".badge-unorganized");
+    await badge.waitFor({ timeout: 5000 });
+    const badgeText = await badge.textContent();
+    if (!badgeText.includes("Not Organized")) throw new Error(`Badge text wrong: "${badgeText}"`);
+  });
+
+  await test("DXF Mold Organization: shows Mold Organization section with default names and tamanhos", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
+
+    // Verify default input values
+    const moldeInput = await page.$('input[name="molde_nome"]');
+    if (!moldeInput) throw new Error("Molde input not found");
+    const moldeVal = await moldeInput.inputValue();
+    if (moldeVal !== "New Mold") throw new Error(`Expected "New Mold", got "${moldeVal}"`);
+
+    const pecaInput = await page.$('input[name="peca_nome"]');
+    if (!pecaInput) throw new Error("Piece input not found");
+    const pecaVal = await pecaInput.inputValue();
+    if (pecaVal !== "New Piece") throw new Error(`Expected "New Piece", got "${pecaVal}"`);
+
+    // Verify tamanho rows
+    const tamanhoRows = await page.$$(".tamanho-row");
+    if (tamanhoRows.length !== 1) throw new Error(`Expected 1 tamanho row, got ${tamanhoRows.length}`);
+
+    // Verify measurements shown
+    const firstRow = tamanhoRows[0];
+    const meas = await firstRow.$(".tamanho-measurements");
+    if (!meas) throw new Error("Tamanho measurements not found");
+    const measText = await meas.textContent();
+    if (!measText.includes("mm")) throw new Error(`Measurements missing mm: "${measText}"`);
+  });
+
+  await test("DXF Mold Organization: save organization marks as organized", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Change molde and peça names
+    await page.fill('input[name="molde_nome"]', "Tênis");
+    await page.fill('input[name="peca_nome"]', "Cabedal");
+
+    // Change tamanho name
+    const tamanhoInput = await page.$(".tamanho-input");
+    await tamanhoInput.fill("Piloto");
+
+    // Click Save and wait for page to reload
+    await page.click('.mold-organization-form input[type="submit"]');
+    await page.waitForTimeout(1000);
+    await page.waitForSelector(".mold-organization-form", { timeout: 10000 });
+
+    const body = await page.textContent("body");
+    if (!body.includes("Mold organization saved")) throw new Error("Success notice not found");
+
+    // Verify input values persisted
+    const moldeVal = await page.$eval('input[name="molde_nome"]', el => el.value);
+    if (moldeVal !== "Tênis") throw new Error(`Expected "Tênis", got "${moldeVal}"`);
+
+    const pecaVal = await page.$eval('input[name="peca_nome"]', el => el.value);
+    if (pecaVal !== "Cabedal") throw new Error(`Expected "Cabedal", got "${pecaVal}"`);
+
+    const tamanhoVal = await page.$eval(".tamanho-input", el => el.value);
+    if (tamanhoVal !== "Piloto") throw new Error(`Expected "Piloto", got "${tamanhoVal}"`);
+
+    // Verify badge is gone on card
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(500);
+    const badge = page.locator(".badge-unorganized");
+    const badgeCount = await badge.count();
+    if (badgeCount > 0) {
+      // Check this specific card doesn't have the badge
+      const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
+      const hasBadge = await card.locator(".badge-unorganized").count();
+      if (hasBadge > 0) throw new Error("Badge still shown after organization");
+    }
+  });
+
+  // ── DXF Overlap detection ──
+
+  await test("DXF Overlap: overlapping pieces show stacked cuts error badge", async () => {
+    // Create a DXF with two overlapping squares
+    const overlapPath = path.join(__dirname, "e2e-overlap.dxf");
+    const dxfLines = [
+      "0", "SECTION", "2", "HEADER", "9", "$INSUNITS", "70", "4", "0", "ENDSEC",
+      "0", "SECTION", "2", "TABLES",
+      "0", "TABLE", "2", "LAYER", "70", "2",
+      "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "Continuous",
+      "0", "LAYER", "2", "Camada 1", "70", "0", "62", "7", "6", "Continuous",
+      "0", "ENDTAB", "0", "ENDSEC",
+      "0", "SECTION", "2", "ENTITIES",
+      "0", "LWPOLYLINE", "8", "0", "62", "1", "90", "4", "70", "1",
+      "10", "0", "20", "0", "10", "100", "20", "0", "10", "100", "20", "100", "10", "0", "20", "100",
+      "0", "LWPOLYLINE", "8", "0", "62", "3", "90", "4", "70", "1",
+      "10", "50", "20", "50", "10", "150", "20", "50", "10", "150", "20", "150", "10", "50", "20", "150",
+      "0", "ENDSEC", "0", "EOF"
+    ];
+    fs.writeFileSync(overlapPath, dxfLines.join("\n"));
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(overlapPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // Check for the error badge on the card
+    const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
+    const errBadge = card.locator(".badge-error");
+    await errBadge.waitFor({ timeout: 5000 });
+    const errText = await errBadge.textContent();
+    if (!errText.includes("Stacked Cuts")) throw new Error(`Badge text wrong: "${errText}"`);
+
+    // Go to show page and verify error message
+    const stampLink = card.locator("a").first();
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
+
+    // Clean up
+    if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+  });
+
+  // ── DXF multiple tamanhos ──
+
+  await test("DXF Mold Organization: multiple tamanhos with CABEDAL", async () => {
+    const cabedalPath = path.join(testImagesDir, "CABEDAL - 35 AO 43.dxf");
+    if (!fs.existsSync(cabedalPath)) throw new Error("DXF not found");
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(cabedalPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
+
+    const tamanhoRows = await page.$$(".tamanho-row");
+    if (tamanhoRows.length !== 5) throw new Error(`Expected 5 tamanho rows, got ${tamanhoRows.length}`);
+
+    for (let i = 0; i < tamanhoRows.length; i++) {
+      const row = tamanhoRows[i];
+      const meas = await row.$(".tamanho-measurements");
+      if (!meas) throw new Error(`Row ${i}: measurements not found`);
+      const text = await meas.textContent();
+      if (!text.includes("mm")) throw new Error(`Row ${i}: missing mm, got "${text}"`);
+    }
+  });
+
+  // ── DXF Overlap resolution via hole marking ──
+
+  await test("DXF Overlap: resolve by marking overlapping layers as hole", async () => {
+    const overlapPath = path.join(__dirname, "e2e-overlap-resolve.dxf");
+    const dxfLines = [
+      "0", "SECTION", "2", "HEADER", "9", "$INSUNITS", "70", "4", "0", "ENDSEC",
+      "0", "SECTION", "2", "TABLES",
+      "0", "TABLE", "2", "LAYER", "70", "2",
+      "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "Continuous",
+      "0", "LAYER", "2", "Camada 1", "70", "0", "62", "7", "6", "Continuous",
+      "0", "ENDTAB", "0", "ENDSEC",
+      "0", "SECTION", "2", "ENTITIES",
+      "0", "LWPOLYLINE", "8", "0", "62", "1", "90", "4", "70", "1",
+      "10", "0", "20", "0", "10", "100", "20", "0", "10", "100", "20", "100", "10", "0", "20", "100",
+      "0", "LWPOLYLINE", "8", "0", "62", "3", "90", "4", "70", "1",
+      "10", "50", "20", "50", "10", "150", "20", "50", "10", "150", "20", "150", "10", "50", "20", "150",
+      "0", "ENDSEC", "0", "EOF"
+    ];
+    fs.writeFileSync(overlapPath, dxfLines.join("\n"));
+
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(overlapPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      // Verify error badge on card
+      const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap-resolve" }).first();
+      const errBadge = card.locator(".badge-error");
+      await errBadge.waitFor({ timeout: 5000 });
+
+      // Go to show page
+      const stampLink = card.locator("a").first();
+      await stampLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      let body = await page.textContent("body");
+      if (!body.includes("stacked cuts")) throw new Error("Overlap error not found on show page");
+
+      // Mark both layers as hole in Layer Configuration
+      const selects = await page.$$("select.layer-annotation-select");
+      if (selects.length < 2) throw new Error(`Expected 2 layer selects, got ${selects.length}`);
+
+      await selects[0].selectOption("hole");
+      await selects[1].selectOption("hole");
+
+      const saveBtn = await page.$("button.layer-config-save");
+      if (!saveBtn) throw new Error("Layer config save button not found");
+      await saveBtn.click();
+      await page.waitForURL("**/stamps/**", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      body = await page.textContent("body");
+      if (!body.includes("Layer configuration saved")) throw new Error("Layer config not saved");
+
+      // Save organization to trigger re-evaluation
+      const orgSaveBtn = await page.$('.mold-organization-form input[type="submit"]');
+      if (!orgSaveBtn) throw new Error("Organization save button not found");
+      await orgSaveBtn.click();
+      await page.waitForTimeout(1000);
+      await page.waitForSelector(".mold-organization-form", { timeout: 10000 });
+
+      // Verify error message is gone from show page
+      body = await page.textContent("body");
+      if (body.includes("stacked cuts")) throw new Error("Overlap error should be cleared after marking holes");
+
+      // Go back to gallery and verify error badge is gone
+      await page.goto(BASE_URL);
+      await page.waitForTimeout(500);
+      const resolvedCard = page.locator(".stamp-card").filter({ hasText: "e2e-overlap-resolve" }).first();
+      const hasBadge = await resolvedCard.locator(".badge-error").count();
+      if (hasBadge > 0) throw new Error("Error badge still shown after resolution");
+    } finally {
+      if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+    }
+  });
+
   // ── Back to Gallery ──
 
   await test("Back to Gallery link navigates to index", async () => {

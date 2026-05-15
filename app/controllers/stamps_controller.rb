@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview configure_layers]
+  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -103,6 +103,9 @@ class StampsController < ApplicationController
         area_mm2: prev&.area_mm2
       )
     end
+    if @stamp.extension.downcase == "dxf" && @stamp.organize_error.present?
+      DxfOrganizationService.call(@stamp)
+    end
     redirect_to @stamp, notice: "Layer configuration saved."
   end
 
@@ -151,6 +154,33 @@ class StampsController < ApplicationController
     send_file path.to_s, type: version.mime_type, disposition: "attachment", filename: filename
   rescue ActionController::MissingFile, Errno::ENOENT
     head :not_found
+  end
+
+  def organize
+    @stamp.update!(
+      molde_nome: params[:molde_nome].presence || @stamp.molde_nome,
+      peca_nome: params[:peca_nome].presence || @stamp.peca_nome,
+      organized: true
+    )
+    if params[:tamanhos].respond_to?(:values)
+      @stamp.tamanhos.destroy_all
+      tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
+      tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
+        @stamp.tamanhos.create!(
+          nome: t["nome"].presence || "Size #{idx + 1}",
+          position: idx + 1,
+          width_mm: t["width_mm"],
+          height_mm: t["height_mm"],
+          area_mm2: t["area_mm2"]
+        )
+      end
+    end
+
+    if @stamp.organize_error.present?
+      DxfOrganizationService.call(@stamp)
+    end
+
+    redirect_to @stamp, notice: "Mold organization saved."
   end
 
   def destroy

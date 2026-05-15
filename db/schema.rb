@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_083900) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -107,10 +107,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_083900) do
     t.string "extension", null: false
     t.string "filename", null: false
     t.string "mime_type", null: false
+    t.string "molde_nome", default: "New Mold"
+    t.string "organize_error"
+    t.boolean "organized", default: false, null: false
+    t.string "peca_nome", default: "New Piece"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
+  end
+
+  create_table "tamanhos", force: :cascade do |t|
+    t.decimal "area_mm2", precision: 10, scale: 2
+    t.datetime "created_at", null: false
+    t.decimal "height_mm", precision: 10, scale: 2
+    t.string "nome", null: false
+    t.integer "position"
+    t.integer "stamp_id", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "width_mm", precision: 10, scale: 2
+    t.index ["stamp_id"], name: "index_tamanhos_on_stamp_id"
   end
 
   add_foreign_key "cut_layers", "stamp_versions"
@@ -118,4 +134,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_083900) do
   add_foreign_key "stamp_time_logs", "stamps"
   add_foreign_key "stamp_versions", "stamps"
   add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"
+  add_foreign_key "tamanhos", "stamps"
 end

@@ -101,6 +101,13 @@
   </div>
 </div>
 
+<% if @stamp.extension == "dxf" %>
+  <section>
+    <h3>Mold Organization</h3>
+    <%= render "mold_organization", stamp: @stamp %>
+  </section>
+<% end %>
+
 <% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
   <section>
     <h3>Layer Configuration</h3>

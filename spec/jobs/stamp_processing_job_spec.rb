@@ -364,9 +364,10 @@ RSpec.describe StampProcessingJob do
       eps_stamp.destroy!
     end
 
-    it "processes a DXF corte file with measurements" do
+    it "processes a DXF corte file with measurements and tamanhos" do
       dxf_stamp = create(:stamp, extension: "dxf", category: "corte")
       dxf_version = create(:stamp_version, stamp: dxf_stamp, version_number: 1, approved: true, extension: "dxf")
+      dxf_stamp.update!(approved_version_id: dxf_version.id)
 
       copy_to_version(dxf_version, "REFORÇO - 35 AO 43.dxf")
 
@@ -384,6 +385,12 @@ RSpec.describe StampProcessingJob do
         expect(layer.perimeter_mm).to be > 0
         expect(layer.area_mm2).to be > 0
       end
+
+      # Verify tamanhos were detected
+      dxf_stamp.reload
+      expect(dxf_stamp.organized).to be false
+      expect(dxf_stamp.tamanhos.count).to eq(5)
+      expect(dxf_stamp.tamanhos.first.width_mm).to be > 0
 
       FileUtils.rm_rf(version_storage_dir(dxf_version))
       dxf_stamp.destroy!

@@ -1,6 +1,7 @@
 class Stamp < ApplicationRecord
   has_many :stamp_time_logs, dependent: :destroy
   has_many :stamp_versions
+  has_many :tamanhos, dependent: :destroy
   belongs_to :approved_version, class_name: "StampVersion", optional: true
 
   before_validation :set_uuid, on: :create
@@ -15,6 +16,8 @@ class Stamp < ApplicationRecord
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
+  attribute :molde_nome, :string, default: "New Mold"
+  attribute :peca_nome, :string, default: "New Piece"
   delegate :preview_file, :category_notes,
            to: :approved_version, allow_nil: true, prefix: false
 
