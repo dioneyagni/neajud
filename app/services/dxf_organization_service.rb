@@ -1,5 +1,5 @@
 class DxfOrganizationService
-  OVERLAP_ERROR = "arquivo possui 1 ou mais cortes empilhados"
+  OVERLAP_ERROR = "file has 1 or more stacked cuts"
 
   def self.call(stamp)
     new(stamp).call

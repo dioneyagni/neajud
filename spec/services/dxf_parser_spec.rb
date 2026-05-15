@@ -132,7 +132,7 @@ RSpec.describe StampProcessingJob do
 
       stamp.reload
       expect(stamp.tamanhos.count).to eq(5)
-      expect(stamp.tamanhos.first.nome).to eq("Tamanho 1")
+      expect(stamp.tamanhos.first.nome).to eq("Size 1")
       expect(stamp.tamanhos.first.width_mm).to be_within(0.1).of(296.9)
       expect(stamp.tamanhos.last.width_mm).to be_within(0.1).of(254.5)
 
@@ -156,7 +156,7 @@ RSpec.describe StampProcessingJob do
 
       stamp.reload
       expect(stamp.tamanhos.count).to eq(1)
-      expect(stamp.tamanhos.first.nome).to eq("Tamanho 1")
+      expect(stamp.tamanhos.first.nome).to eq("Size 1")
       expect(stamp.tamanhos.first.area_mm2).to be_within(0.1).of(31182.9)
 
       FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
@@ -187,8 +187,8 @@ RSpec.describe StampProcessingJob do
     it "creates stamp with default organized=false and default names" do
       stamp = create(:stamp, extension: "dxf", category: "corte")
       expect(stamp.organized).to be false
-      expect(stamp.molde_nome).to eq("Novo Molde")
-      expect(stamp.peca_nome).to eq("Nova Peça")
+      expect(stamp.molde_nome).to eq("New Mold")
+      expect(stamp.peca_nome).to eq("New Piece")
       stamp.destroy!
     end
   end

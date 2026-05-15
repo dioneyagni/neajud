@@ -12,16 +12,16 @@
 
   <div class="mold-organization-fields">
     <div class="mold-field">
-      <%= f.label :molde_nome, "Molde" %>
-      <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Tênis" %>
+      <%= f.label :molde_nome, "Mold" %>
+      <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
     </div>
     <div class="mold-field">
-      <%= f.label :peca_nome, "Peça" %>
-      <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Cabedal" %>
+      <%= f.label :peca_nome, "Piece" %>
+      <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
     </div>
   </div>
 
-  <h4>Tamanhos</h4>
+  <h4>Sizes</h4>
   <div class="tamanho-list">
     <% stamp.tamanhos.each_with_index do |t, idx| %>
       <div class="tamanho-row">

@@ -167,7 +167,7 @@ class StampsController < ApplicationController
       tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
       tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
         @stamp.tamanhos.create!(
-          nome: t["nome"].presence || "Tamanho #{idx + 1}",
+          nome: t["nome"].presence || "Size #{idx + 1}",
           position: idx + 1,
           width_mm: t["width_mm"],
           height_mm: t["height_mm"],

@@ -179,7 +179,7 @@ const tamanhos = outer.map((poly, i) => {
     if (v[1] > maxY) maxY = v[1];
   }
   return {
-    nome: `Tamanho ${i + 1}`,
+    nome: `Size ${i + 1}`,
     position: i + 1,
     color: poly.color,
     width_mm: Math.round((maxX - minX) * toMm * 100) / 100,

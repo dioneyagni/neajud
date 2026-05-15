@@ -107,10 +107,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
     t.string "extension", null: false
     t.string "filename", null: false
     t.string "mime_type", null: false
-    t.string "molde_nome", default: "Novo Molde"
+    t.string "molde_nome", default: "New Mold"
     t.string "organize_error"
     t.boolean "organized", default: false, null: false
-    t.string "peca_nome", default: "Nova Peça"
+    t.string "peca_nome", default: "New Piece"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"

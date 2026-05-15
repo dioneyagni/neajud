@@ -16,6 +16,8 @@ class Stamp < ApplicationRecord
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
+  attribute :molde_nome, :string, default: "New Mold"
+  attribute :peca_nome, :string, default: "New Piece"
   delegate :preview_file, :category_notes,
            to: :approved_version, allow_nil: true, prefix: false
 

@@ -818,7 +818,7 @@ async function run() {
     const badge = card.locator(".badge-unorganized");
     await badge.waitFor({ timeout: 5000 });
     const badgeText = await badge.textContent();
-    if (!badgeText.includes("Não Organizado")) throw new Error(`Badge text wrong: "${badgeText}"`);
+    if (!badgeText.includes("Not Organized")) throw new Error(`Badge text wrong: "${badgeText}"`);
   });
 
   await test("DXF Mold Organization: shows Mold Organization section with default names and tamanhos", async () => {
@@ -838,12 +838,12 @@ async function run() {
     const moldeInput = await page.$('input[name="molde_nome"]');
     if (!moldeInput) throw new Error("Molde input not found");
     const moldeVal = await moldeInput.inputValue();
-    if (moldeVal !== "Novo Molde") throw new Error(`Expected "Novo Molde", got "${moldeVal}"`);
+    if (moldeVal !== "New Mold") throw new Error(`Expected "New Mold", got "${moldeVal}"`);
 
     const pecaInput = await page.$('input[name="peca_nome"]');
-    if (!pecaInput) throw new Error("Peça input not found");
+    if (!pecaInput) throw new Error("Piece input not found");
     const pecaVal = await pecaInput.inputValue();
-    if (pecaVal !== "Nova Peça") throw new Error(`Expected "Nova Peça", got "${pecaVal}"`);
+    if (pecaVal !== "New Piece") throw new Error(`Expected "New Piece", got "${pecaVal}"`);
 
     // Verify tamanho rows
     const tamanhoRows = await page.$$(".tamanho-row");
@@ -939,7 +939,7 @@ async function run() {
     const errBadge = card.locator(".badge-error");
     await errBadge.waitFor({ timeout: 5000 });
     const errText = await errBadge.textContent();
-    if (!errText.includes("Cortes Empilhados")) throw new Error(`Badge text wrong: "${errText}"`);
+    if (!errText.includes("Stacked Cuts")) throw new Error(`Badge text wrong: "${errText}"`);
 
     // Go to show page and verify error message
     const stampLink = card.locator("a").first();
@@ -948,7 +948,7 @@ async function run() {
     await page.waitForTimeout(500);
 
     const body = await page.textContent("body");
-    if (!body.includes("cortes empilhados")) throw new Error("Overlap error message not found on show page");
+    if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
 
     // Clean up
     if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
@@ -1028,7 +1028,7 @@ async function run() {
       await page.waitForTimeout(500);
 
       let body = await page.textContent("body");
-      if (!body.includes("cortes empilhados")) throw new Error("Overlap error not found on show page");
+      if (!body.includes("stacked cuts")) throw new Error("Overlap error not found on show page");
 
       // Mark both layers as hole in Layer Configuration
       const selects = await page.$$("select.layer-annotation-select");
@@ -1055,7 +1055,7 @@ async function run() {
 
       // Verify error message is gone from show page
       body = await page.textContent("body");
-      if (body.includes("cortes empilhados")) throw new Error("Overlap error should be cleared after marking holes");
+      if (body.includes("stacked cuts")) throw new Error("Overlap error should be cleared after marking holes");
 
       // Go back to gallery and verify error badge is gone
       await page.goto(BASE_URL);

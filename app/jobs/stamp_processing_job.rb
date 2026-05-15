@@ -60,7 +60,7 @@ class StampProcessingJob < ApplicationJob
     version.cut_layers.destroy_all
     colors.each_with_index do |color, idx|
       version.cut_layers.create!(
-        layer_name: "Camada #{idx + 1}",
+        layer_name: "Layer #{idx + 1}",
         color: color,
         annotation: "cut",
         position: idx
