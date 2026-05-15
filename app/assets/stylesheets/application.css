@@ -637,6 +637,13 @@ section {
   min-width: 70px;
 }
 
+.layer-measurements {
+  font-size: 0.8rem;
+  color: #555;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
 .layer-annotation-select {
   margin-left: auto;
   padding: 0.25rem 0.5rem;

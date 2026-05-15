@@ -88,13 +88,19 @@ class StampsController < ApplicationController
     annotations = params[:layer_annotations]
     raise "Invalid layer_annotations" unless annotations.is_a?(ActionController::Parameters) || annotations.is_a?(Hash)
 
+    existing = version.cut_layers.index_by(&:color)
     version.cut_layers.destroy_all
     annotations.values.map(&:permit!).map(&:to_h).each_with_index do |layer, idx|
+      prev = existing[layer["color"]]
       version.cut_layers.create!(
         layer_name: layer["layer_name"],
         color: layer["color"],
         annotation: layer["annotation"] || "cut",
-        position: idx
+        position: idx,
+        width_mm: prev&.width_mm,
+        height_mm: prev&.height_mm,
+        perimeter_mm: prev&.perimeter_mm,
+        area_mm2: prev&.area_mm2
       )
     end
     redirect_to @stamp, notice: "Layer configuration saved."

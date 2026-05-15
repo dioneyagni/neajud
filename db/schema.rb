@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_083701) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_083900) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -35,12 +35,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_083701) do
 
   create_table "cut_layers", force: :cascade do |t|
     t.string "annotation", default: "cut"
+    t.decimal "area_mm2", precision: 10, scale: 2
     t.string "color", null: false
     t.datetime "created_at", null: false
+    t.decimal "height_mm", precision: 10, scale: 2
     t.string "layer_name", null: false
+    t.decimal "perimeter_mm", precision: 10, scale: 2
     t.integer "position"
     t.integer "stamp_version_id", null: false
     t.datetime "updated_at", null: false
+    t.decimal "width_mm", precision: 10, scale: 2
     t.index ["stamp_version_id"], name: "index_cut_layers_on_stamp_version_id"
   end
 
