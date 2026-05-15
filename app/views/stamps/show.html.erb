@@ -16,6 +16,20 @@
   </div>
 
   <div class="stamp-detail-info">
+    <% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
+      <div class="stamp-detail-section">
+        <h3>Layer Configuration</h3>
+        <%= render "layer_configuration", version: @stamp.approved_version %>
+      </div>
+    <% end %>
+
+    <% if @stamp.extension == "dxf" %>
+      <div class="stamp-detail-section">
+        <h3>Mold Organization</h3>
+        <%= render "mold_organization", stamp: @stamp %>
+      </div>
+    <% end %>
+
     <div class="stamp-detail-section">
       <h3>Details</h3>
       <dl class="detail-grid">
@@ -100,20 +114,6 @@
           class: "btn btn-danger", style: "margin-top: 0.5rem;" %>
   </div>
 </div>
-
-<% if @stamp.extension == "dxf" %>
-  <section>
-    <h3>Mold Organization</h3>
-    <%= render "mold_organization", stamp: @stamp %>
-  </section>
-<% end %>
-
-<% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
-  <section>
-    <h3>Layer Configuration</h3>
-    <%= render "layer_configuration", version: @stamp.approved_version %>
-  </section>
-<% end %>
 
 <section>
   <h3>Versions</h3>

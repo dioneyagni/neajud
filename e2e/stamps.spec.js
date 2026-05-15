@@ -815,10 +815,8 @@ async function run() {
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
-    const badge = card.locator(".badge-unorganized");
-    await badge.waitFor({ timeout: 5000 });
-    const badgeText = await badge.textContent();
-    if (!badgeText.includes("Not Organized")) throw new Error(`Badge text wrong: "${badgeText}"`);
+    const icon = card.locator('.stamp-card-status-icon[alt="Not Organized"]');
+    await icon.waitFor({ timeout: 5000 });
   });
 
   await test("DXF Mold Organization: shows Mold Organization section with default names and tamanhos", async () => {
@@ -893,16 +891,16 @@ async function run() {
     const tamanhoVal = await page.$eval(".tamanho-input", el => el.value);
     if (tamanhoVal !== "Piloto") throw new Error(`Expected "Piloto", got "${tamanhoVal}"`);
 
-    // Verify badge is gone on card
+    // Verify icon is gone on card
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
-    const badge = page.locator(".badge-unorganized");
-    const badgeCount = await badge.count();
-    if (badgeCount > 0) {
-      // Check this specific card doesn't have the badge
+    const icon = page.locator('.stamp-card-status-icon[alt="Not Organized"]');
+    const iconCount = await icon.count();
+    if (iconCount > 0) {
+      // Check this specific card doesn't have the icon
       const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
-      const hasBadge = await card.locator(".badge-unorganized").count();
-      if (hasBadge > 0) throw new Error("Badge still shown after organization");
+      const hasIcon = await card.locator('.stamp-card-status-icon[alt="Not Organized"]').count();
+      if (hasIcon > 0) throw new Error("Icon still shown after organization");
     }
   });
 
@@ -934,12 +932,10 @@ async function run() {
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Check for the error badge on the card
+    // Check for the stacked cuts icon on the card
     const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
-    const errBadge = card.locator(".badge-error");
-    await errBadge.waitFor({ timeout: 5000 });
-    const errText = await errBadge.textContent();
-    if (!errText.includes("Stacked Cuts")) throw new Error(`Badge text wrong: "${errText}"`);
+    const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
+    await errIcon.waitFor({ timeout: 5000 });
 
     // Go to show page and verify error message
     const stampLink = card.locator("a").first();
@@ -1016,10 +1012,10 @@ async function run() {
       await page.waitForTimeout(5000);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-      // Verify error badge on card
+      // Verify stacked cuts icon on card
       const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap-resolve" }).first();
-      const errBadge = card.locator(".badge-error");
-      await errBadge.waitFor({ timeout: 5000 });
+      const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
+      await errIcon.waitFor({ timeout: 5000 });
 
       // Go to show page
       const stampLink = card.locator("a").first();
@@ -1061,8 +1057,8 @@ async function run() {
       await page.goto(BASE_URL);
       await page.waitForTimeout(500);
       const resolvedCard = page.locator(".stamp-card").filter({ hasText: "e2e-overlap-resolve" }).first();
-      const hasBadge = await resolvedCard.locator(".badge-error").count();
-      if (hasBadge > 0) throw new Error("Error badge still shown after resolution");
+      const hasIcon = await resolvedCard.locator('.stamp-card-status-icon[alt="Stacked Cuts"]').count();
+      if (hasIcon > 0) throw new Error("Stacked cuts icon still shown after resolution");
     } finally {
       if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
     }
