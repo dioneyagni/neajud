@@ -5,6 +5,17 @@
         <span class="layer-swatch" style="background-color: <%= layer.color %>; width: 24px; height: 24px; border: 1px solid #ccc; border-radius: 3px; display: inline-block;"></span>
         <span class="layer-name"><%= layer.layer_name %></span>
         <span class="layer-color-code"><%= layer.color %></span>
+        <span class="layer-measurements">
+          <% if layer.width_mm && layer.height_mm %>
+            <%= layer.width_mm.round(1) %>×<%= layer.height_mm.round(1) %> mm
+            <% if layer.perimeter_mm %>
+              · P <%= layer.perimeter_mm.round(1) %> mm
+            <% end %>
+            <% if layer.area_mm2 %>
+              · A <%= number_with_delimiter(layer.area_mm2.round(1)) %> mm²
+            <% end %>
+          <% end %>
+        </span>
         <select class="layer-annotation-select" data-layer-config-target="select" data-index="<%= idx %>">
           <option value="cut" <%= "selected" if layer.annotation == "cut" %>>Cut</option>
           <option value="hole" <%= "selected" if layer.annotation == "hole" %>>Hole</option>

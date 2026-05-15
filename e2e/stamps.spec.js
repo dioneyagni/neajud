@@ -490,6 +490,12 @@ async function run() {
     const codeText = await colorCode.textContent();
     if (!codeText || !codeText.startsWith("#")) throw new Error("Color code is not a hex value");
 
+    // Verify measurements are shown
+    const measurements = await layerRow.$(".layer-measurements");
+    if (!measurements) throw new Error("Layer measurements not found");
+    const measureText = await measurements.textContent();
+    if (!measureText.includes("mm")) throw new Error(`Measurements missing mm unit. Got: "${measureText}"`);
+
     const select = await layerRow.$("select.layer-annotation-select");
     if (!select) throw new Error("Annotation select not found");
     const selectedValue = await select.inputValue();
@@ -511,6 +517,11 @@ async function run() {
     await stampLink.click();
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
+
+    // Verify measurements exist before save
+    const beforeMeasure = await page.$(".layer-measurements");
+    if (!beforeMeasure) throw new Error("Measurements not found before save");
+    const beforeText = await beforeMeasure.textContent();
 
     // Change first layer annotation to "Furo" (hole)
     const select = await page.$("select.layer-annotation-select");
@@ -535,6 +546,50 @@ async function run() {
     if (!selectAfter) throw new Error("Annotation select not found after save");
     const valueAfter = await selectAfter.inputValue();
     if (valueAfter !== "hole") throw new Error(`Expected "hole" after save, got "${valueAfter}"`);
+
+    // Verify measurements still present after save
+    const afterMeasure = await page.$(".layer-measurements");
+    if (!afterMeasure) throw new Error("Measurements not found after save");
+    const afterText = await afterMeasure.textContent();
+    if (afterText !== beforeText) throw new Error(`Measurements changed after save. Before: "${beforeText}" After: "${afterText}"`);
+  });
+
+  // ── Multi-color DXF with measurements ──
+
+  const reforcoPath = path.join(testImagesDir, "REFORÇO - 35 AO 43.dxf");
+
+  await test("DXF REFORÇO: uploads and shows multiple layers with measurements", async () => {
+    if (!fs.existsSync(reforcoPath)) throw new Error(`DXF not found: ${reforcoPath}`);
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(reforcoPath);
+    await page.click('input[type="submit"]');
+
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "REFORÇO" }).locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("dl", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const bodyText = await page.textContent("body");
+    if (!bodyText.toLowerCase().includes("processed")) throw new Error("Status not processed");
+
+    // Verify all 3 layer rows exist
+    const layerRows = await page.$$(".layer-config-row");
+    if (layerRows.length !== 3) throw new Error(`Expected 3 layer rows, got ${layerRows.length}`);
+
+    // Verify each row has measurements
+    for (let i = 0; i < layerRows.length; i++) {
+      const row = layerRows[i];
+      const measure = await row.$(".layer-measurements");
+      if (!measure) throw new Error(`Row ${i}: measurements span not found`);
+      const text = await measure.textContent();
+      if (!text.includes("mm") && !text.includes("mm²")) throw new Error(`Row ${i}: measurements missing units. Got: "${text}"`);
+    }
   });
 
   // ── Version upload + approve ──

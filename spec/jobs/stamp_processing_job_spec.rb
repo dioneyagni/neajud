@@ -364,6 +364,31 @@ RSpec.describe StampProcessingJob do
       eps_stamp.destroy!
     end
 
+    it "processes a DXF corte file with measurements" do
+      dxf_stamp = create(:stamp, extension: "dxf", category: "corte")
+      dxf_version = create(:stamp_version, stamp: dxf_stamp, version_number: 1, approved: true, extension: "dxf")
+
+      copy_to_version(dxf_version, "REFORÇO - 35 AO 43.dxf")
+
+      described_class.perform_now(dxf_version.id)
+      dxf_version.reload
+      expect(dxf_version.status).to eq("processed")
+      expect(dxf_version.cut_layers.count).to eq(3)
+
+      measurements = dxf_version.cut_layers.where.not(width_mm: nil)
+      expect(measurements.count).to eq(3)
+
+      measurements.each do |layer|
+        expect(layer.width_mm).to be > 0
+        expect(layer.height_mm).to be > 0
+        expect(layer.perimeter_mm).to be > 0
+        expect(layer.area_mm2).to be > 0
+      end
+
+      FileUtils.rm_rf(version_storage_dir(dxf_version))
+      dxf_stamp.destroy!
+    end
+
     it "processes a Corte file (SVG) without generating preview" do
       svg_stamp = create(:stamp, extension: "svg", category: "corte")
       svg_version = create(:stamp_version, stamp: svg_stamp, version_number: 1, approved: true)

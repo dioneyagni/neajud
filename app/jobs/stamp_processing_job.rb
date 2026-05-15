@@ -13,6 +13,7 @@ class StampProcessingJob < ApplicationJob
     extract_metadata(version)
     process_image(version) if preview_enabled?(version) || version.extension.downcase == "dxf"
     extract_cut_layers_from_preview(version)
+    measure_cut_layers(version)
 
     version.update!(status: :processed)
   rescue StandardError => e
@@ -64,6 +65,10 @@ class StampProcessingJob < ApplicationJob
         position: idx
       )
     end
+  end
+
+  def measure_cut_layers(version)
+    DxfMeasurementService.call(version)
   end
 
   def extract_colors_from_svg(path)
