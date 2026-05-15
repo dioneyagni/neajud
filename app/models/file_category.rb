@@ -4,18 +4,18 @@ class FileCategory
       extensions: %w[tif tiff psd ai eps cdr pdf],
       preview: true,
       spot_detection: true,
-      label: "Artes",
+      label: "Art",
       notes: {
-        "pdf" => "PDF para impressão"
+        "pdf" => "PDF for print"
       }
     },
     "corte" => {
       extensions: %w[dxf svg dwg cad],
       preview: false,
       spot_detection: false,
-      label: "Corte",
+      label: "Cut",
       notes: {
-        "pdf" => "PDF com vetores de corte"
+        "pdf" => "PDF with cut vectors"
       }
     }
   }.freeze

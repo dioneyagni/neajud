@@ -6,13 +6,13 @@
         <span class="layer-name"><%= layer.layer_name %></span>
         <span class="layer-color-code"><%= layer.color %></span>
         <select class="layer-annotation-select" data-layer-config-target="select" data-index="<%= idx %>">
-          <option value="cut" <%= "selected" if layer.annotation == "cut" %>>Corte</option>
-          <option value="hole" <%= "selected" if layer.annotation == "hole" %>>Furo</option>
-          <option value="engraving" <%= "selected" if layer.annotation == "engraving" %>>Gravação</option>
+          <option value="cut" <%= "selected" if layer.annotation == "cut" %>>Cut</option>
+          <option value="hole" <%= "selected" if layer.annotation == "hole" %>>Hole</option>
+          <option value="engraving" <%= "selected" if layer.annotation == "engraving" %>>Engraving</option>
           <option value="ignore" <%= "selected" if layer.annotation == "ignore" %>>Ignore</option>
         </select>
       </div>
     <% end %>
   </div>
-  <button data-action="click->layer-config#save" class="layer-config-save">Salvar configuração</button>
+  <button data-action="click->layer-config#save" class="layer-config-save">Save Configuration</button>
 </div>

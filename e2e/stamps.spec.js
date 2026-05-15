@@ -53,7 +53,7 @@ async function run() {
     const form = await page.$("form");
     if (!form) throw new Error("Upload form not found");
     const body = await page.textContent("body");
-    if (!body.includes("Stamp Tracker")) throw new Error("Stamp Tracker heading not found");
+    if (!body.includes("Tracker")) throw new Error("Tracker heading not found");
     if (!body.includes("Gallery")) throw new Error("Gallery section not found");
   });
 
@@ -328,7 +328,7 @@ async function run() {
     const body = await page.textContent("body");
     const hasCard = await page.$(".stamp-card");
     if (hasCard) {
-      if (!body.includes("Stamp Tracker")) throw new Error("Gallery heading not shown");
+      if (!body.includes("Tracker")) throw new Error("Gallery heading not shown");
     } else {
       if (!body.includes("No stamps uploaded yet")) throw new Error("Fallback message not shown");
     }

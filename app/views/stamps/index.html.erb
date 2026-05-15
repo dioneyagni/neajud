@@ -1,7 +1,7 @@
-<h2>Stamp Tracker</h2>
+<h2>Tracker</h2>
 
 <section>
-  <h3>Upload New Stamp</h3>
+  <h3>Upload New File</h3>
   <div class="upload-form-wrapper">
   <% accept_ext = FileCategory.extensions.map { |e| ".#{e}" }.join(",") %>
   <% hint_parts = FileCategory.all.map { |_name, config| "#{config[:label]}: #{config[:extensions].map(&:upcase).join(', ')}" }.join(" | ") %>

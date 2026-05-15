@@ -78,11 +78,11 @@ RSpec.describe FileCategory do
 
   describe ".notes" do
     it "returns notes for PDF in artes" do
-      expect(described_class.notes("pdf", "artes")).to eq("PDF para impressão")
+      expect(described_class.notes("pdf", "artes")).to eq("PDF for print")
     end
 
     it "returns notes for PDF in corte" do
-      expect(described_class.notes("pdf", "corte")).to eq("PDF com vetores de corte")
+      expect(described_class.notes("pdf", "corte")).to eq("PDF with cut vectors")
     end
 
     it "returns empty string when no notes exist" do
