@@ -16,102 +16,107 @@
   </div>
 
   <div class="stamp-detail-info">
-    <% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
-      <div class="stamp-detail-section">
-        <h3>Layer Configuration</h3>
-        <%= render "layer_configuration", version: @stamp.approved_version %>
-      </div>
-    <% end %>
+    <div class="stamp-detail-grid">
+      <%= render "client_field" %>
 
-    <% if @stamp.extension == "dxf" %>
-      <div class="stamp-detail-section">
-        <h3>Mold Organization</h3>
-        <%= render "mold_organization", stamp: @stamp %>
-      </div>
-    <% end %>
-
-    <div class="stamp-detail-section">
-      <h3>Details</h3>
-      <dl class="detail-grid">
-        <dt>Update</dt>
-        <dd>
-          <% if @stamp.approved_version %>
-            <%= l @stamp.approved_version.updated_at, format: :short %> — v-<%= @stamp.approved_version.version_number %>
-          <% else %>
-            Not approved yet
-          <% end %>
-        </dd>
-        <dt>Category</dt>
-        <dd><%= @stamp.category.presence || "Uncategorized" %></dd>
-        <% if @stamp.category_notes.present? %>
-          <dt>Category Notes</dt>
-          <dd><%= @stamp.category_notes %></dd>
-        <% end %>
-        <dt>Colorspace</dt>
-        <dd><%= @stamp.colorspace || "Unknown" %></dd>
-        <dt>Has Spots</dt>
-        <dd><%= @stamp.has_spots? ? "Yes" : "No" %></dd>
-        <dt>ICC Profile</dt>
-        <dd><%= @stamp.icc_profile.presence || "None" %></dd>
-        <dt>Dimensions</dt>
-        <dd><%= @stamp.width_px %>x<%= @stamp.height_px %> px (<%= format_cm(@stamp.width_px, @stamp.dpi) %>x<%= format_cm(@stamp.height_px, @stamp.dpi) %> cm)</dd>
-        <dt>Estimated Time</dt>
-        <dd><%= format_time(@stamp.estimated_seconds) %></dd>
-        <dt>Annotated Time</dt>
-        <dd><%= format_time(@stamp.annotated_seconds) %></dd>
-      </dl>
-    </div>
-
-    <div class="stamp-detail-section">
-      <h3>Update Time</h3>
-      <%= form_with url: update_time_stamp_path(@stamp), method: :patch, local: true,
-            data: { controller: "time-mask" }, class: "time-form" do |f| %>
-        <%= f.label :annotated_seconds, "Time (h:mm)" %>
-        <%= f.text_field :annotated_seconds,
-              value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
-              data: { time_mask_target: "input", action: "input->time-mask#format" } %>
-        <%= f.submit "Update Time", class: "btn btn-primary" %>
+      <% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
+        <div class="stamp-detail-section stamp-detail-section--full">
+          <h3>Layer Configuration</h3>
+          <%= render "layer_configuration", version: @stamp.approved_version %>
+        </div>
       <% end %>
-    </div>
 
-    <div class="stamp-detail-section">
-      <h3>Time History</h3>
-      <% if @time_logs.any? %>
-        <table class="time-history">
-          <thead>
-            <tr>
-              <th>Previous</th>
-              <th>New</th>
-              <th>Changed By</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @time_logs.each do |log| %>
-              <tr>
-                <td><%= format_time(log.previous_seconds) %></td>
-                <td><%= format_time(log.new_seconds) %></td>
-                <td><%= log.changed_by %></td>
-                <td><%= l log.created_at, format: :short %></td>
-              </tr>
+      <% if @stamp.extension == "dxf" %>
+        <div class="stamp-detail-section stamp-detail-section--full">
+          <h3>Mold Organization</h3>
+          <%= render "mold_organization", stamp: @stamp %>
+        </div>
+      <% end %>
+
+      <div class="stamp-detail-section">
+        <h3>Details</h3>
+        <dl class="detail-grid">
+          <dt>Update</dt>
+          <dd>
+            <% if @stamp.approved_version %>
+              <%= l @stamp.approved_version.updated_at, format: :short %> — v-<%= @stamp.approved_version.version_number %>
+            <% else %>
+              Not approved yet
             <% end %>
-          </tbody>
-        </table>
-      <% else %>
-        <p class="time-history-empty">No time changes recorded.</p>
-      <% end %>
+          </dd>
+          <dt>Category</dt>
+          <dd><%= @stamp.category.presence || "Uncategorized" %></dd>
+          <% if @stamp.category_notes.present? %>
+            <dt>Category Notes</dt>
+            <dd><%= @stamp.category_notes %></dd>
+          <% end %>
+          <dt>Colorspace</dt>
+          <dd><%= @stamp.colorspace || "Unknown" %></dd>
+          <dt>Has Spots</dt>
+          <dd><%= @stamp.has_spots? ? "Yes" : "No" %></dd>
+          <dt>ICC Profile</dt>
+          <dd><%= @stamp.icc_profile.presence || "None" %></dd>
+          <dt>Dimensions</dt>
+          <dd><%= @stamp.width_px %>x<%= @stamp.height_px %> px (<%= format_cm(@stamp.width_px, @stamp.dpi) %>x<%= format_cm(@stamp.height_px, @stamp.dpi) %> cm)</dd>
+          <dt>Estimated Time</dt>
+          <dd><%= format_time(@stamp.estimated_seconds) %></dd>
+          <dt>Annotated Time</dt>
+          <dd><%= format_time(@stamp.annotated_seconds) %></dd>
+        </dl>
+      </div>
+
+      <div class="stamp-detail-section">
+        <h3>Update Time</h3>
+        <%= form_with url: update_time_stamp_path(@stamp), method: :patch, local: true,
+              data: { controller: "time-mask" }, class: "time-form" do |f| %>
+          <%= f.label :annotated_seconds, "Time (h:mm)" %>
+          <%= f.text_field :annotated_seconds,
+                value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
+                data: { time_mask_target: "input", action: "input->time-mask#format" } %>
+          <%= f.submit "Update Time", class: "btn btn-primary" %>
+        <% end %>
+      </div>
+
+      <div class="stamp-detail-section <%=@time_logs.any? ? 'stamp-detail-section--full' : ''%>">
+        <h3>Time History</h3>
+        <% if @time_logs.any? %>
+          <table class="time-history">
+            <thead>
+              <tr>
+                <th>Previous</th>
+                <th>New</th>
+                <th>Changed By</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @time_logs.each do |log| %>
+                <tr>
+                  <td><%= format_time(log.previous_seconds) %></td>
+                  <td><%= format_time(log.new_seconds) %></td>
+                  <td><%= log.changed_by %></td>
+                  <td><%= l log.created_at, format: :short %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <p class="time-history-empty">No time changes recorded.</p>
+        <% end %>
+      </div>
+
+      <div class="stamp-detail-section">
+        <h3>Download</h3>
+        <%= link_to "Download Original", download_stamp_path(@stamp), class: "btn btn-primary" %>
+      </div>
+
+      <div class="stamp-detail-section stamp-detail-section--actions">
+        <%= link_to "Back to Gallery", stamps_path, class: "back-link" %>
+        <%= button_to "Delete Stamp", stamp_path(@stamp), method: :delete,
+              data: { turbo_confirm: "Are you sure?" },
+              class: "btn btn-danger" %>
+      </div>
     </div>
-
-    <div class="stamp-detail-section">
-      <h3>Download</h3>
-      <%= link_to "Download Original", download_stamp_path(@stamp), class: "btn btn-primary" %>
-    </div>
-
-    <%= link_to "Back to Gallery", stamps_path, class: "back-link" %>
-
-    <%= button_to "Delete Stamp", stamp_path(@stamp), method: :delete,
-          data: { turbo_confirm: "Are you sure?" },
-          class: "btn btn-danger", style: "margin-top: 0.5rem;" %>
   </div>
 </div>
 

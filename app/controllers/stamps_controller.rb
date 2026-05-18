@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_stamp, only: %i[show update_time update_client preview download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -107,6 +107,14 @@ class StampsController < ApplicationController
       DxfOrganizationService.call(@stamp)
     end
     redirect_to @stamp, notice: "Layer configuration saved."
+  end
+
+  def update_client
+    if @stamp.update(client_id: params[:client_id].presence)
+      redirect_to @stamp, notice: "Client updated."
+    else
+      redirect_to @stamp, alert: "Could not update client."
+    end
   end
 
   def update_time

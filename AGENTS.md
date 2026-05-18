@@ -128,6 +128,26 @@ disciplina é manual: nunca fazer merge com CI vermelho.
 
 Pre-commit antes de todo push: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 
+### Checklist: nova ação no controller
+
+Quando criar uma nova action em `StampsController` (ou qualquer controller com `before_action`):
+
+1. **Adicione a action na lista `only:` do `before_action`** (esquecer isso = `NoMethodError` em `nil`)
+2. **Crie um E2E test** que navega até a página e executa a ação (não só testa que a rota responde)
+3. **Rode `bin/rails routes`** pra confirmar que a rota existe antes de testar
+4. **Execute o pre-commit** antes de push
+
+### Toda nova funcionalidade precisa de teste
+
+- **E2E test** para cada fluxo do usuário (abrir página, interagir, ver resultado)
+- **RSpec test** para lógica de negócio, serviços, modelos
+- **Regressão**: bug fix sempre acompanhado de teste que reproduz o bug
+- **Endpoint JSON**: testar com `page.evaluate(fetch(...))` no E2E
+- **Stimulus controller**: testar interação real (clique, input, submit) no E2E
+- **Controller action**: testar que responde e persiste o estado esperado
+- **Modal/dialog**: testar abrir, preencher, submit, **fechar (Cancel)**, e verificar resultado pós-redirect. Verificar também posicionamento (centrado no viewport) via `getBoundingClientRect()`
+- **Cobertura mínima**: antes de merge, `bin/rspec && bash bin/e2e` deve passar 100%
+
 ## Architecture
 
 Monolithic Rails 8.1, SQLite3, Hotwire, SolidQueue, ImageMagick.
@@ -223,6 +243,38 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
+
+## Stimulus gotchas (data-action event target)
+
+When a method is called via `data-action="click->controller#method"`, `event.target` is the
+element that was clicked (the button), NOT the element the controller lives on. Guard clauses
+checking `e.target` against the controller element or a target element will **reject**
+direct button clicks:
+
+```javascript
+// WRONG — Cancel button click sets e.target = button, not dialog
+close(e) {
+  if (e && e.target !== this.dialogTarget) return  // Cancel blocked!
+  this.dialogTarget.close()
+}
+
+// RIGHT — separate backdrop handler from action handler
+connect() {
+  this.boundClose = this.backdropClose.bind(this)
+}
+open() {
+  this.dialogTarget.showModal()
+  this.dialogTarget.addEventListener("click", this.boundClose)
+}
+backdropClose(e) {
+  if (e.target !== this.dialogTarget) return
+  this.close()
+}
+close() {
+  this.dialogTarget.close()
+  this.dialogTarget.removeEventListener("click", this.boundClose)
+}
+```
 
 ## Key constraints
 

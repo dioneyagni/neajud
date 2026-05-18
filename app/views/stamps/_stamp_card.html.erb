@@ -24,6 +24,9 @@
         </div>
       <% end %>
       <div class="stamp-card-status-overlay">
+        <% if !stamp.client_id && stamp.processed? %>
+          <%= image_tag "icons/status/no-client.svg", class: "stamp-card-status-icon", alt: "No Client" %>
+        <% end %>
         <% if stamp.extension == "dxf" && !stamp.organized? %>
           <%= image_tag "icons/status/not-organized.svg", class: "stamp-card-status-icon", alt: "Not Organized" %>
         <% end %>

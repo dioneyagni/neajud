@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   resources :stamps, only: %i[index new create show destroy] do
     member do
       patch :update_time
+      patch :update_client
       get :preview
       get :download
       post :upload_version
@@ -11,6 +12,12 @@ Rails.application.routes.draw do
       get :version_preview
       patch :configure_layers
       patch :organize
+    end
+  end
+
+  resources :clients, only: %i[create] do
+    collection do
+      get :search
     end
   end
 

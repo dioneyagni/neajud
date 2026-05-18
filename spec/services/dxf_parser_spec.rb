@@ -135,6 +135,8 @@ RSpec.describe StampProcessingJob do
       expect(stamp.tamanhos.first.nome).to eq("Size 1")
       expect(stamp.tamanhos.first.width_mm).to be_within(0.1).of(296.9)
       expect(stamp.tamanhos.last.width_mm).to be_within(0.1).of(254.5)
+      expect(stamp.tamanhos.first.perimeter_mm).to be_present
+      expect(stamp.tamanhos.first.total_line_mm).to be_present
 
       FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
       stamp.destroy!
@@ -158,6 +160,8 @@ RSpec.describe StampProcessingJob do
       expect(stamp.tamanhos.count).to eq(1)
       expect(stamp.tamanhos.first.nome).to eq("Size 1")
       expect(stamp.tamanhos.first.area_mm2).to be_within(0.1).of(31182.9)
+      expect(stamp.tamanhos.first.perimeter_mm).to be_present
+      expect(stamp.tamanhos.first.total_line_mm).to be_present
 
       FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", stamp.uuid))
       stamp.destroy!

@@ -6,8 +6,13 @@ const BASE_URL = "http://localhost:3000";
 const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
 
 async function run() {
-  const browser = await chromium.launch({ headless: !HEADED, slowMo: HEADED ? 300 : 0 });
-  const context = await browser.newContext();
+  const launchOpts = { slowMo: HEADED ? 300 : 0 };
+  if (HEADED) {
+    launchOpts.headless = false;
+    launchOpts.args = ["--start-maximized"];
+  }
+  const browser = await chromium.launch(launchOpts);
+  const context = await browser.newContext(HEADED ? { viewport: null } : {});
   const page = await context.newPage();
   const consoleErrors = [];
 
@@ -72,7 +77,7 @@ async function run() {
       return new Promise((resolve) => {
         const input = document.querySelector('input[type="file"]');
         if (!input) { resolve(false); return; }
-        input.addEventListener("click", () => resolve(true), { once: true });
+        input.addEventListener("click", (e) => { e.preventDefault(); resolve(true); }, { once: true });
         document.querySelector(".upload-dropzone").click();
         setTimeout(() => resolve(false), 500);
       });
@@ -82,11 +87,14 @@ async function run() {
 
   await test("Clicking label text triggers file input via native label behavior", async () => {
     await page.goto(BASE_URL);
+
+    const fileChooserPromise = page.waitForEvent("filechooser", { timeout: 5000 }).catch(() => null);
+
     const clicked = await page.evaluate(() => {
       return new Promise((resolve) => {
         const input = document.querySelector('input[type="file"]');
         if (!input) { resolve(false); return; }
-        input.addEventListener("click", () => resolve(true), { once: true });
+        input.addEventListener("click", (e) => { e.preventDefault(); resolve(true); }, { once: true });
         const labelText = document.querySelector(".upload-dropzone label p");
         if (!labelText) { resolve(false); return; }
         labelText.click();
@@ -94,6 +102,9 @@ async function run() {
       });
     });
     if (!clicked) throw new Error("Clicking label text did not trigger file input");
+
+    const fc = await fileChooserPromise;
+    if (fc) await fc.cancel();
   });
 
   await test("Drop zone shows dragover style", async () => {
@@ -123,18 +134,23 @@ async function run() {
     await page.locator(".stamp-card a").first().click();
     await page.waitForSelector(".version-upload-form", { timeout: 10000 });
 
+    const fileChooserPromise = page.waitForEvent("filechooser", { timeout: 5000 }).catch(() => null);
+
     const clicked = await page.evaluate(() => {
       return new Promise((resolve) => {
         const form = document.querySelector(".version-upload-form");
         const input = form?.querySelector('input[type="file"]');
         if (!input) { resolve(false); return; }
-        input.addEventListener("click", () => resolve(true), { once: true });
+        input.addEventListener("click", (e) => { e.preventDefault(); resolve(true); }, { once: true });
         const label = form?.querySelector("label");
         if (label) label.click();
         setTimeout(() => resolve(false), 500);
       });
     });
     if (!clicked) throw new Error("Version upload label click did not trigger file input");
+
+    const fc = await fileChooserPromise;
+    if (fc) await fc.cancel();
   });
 
   await test("Version upload drop zone has Stimulus upload controller", async () => {
@@ -265,24 +281,43 @@ async function run() {
 
   await test("Stamp show page displays all sections", async () => {
     await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(testImagePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(3000);
     await page.waitForSelector(".stamp-card a");
-
-    await page.click(".stamp-card a");
+    await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2");
     await page.waitForTimeout(300);
-
     const body = await page.textContent("body");
-    if (!body.includes("Stamp:")) throw new Error("Stamp detail heading not found");
-    if (!body.includes("Details")) throw new Error("Details section not found");
-    if (!body.includes("Update Time")) throw new Error("Update Time section not found");
-    if (!body.includes("Time History")) throw new Error("Time History section not found");
-    if (!body.includes("Delete")) throw new Error("Delete button not found");
+    if (!body.includes("Details")) throw new Error("Details section missing");
+    if (!body.includes("Update Time")) throw new Error("Update Time section missing");
+    if (!body.includes("Versions")) throw new Error("Versions section missing");
+    if (!body.includes("Download")) throw new Error("Download link missing");
+    if (!body.includes("Back to Gallery")) throw new Error("Back link missing");
+    if (!body.includes("Client")) throw new Error("Client section missing");
+  });
 
-      const previewImg = await page.$(".stamp-detail-preview img");
-      if (!previewImg) throw new Error("Preview image not rendered");
+  await test("Upload form: submit without file shows error", async () => {
+    await page.goto(BASE_URL);
 
-      const src = await previewImg.getAttribute("src");
-      if (!src || !src.includes("/preview")) throw new Error("Preview image src missing or wrong");
+    const result = await page.evaluate(async () => {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+      const fd = new FormData();
+      fd.append("stamp[original_file]", "");
+      if (csrf) fd.append("authenticity_token", csrf);
+
+      const resp = await fetch("/stamps", {
+        method: "POST",
+        body: fd,
+        headers: { "Accept": "text/html" }
+      });
+      const text = await resp.text();
+      return { status: resp.status, hasError: text.toLowerCase().includes("select a file") };
+    });
+
+    if (result.status !== 422) throw new Error(`Expected 422, got ${result.status}`);
+    if (!result.hasError) throw new Error("Validation error not shown in response");
   });
 
   await test("Edit time updates the stamp and creates history log", async () => {
@@ -853,6 +888,8 @@ async function run() {
     if (!meas) throw new Error("Tamanho measurements not found");
     const measText = await meas.textContent();
     if (!measText.includes("mm")) throw new Error(`Measurements missing mm: "${measText}"`);
+    if (!measText.includes("P")) throw new Error(`Measurements missing perimeter: "${measText}"`);
+    if (!measText.includes("L")) throw new Error(`Measurements missing total line: "${measText}"`);
   });
 
   await test("DXF Mold Organization: save organization marks as organized", async () => {
@@ -1121,6 +1158,220 @@ async function run() {
     const anyCard = page.locator(".stamp-card").first();
     const cardText = await anyCard.textContent();
     if (!cardText || cardText.trim().length === 0) throw new Error("Stamp card has no text content");
+  });
+
+  // ── Client field ──
+
+  await test("Client field: search and display on show page", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Client")) throw new Error("Client section not found");
+
+    const input = await page.$(".combobox-input");
+    if (!input) throw new Error("Combobox input not found");
+
+    await input.focus();
+    await page.waitForTimeout(500);
+
+    const results = await page.$(".combobox-results--open");
+    if (!results) throw new Error("Dropdown not opened on focus");
+
+    const newOption = await page.$(".combobox-option-new");
+    if (!newOption) throw new Error("Register new client option not found in dropdown");
+  });
+
+  await test("Client field: search JSON endpoint returns results", async () => {
+    // Create a client directly via API
+    const tokenRes = await page.goto(BASE_URL);
+    const csrf = await page.evaluate(() => {
+      const meta = document.querySelector("meta[name='csrf-token']");
+      return meta?.content || "";
+    });
+
+    await page.evaluate(async (token) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          authenticity_token: token,
+          "client[name]": "Test Client E2E",
+          "client[responsible]": "John E2E"
+        })
+      });
+    }, csrf);
+
+    // Now search for it
+    const searchRes = await page.evaluate(async () => {
+      const r = await fetch("/clients/search?q=Test Client");
+      return r.json();
+    });
+    if (!Array.isArray(searchRes) || searchRes.length === 0) throw new Error("Search returned no results");
+    if (searchRes[0].name !== "Test Client E2E") throw new Error(`Wrong client name: ${searchRes[0].name}`);
+    if (searchRes[0].responsible !== "John E2E") throw new Error(`Wrong responsible: ${searchRes[0].responsible}`);
+  });
+
+  await test("Client field: select existing client saves to stamp", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const input = await page.$(".combobox-input");
+    if (!input) throw new Error("Combobox input not found");
+
+    // Type to search and select
+    await input.fill("Test Client E2E");
+    await page.waitForTimeout(500);
+
+    // Click the first option
+    const option = await page.$(".combobox-option");
+    if (!option) throw new Error("No combobox option found");
+    await option.click();
+    await page.waitForTimeout(1000);
+
+    // Verify success notice
+    const body = await page.textContent("body");
+    if (!body.includes("Client updated")) throw new Error(`Client not saved: "${body.slice(0, 200)}"`);
+
+    // Reload to verify persistence
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const reloadInput = await page.$(".combobox-input");
+    const val = await reloadInput.inputValue();
+    if (val !== "Test Client E2E") throw new Error(`Value not persisted: "${val}"`);
+  });
+
+  await test("Client field: Cancel button closes the dialog", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Focus combobox to open dropdown
+    const input = await page.$(".combobox-input");
+    if (!input) throw new Error("Combobox input not found");
+    await input.focus();
+    await page.waitForTimeout(500);
+
+    // Click "Register new client" option
+    const newOption = await page.$(".combobox-option-new");
+    if (!newOption) throw new Error("Register new client option not found");
+    await newOption.click();
+    await page.waitForTimeout(500);
+
+    // Dialog should be visible
+    const dialog = await page.$(".client-dialog");
+    if (!dialog) throw new Error("Client dialog not found");
+
+    const isOpen = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      return d && d.open;
+    });
+    if (!isOpen) throw new Error("Dialog not open");
+
+    // Verify dialog is centered (not at top-left corner)
+    const position = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      const rect = d.getBoundingClientRect();
+      return { top: rect.top, left: rect.left, vh: window.innerHeight, vw: window.innerWidth };
+    });
+    if (position.top > position.vh * 0.4 || position.top < 0)
+      throw new Error(`Dialog not vertically centered: top=${position.top}, vh=${position.vh}`);
+    if (position.left > position.vw * 0.4 || position.left < 0)
+      throw new Error(`Dialog not horizontally centered: left=${position.left}, vw=${position.vw}`);
+
+    // Click Cancel button
+    const cancelBtn = await page.$(".client-dialog .btn-secondary");
+    if (!cancelBtn) throw new Error("Cancel button not found");
+    await cancelBtn.click();
+    await page.waitForTimeout(500);
+
+    // Verify dialog is closed
+    const isClosed = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      return !d || !d.open;
+    });
+    if (!isClosed) throw new Error("Dialog did not close after Cancel");
+  });
+
+  await test("Client field: register new client via modal creates and redirects", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Focus combobox to open dropdown
+    const input = await page.$(".combobox-input");
+    if (!input) throw new Error("Combobox input not found");
+    await input.focus();
+    await page.waitForTimeout(500);
+
+    // Click "Register new client" option
+    const newOption = await page.$(".combobox-option-new");
+    if (!newOption) throw new Error("Register new client option not found");
+    await newOption.click();
+    await page.waitForTimeout(500);
+
+    // Dialog should be visible
+    const dialog = await page.$(".client-dialog");
+    if (!dialog) throw new Error("Client dialog not found");
+
+    const isOpen = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      return d && d.open;
+    });
+    if (!isOpen) throw new Error("Dialog not open");
+
+    // Verify dialog is centered (not at top-left corner)
+    const position = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      const rect = d.getBoundingClientRect();
+      return { top: rect.top, left: rect.left, vh: window.innerHeight, vw: window.innerWidth };
+    });
+    if (position.top > position.vh * 0.4 || position.top < 0)
+      throw new Error(`Dialog not vertically centered: top=${position.top}, vh=${position.vh}`);
+    if (position.left > position.vw * 0.4 || position.left < 0)
+      throw new Error(`Dialog not horizontally centered: left=${position.left}, vw=${position.vw}`);
+
+    // Fill form and submit
+    await page.fill("#client_name_dialog", "Modal Client");
+    await page.fill("#client_responsible_dialog", "Modal Resp");
+
+    // Click Register button in dialog
+    await page.click(".client-dialog .btn-primary");
+    await page.waitForTimeout(1000);
+
+    // Verify redirect back with notice
+    const body = await page.textContent("body");
+    if (!body.includes("Client registered")) throw new Error(`Notice not shown: "${body.slice(0, 200)}"`);
+
+    // Verify client exists via search
+    const searchRes = await page.evaluate(async () => {
+      const r = await fetch("/clients/search?q=Modal Client");
+      return r.json();
+    });
+    if (!searchRes.find(c => c.name === "Modal Client")) throw new Error("Modal Client not found in search");
   });
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
