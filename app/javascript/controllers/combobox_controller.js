@@ -15,7 +15,7 @@ export default class extends Controller {
       .then(r => r.json())
       .then(clients => {
         this.results.innerHTML = clients.map(c => `
-          <div class="combobox-option" data-id="${c.id}" data-name="${c.escape}" data-action="click->combobox#select">
+          <div class="combobox-option" data-id="${c.id}" data-name="${c.name.replace(/"/g, '&quot;')}" data-action="click->combobox#select">
             <strong>${this._highlight(c.name, q)}</strong>
             <span class="combobox-option-detail">${this._highlight(c.responsible, q)}</span>
           </div>
@@ -39,8 +39,11 @@ export default class extends Controller {
 
   openNew() {
     this.results.classList.remove("combobox-results--open")
-    const dialog = this.element.closest("[data-controller='dialog']")
-    if (dialog) dialog.querySelector("dialog").showModal()
+    const dialogEl = this.element.closest("[data-controller='dialog']")
+    if (dialogEl) {
+      const dialogController = this.application.getControllerForElementAndIdentifier(dialogEl, "dialog")
+      dialogController.open()
+    }
   }
 
   blur() {

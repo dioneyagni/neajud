@@ -15,7 +15,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :clients, only: %i[create] do
+  resources :clients, only: %i[index create update destroy] do
     collection do
       get :search
     end

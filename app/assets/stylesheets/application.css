@@ -28,6 +28,9 @@ header {
   position: sticky;
   top: 0;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 header h1 {
@@ -719,6 +722,73 @@ section {
   font-size: 0.88rem;
 }
 
+.header-nav {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.header-nav-link {
+  font-size: 0.9rem;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+.header-nav-link:hover {
+  color: #1a73e8;
+}
+
+/* Clients page */
+
+.clients-toolbar {
+  margin-bottom: 1rem;
+}
+
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.clients-table thead {
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.clients-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  color: #5f6368;
+  font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fafafa;
+}
+
+.clients-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 0.9rem;
+}
+
+.clients-table tr:last-child td {
+  border-bottom: none;
+}
+
+.clients-table-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.back-link-wrapper {
+  margin-top: 1.5rem;
+}
+
 /* Time history table */
 
 .time-history {
@@ -910,6 +980,10 @@ section {
 }
 
 /* Combobox */
+
+.combobox {
+  position: relative;
+}
 
 .combobox-input {
   width: 100%;

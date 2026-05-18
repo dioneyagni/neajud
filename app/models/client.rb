@@ -1,7 +1,7 @@
 class Client < ApplicationRecord
   has_many :stamps, dependent: :nullify
 
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :responsible, presence: true
 
   scope :search, ->(q) {

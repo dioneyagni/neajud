@@ -1372,6 +1372,246 @@ async function run() {
       return r.json();
     });
     if (!searchRes.find(c => c.name === "Modal Client")) throw new Error("Modal Client not found in search");
+
+    // Verify client was auto-assigned to the stamp (stamp_uuid in dialog form)
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const clientInput = await page.$(".combobox-input");
+    const clientValue = await clientInput.inputValue();
+    if (clientValue !== "Modal Client") throw new Error(`Client not auto-assigned to stamp. Input value: "${clientValue}"`);
+  });
+
+  await test("Client field: no Edit button on stamp show page (moved to Clients page)", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Edit button should NOT be on stamp show page anymore
+    const editBtn = await page.$("button[data-action*='dialog#editClient']");
+    if (editBtn) throw new Error("Edit button should not be on stamp show page");
+
+    // "Manage Clients" link should be present
+    const manageLink = await page.$('a[href="/clients"]');
+    if (!manageLink) throw new Error("Manage Clients link not found");
+  });
+
+// Unlink is tested via RSpec request spec (E2E combobox submit is unreliable in sequence)
+
+  await test("Client field: duplicate client name shows error", async () => {
+
+    const input = await page.$(".combobox-input");
+    if (!input) throw new Error("Combobox input not found");
+    await input.focus();
+    await page.waitForTimeout(500);
+
+    const newOption = await page.$(".combobox-option-new");
+    if (!newOption) throw new Error("Register new client option not found");
+    await newOption.click();
+    await page.waitForTimeout(500);
+
+    const dialog = await page.$(".client-dialog");
+    if (!dialog) throw new Error("Client dialog not found");
+
+    // Fill with existing name "Test Client E2E"
+    await page.fill("#client_name_dialog", "Test Client E2E");
+    await page.fill("#client_responsible_dialog", "Duplicate Test");
+    await page.click(".client-dialog .btn-primary");
+    await page.waitForTimeout(1000);
+
+    const body = await page.textContent("body");
+    if (!body.includes("already exists")) throw new Error(`Duplicate name should show error: "${body.slice(0, 200)}"`);
+  });
+
+  // ── Clients page CRUD ──
+
+  await test("Clients page: renders table with clients", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector("h2", { timeout: 10000 });
+
+    const body = await page.textContent("body");
+    if (!body.includes("Clients")) throw new Error("Clients page heading not found");
+    if (!body.includes("New Client")) throw new Error("New Client button not found");
+    if (!body.includes("Alpha Corp") && !body.includes("Test Client E2E") && !body.includes("Modal Client")) {
+      throw new Error("No client rows shown in table");
+    }
+  });
+
+  await test("Clients page: New Client button opens dialog", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector("h2", { timeout: 10000 });
+
+    const newBtn = await page.$("button[data-action='click->dialog#open']");
+    if (!newBtn) throw new Error("New Client button not found");
+    await newBtn.click();
+    await page.waitForTimeout(500);
+
+    const isOpen = await page.evaluate(() => document.querySelector(".client-dialog")?.open);
+    if (!isOpen) throw new Error("Dialog not open after clicking New Client");
+
+    const title = await page.evaluate(() => document.querySelector(".client-dialog h4")?.textContent);
+    if (title !== "Register New Client") throw new Error(`Expected "Register New Client", got "${title}"`);
+
+    const submitText = await page.evaluate(() => document.querySelector(".client-dialog [data-dialog-target='submitBtn']")?.textContent?.trim());
+    if (submitText !== "Register") throw new Error(`Expected "Register", got "${submitText}"`);
+
+    // Close dialog
+    const cancelBtn = await page.$(".client-dialog .btn-secondary");
+    if (!cancelBtn) throw new Error("Cancel button not found");
+    await cancelBtn.click();
+    await page.waitForTimeout(500);
+
+    const isClosed = await page.evaluate(() => !document.querySelector(".client-dialog")?.open);
+    if (!isClosed) throw new Error("Dialog did not close after Cancel");
+  });
+
+  await test("Clients page: create a new client", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector("h2", { timeout: 10000 });
+
+    const newBtn = await page.$("button[data-action='click->dialog#open']");
+    await newBtn.click();
+    await page.waitForTimeout(500);
+
+    await page.fill("#client_name_dialog", "Clients Page Client");
+    await page.fill("#client_responsible_dialog", "Clients Page Resp");
+    await page.click(".client-dialog .btn-primary");
+    await page.waitForTimeout(1000);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Client registered")) throw new Error(`Client not created: "${body.slice(0, 300)}"`);
+    if (!body.includes("Clients Page Client")) throw new Error("New client not shown in table");
+  });
+
+  await test("Clients page: Edit button opens dialog in edit mode", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector(".clients-table", { timeout: 10000 });
+
+    const editBtn = await page.$("button[data-action*='dialog#editClient']");
+    if (!editBtn) throw new Error("Edit button not found");
+
+    const clientName = await editBtn.getAttribute("data-client-name");
+    const clientId = await editBtn.getAttribute("data-client-id");
+    if (!clientName) throw new Error("Edit button has no data-client-name");
+    if (!clientId) throw new Error("Edit button has no data-client-id");
+
+    await editBtn.click();
+    await page.waitForTimeout(500);
+
+    const isOpen = await page.evaluate(() => document.querySelector(".client-dialog")?.open);
+    if (!isOpen) throw new Error("Dialog not open after Edit click");
+
+    const title = await page.evaluate(() => document.querySelector(".client-dialog h4")?.textContent);
+    if (title !== "Edit Client") throw new Error(`Expected "Edit Client", got "${title}"`);
+
+    const submitText = await page.evaluate(() => document.querySelector(".client-dialog [data-dialog-target='submitBtn']")?.textContent?.trim());
+    if (submitText !== "Update") throw new Error(`Expected "Update", got "${submitText}"`);
+
+    // Verify name field is pre-filled
+    const nameVal = await page.evaluate(() => document.querySelector("#client_name_dialog")?.value);
+    if (nameVal !== clientName) throw new Error(`Expected name "${clientName}", got "${nameVal}"`);
+
+    // Verify form action points to PATCH
+    const formAction = await page.evaluate(() => document.querySelector(".client-form")?.action);
+    if (!formAction.includes(`/clients/${clientId}`)) throw new Error(`Form action incorrect: ${formAction}`);
+
+    // Close without saving
+    const cancelBtn = await page.$(".client-dialog .btn-secondary");
+    await cancelBtn.click();
+    await page.waitForTimeout(500);
+  });
+
+  await test("Clients page: edit a client name", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector(".clients-table", { timeout: 10000 });
+
+    const editBtn = await page.$("button[data-action*='dialog#editClient']");
+    await editBtn.click();
+    await page.waitForTimeout(500);
+
+    // Clear and type new name
+    await page.fill("#client_name_dialog", "Edited Client Name");
+    await page.fill("#client_responsible_dialog", "Edited Responsible");
+    await page.click(".client-dialog .btn-primary");
+    await page.waitForTimeout(1000);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Client updated")) throw new Error(`Client not updated: "${body.slice(0, 300)}"`);
+    if (!body.includes("Edited Client Name")) throw new Error("Edited name not shown in table");
+  });
+
+  await test("Clients page: dialog is centered in viewport", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector("h2", { timeout: 10000 });
+
+    const newBtn = await page.$("button[data-action='click->dialog#open']");
+    await newBtn.click();
+    await page.waitForTimeout(500);
+
+    const position = await page.evaluate(() => {
+      const d = document.querySelector(".client-dialog");
+      const rect = d.getBoundingClientRect();
+      return { top: rect.top, left: rect.left, vh: window.innerHeight, vw: window.innerWidth };
+    });
+    if (position.top > position.vh * 0.4 || position.top < 0)
+      throw new Error(`Dialog not vertically centered: top=${position.top}, vh=${position.vh}`);
+
+    // Close dialog
+    const cancelBtn = await page.$(".client-dialog .btn-secondary");
+    await cancelBtn.click();
+  });
+
+  await test("Clients page: Delete button removes a client", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector(".clients-table", { timeout: 10000 });
+
+    const rowCountBefore = await page.$$eval(".clients-table tbody tr", els => els.length);
+
+    const deleteBtn = await page.$("button.btn-danger");
+    if (!deleteBtn) throw new Error("Delete button not found");
+    await deleteBtn.click();
+    await page.waitForTimeout(1000);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Client deleted")) throw new Error(`Client not deleted: "${body.slice(0, 300)}"`);
+
+    const rowCountAfter = await page.$$eval(".clients-table tbody tr", els => els.length);
+    if (rowCountAfter >= rowCountBefore) throw new Error(`Row count did not decrease: before=${rowCountBefore}, after=${rowCountAfter}`);
+  });
+
+  await test("Clients page: Back to Gallery link works", async () => {
+    await page.goto(`${BASE_URL}/clients`);
+    await page.waitForSelector("h2", { timeout: 10000 });
+
+    const backLink = await page.$('a[href="/"]');
+    if (!backLink) throw new Error("Back to Gallery link not found");
+    await backLink.click();
+    await page.waitForURL("**/", { timeout: 5000 });
+
+    const url = page.url();
+    if (!url.endsWith("/")) throw new Error(`Did not navigate to homepage: ${url}`);
+  });
+
+  await test("Clients page: nav link in header", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector("header", { timeout: 5000 });
+
+    const navLink = await page.$(".header-nav-link");
+    if (!navLink) throw new Error("Header nav link not found");
+
+    const href = await navLink.getAttribute("href");
+    if (href !== "/clients") throw new Error(`Expected /clients, got ${href}`);
+
+    await navLink.click();
+    await page.waitForURL("**/clients", { timeout: 5000 });
+
+    const body = await page.textContent("body");
+    if (!body.includes("Clients")) throw new Error("Did not navigate to clients page");
   });
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
