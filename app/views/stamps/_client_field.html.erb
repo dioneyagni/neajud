@@ -6,7 +6,7 @@
       <input type="hidden" name="client_id" id="client_id" value="<%= @stamp.client_id %>">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
 
-      <div data-controller="combobox" data-combobox-search-url-value="<%= search_clients_path %>">
+      <div data-controller="combobox" data-combobox-search-url-value="<%= search_clients_path %>" class="combobox">
         <input type="text"
                class="combobox-input"
                placeholder="Search client..."
@@ -15,13 +15,19 @@
         <div class="combobox-results"></div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">Save</button>
+      <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+        <% if @stamp.client %>
+          <%= button_to "Unlink", update_client_stamp_path(@stamp), method: :patch, params: { client_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn btn-danger btn-sm" %>
+        <% end %>
+        <%= link_to "Manage Clients", clients_path, class: "back-link" %>
+      </div>
     </form>
 
     <dialog data-dialog-target="dialog" class="client-dialog">
-      <form action="<%= clients_path %>" method="post" class="client-form">
+      <form action="<%= clients_path %>" method="post" data-dialog-target="clientForm" class="client-form">
         <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-        <h4>Register New Client</h4>
+        <input type="hidden" name="stamp_uuid" value="<%= @stamp.uuid %>">
+        <h4 data-dialog-target="dialogTitle">Register New Client</h4>
         <div class="client-field">
           <label for="client_name_dialog">Name</label>
           <input type="text" name="client[name]" id="client_name_dialog" required>
@@ -32,11 +38,9 @@
         </div>
         <div class="client-dialog-actions">
           <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
-          <button type="submit" class="btn btn-primary">Register</button>
+          <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
         </div>
       </form>
     </dialog>
-
-    <a href="#" data-action="click->dialog#open" style="display: none;" data-hidden-trigger></a>
   </div>
 </div>
