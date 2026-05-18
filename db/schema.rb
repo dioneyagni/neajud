@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_17_155953) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -31,6 +31,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
     t.string "uploaded_by"
     t.string "uuid", null: false
     t.index ["uuid"], name: "index_batch_uploads_on_uuid", unique: true
+  end
+
+  create_table "clients", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "name", null: false
+    t.text "responsible", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "cut_layers", force: :cascade do |t|
@@ -102,18 +109,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
     t.string "batch_id"
     t.string "category"
     t.text "category_notes"
+    t.integer "client_id"
     t.datetime "created_at", null: false
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
     t.string "mime_type", null: false
-    t.string "molde_nome", default: "New Mold"
+    t.string "molde_nome", default: "Novo Molde"
     t.string "organize_error"
     t.boolean "organized", default: false, null: false
-    t.string "peca_nome", default: "New Piece"
+    t.string "peca_nome", default: "Nova Peça"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
+    t.index ["client_id"], name: "index_stamps_on_client_id"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
   end
 
@@ -121,9 +130,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
     t.decimal "area_mm2", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.decimal "height_mm", precision: 10, scale: 2
+    t.decimal "inner_lines_mm"
     t.string "nome", null: false
+    t.decimal "perimeter_mm"
     t.integer "position"
     t.integer "stamp_id", null: false
+    t.decimal "total_line_mm"
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2
     t.index ["stamp_id"], name: "index_tamanhos_on_stamp_id"
@@ -133,6 +145,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_070002) do
   add_foreign_key "stamp_image_metadata", "stamp_versions"
   add_foreign_key "stamp_time_logs", "stamps"
   add_foreign_key "stamp_versions", "stamps"
+  add_foreign_key "stamps", "clients"
   add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"
   add_foreign_key "tamanhos", "stamps"
 end

@@ -23,16 +23,21 @@
           <span class="stamp-card-ext-flag"><%= stamp.extension.upcase %></span>
         </div>
       <% end %>
+      <div class="stamp-card-status-overlay">
+        <% if !stamp.client_id && stamp.processed? %>
+          <%= image_tag "icons/status/no-client.svg", class: "stamp-card-status-icon", alt: "No Client" %>
+        <% end %>
+        <% if stamp.extension == "dxf" && !stamp.organized? %>
+          <%= image_tag "icons/status/not-organized.svg", class: "stamp-card-status-icon", alt: "Not Organized" %>
+        <% end %>
+        <% if stamp.organize_error.present? %>
+          <%= image_tag "icons/status/stacked-cuts.svg", class: "stamp-card-status-icon", alt: "Stacked Cuts" %>
+        <% end %>
+      </div>
     </div>
     <div class="stamp-card-body">
       <div class="stamp-card-name"><%= stamp.filename %>.<%= stamp.extension %></div>
       <div class="stamp-card-meta">
-        <% if stamp.extension == "dxf" && !stamp.organized? %>
-          <span class="stamp-card-badge badge-unorganized">⚠ Not Organized</span>
-        <% end %>
-        <% if stamp.organize_error.present? %>
-          <span class="stamp-card-badge badge-error" title="<%= stamp.organize_error %>">⚠ Stacked Cuts</span>
-        <% end %>
         <% if stamp.failed? || stamp.unsupported_format? || stamp.invalid_colorspace? %>
           <span class="stamp-card-badge badge-<%= stamp.status %>"><%= stamp.status.humanize %></span>
         <% end %>

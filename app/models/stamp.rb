@@ -3,6 +3,7 @@ class Stamp < ApplicationRecord
   has_many :stamp_versions
   has_many :tamanhos, dependent: :destroy
   belongs_to :approved_version, class_name: "StampVersion", optional: true
+  belongs_to :client, optional: true
 
   before_validation :set_uuid, on: :create
   after_update_commit :broadcast_stamp_card, if: :saved_change_to_approved_version_id?

@@ -38,7 +38,10 @@ class DxfOrganizationService
         position: t["position"],
         width_mm: t["width_mm"],
         height_mm: t["height_mm"],
-        area_mm2: t["area_mm2"]
+        area_mm2: t["area_mm2"],
+        perimeter_mm: t["perimeter_mm"],
+        inner_lines_mm: t["inner_lines_mm"],
+        total_line_mm: t["total_line_mm"]
       )
     end
 

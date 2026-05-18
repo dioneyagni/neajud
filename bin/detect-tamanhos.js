@@ -56,6 +56,15 @@ function polygonArea(verts) {
   return Math.abs(area) / 2;
 }
 
+function polygonPerimeter(verts) {
+  let perimeter = 0;
+  const n = verts.length;
+  for (let i = 0; i < n; i++) {
+    perimeter += dist(verts[i], verts[(i + 1) % n]);
+  }
+  return perimeter;
+}
+
 function bboxArea(verts) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const v of verts) {
@@ -170,6 +179,32 @@ for (let i = 0; i < outer.length; i++) {
 const insUnits = parsed.header && parsed.header.insUnits;
 const toMm = insUnits === 1 ? 25.4 : 1;
 
+function polylineLength(verts) {
+  let len = 0;
+  for (let i = 0; i < verts.length - 1; i++) len += dist(verts[i], verts[i + 1]);
+  return len;
+}
+
+function isInsideOuter(verts, outerVerts) {
+  for (const v of verts) {
+    if (pointInPolygon(v[0], v[1], outerVerts)) return true;
+  }
+  return false;
+}
+
+// Build list of all non-outer polylines (both closed-inner and open)
+const outerSet = new Set(outer);
+const innerPolylines = [];
+for (const pl of result.polylines) {
+  const verts = pl.vertices;
+  if (verts.length < 2) continue;
+  const isClosed = verts.length >= 3 && dist(verts[0], verts[verts.length - 1]) < 0.01;
+  const inOuter = isClosed && closed.some(c => c.vertices === verts) && outerSet.has(closed.find(c => c.vertices === verts));
+  if (inOuter) continue;
+  const length = isClosed ? polygonPerimeter(verts) : polylineLength(verts);
+  if (length > 0) innerPolylines.push({ vertices: verts, length, isClosed });
+}
+
 const tamanhos = outer.map((poly, i) => {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const v of poly.vertices) {
@@ -178,6 +213,16 @@ const tamanhos = outer.map((poly, i) => {
     if (v[0] > maxX) maxX = v[0];
     if (v[1] > maxY) maxY = v[1];
   }
+
+  let innerLinesMm = 0;
+  for (const ip of innerPolylines) {
+    if (isInsideOuter(ip.vertices, poly.vertices)) {
+      innerLinesMm += ip.length;
+    }
+  }
+  innerLinesMm = Math.round(innerLinesMm * toMm * 100) / 100;
+  const outerPerim = Math.round(polygonPerimeter(poly.vertices) * toMm * 100) / 100;
+
   return {
     nome: `Size ${i + 1}`,
     position: i + 1,
@@ -185,6 +230,9 @@ const tamanhos = outer.map((poly, i) => {
     width_mm: Math.round((maxX - minX) * toMm * 100) / 100,
     height_mm: Math.round((maxY - minY) * toMm * 100) / 100,
     area_mm2: Math.round(poly.area * toMm * toMm * 100) / 100,
+    perimeter_mm: outerPerim,
+    inner_lines_mm: innerLinesMm,
+    total_line_mm: outerPerim + innerLinesMm,
   };
 });
 

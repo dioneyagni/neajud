@@ -82,10 +82,10 @@ class StampProcessingJob < ApplicationJob
     svg = File.read(path)
     colors = Set.new
 
-    # Match strokes on drawing <g> groups (those wrapping <path> elements).
-    # Pattern: <g stroke="..."> optionally followed by <g><path, <path, etc.
-    # This excludes container <g> whose stroke is inherited but never rendered.
-    svg.scan(/<g stroke="(#[^"]*|rgb\([^)]*\))">(?:<g>)?<(?:path|polyline|line|rect|circle|ellipse|polygon)\b/) do
+    # Match strokes on drawing <g> groups that directly contain path/polyline/etc elements.
+    # Skips container <g> groups by requiring the inner group to wrap drawing primitives.
+    # Handles nested <g transform=...> or plain <g> between stroke group and drawing elements.
+    svg.scan(/<g[^>]*\bstroke="(#[^"]*|rgb\([^)]*\))"[^>]*>(?:<g[^>]*>)*\s*<(?:path|polyline|line|rect|circle|ellipse|polygon)\b/) do
       match = Regexp.last_match[1]
       hex = if match.start_with?("#")
               match.upcase
