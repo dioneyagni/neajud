@@ -542,16 +542,11 @@ section {
 
 /* Detail page icons */
 
-.stamp-detail-ext-icon,
-.stamp-detail-program-icon {
+.stamp-detail-ext-icon {
   width: 24px;
   height: 24px;
   vertical-align: middle;
   margin-right: 0.25rem;
-}
-
-.stamp-detail-program-icon {
-  margin-right: 0.5rem;
 }
 
 /* Show page */

@@ -1,7 +1,6 @@
 <h2>
   <%= image_tag "#{FileCategory.extension_icon(@stamp.extension)}.svg", class: "stamp-detail-ext-icon", alt: @stamp.extension %>
-  <%= image_tag "#{@stamp.program_icon}.svg", class: "stamp-detail-program-icon", alt: "Program" %>
-  Stamp: <%= @stamp.filename %>.<%= @stamp.extension %>
+  <%= @stamp.category == "corte" ? "Cut" : "Stamp" %>: <%= @stamp.filename %>.<%= @stamp.extension %>
 </h2>
 
 <div class="stamp-detail">
