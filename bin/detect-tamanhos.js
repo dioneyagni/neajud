@@ -4,11 +4,12 @@ const path = require("path");
 const dxf = require("dxf");
 
 if (process.argv.length < 3) {
-  console.error("Usage: detect-tamanhos.js <input.dxf>");
+  console.error("Usage: detect-tamanhos.js <input.dxf> [filename]");
   process.exit(1);
 }
 
 const inputPath = path.resolve(process.argv[2]);
+const rawFilename = process.argv[3] || path.basename(inputPath, path.extname(inputPath));
 if (!fs.existsSync(inputPath)) {
   console.error("Input file not found:", inputPath);
   process.exit(1);
@@ -205,7 +206,34 @@ for (const pl of result.polylines) {
   if (length > 0) innerPolylines.push({ vertices: verts, length, isClosed });
 }
 
+function inferSizeNames(filename, count) {
+  const patterns = [
+    /(\d+)\s*(?:ao|a)\s*(\d+)/i,
+    /(\d+)\s*[-–]\s*(\d+)/,
+  ];
+  for (const pat of patterns) {
+    const m = filename.match(pat);
+    if (!m) continue;
+    const lo = parseInt(m[1], 10);
+    const hi = parseInt(m[2], 10);
+    if (isNaN(lo) || isNaN(hi) || lo === hi) continue;
+    const step = lo % 2 === hi % 2 ? 2 : 1;
+    const expectedCount = Math.abs(Math.round((hi - lo) / step)) + 1;
+    if (count !== expectedCount) continue;
+    const sizes = [];
+    if (lo < hi) { for (let s = lo; s <= hi; s += step) sizes.push(String(s)); }
+    else { for (let s = lo; s >= hi; s -= step) sizes.push(String(s)); }
+    return sizes;
+  }
+  return null;
+}
+
+outer.reverse();
+
+const sizeNames = inferSizeNames(rawFilename, outer.length);
+
 const tamanhos = outer.map((poly, i) => {
+  const nome = sizeNames ? sizeNames[i] : `Size ${i + 1}`;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const v of poly.vertices) {
     if (v[0] < minX) minX = v[0];
@@ -224,7 +252,7 @@ const tamanhos = outer.map((poly, i) => {
   const outerPerim = Math.round(polygonPerimeter(poly.vertices) * toMm * 100) / 100;
 
   return {
-    nome: `Size ${i + 1}`,
+    nome: nome,
     position: i + 1,
     color: poly.color,
     width_mm: Math.round((maxX - minX) * toMm * 100) / 100,

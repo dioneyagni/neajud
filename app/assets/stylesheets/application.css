@@ -437,6 +437,12 @@ section {
   font-size: 0.9rem;
 }
 
+.tamanho-download {
+  text-decoration: none;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
 .tamanho-measurements {
   font-size: 0.8rem;
   color: #555;

@@ -25,7 +25,8 @@ class DxfOrganizationService
 
   def detect_tamanhos(path)
     script = Rails.root.join("bin", "detect-tamanhos.js").to_s
-    output = `node #{Shellwords.escape(script)} #{Shellwords.escape(path)} 2>/dev/null`.strip
+    filename = @stamp.filename.to_s
+    output = `node #{Shellwords.escape(script)} #{Shellwords.escape(path)} #{Shellwords.escape(filename)} 2>/dev/null`.strip
     return if output.blank?
 
     result = JSON.parse(output)
