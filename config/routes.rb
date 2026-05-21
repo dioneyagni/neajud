@@ -1,6 +1,12 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
+  resources :tamanhos, only: [] do
+    member do
+      get :download
+    end
+  end
+
   resources :stamps, only: %i[index new create show destroy] do
     member do
       patch :update_time

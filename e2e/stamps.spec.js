@@ -1012,13 +1012,99 @@ async function run() {
     const tamanhoRows = await page.$$(".tamanho-row");
     if (tamanhoRows.length !== 5) throw new Error(`Expected 5 tamanho rows, got ${tamanhoRows.length}`);
 
+    const expectedNames = ["35", "37", "39", "41", "43"];
     for (let i = 0; i < tamanhoRows.length; i++) {
       const row = tamanhoRows[i];
+      const input = await row.$(".tamanho-input");
+      if (!input) throw new Error(`Row ${i}: tamanho input not found`);
+      const val = await input.inputValue();
+      if (val !== expectedNames[i]) throw new Error(`Row ${i}: expected "${expectedNames[i]}", got "${val}"`);
       const meas = await row.$(".tamanho-measurements");
       if (!meas) throw new Error(`Row ${i}: measurements not found`);
       const text = await meas.textContent();
       if (!text.includes("mm")) throw new Error(`Row ${i}: missing mm, got "${text}"`);
     }
+  });
+
+  await test("DXF Tamanho download: no download button before organization", async () => {
+    const cabedalPath = path.join(testImagesDir, "CABEDAL - 35 AO 43.dxf");
+    if (!fs.existsSync(cabedalPath)) throw new Error("DXF not found");
+
+    await page.goto(BASE_URL);
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(cabedalPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
+
+    const downloadLinks = await page.$$(".tamanho-download");
+    if (downloadLinks.length > 0) throw new Error("Download links should NOT appear before organization");
+  });
+
+  await test("DXF Tamanho download: download button appears after organization", async () => {
+    const cabedalPath = path.join(testImagesDir, "CABEDAL - 35 AO 43.dxf");
+    if (!fs.existsSync(cabedalPath)) throw new Error("DXF not found");
+
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Save organization first
+    const saveBtn = await page.$('.mold-organization-form input[type="submit"]');
+    if (!saveBtn) throw new Error("Save Organization button not found");
+    await saveBtn.click();
+    await page.waitForURL("**/stamps/**", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Mold organization saved")) throw new Error("Organization not saved");
+
+    const downloadLinks = await page.$$(".tamanho-download");
+    if (downloadLinks.length === 0) throw new Error("No download links found after organization");
+
+    const firstLink = downloadLinks[0];
+    const href = await firstLink.getAttribute("href");
+    if (!href || !href.includes("/download")) throw new Error(`Download link href wrong: ${href}`);
+
+    const title = await firstLink.getAttribute("title");
+    if (!title || !title.includes(".dxf")) throw new Error(`Download link title wrong: ${title}`);
+  });
+
+  await test("DXF Tamanho download: clicking download produces a DXF file", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const downloadLink = await page.$(".tamanho-download");
+    if (!downloadLink) throw new Error("No tamanho download link found");
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download", { timeout: 10000 }),
+      downloadLink.click()
+    ]);
+
+    if (!download) throw new Error("Download did not start");
+    const filename = download.suggestedFilename();
+    if (!filename.endsWith(".dxf")) throw new Error(`Expected .dxf filename, got: ${filename}`);
   });
 
   // ── DXF Overlap resolution via hole marking ──

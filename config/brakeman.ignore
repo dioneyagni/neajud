@@ -27,6 +27,18 @@
     {
       "fingerprint": "04c0440e2f1e10458899b6ef2c8baa1d8f1c030f7e315dc7cfb557679b716b37",
       "note": "original_filename validado pelo FileValidator antes de ser usado"
+    },
+    {
+      "fingerprint": "4b389a70fee8b6c80c02f7338e182f87641dae397d9bfffc4e98de171251a8aa",
+      "note": "tamanho_extracts dir usa UUID gerado pelo sistema, seguro para mkdir_p"
+    },
+    {
+      "fingerprint": "7dfbb56be06c1eda7d23142ad406852d155f79ae4983f504ec812dedaaffdd44",
+      "note": "send_file path usa UUID + nome validado, seguro"
+    },
+    {
+      "fingerprint": "e2c58df00f4016f4ae4fa042701dc3b131ce62be823677ebd43a643ed864635f",
+      "note": "Open3.capture3 array form — cada argumento passado separadamente, sem shell injection"
     }
   ]
 }
