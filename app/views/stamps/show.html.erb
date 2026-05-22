@@ -17,6 +17,7 @@
   <div class="stamp-detail-info">
     <div class="stamp-detail-grid">
       <%= render "client_field" %>
+      <%= render "modelo_field" %>
 
       <% if @stamp.category == "corte" && @stamp.approved_version&.cut_layers&.any? %>
         <div class="stamp-detail-section stamp-detail-section--full">

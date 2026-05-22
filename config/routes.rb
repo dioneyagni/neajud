@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     member do
       patch :update_time
       patch :update_client
+      patch :update_modelo
       get :preview
       get :download
       post :upload_version
@@ -21,9 +22,28 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :clients, only: %i[index create update destroy] do
+  resources :clients, only: %i[show index create update destroy] do
     collection do
       get :search
+    end
+  end
+
+  resources :moldes, only: %i[index create update destroy] do
+    collection do
+      get :search
+    end
+  end
+
+  resources :pecas, only: %i[index create update destroy] do
+    collection do
+      get :search
+    end
+  end
+
+  resources :modelos, only: %i[index create update destroy] do
+    collection do
+      get :search
+      get :for_client
     end
   end
 

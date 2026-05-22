@@ -400,6 +400,16 @@ section {
   box-sizing: border-box;
 }
 
+.mold-field select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  background: #fff;
+}
+
 .mold-organization-form h4 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
@@ -863,6 +873,9 @@ section {
 /* Clients page */
 
 .clients-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
 }
 
