@@ -2,7 +2,7 @@ class ModelosController < ApplicationController
   before_action :set_modelo, only: %i[update destroy]
 
   def index
-    @modelos = Modelo.includes(:client).order(:nome)
+    @modelos = Modelo.includes(:client, :molde).order(:nome)
   end
 
   def search
@@ -52,7 +52,7 @@ class ModelosController < ApplicationController
   end
 
   def modelo_params
-    params.require(:modelo).permit(:nome, :client_id)
+    params.require(:modelo).permit(:nome, :client_id, :molde_id)
   end
 
   def assign_modelo_to_stamp(modelo)

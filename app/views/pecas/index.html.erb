@@ -25,14 +25,16 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Moldes</th>
           <th>Stamps</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <% @pecas.each do |peca| %>
+        <% @pecas.includes(:moldes).each do |peca| %>
           <tr>
             <td><%= peca.nome %></td>
+            <td><%= peca.moldes.pluck(:nome).join(", ") %></td>
             <td><%= peca.stamps.count %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"

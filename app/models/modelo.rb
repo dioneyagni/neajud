@@ -1,5 +1,6 @@
 class Modelo < ApplicationRecord
   belongs_to :client
+  belongs_to :molde, optional: true
   has_many :stamps, dependent: :nullify
 
   validates :nome, presence: true

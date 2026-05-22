@@ -1,5 +1,7 @@
 class Molde < ApplicationRecord
   has_many :stamps, dependent: :nullify
+  has_many :molde_pecas, dependent: :destroy
+  has_many :pecas, through: :molde_pecas
 
   validates :nome, presence: true, uniqueness: { case_sensitive: false }
 

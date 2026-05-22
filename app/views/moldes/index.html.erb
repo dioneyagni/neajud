@@ -13,6 +13,14 @@
         <label for="molde_nome_dialog">Name</label>
         <input type="text" name="molde[nome]" id="molde_nome_dialog" data-dialog-field="nome" required>
       </div>
+      <div class="client-field">
+        <label for="molde_peca_ids_dialog">Pecas</label>
+        <select name="molde[peca_ids][]" id="molde_peca_ids_dialog" multiple size="5">
+          <% Peca.order(:nome).each do |peca| %>
+            <option value="<%= peca.id %>"><%= peca.nome %></option>
+          <% end %>
+        </select>
+      </div>
       <div class="client-dialog-actions">
         <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
         <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
@@ -25,6 +33,7 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Pecas</th>
           <th>Stamps</th>
           <th>Actions</th>
         </tr>
@@ -33,6 +42,7 @@
         <% @moldes.each do |molde| %>
           <tr>
             <td><%= molde.nome %></td>
+            <td><%= molde.pecas.pluck(:nome).join(", ") %></td>
             <td><%= molde.stamps.count %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"

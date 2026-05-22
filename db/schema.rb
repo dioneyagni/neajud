@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_22_022936) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_22_133444) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -58,10 +58,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_022936) do
   create_table "modelos", force: :cascade do |t|
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
+    t.integer "molde_id"
     t.string "nome", null: false
     t.datetime "updated_at", null: false
     t.index ["client_id"], name: "index_modelos_on_client_id"
+    t.index ["molde_id"], name: "index_modelos_on_molde_id"
     t.index ["nome", "client_id"], name: "index_modelos_on_nome_and_client_id", unique: true
+  end
+
+  create_table "molde_pecas", id: false, force: :cascade do |t|
+    t.integer "molde_id", null: false
+    t.integer "peca_id", null: false
+    t.index ["molde_id", "peca_id"], name: "index_molde_pecas_on_molde_id_and_peca_id", unique: true
+    t.index ["molde_id"], name: "index_molde_pecas_on_molde_id"
+    t.index ["peca_id"], name: "index_molde_pecas_on_peca_id"
   end
 
   create_table "moldes", force: :cascade do |t|
@@ -172,6 +182,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_022936) do
 
   add_foreign_key "cut_layers", "stamp_versions"
   add_foreign_key "modelos", "clients"
+  add_foreign_key "modelos", "moldes"
+  add_foreign_key "molde_pecas", "moldes"
+  add_foreign_key "molde_pecas", "pecas"
   add_foreign_key "stamp_image_metadata", "stamp_versions"
   add_foreign_key "stamp_time_logs", "stamps"
   add_foreign_key "stamp_versions", "stamps"

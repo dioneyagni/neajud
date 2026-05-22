@@ -38,6 +38,15 @@
               <label for="modelo_nome_dialog">Name</label>
               <input type="text" name="modelo[nome]" id="modelo_nome_dialog" data-dialog-field="nome" required>
             </div>
+            <div class="client-field">
+              <label for="modelo_molde_id_dialog_client">Mold</label>
+              <select name="modelo[molde_id]" id="modelo_molde_id_dialog_client">
+                <option value="">Select a mold...</option>
+                <% Molde.order(:nome).each do |m| %>
+                  <option value="<%= m.id %>"><%= m.nome %></option>
+                <% end %>
+              </select>
+            </div>
             <div class="client-dialog-actions">
               <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
               <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
@@ -49,8 +58,9 @@
           <table class="clients-table" style="margin-top: 0.75rem">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Stamps</th>
+<th>Name</th>
+                  <th>Mold</th>
+                  <th>Stamps</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -58,11 +68,13 @@
               <% @modelos.each do |modelo| %>
                 <tr>
                   <td><%= modelo.nome %></td>
+                  <td><%= modelo.molde&.nome || "—" %></td>
                   <td><%= modelo.stamps.count %></td>
                   <td class="clients-table-actions">
                     <button class="btn btn-secondary btn-sm"
                             data-action="click->dialog#edit"
                             data-nome="<%= modelo.nome %>"
+                            data-molde-id="<%= modelo.molde_id %>"
                             data-action-url="<%= modelo_path(modelo) %>"
                             data-method="patch"
                             data-dialog-title="Edit Modelo"
