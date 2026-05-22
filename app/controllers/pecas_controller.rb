@@ -13,13 +13,15 @@ class PecasController < ApplicationController
   def create
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
     if existing
-      redirect_back fallback_location: stamps_path, alert: "Peca \"#{existing.nome}\" already exists."
+      assign_peca_to_stamp(existing) if params[:stamp_uuid].present?
+      redirect_back fallback_location: stamps_path, alert: "Piece \"#{existing.nome}\" already exists."
       return
     end
 
     @peca = Peca.new(peca_params)
     if @peca.save
-      redirect_back fallback_location: stamps_path, notice: "Peca registered."
+      assign_peca_to_stamp(@peca) if params[:stamp_uuid].present?
+      redirect_back fallback_location: stamps_path, notice: "Piece registered."
     else
       redirect_back fallback_location: stamps_path, alert: @peca.errors.full_messages.join(", ")
     end
@@ -42,6 +44,11 @@ class PecasController < ApplicationController
 
   def set_peca
     @peca = Peca.find(params[:id])
+  end
+
+  def assign_peca_to_stamp(peca)
+    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
+    stamp&.update(peca_id: peca.id)
   end
 
   def peca_params
