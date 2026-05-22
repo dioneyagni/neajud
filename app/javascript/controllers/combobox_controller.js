@@ -39,7 +39,7 @@ export default class extends Controller {
 
   openNew() {
     this.results.classList.remove("combobox-results--open")
-    const dialogEl = this.element.closest("[data-controller='dialog']")
+    const dialogEl = this.element.closest("[data-controller*='dialog']")
     if (dialogEl) {
       const dialogController = this.application.getControllerForElementAndIdentifier(dialogEl, "dialog")
       dialogController.open()

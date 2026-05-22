@@ -1,46 +1,70 @@
-<div class="stamp-detail-section">
-  <h3>Client</h3>
-  <div data-controller="dialog">
-    <form action="<%= update_client_stamp_path(@stamp) %>" method="post" style="position: relative;">
-      <input type="hidden" name="_method" value="patch">
-      <input type="hidden" name="client_id" id="client_id" value="<%= @stamp.client_id %>">
-      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+<div class="stamp-detail-section" data-controller="edit-toggle dialog">
+  <h3 class="section-heading-with-action">Client
+    <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit client">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    </button>
+  </h3>
 
-      <div data-controller="combobox" data-combobox-search-url-value="<%= search_clients_path %>" class="combobox">
+  <div data-edit-toggle-target="display" class="edit-display">
+    <% if @stamp.client.present? %>
+      <div class="client-display">
+        <span class="client-name-display"><%= @stamp.client.name %></span>
+        <% if @stamp.client.responsible.present? %>
+          <span class="client-responsible-display">(<%= @stamp.client.responsible %>)</span>
+        <% end %>
+        <%= button_to update_client_stamp_path(@stamp), method: :patch, params: { client_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink client" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
+        <% end %>
+      </div>
+    <% else %>
+      <span class="client-empty">No client linked</span>
+    <% end %>
+    <%= link_to "Manage Clients", clients_path, class: "back-link" %>
+  </div>
+
+  <div data-edit-toggle-target="form" style="display:none">
+    <form action="<%= update_client_stamp_path(@stamp) %>" method="post" data-controller="combobox" data-combobox-search-url-value="<%= search_clients_path %>">
+      <input type="hidden" name="_method" value="patch">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <div class="combobox">
         <input type="text"
                class="combobox-input"
+               name="client_name_submission"
                placeholder="Search client..."
                value="<%= @stamp.client&.name %>"
+               data-original-value="<%= @stamp.client&.name %>"
                data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
         <div class="combobox-results"></div>
       </div>
-
-      <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
-        <% if @stamp.client %>
-          <%= button_to "Unlink", update_client_stamp_path(@stamp), method: :patch, params: { client_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn btn-danger btn-sm" %>
-        <% end %>
-        <%= link_to "Manage Clients", clients_path, class: "back-link" %>
+      <input type="hidden" name="client_id" id="client_id" value="<%= @stamp.client_id %>">
+      <div class="edit-actions" style="margin-top: 0.5rem">
+        <button type="submit" class="btn-icon btn-confirm" title="Confirm">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </button>
+        <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+        </button>
       </div>
     </form>
-
-    <dialog data-dialog-target="dialog" class="client-dialog">
-      <form action="<%= clients_path %>" method="post" data-dialog-target="clientForm" class="client-form">
-        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-        <input type="hidden" name="stamp_uuid" value="<%= @stamp.uuid %>">
-        <h4 data-dialog-target="dialogTitle">Register New Client</h4>
-        <div class="client-field">
-          <label for="client_name_dialog">Name</label>
-          <input type="text" name="client[name]" id="client_name_dialog" required>
-        </div>
-        <div class="client-field">
-          <label for="client_responsible_dialog">Responsible</label>
-          <input type="text" name="client[responsible]" id="client_responsible_dialog" required>
-        </div>
-        <div class="client-dialog-actions">
-          <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
-          <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
-        </div>
-      </form>
-    </dialog>
   </div>
+
+  <dialog data-dialog-target="dialog" class="client-dialog">
+    <form action="<%= clients_path %>" method="post" data-dialog-target="clientForm" class="client-form">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <input type="hidden" name="stamp_uuid" value="<%= @stamp.uuid %>">
+      <h4 data-dialog-target="dialogTitle">Register New Client</h4>
+      <div class="client-field">
+        <label for="client_name_dialog">Name</label>
+        <input type="text" name="client[name]" id="client_name_dialog" required>
+      </div>
+      <div class="client-field">
+        <label for="client_responsible_dialog">Responsible</label>
+        <input type="text" name="client[responsible]" id="client_responsible_dialog" required>
+      </div>
+      <div class="client-dialog-actions">
+        <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
+      </div>
+    </form>
+  </dialog>
 </div>

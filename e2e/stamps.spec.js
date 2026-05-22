@@ -326,15 +326,16 @@ async function run() {
     await page.click(".stamp-card a");
     await page.waitForSelector("h2");
 
+    await page.click('#update-time-section [data-action="click->edit-toggle#edit"]');
+    await page.waitForSelector("#annotated_seconds", { timeout: 5000 });
+
     await page.fill("#annotated_seconds", "");
     await page.type("#annotated_seconds", "123");
-    await page.click('input[value="Update Time"]');
+    await page.click(".time-form .btn-confirm");
 
-    await page.waitForURL("**/stamps/**");
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1500);
 
     const body = await page.textContent("body");
-    if (!body.includes("Time updated")) throw new Error("Time updated notice not shown");
     if (!body.includes("1:23")) throw new Error("Formatted time 1:23 not found in history");
   });
 
@@ -910,13 +911,13 @@ async function run() {
     const tamanhoInput = await page.$(".tamanho-input");
     await tamanhoInput.fill("Piloto");
 
-    // Click Save and wait for page to reload
-    await page.click('.mold-organization-form input[type="submit"]');
-    await page.waitForTimeout(1000);
-    await page.waitForSelector(".mold-organization-form", { timeout: 10000 });
+    // Click Save and wait for Turbo Stream response
+    await page.click('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
+    await page.waitForTimeout(1500);
 
-    const body = await page.textContent("body");
-    if (!body.includes("Mold organization saved")) throw new Error("Success notice not found");
+    // Verify download links appear (means organization was saved)
+    const downloadLinks = await page.$$(".tamanho-download");
+    if (downloadLinks.length === 0) throw new Error("No download links found after organization");
 
     // Verify input values persisted
     const moldeVal = await page.$eval('input[name="molde_nome"]', el => el.value);
@@ -1063,15 +1064,11 @@ async function run() {
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    // Save organization first
-    const saveBtn = await page.$('.mold-organization-form input[type="submit"]');
+// Save organization first
+    const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
     if (!saveBtn) throw new Error("Save Organization button not found");
     await saveBtn.click();
-    await page.waitForURL("**/stamps/**", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes("Mold organization saved")) throw new Error("Organization not saved");
+    await page.waitForTimeout(1500);
 
     const downloadLinks = await page.$$(".tamanho-download");
     if (downloadLinks.length === 0) throw new Error("No download links found after organization");
@@ -1166,7 +1163,7 @@ async function run() {
       if (!body.includes("Layer configuration saved")) throw new Error("Layer config not saved");
 
       // Save organization to trigger re-evaluation
-      const orgSaveBtn = await page.$('.mold-organization-form input[type="submit"]');
+      const orgSaveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
       if (!orgSaveBtn) throw new Error("Organization save button not found");
       await orgSaveBtn.click();
       await page.waitForTimeout(1000);
@@ -1261,6 +1258,10 @@ async function run() {
     const body = await page.textContent("body");
     if (!body.includes("Client")) throw new Error("Client section not found");
 
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
+
     const input = await page.$(".combobox-input");
     if (!input) throw new Error("Combobox input not found");
 
@@ -1314,6 +1315,10 @@ async function run() {
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
+
     const input = await page.$(".combobox-input");
     if (!input) throw new Error("Combobox input not found");
 
@@ -1335,9 +1340,10 @@ async function run() {
     await page.reload();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
-    const reloadInput = await page.$(".combobox-input");
-    const val = await reloadInput.inputValue();
-    if (val !== "Test Client E2E") throw new Error(`Value not persisted: "${val}"`);
+    const clientNameDisplay = await page.$(".client-name-display");
+    if (!clientNameDisplay) throw new Error("Client name display not found after reload");
+    const nameText = await clientNameDisplay.textContent();
+    if (nameText !== "Test Client E2E") throw new Error(`Client not persisted: "${nameText}"`);
   });
 
   await test("Client field: Cancel button closes the dialog", async () => {
@@ -1349,6 +1355,10 @@ async function run() {
     await stampLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
+
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
 
     // Focus combobox to open dropdown
     const input = await page.$(".combobox-input");
@@ -1407,6 +1417,10 @@ async function run() {
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
+
     // Focus combobox to open dropdown
     const input = await page.$(".combobox-input");
     if (!input) throw new Error("Combobox input not found");
@@ -1463,12 +1477,13 @@ async function run() {
     await page.reload();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
-    const clientInput = await page.$(".combobox-input");
-    const clientValue = await clientInput.inputValue();
-    if (clientValue !== "Modal Client") throw new Error(`Client not auto-assigned to stamp. Input value: "${clientValue}"`);
+    const clientNameDisplay = await page.$(".client-name-display");
+    if (!clientNameDisplay) throw new Error("Client name display not found after reload");
+    const displayName = await clientNameDisplay.textContent();
+    if (displayName !== "Modal Client") throw new Error(`Client not auto-assigned to stamp. Display value: "${displayName}"`);
   });
 
-  await test("Client field: no Edit button on stamp show page (moved to Clients page)", async () => {
+  await test("Client field: has edit toggle button on stamp show page", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
@@ -1478,9 +1493,9 @@ async function run() {
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    // Edit button should NOT be on stamp show page anymore
-    const editBtn = await page.$("button[data-action*='dialog#editClient']");
-    if (editBtn) throw new Error("Edit button should not be on stamp show page");
+    // Edit toggle button should be present on stamp show page
+    const editBtn = await page.$("button[data-action*='edit-toggle#edit']");
+    if (!editBtn) throw new Error("Edit toggle button not found in Client section");
 
     // "Manage Clients" link should be present
     const manageLink = await page.$('a[href="/clients"]');
@@ -1490,6 +1505,18 @@ async function run() {
 // Unlink is tested via RSpec request spec (E2E combobox submit is unreliable in sequence)
 
   await test("Client field: duplicate client name shows error", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await stampLink.waitFor({ timeout: 10000 });
+    await stampLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
 
     const input = await page.$(".combobox-input");
     if (!input) throw new Error("Combobox input not found");

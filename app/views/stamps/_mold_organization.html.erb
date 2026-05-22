@@ -1,4 +1,5 @@
-<%= form_with url: organize_stamp_path(stamp), method: :patch, local: true, data: { turbo: false }, class: "mold-organization-form" do |f| %>
+<%= form_with url: organize_stamp_path(stamp), method: :patch, class: "mold-organization-form",
+      data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
   <% if !stamp.organized? %>
     <div class="mold-organization-alert">
       ⚠ This DXF file is not organized yet. Set the mold, piece, and sizes below.
@@ -13,35 +14,84 @@
   <div class="mold-organization-fields">
     <div class="mold-field">
       <%= f.label :molde_nome, "Mold" %>
-      <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
+      <% if stamp.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.molde_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe", data: { original_value: stamp.molde_nome } %></span>
+      <% else %>
+        <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
+      <% end %>
     </div>
     <div class="mold-field">
       <%= f.label :peca_nome, "Piece" %>
-      <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
+      <% if stamp.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.peca_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper", data: { original_value: stamp.peca_nome } %></span>
+      <% else %>
+        <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
+      <% end %>
     </div>
   </div>
 
-  <h4>Sizes</h4>
-  <div class="tamanho-list">
-    <% stamp.tamanhos.each_with_index do |t, idx| %>
-      <div class="tamanho-row">
-        <span class="tamanho-indicator"><%= idx + 1 %>.</span>
-        <input type="hidden" name="tamanhos[<%= idx %>][width_mm]" value="<%= t.width_mm %>">
-        <input type="hidden" name="tamanhos[<%= idx %>][height_mm]" value="<%= t.height_mm %>">
-        <input type="hidden" name="tamanhos[<%= idx %>][area_mm2]" value="<%= t.area_mm2 %>">
-        <input type="text" name="tamanhos[<%= idx %>][nome]" value="<%= t.nome %>" class="tamanho-input" placeholder="Ex: 35">
-        <span class="tamanho-measurements">
-          <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
-          · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
-          · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
-          · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
-        </span>
-        <% if stamp.organized? %>
-          <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
-        <% end %>
-      </div>
+  <div class="section-heading-with-action">
+    <h4>Sizes</h4>
+    <% if stamp.organized? %>
+      <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
     <% end %>
   </div>
 
-  <%= f.submit stamp.organized? ? "Update Organization" : "Save Organization", class: "btn btn-primary" %>
+  <% if stamp.organized? %>
+    <div class="edit-display" data-edit-toggle-target="display">
+      <div class="tamanho-list tamanho-list--readonly">
+        <% stamp.tamanhos.each_with_index do |t, idx| %>
+          <div class="tamanho-row">
+            <span class="tamanho-indicator"><%= idx + 1 %>.</span>
+            <span class="tamanho-nome"><%= t.nome %></span>
+            <span class="tamanho-measurements">
+              <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
+              · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
+              · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
+              · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
+            </span>
+            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <div<%= stamp.organized? ? ' data-edit-toggle-target="form" style="display:none"'.html_safe : ''.html_safe %>>
+    <div class="tamanho-list">
+      <% stamp.tamanhos.each_with_index do |t, idx| %>
+        <div class="tamanho-row">
+          <span class="tamanho-indicator"><%= idx + 1 %>.</span>
+          <input type="hidden" name="tamanhos[<%= idx %>][width_mm]" value="<%= t.width_mm %>">
+          <input type="hidden" name="tamanhos[<%= idx %>][height_mm]" value="<%= t.height_mm %>">
+          <input type="hidden" name="tamanhos[<%= idx %>][area_mm2]" value="<%= t.area_mm2 %>">
+          <input type="text" name="tamanhos[<%= idx %>][nome]" value="<%= t.nome %>" class="tamanho-input" placeholder="Ex: 35" data-original-value="<%= t.nome %>">
+          <span class="tamanho-measurements">
+            <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
+            · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
+            · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
+            · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
+          </span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if stamp.organized? %>
+      <div class="edit-actions">
+        <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </button>
+        <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+        </button>
+      </div>
+    <% else %>
+      <%= f.submit "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+    </div>
+    <% end %>
+  </div>
 <% end %>

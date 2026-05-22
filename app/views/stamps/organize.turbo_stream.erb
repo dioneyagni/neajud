@@ -1,0 +1,6 @@
+<%= turbo_stream.replace "mold-organization-section" do %>
+  <div class="stamp-detail-section stamp-detail-section--full" id="mold-organization-section" data-controller="edit-toggle">
+    <h3 class="section-heading-with-action">Mold Organization</h3>
+    <%= render "mold_organization", stamp: @stamp %>
+  </div>
+<% end %>

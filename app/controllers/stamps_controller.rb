@@ -127,7 +127,11 @@ class StampsController < ApplicationController
         new_seconds: @stamp.annotated_seconds,
         changed_by: request.remote_ip
       )
-      redirect_to @stamp, notice: "Time updated."
+      @time_logs = @stamp.stamp_time_logs.order(created_at: :desc)
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @stamp, notice: "Time updated." }
+      end
     else
       redirect_to @stamp, alert: "Could not update time."
     end
@@ -188,7 +192,10 @@ class StampsController < ApplicationController
       DxfOrganizationService.call(@stamp)
     end
 
-    redirect_to @stamp, notice: "Mold organization saved."
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @stamp, notice: "Mold organization saved." }
+    end
   end
 
   def destroy
