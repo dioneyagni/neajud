@@ -449,6 +449,114 @@ section {
   white-space: nowrap;
 }
 
+/* Edit toggle pattern */
+
+.section-heading-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.section-heading-with-action h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.btn-edit-toggle {
+  background: none;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn-edit-toggle:hover {
+  background: #f1f3f4;
+  color: #1a73e8;
+  border-color: #1a73e8;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.btn-icon:hover {
+  background: #f1f3f4;
+}
+
+.btn-confirm {
+  background: #1a73e8;
+  color: #fff;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.btn-confirm:hover {
+  background: #1557b0;
+}
+
+.btn-cancel {
+  background: none;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.btn-cancel:hover {
+  background: #f1f3f4;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.edit-display .tamanho-nome {
+  font-weight: 600;
+  min-width: 2rem;
+}
+
+.mold-organization-readonly {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.mold-readonly-label {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.tamanho-list--readonly {
+  margin-bottom: 0.5rem;
+}
+
 .badge-pending {
   background: #f1f3f4;
   color: #5f6368;

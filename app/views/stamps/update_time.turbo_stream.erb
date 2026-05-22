@@ -1,13 +1,21 @@
 <%= turbo_stream.replace "update-time-section" do %>
-  <div class="stamp-detail-section" id="update-time-section">
-    <h3>Update Time</h3>
+  <div class="stamp-detail-section" id="update-time-section" data-controller="edit-toggle">
+    <h3 class="section-heading-with-action">Update Time
+      <button class="btn btn-icon btn-edit-toggle" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit time">✎</button>
+    </h3>
+    <div data-edit-toggle-target="display" class="edit-display">
+      <dd><%= format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) %></dd>
+    </div>
     <%= form_with url: update_time_stamp_path(@stamp), method: :patch,
-          data: { controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess" }, class: "time-form" do |f| %>
+          data: { edit_toggle_target: "form", controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" }, class: "time-form", style: "display:none" do |f| %>
       <%= f.label :annotated_seconds, "Time (h:mm)" %>
       <%= f.text_field :annotated_seconds,
             value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
             data: { time_mask_target: "input", action: "input->time-mask#format" } %>
-      <%= f.submit "Update Time", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+      <div class="edit-actions">
+        <%= f.submit "✓", class: "btn btn-icon btn-confirm", data: { async_form_target: "submit" }, title: "Confirm" %>
+        <button type="button" class="btn btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">←</button>
+      </div>
     <% end %>
   </div>
 <% end %>

@@ -326,9 +326,12 @@ async function run() {
     await page.click(".stamp-card a");
     await page.waitForSelector("h2");
 
+    await page.click('[data-action="click->edit-toggle#edit"]');
+    await page.waitForSelector("#annotated_seconds", { timeout: 5000 });
+
     await page.fill("#annotated_seconds", "");
     await page.type("#annotated_seconds", "123");
-    await page.click('input[value="Update Time"]');
+    await page.click(".time-form .btn-confirm");
 
     await page.waitForTimeout(1500);
 

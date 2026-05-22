@@ -1,5 +1,5 @@
 <%= form_with url: organize_stamp_path(stamp), method: :patch, class: "mold-organization-form",
-      data: { controller: "async-form", action: "turbo:submit-end->async-form#onSuccess" } do |f| %>
+      data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
   <% if !stamp.organized? %>
     <div class="mold-organization-alert">
       ⚠ This DXF file is not organized yet. Set the mold, piece, and sizes below.
@@ -11,38 +11,82 @@
     </div>
   <% end %>
 
-  <div class="mold-organization-fields">
-    <div class="mold-field">
-      <%= f.label :molde_nome, "Mold" %>
-      <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
+  <% if stamp.organized? %>
+    <div class="section-heading-with-action">
+      <h4>Sizes</h4>
+      <button type="button" class="btn btn-icon btn-edit-toggle" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit sizes">✎</button>
     </div>
-    <div class="mold-field">
-      <%= f.label :peca_nome, "Piece" %>
-      <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
-    </div>
-  </div>
 
-  <h4>Sizes</h4>
-  <div class="tamanho-list">
-    <% stamp.tamanhos.each_with_index do |t, idx| %>
-      <div class="tamanho-row">
-        <span class="tamanho-indicator"><%= idx + 1 %>.</span>
-        <input type="hidden" name="tamanhos[<%= idx %>][width_mm]" value="<%= t.width_mm %>">
-        <input type="hidden" name="tamanhos[<%= idx %>][height_mm]" value="<%= t.height_mm %>">
-        <input type="hidden" name="tamanhos[<%= idx %>][area_mm2]" value="<%= t.area_mm2 %>">
-        <input type="text" name="tamanhos[<%= idx %>][nome]" value="<%= t.nome %>" class="tamanho-input" placeholder="Ex: 35">
-        <span class="tamanho-measurements">
-          <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
-          · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
-          · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
-          · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
-        </span>
-        <% if stamp.organized? %>
-          <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
+    <div class="edit-display" data-edit-toggle-target="display">
+      <div class="tamanho-list tamanho-list--readonly">
+        <% stamp.tamanhos.each_with_index do |t, idx| %>
+          <div class="tamanho-row">
+            <span class="tamanho-indicator"><%= idx + 1 %>.</span>
+            <span class="tamanho-nome"><%= t.nome %></span>
+            <span class="tamanho-measurements">
+              <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
+              · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
+              · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
+              · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
+            </span>
+            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
+          </div>
         <% end %>
       </div>
-    <% end %>
-  </div>
 
-  <%= f.submit stamp.organized? ? "Update Organization" : "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+      <div class="mold-organization-readonly">
+        <span class="mold-readonly-label"><strong>Mold:</strong> <%= stamp.molde_nome %></span>
+        <span class="mold-readonly-label"><strong>Piece:</strong> <%= stamp.peca_nome %></span>
+      </div>
+    </div>
+
+    <div data-edit-toggle-target="form" style="display:none">
+  <% else %>
+    <div>
+  <% end %>
+
+    <div class="mold-organization-fields">
+      <div class="mold-field">
+        <%= f.label :molde_nome, "Mold" %>
+        <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe", data: { original_value: stamp.molde_nome } %>
+      </div>
+      <div class="mold-field">
+        <%= f.label :peca_nome, "Piece" %>
+        <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper", data: { original_value: stamp.peca_nome } %>
+      </div>
+    </div>
+
+    <% if !stamp.organized? %>
+      <h4>Sizes</h4>
+    <% else %>
+      <h4>Edit Sizes</h4>
+    <% end %>
+    <div class="tamanho-list">
+      <% stamp.tamanhos.each_with_index do |t, idx| %>
+        <div class="tamanho-row">
+          <span class="tamanho-indicator"><%= idx + 1 %>.</span>
+          <input type="hidden" name="tamanhos[<%= idx %>][width_mm]" value="<%= t.width_mm %>">
+          <input type="hidden" name="tamanhos[<%= idx %>][height_mm]" value="<%= t.height_mm %>">
+          <input type="hidden" name="tamanhos[<%= idx %>][area_mm2]" value="<%= t.area_mm2 %>">
+          <input type="text" name="tamanhos[<%= idx %>][nome]" value="<%= t.nome %>" class="tamanho-input" placeholder="Ex: 35" data-original-value="<%= t.nome %>">
+          <span class="tamanho-measurements">
+            <%= t.width_mm&.round(1) %>×<%= t.height_mm&.round(1) %> mm
+            · <%= number_with_delimiter(t.area_mm2&.round(1)) %> mm²
+            · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
+            · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
+          </span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if stamp.organized? %>
+      <div class="edit-actions">
+        <%= f.submit "✓ Update", class: "btn btn-confirm", data: { async_form_target: "submit" } %>
+        <button type="button" class="btn btn-secondary" data-action="click->edit-toggle#cancel">← Cancel</button>
+      </div>
+    </div>
+  <% else %>
+      <%= f.submit "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+    </div>
+  <% end %>
 <% end %>
