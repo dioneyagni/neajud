@@ -1,0 +1,47 @@
+<div class="stamp-detail-section" data-controller="edit-toggle">
+  <h3 class="section-heading-with-action">Model
+    <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit model">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    </button>
+  </h3>
+
+  <div data-edit-toggle-target="display" class="edit-display">
+    <% if @stamp.modelo.present? %>
+      <div class="client-display">
+        <span class="client-name-display"><%= @stamp.modelo.nome %></span>
+        <span class="client-responsible-display">(<%= @stamp.modelo.client.name %>)</span>
+      </div>
+    <% else %>
+      <span class="client-empty">No model linked</span>
+    <% end %>
+    <%= link_to "Manage Models", modelos_path, class: "back-link" %>
+  </div>
+
+  <div data-edit-toggle-target="form" style="display:none">
+    <%= form_with url: update_modelo_stamp_path(@stamp), method: :patch, data: { action: "turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
+      <div class="mold-field">
+        <label for="modelo_id">Model</label>
+        <select name="modelo_id" id="modelo_id" data-original-value="<%= @stamp.modelo_id %>">
+          <option value="">Select a model...</option>
+          <% if @stamp.client.present? %>
+            <% Modelo.where(client_id: @stamp.client_id).order(:nome).each do |m| %>
+              <option value="<%= m.id %>" <%= "selected" if @stamp.modelo_id == m.id %>><%= m.nome %></option>
+            <% end %>
+          <% else %>
+            <% Modelo.order(:nome).each do |m| %>
+              <option value="<%= m.id %>" <%= "selected" if @stamp.modelo_id == m.id %>><%= m.nome %> (<%= m.client.name %>)</option>
+            <% end %>
+          <% end %>
+        </select>
+      </div>
+      <div class="edit-actions" style="margin-top: 0.5rem">
+        <button type="submit" class="btn-icon btn-confirm" title="Confirm">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </button>
+        <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+        </button>
+      </div>
+    <% end %>
+  </div>
+</div>

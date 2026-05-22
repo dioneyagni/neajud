@@ -13,21 +13,45 @@
 
   <div class="mold-organization-fields">
     <div class="mold-field">
-      <%= f.label :molde_nome, "Mold" %>
+      <label for="molde_id">Mold</label>
       <% if stamp.organized? %>
-        <span class="field-display" data-edit-toggle-target="display"><%= stamp.molde_nome %></span>
-        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe", data: { original_value: stamp.molde_nome } %></span>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.molde&.nome || stamp.molde_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none">
+          <select name="molde_id" id="molde_id" data-original-value="<%= stamp.molde_id %>">
+            <option value="">Select a mold...</option>
+            <% Molde.order(:nome).each do |m| %>
+              <option value="<%= m.id %>" <%= "selected" if stamp.molde_id == m.id %>><%= m.nome %></option>
+            <% end %>
+          </select>
+        </span>
       <% else %>
-        <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
+        <select name="molde_id" id="molde_id">
+          <option value="">Select a mold...</option>
+          <% Molde.order(:nome).each do |m| %>
+            <option value="<%= m.id %>" <%= "selected" if stamp.molde_id == m.id %>><%= m.nome %></option>
+          <% end %>
+        </select>
       <% end %>
     </div>
     <div class="mold-field">
-      <%= f.label :peca_nome, "Piece" %>
+      <label for="peca_id">Piece</label>
       <% if stamp.organized? %>
-        <span class="field-display" data-edit-toggle-target="display"><%= stamp.peca_nome %></span>
-        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper", data: { original_value: stamp.peca_nome } %></span>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.peca&.nome || stamp.peca_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none">
+          <select name="peca_id" id="peca_id" data-original-value="<%= stamp.peca_id %>">
+            <option value="">Select a piece...</option>
+            <% Peca.order(:nome).each do |p| %>
+              <option value="<%= p.id %>" <%= "selected" if stamp.peca_id == p.id %>><%= p.nome %></option>
+            <% end %>
+          </select>
+        </span>
       <% else %>
-        <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
+        <select name="peca_id" id="peca_id">
+          <option value="">Select a piece...</option>
+          <% Peca.order(:nome).each do |p| %>
+            <option value="<%= p.id %>" <%= "selected" if stamp.peca_id == p.id %>><%= p.nome %></option>
+          <% end %>
+        </select>
       <% end %>
     </div>
   </div>
@@ -80,18 +104,19 @@
       <% end %>
     </div>
 
-    <% if stamp.organized? %>
-      <div class="edit-actions">
-        <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-        </button>
+    <div class="edit-actions">
+      <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </button>
+      <% if stamp.organized? %>
         <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
         </button>
-      </div>
-    <% else %>
-      <%= f.submit "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+      <% end %>
     </div>
+
+    <% unless stamp.organized? %>
+      </div>
     <% end %>
   </div>
 <% end %>

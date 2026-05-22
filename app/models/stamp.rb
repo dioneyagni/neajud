@@ -4,6 +4,9 @@ class Stamp < ApplicationRecord
   has_many :tamanhos, dependent: :destroy
   belongs_to :approved_version, class_name: "StampVersion", optional: true
   belongs_to :client, optional: true
+  belongs_to :molde, optional: true
+  belongs_to :peca, optional: true
+  belongs_to :modelo, optional: true
 
   before_validation :set_uuid, on: :create
   after_update_commit :broadcast_stamp_card, if: :saved_change_to_approved_version_id?
@@ -17,8 +20,6 @@ class Stamp < ApplicationRecord
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
-  attribute :molde_nome, :string, default: "New Mold"
-  attribute :peca_nome, :string, default: "New Piece"
   delegate :preview_file, :category_notes,
            to: :approved_version, allow_nil: true, prefix: false
 

@@ -191,11 +191,9 @@ RSpec.describe StampProcessingJob do
       stamp.destroy!
     end
 
-    it "creates stamp with default organized=false and default names" do
+    it "creates stamp with default organized=false" do
       stamp = create(:stamp, extension: "dxf", category: "corte")
       expect(stamp.organized).to be false
-      expect(stamp.molde_nome).to eq("New Mold")
-      expect(stamp.peca_nome).to eq("New Piece")
       stamp.destroy!
     end
   end

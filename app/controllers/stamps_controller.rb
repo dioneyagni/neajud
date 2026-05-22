@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time update_client preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_stamp, only: %i[show update_time update_client update_modelo preview download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -117,6 +117,18 @@ class StampsController < ApplicationController
     end
   end
 
+  def update_modelo
+    if @stamp.update(
+      modelo_id: params[:modelo_id].presence,
+      molde_id: params[:molde_id].presence,
+      peca_id: params[:peca_id].presence
+    )
+      redirect_to @stamp, notice: "Modelo updated."
+    else
+      redirect_to @stamp, alert: "Could not update modelo."
+    end
+  end
+
   def update_time
     previous_seconds = @stamp.annotated_seconds || @stamp.estimated_seconds
     new_seconds = parse_hmm(params[:annotated_seconds])
@@ -169,11 +181,12 @@ class StampsController < ApplicationController
   end
 
   def organize
-    @stamp.update!(
-      molde_nome: params[:molde_nome].presence || @stamp.molde_nome,
-      peca_nome: params[:peca_nome].presence || @stamp.peca_nome,
-      organized: true
-    )
+    update_attrs = { organized: true }
+    update_attrs[:molde_id] = params[:molde_id].presence if params[:molde_id].present?
+    update_attrs[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
+    update_attrs[:molde_nome] = params[:molde_nome].presence if params[:molde_nome].present?
+    update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
+    @stamp.update!(update_attrs)
     if params[:tamanhos].respond_to?(:values)
       @stamp.tamanhos.destroy_all
       tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
