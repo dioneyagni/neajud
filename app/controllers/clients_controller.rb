@@ -1,8 +1,12 @@
 class ClientsController < ApplicationController
-  before_action :set_client, only: %i[update destroy]
+  before_action :set_client, only: %i[show update destroy]
 
   def index
     @clients = Client.order(:name)
+  end
+
+  def show
+    @modelos = @client.modelos.order(:nome)
   end
 
   def search

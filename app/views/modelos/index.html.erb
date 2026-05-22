@@ -1,21 +1,21 @@
 <h2>Modelos</h2>
 
-<div data-controller="dialog">
+<div data-controller="dialog" data-create-title="Register New Modelo" data-create-label="Register" data-create-url="<%= modelos_path %>">
   <div class="clients-toolbar">
     <button class="btn btn-primary" data-action="click->dialog#open">New Modelo</button>
   </div>
 
   <dialog data-dialog-target="dialog" class="client-dialog">
-    <form action="<%= modelos_path %>" method="post" data-dialog-target="clientForm" class="client-form">
+    <form action="<%= modelos_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
       <h4 data-dialog-target="dialogTitle">Register New Modelo</h4>
       <div class="client-field">
         <label for="modelo_nome_dialog">Name</label>
-        <input type="text" name="modelo[nome]" id="modelo_nome_dialog" required>
+        <input type="text" name="modelo[nome]" id="modelo_nome_dialog" data-dialog-field="nome" required>
       </div>
       <div class="client-field">
         <label for="modelo_client_id_dialog">Client</label>
-        <select name="modelo[client_id]" id="modelo_client_id_dialog" required>
+        <select name="modelo[client_id]" id="modelo_client_id_dialog" data-dialog-field="clientId" required>
           <option value="">Select a client...</option>
           <% Client.order(:name).each do |c| %>
             <option value="<%= c.id %>"><%= c.name %></option>
@@ -47,10 +47,13 @@
             <td><%= modelo.stamps.count %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"
-                      data-action="click->dialog#editClient"
-                      data-client-name="<%= modelo.nome %>"
-                      data-client-responsible="<%= modelo.client_id %>"
-                      data-client-id="<%= modelo.id %>">Edit</button>
+                      data-action="click->dialog#edit"
+                      data-nome="<%= modelo.nome %>"
+                      data-client-id="<%= modelo.client_id %>"
+                      data-action-url="<%= modelo_path(modelo) %>"
+                      data-method="patch"
+                      data-dialog-title="Edit Modelo"
+                      data-submit-label="Update">Edit</button>
               <%= button_to "Delete", modelo_path(modelo), method: :delete,
                     form: { style: "display: inline-block;" },
                     data: { turbo_confirm: "Delete modelo \"#{modelo.nome}\"?" },

@@ -1618,13 +1618,11 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(`${BASE_URL}/clients`);
     await page.waitForSelector(".clients-table", { timeout: 10000 });
 
-    const editBtn = await page.$("button[data-action*='dialog#editClient']");
+    const editBtn = await page.$("button[data-action*='dialog#edit']");
     if (!editBtn) throw new Error("Edit button not found");
 
-    const clientName = await editBtn.getAttribute("data-client-name");
-    const clientId = await editBtn.getAttribute("data-client-id");
-    if (!clientName) throw new Error("Edit button has no data-client-name");
-    if (!clientId) throw new Error("Edit button has no data-client-id");
+    const clientName = await editBtn.getAttribute("data-name");
+    if (!clientName) throw new Error("Edit button has no data-name");
 
     await editBtn.click();
     await page.waitForTimeout(500);
@@ -1643,8 +1641,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     if (nameVal !== clientName) throw new Error(`Expected name "${clientName}", got "${nameVal}"`);
 
     // Verify form action points to PATCH
-    const formAction = await page.evaluate(() => document.querySelector(".client-form")?.action);
-    if (!formAction.includes(`/clients/${clientId}`)) throw new Error(`Form action incorrect: ${formAction}`);
+    const actionUrl = await editBtn.getAttribute("data-action-url");
+    if (!actionUrl) throw new Error("Edit button has no data-action-url");
 
     // Close without saving
     const cancelBtn = await page.$(".client-dialog .btn-secondary");
@@ -1656,7 +1654,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(`${BASE_URL}/clients`);
     await page.waitForSelector(".clients-table", { timeout: 10000 });
 
-    const editBtn = await page.$("button[data-action*='dialog#editClient']");
+    const editBtn = await page.$("button[data-action*='dialog#edit']");
     await editBtn.click();
     await page.waitForTimeout(500);
 

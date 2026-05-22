@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["dialog", "clientForm", "dialogTitle", "submitBtn"]
+  static targets = ["dialog", "dialogTitle", "submitBtn"]
 
   connect() {
     this.boundClose = this.backdropClose.bind(this)
@@ -13,23 +13,42 @@ export default class extends Controller {
     this.dialogTarget.addEventListener("click", this.boundClose)
   }
 
-  editClient(e) {
+  edit(e) {
     const btn = e.currentTarget
-    this.dialogTarget.querySelector("#client_name_dialog").value = btn.dataset.clientName
-    this.dialogTarget.querySelector("#client_responsible_dialog").value = btn.dataset.clientResponsible
-    this.dialogTitleTarget.textContent = "Edit Client"
-    this.submitBtnTarget.textContent = "Update"
-    this.clientFormTarget.action = `/clients/${btn.dataset.clientId}`
-    const existingMethod = this.clientFormTarget.querySelector('input[name="_method"]')
-    if (existingMethod) {
-      existingMethod.value = "patch"
-    } else {
-      const methodInput = document.createElement("input")
-      methodInput.type = "hidden"
-      methodInput.name = "_method"
-      methodInput.value = "patch"
-      this.clientFormTarget.prepend(methodInput)
+    const form = this.dialogTarget.querySelector("form")
+    const fields = form.querySelectorAll("[data-dialog-field]")
+
+    fields.forEach(field => {
+      const key = field.dataset.dialogField
+      field.value = btn.dataset[key] || ""
+    })
+
+    if (this.hasDialogTitleTarget) {
+      this.dialogTitleTarget.textContent = btn.dataset.dialogTitle || "Edit"
     }
+    if (this.hasSubmitBtnTarget) {
+      this.submitBtnTarget.textContent = btn.dataset.submitLabel || "Update"
+    }
+
+    const existingMethod = form.querySelector('input[name="_method"]')
+    const actionUrl = btn.dataset.actionUrl
+    if (actionUrl) {
+      form.action = actionUrl
+    }
+    if (btn.dataset.method === "patch") {
+      if (existingMethod) {
+        existingMethod.value = "patch"
+      } else {
+        const methodInput = document.createElement("input")
+        methodInput.type = "hidden"
+        methodInput.name = "_method"
+        methodInput.value = "patch"
+        form.prepend(methodInput)
+      }
+    } else if (existingMethod) {
+      existingMethod.remove()
+    }
+
     this.dialogTarget.showModal()
     this.dialogTarget.addEventListener("click", this.boundClose)
   }
@@ -45,11 +64,23 @@ export default class extends Controller {
   }
 
   _resetToCreate() {
-    this.dialogTitleTarget.textContent = "Register New Client"
-    this.submitBtnTarget.textContent = "Register"
-    this.clientFormTarget.action = "/clients"
-    this.clientFormTarget.querySelector('input[name="_method"]')?.remove()
-    this.dialogTarget.querySelector("#client_name_dialog").value = ""
-    this.dialogTarget.querySelector("#client_responsible_dialog").value = ""
+    const form = this.dialogTarget.querySelector("form")
+    form.reset()
+    form.querySelector('input[name="_method"]')?.remove()
+
+    const fields = form.querySelectorAll("[data-dialog-field]")
+    fields.forEach(field => { field.value = "" })
+
+    if (this.hasDialogTitleTarget) {
+      this.dialogTitleTarget.textContent = this.element.dataset.createTitle || "Register New"
+    }
+    if (this.hasSubmitBtnTarget) {
+      this.submitBtnTarget.textContent = this.element.dataset.createLabel || "Register"
+    }
+
+    const createUrl = this.element.dataset.createUrl
+    if (createUrl) {
+      form.action = createUrl
+    }
   }
 }

@@ -1,0 +1,85 @@
+<h2><%= @client.name %></h2>
+
+<div class="stamp-detail">
+  <div class="stamp-detail-info">
+    <div class="stamp-detail-grid">
+      <div class="stamp-detail-section">
+        <h3>Details</h3>
+        <dl class="detail-grid">
+          <dt>Name</dt>
+          <dd><%= @client.name %></dd>
+          <dt>Responsible</dt>
+          <dd><%= @client.responsible %></dd>
+          <dt>Stamps</dt>
+          <dd><%= @client.stamps.count %></dd>
+        </dl>
+      </div>
+
+      <div class="stamp-detail-section">
+        <h3>Actions</h3>
+        <div style="display: flex; gap: 0.5rem;">
+          <%= link_to "All Clients", clients_path, class: "btn btn-secondary" %>
+          <%= link_to "All Modelos", modelos_path, class: "btn btn-secondary" %>
+        </div>
+      </div>
+
+      <div class="stamp-detail-section stamp-detail-section--full" data-controller="dialog" data-create-title="Register New Modelo" data-create-label="Register" data-create-url="<%= modelos_path %>">
+        <div class="clients-toolbar">
+          <h3 style="margin-bottom:0">Modelos</h3>
+          <button class="btn btn-primary" data-action="click->dialog#open">New Modelo</button>
+        </div>
+
+        <dialog data-dialog-target="dialog" class="client-dialog">
+          <form action="<%= modelos_path %>" method="post" class="client-form">
+            <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+            <input type="hidden" name="modelo[client_id]" value="<%= @client.id %>">
+            <h4 data-dialog-target="dialogTitle">Register New Modelo</h4>
+            <div class="client-field">
+              <label for="modelo_nome_dialog">Name</label>
+              <input type="text" name="modelo[nome]" id="modelo_nome_dialog" data-dialog-field="nome" required>
+            </div>
+            <div class="client-dialog-actions">
+              <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
+            </div>
+          </form>
+        </dialog>
+
+        <% if @modelos.any? %>
+          <table class="clients-table" style="margin-top: 0.75rem">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Stamps</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @modelos.each do |modelo| %>
+                <tr>
+                  <td><%= modelo.nome %></td>
+                  <td><%= modelo.stamps.count %></td>
+                  <td class="clients-table-actions">
+                    <button class="btn btn-secondary btn-sm"
+                            data-action="click->dialog#edit"
+                            data-nome="<%= modelo.nome %>"
+                            data-action-url="<%= modelo_path(modelo) %>"
+                            data-method="patch"
+                            data-dialog-title="Edit Modelo"
+                            data-submit-label="Update">Edit</button>
+                    <%= button_to "Delete", modelo_path(modelo), method: :delete,
+                          form: { style: "display: inline-block;" },
+                          data: { turbo_confirm: "Delete modelo \"#{modelo.nome}\"?" },
+                          class: "btn btn-danger btn-sm" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No modelos for this client yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
