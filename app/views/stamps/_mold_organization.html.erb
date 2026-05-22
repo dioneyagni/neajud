@@ -1,4 +1,5 @@
-<%= form_with url: organize_stamp_path(stamp), method: :patch, local: true, data: { turbo: false }, class: "mold-organization-form" do |f| %>
+<%= form_with url: organize_stamp_path(stamp), method: :patch, class: "mold-organization-form",
+      data: { controller: "async-form", action: "turbo:submit-end->async-form#onSuccess" } do |f| %>
   <% if !stamp.organized? %>
     <div class="mold-organization-alert">
       ⚠ This DXF file is not organized yet. Set the mold, piece, and sizes below.
@@ -43,5 +44,5 @@
     <% end %>
   </div>
 
-  <%= f.submit stamp.organized? ? "Update Organization" : "Save Organization", class: "btn btn-primary" %>
+  <%= f.submit stamp.organized? ? "Update Organization" : "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
 <% end %>

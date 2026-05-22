@@ -1,0 +1,43 @@
+<%= turbo_stream.replace "update-time-section" do %>
+  <div class="stamp-detail-section" id="update-time-section">
+    <h3>Update Time</h3>
+    <%= form_with url: update_time_stamp_path(@stamp), method: :patch,
+          data: { controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess" }, class: "time-form" do |f| %>
+      <%= f.label :annotated_seconds, "Time (h:mm)" %>
+      <%= f.text_field :annotated_seconds,
+            value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
+            data: { time_mask_target: "input", action: "input->time-mask#format" } %>
+      <%= f.submit "Update Time", class: "btn btn-primary", data: { async_form_target: "submit" } %>
+    <% end %>
+  </div>
+<% end %>
+
+<%= turbo_stream.replace "time-history-section" do %>
+  <div class="stamp-detail-section <%= @time_logs.any? ? 'stamp-detail-section--full' : '' %>" id="time-history-section">
+    <h3>Time History</h3>
+    <% if @time_logs.any? %>
+      <table class="time-history">
+        <thead>
+          <tr>
+            <th>Previous</th>
+            <th>New</th>
+            <th>Changed By</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @time_logs.each do |log| %>
+            <tr>
+              <td><%= format_time(log.previous_seconds) %></td>
+              <td><%= format_time(log.new_seconds) %></td>
+              <td><%= log.changed_by %></td>
+              <td><%= l log.created_at, format: :short %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="time-history-empty">No time changes recorded.</p>
+    <% end %>
+  </div>
+<% end %>
