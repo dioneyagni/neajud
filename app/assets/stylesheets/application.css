@@ -465,67 +465,80 @@ section {
   font-size: 1rem;
 }
 
-.btn-edit-toggle {
-  background: none;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  color: #5f6368;
-  cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.85rem;
-  line-height: 1;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.btn-edit-toggle:hover {
-  background: #f1f3f4;
-  color: #1a73e8;
-  border-color: #1a73e8;
-}
-
 .btn-icon {
   background: none;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 50%;
   cursor: pointer;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.95rem;
-  line-height: 1;
-  transition: background 0.15s;
+  padding: 0.4rem;
+  color: #5f6368;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .btn-icon:hover {
   background: #f1f3f4;
+  color: #1a73e8;
 }
 
-.btn-confirm {
-  background: #1a73e8;
-  color: #fff;
-  border: 1px solid #1a73e8;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  transition: background 0.15s;
+.btn-icon.btn-edit:hover {
+  border-color: #1a73e8;
 }
 
-.btn-confirm:hover {
-  background: #1557b0;
+.btn-icon.btn-confirm {
+  color: #1a73e8;
 }
 
-.btn-cancel {
-  background: none;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
+.btn-icon.btn-confirm:hover {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+}
+
+.btn-icon.btn-cancel {
   color: #5f6368;
-  cursor: pointer;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  transition: background 0.15s;
 }
 
-.btn-cancel:hover {
+.btn-icon.btn-cancel:hover {
   background: #f1f3f4;
+  border-color: #dadce0;
+}
+
+.btn-icon.btn-unlink {
+  color: #d93025;
+  margin-left: 0.5rem;
+}
+
+.btn-icon.btn-unlink:hover {
+  background: #fce8e6;
+  border-color: #d93025;
+}
+
+.client-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.client-name-display {
+  font-weight: 600;
+  color: #202124;
+}
+
+.client-responsible-display {
+  color: #5f6368;
+  font-size: 0.88rem;
+}
+
+.client-empty {
+  color: #80868b;
+  font-style: italic;
+}
+
+.field-display {
+  font-weight: 500;
+  color: #202124;
 }
 
 .edit-actions {

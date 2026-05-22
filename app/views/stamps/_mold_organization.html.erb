@@ -11,12 +11,37 @@
     </div>
   <% end %>
 
-  <% if stamp.organized? %>
-    <div class="section-heading-with-action">
-      <h4>Sizes</h4>
-      <button type="button" class="btn btn-icon btn-edit-toggle" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit sizes">✎</button>
+  <div class="mold-organization-fields">
+    <div class="mold-field">
+      <%= f.label :molde_nome, "Mold" %>
+      <% if stamp.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.molde_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe", data: { original_value: stamp.molde_nome } %></span>
+      <% else %>
+        <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe" %>
+      <% end %>
     </div>
+    <div class="mold-field">
+      <%= f.label :peca_nome, "Piece" %>
+      <% if stamp.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= stamp.peca_nome %></span>
+        <span data-edit-toggle-target="form" style="display:none"><%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper", data: { original_value: stamp.peca_nome } %></span>
+      <% else %>
+        <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper" %>
+      <% end %>
+    </div>
+  </div>
 
+  <div class="section-heading-with-action">
+    <h4>Sizes</h4>
+    <% if stamp.organized? %>
+      <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
+    <% end %>
+  </div>
+
+  <% if stamp.organized? %>
     <div class="edit-display" data-edit-toggle-target="display">
       <div class="tamanho-list tamanho-list--readonly">
         <% stamp.tamanhos.each_with_index do |t, idx| %>
@@ -33,34 +58,10 @@
           </div>
         <% end %>
       </div>
-
-      <div class="mold-organization-readonly">
-        <span class="mold-readonly-label"><strong>Mold:</strong> <%= stamp.molde_nome %></span>
-        <span class="mold-readonly-label"><strong>Piece:</strong> <%= stamp.peca_nome %></span>
-      </div>
     </div>
-
-    <div data-edit-toggle-target="form" style="display:none">
-  <% else %>
-    <div>
   <% end %>
 
-    <div class="mold-organization-fields">
-      <div class="mold-field">
-        <%= f.label :molde_nome, "Mold" %>
-        <%= f.text_field :molde_nome, name: "molde_nome", value: stamp.molde_nome, placeholder: "Ex: Shoe", data: { original_value: stamp.molde_nome } %>
-      </div>
-      <div class="mold-field">
-        <%= f.label :peca_nome, "Piece" %>
-        <%= f.text_field :peca_nome, name: "peca_nome", value: stamp.peca_nome, placeholder: "Ex: Upper", data: { original_value: stamp.peca_nome } %>
-      </div>
-    </div>
-
-    <% if !stamp.organized? %>
-      <h4>Sizes</h4>
-    <% else %>
-      <h4>Edit Sizes</h4>
-    <% end %>
+  <div<%= stamp.organized? ? ' data-edit-toggle-target="form" style="display:none"'.html_safe : ''.html_safe %>>
     <div class="tamanho-list">
       <% stamp.tamanhos.each_with_index do |t, idx| %>
         <div class="tamanho-row">
@@ -81,12 +82,16 @@
 
     <% if stamp.organized? %>
       <div class="edit-actions">
-        <%= f.submit "✓ Update", class: "btn btn-confirm", data: { async_form_target: "submit" } %>
-        <button type="button" class="btn btn-secondary" data-action="click->edit-toggle#cancel">← Cancel</button>
+        <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </button>
+        <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+        </button>
       </div>
-    </div>
-  <% else %>
+    <% else %>
       <%= f.submit "Save Organization", class: "btn btn-primary", data: { async_form_target: "submit" } %>
     </div>
-  <% end %>
+    <% end %>
+  </div>
 <% end %>

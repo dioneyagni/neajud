@@ -3,10 +3,6 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["display", "form"]
 
-  connect() {
-    this.showDisplay()
-  }
-
   edit() {
     this.showForm()
   }
@@ -24,15 +20,13 @@ export default class extends Controller {
   showForm() {
     this.displayTargets.forEach(el => el.style.display = "none")
     this.formTargets.forEach(el => el.style.display = "")
-    const firstInput = this.formTarget.querySelector("input:not([type=hidden])")
+    const firstInput = this.formTargets.find(el => el.style.display !== "none")?.querySelector("input:not([type=hidden])")
     if (firstInput) firstInput.focus()
   }
 
   resetFormValues() {
-    this.formTarget.querySelectorAll("input").forEach(input => {
-      if (input.dataset.originalValue !== undefined) {
-        input.value = input.dataset.originalValue
-      }
+    this.element.querySelectorAll("input[data-original-value]").forEach(input => {
+      input.value = input.dataset.originalValue
     })
   }
 
