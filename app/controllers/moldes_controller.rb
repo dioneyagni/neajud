@@ -1,8 +1,16 @@
 class MoldesController < ApplicationController
-  before_action :set_molde, only: %i[update destroy]
+  before_action :set_molde, only: %i[show update destroy pecas]
 
   def index
     @moldes = Molde.includes(:pecas).order(:nome)
+  end
+
+  def show
+    @stamps = @molde.stamps.includes(approved_version: :image_metadata).order(created_at: :desc)
+  end
+
+  def pecas
+    render json: @molde.pecas.order(:nome).map { |p| { id: p.id, nome: p.nome } }
   end
 
   def search

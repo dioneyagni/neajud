@@ -1,0 +1,11 @@
+<%= turbo_stream.replace "client-field-section" do %>
+  <%= render "client_field" %>
+<% end %>
+
+<%= turbo_stream.replace "modelo-field-section" do %>
+  <%= render "modelo_field" %>
+<% end %>
+
+<%= turbo_stream.replace "size-selection-section" do %>
+  <%= render "size_selection", stamp: @stamp %>
+<% end %>

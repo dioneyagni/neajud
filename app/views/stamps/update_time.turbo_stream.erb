@@ -1,22 +1,30 @@
 <%= turbo_stream.replace "update-time-section" do %>
   <div class="stamp-detail-section" id="update-time-section" data-controller="edit-toggle">
     <h3 class="section-heading-with-action">Update Time
-      <button class="btn btn-icon btn-edit-toggle" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit time">✎</button>
+      <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit time">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
     </h3>
     <div data-edit-toggle-target="display" class="edit-display">
-      <dd><%= format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) %></dd>
+      <span class="field-display"><%= format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) %></span>
     </div>
-    <%= form_with url: update_time_stamp_path(@stamp), method: :patch,
-          data: { edit_toggle_target: "form", controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" }, class: "time-form", style: "display:none" do |f| %>
-      <%= f.label :annotated_seconds, "Time (h:mm)" %>
-      <%= f.text_field :annotated_seconds,
-            value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
-            data: { time_mask_target: "input", action: "input->time-mask#format" } %>
-      <div class="edit-actions">
-        <%= f.submit "✓", class: "btn btn-icon btn-confirm", data: { async_form_target: "submit" }, title: "Confirm" %>
-        <button type="button" class="btn btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">←</button>
-      </div>
-    <% end %>
+    <div data-edit-toggle-target="form" style="display:none">
+      <%= form_with url: update_time_stamp_path(@stamp), method: :patch,
+            data: { controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" }, class: "time-form" do |f| %>
+        <%= f.label :annotated_seconds, "Time (h:mm)" %>
+        <%= f.text_field :annotated_seconds,
+              value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
+              data: { time_mask_target: "input", action: "input->time-mask#format", original_value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) } %>
+        <div class="edit-actions">
+          <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Confirm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </button>
+          <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+          </button>
+        </div>
+      <% end %>
+    </div>
   </div>
 <% end %>
 

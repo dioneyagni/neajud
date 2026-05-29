@@ -1,0 +1,41 @@
+<h2>Molde: <%= @molde.nome %></h2>
+
+<div class="stamp-detail">
+  <div class="stamp-detail-info">
+    <div class="stamp-detail-grid">
+      <div class="stamp-detail-section">
+        <h3>Details</h3>
+        <dl class="detail-grid">
+          <dt>Name</dt>
+          <dd><%= @molde.nome %></dd>
+          <dt>Peças</dt>
+          <dd><%= @molde.pecas.pluck(:nome).join(", ").presence || "—" %></dd>
+          <dt>Stamps</dt>
+          <dd><%= @molde.stamps.count %></dd>
+        </dl>
+      </div>
+
+      <div class="stamp-detail-section">
+        <h3>Actions</h3>
+        <div style="display: flex; gap: 0.5rem;">
+          <%= link_to "All Moldes", moldes_path, class: "btn btn-secondary" %>
+          <%= link_to "All Modelos", modelos_path, class: "btn btn-secondary" %>
+        </div>
+      </div>
+
+      <div class="stamp-detail-section stamp-detail-section--full">
+        <h3>Stamps</h3>
+        <% if @stamps.any? %>
+          <%= turbo_stream_from "stamps" %>
+          <div class="gallery">
+            <% @stamps.each do |stamp| %>
+              <%= render partial: "stamps/stamp_card", locals: { stamp: stamp } %>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No stamps for this mold yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

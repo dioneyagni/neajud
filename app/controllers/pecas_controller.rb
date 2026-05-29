@@ -10,6 +10,17 @@ class PecasController < ApplicationController
     render json: pecas.map { |p| { id: p.id, nome: p.nome } }
   end
 
+  def for_cascade
+    scope = Stamp.where(organized: true, molde_id: params[:molde_id])
+    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+    organized_peca_ids = scope.distinct.pluck(:peca_id)
+    molde = Molde.find_by(id: params[:molde_id])
+    molde_peca_ids = molde ? molde.pecas.pluck(:id) : []
+    all_ids = (organized_peca_ids + molde_peca_ids).uniq
+    pecas = Peca.where(id: all_ids).order(:nome)
+    render json: pecas.map { |p| { id: p.id, nome: p.nome } }
+  end
+
   def create
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
     if existing

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_22_133444) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_22_150000) do
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -155,6 +155,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_133444) do
     t.boolean "organized", default: false, null: false
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
+    t.integer "tamanho_id"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
@@ -162,6 +163,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_133444) do
     t.index ["modelo_id"], name: "index_stamps_on_modelo_id"
     t.index ["molde_id"], name: "index_stamps_on_molde_id"
     t.index ["peca_id"], name: "index_stamps_on_peca_id"
+    t.index ["tamanho_id"], name: "index_stamps_on_tamanho_id"
     t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
   end
 
@@ -193,5 +195,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_133444) do
   add_foreign_key "stamps", "moldes"
   add_foreign_key "stamps", "pecas"
   add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"
+  add_foreign_key "stamps", "tamanhos"
   add_foreign_key "tamanhos", "stamps"
 end

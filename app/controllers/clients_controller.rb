@@ -7,6 +7,10 @@ class ClientsController < ApplicationController
 
   def show
     @modelos = @client.modelos.order(:nome)
+    @art_stamps = @client.stamps.where(category: "artes")
+                               .includes(approved_version: :image_metadata)
+                               .order(created_at: :desc)
+                               .limit(20)
   end
 
   def search
