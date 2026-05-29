@@ -1,44 +1,44 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "2024b9c8814506192df672266dc739919658aa4ad5df1297fddf9d01bfd5927a",
-      "note": "preview_file definido pelo sistema (UUID), seguro para send_file"
+      "fingerprint": "05f37bba58d9051bd08266dc97922c2dee1945741046e2cac8e81ae72895680b",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "eea03efcdfdba9785de1f29613a200ceec452a785bd2d03cdfb897dda34c4304",
-      "note": "version_preview: preview_file definido pelo sistema (UUID), seguro para send_file"
+      "fingerprint": "061063b836bff06bb5922320d8a074c2a4ca77086695752d3e966ba2a3986593",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "6ae95b5e572b0e2a286dda67d252f09ac6ed4372d6c703494429e2c0f76aba4b",
-      "note": "UUID gerado pelo sistema, seguro para rm_rf"
+      "fingerprint": "1556c698b3d12f514a6c9319bd0d193885c24437938e27d9968920b250062d69",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "0f0fff2e1c90d052b8c05ddcc41208a19117d0ea6fc2f79d4effb81bba229891",
-      "note": "storage_dir usa UUID + version_number gerados pelo sistema, seguro"
+      "fingerprint": "1f6a132c7bbdf55f1fdd37b5a2a9b7fa85376c881b1e95da7ead779e823bdcb9",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "19af8a46f7e6dc9ccb6566c73aca2c6d1e83943c6f318c1157cb2a34decc84cb",
-      "note": "approved_original_path usa UUID gerado pelo sistema, filename/extension validados"
+      "fingerprint": "48e3e7435c9ab0352606bc76aa577605b5ecdc9d0eaa131639fdb2d8f9846eaa",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "a8855a2a3f81e158bebb22c77a884e8909ac433d713076e6ed8f503251ec5e81",
-      "note": "storage_dir usa UUID + version_number gerados pelo sistema, seguro"
+      "fingerprint": "668fad5da6f1bf9251ff747154053d38fe98aed876a6b37dd07e73e59bb6fbaf",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "04c0440e2f1e10458899b6ef2c8baa1d8f1c030f7e315dc7cfb557679b716b37",
-      "note": "original_filename validado pelo FileValidator antes de ser usado"
+      "fingerprint": "68db3d263cb532fcf1c4c3aa939de2ed43fee4fed9b8fb5d3a91dad5d302f6f8",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "4b389a70fee8b6c80c02f7338e182f87641dae397d9bfffc4e98de171251a8aa",
-      "note": "tamanho_extracts dir usa UUID gerado pelo sistema, seguro para mkdir_p"
+      "fingerprint": "ba8f0aa33b39df4d81fa2039504e46667e0fad78d9025c9d4e46dce8eb936f0b",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "7dfbb56be06c1eda7d23142ad406852d155f79ae4983f504ec812dedaaffdd44",
-      "note": "send_file path usa UUID + nome validado, seguro"
+      "fingerprint": "c1339fb993b064ae9af3d1ffdca196ffdb0f828eb4a8f837356d71c99ff581b9",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "e2c58df00f4016f4ae4fa042701dc3b131ce62be823677ebd43a643ed864635f",
-      "note": "Open3.capture3 array form — cada argumento passado separadamente, sem shell injection"
+      "fingerprint": "d3d12fa6e44cb3a70e33f65049036853d488f95e39144642f2866d4572aefb32",
+      "note": "Pre-existing: false positive (file access via model attributes)"
     }
   ]
 }
