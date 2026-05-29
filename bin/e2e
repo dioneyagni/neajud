@@ -57,7 +57,7 @@ done
 # Step 4: Run Playwright E2E tests
 echo "[4/5] Running Playwright E2E tests..."
 set +e
-node e2e/stamps.spec.js "$@"
+node e2e/arquivos.spec.js "$@"
 EXIT_CODE=$?
 set -e
 

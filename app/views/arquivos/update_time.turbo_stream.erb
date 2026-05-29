@@ -6,15 +6,15 @@
       </button>
     </h3>
     <div data-edit-toggle-target="display" class="edit-display">
-      <span class="field-display"><%= format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) %></span>
+      <span class="field-display"><%= format_time(@arquivo.annotated_seconds || @arquivo.estimated_seconds) %></span>
     </div>
     <div data-edit-toggle-target="form" style="display:none">
-      <%= form_with url: update_time_stamp_path(@stamp), method: :patch,
+      <%= form_with url: update_time_arquivo_path(@arquivo), method: :patch,
             data: { controller: "time-mask async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" }, class: "time-form" do |f| %>
         <%= f.label :annotated_seconds, "Time (h:mm)" %>
         <%= f.text_field :annotated_seconds,
-              value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds),
-              data: { time_mask_target: "input", action: "input->time-mask#format", original_value: format_time(@stamp.annotated_seconds || @stamp.estimated_seconds) } %>
+              value: format_time(@arquivo.annotated_seconds || @arquivo.estimated_seconds),
+              data: { time_mask_target: "input", action: "input->time-mask#format", original_value: format_time(@arquivo.annotated_seconds || @arquivo.estimated_seconds) } %>
         <div class="edit-actions">
           <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Confirm">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

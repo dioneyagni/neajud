@@ -43,7 +43,7 @@
           <tr>
             <td><%= molde.nome %></td>
             <td><%= molde.pecas.pluck(:nome).join(", ") %></td>
-            <td><%= molde.stamps.count %></td>
+            <td><%= molde.arquivos.count %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"
                       data-action="click->dialog#edit"

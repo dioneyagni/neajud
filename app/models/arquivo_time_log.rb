@@ -1,5 +1,5 @@
-class StampTimeLog < ApplicationRecord
-  belongs_to :stamp
+class ArquivoTimeLog < ApplicationRecord
+  belongs_to :arquivo
 
   before_validation :set_uuid, on: :create
 

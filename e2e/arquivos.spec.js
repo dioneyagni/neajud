@@ -238,7 +238,7 @@ async function run() {
     if (html.includes("test-image")) throw new Error("File still shown after remove");
   });
 
-  await test("Upload multiple files creates stamps in gallery", async () => {
+  await test("Upload multiple files creates arquivos in gallery", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
     if (!fileInput) throw new Error("File input not found");
@@ -260,7 +260,7 @@ async function run() {
     await multiCard.waitFor({ timeout: 10000 });
   });
 
-  await test("Upload a file creates a stamp visible in gallery", async () => {
+  await test("Upload a file creates a arquivo visible in gallery", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
     if (!fileInput) throw new Error("File input not found");
@@ -279,7 +279,7 @@ async function run() {
     await card.waitFor({ timeout: 10000 });
   });
 
-  await test("Stamp show page displays all sections", async () => {
+  await test("Arquivo show page displays all sections", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(testImagePath);
@@ -304,10 +304,10 @@ async function run() {
     const result = await page.evaluate(async () => {
       const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
       const fd = new FormData();
-      fd.append("stamp[original_file]", "");
+      fd.append("arquivo[original_file]", "");
       if (csrf) fd.append("authenticity_token", csrf);
 
-      const resp = await fetch("/stamps", {
+      const resp = await fetch("/arquivos", {
         method: "POST",
         body: fd,
         headers: { "Accept": "text/html" }
@@ -320,7 +320,7 @@ async function run() {
     if (!result.hasError) throw new Error("Validation error not shown in response");
   });
 
-  await test("Edit time updates the stamp and creates history log", async () => {
+  await test("Edit time updates the arquivo and creates history log", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a");
     await page.click(".stamp-card a");
@@ -339,7 +339,7 @@ async function run() {
     if (!body.includes("1:23")) throw new Error("Formatted time 1:23 not found in history");
   });
 
-  await test("Delete stamp removes it from gallery", async () => {
+  await test("Delete arquivo removes it from gallery", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a");
 
@@ -348,17 +348,17 @@ async function run() {
     await page.waitForSelector("h2");
 
     await page.click('button:has-text("Delete")');
-    await page.waitForURL("**/stamps");
+    await page.waitForURL("**/arquivos");
     await page.waitForTimeout(500);
 
     const body = await page.textContent("body");
-    if (!body.includes("Stamp deleted")) throw new Error("Delete notice not shown");
+    if (!body.includes("Arquivo deleted")) throw new Error("Delete notice not shown");
 
     const newCount = await page.$$eval(".stamp-card", els => els.length);
-    if (newCount >= initialCount) throw new Error("Stamp count did not decrease after delete");
+    if (newCount >= initialCount) throw new Error("Arquivo count did not decrease after delete");
   });
 
-  await test("Gallery shows stamps or fallback message", async () => {
+  await test("Gallery shows arquivos or fallback message", async () => {
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     const body = await page.textContent("body");
@@ -366,7 +366,7 @@ async function run() {
     if (hasCard) {
       if (!body.includes("Tracker")) throw new Error("Gallery heading not shown");
     } else {
-      if (!body.includes("No stamps uploaded yet")) throw new Error("Fallback message not shown");
+      if (!body.includes("No arquivos uploaded yet")) throw new Error("Fallback message not shown");
     }
   });
 
@@ -388,11 +388,11 @@ async function run() {
       await page.waitForTimeout(5000);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-      // Click the stamp card matching the uploaded filename (without extension)
+      // Click the arquivo card matching the uploaded filename (without extension)
       const displayName = filename.replace(/\.[^.]+$/, "");
-      const stampLink = page.locator(".stamp-card").filter({ hasText: displayName }).locator("a").first();
-      await stampLink.waitFor({ timeout: 10000 });
-      await stampLink.click();
+      const arquivoLink = page.locator(".stamp-card").filter({ hasText: displayName }).locator("a").first();
+      await arquivoLink.waitFor({ timeout: 10000 });
+      await arquivoLink.click();
 
       await page.waitForSelector("dl", { timeout: 10000 });
       await page.waitForTimeout(500);
@@ -467,9 +467,9 @@ async function run() {
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "test.svg" }).locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "test.svg" }).locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
 
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
@@ -494,9 +494,9 @@ async function run() {
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -548,9 +548,9 @@ async function run() {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -570,7 +570,7 @@ async function run() {
     await saveBtn.click();
 
     // Wait for redirect back to show page after PATCH
-    await page.waitForURL("**/stamps/**", { timeout: 10000 });
+    await page.waitForURL("**/arquivos/**", { timeout: 10000 });
     await page.waitForTimeout(500);
 
     // Check for success notice
@@ -605,9 +605,9 @@ async function run() {
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "REFORÇO" }).locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "REFORÇO" }).locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -631,7 +631,7 @@ async function run() {
   // ── Version upload + approve ──
 
   await test("Version: upload a new version and verify version cards", async () => {
-    // Upload a fresh stamp as base
+    // Upload a fresh arquivo as base
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(testImagePath);
@@ -639,9 +639,9 @@ async function run() {
     await page.waitForTimeout(3000);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "test-image" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "test-image" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -664,7 +664,7 @@ async function run() {
     await uploadBtn.click();
 
     // Wait for redirect after processing (native form submit)
-    await page.waitForURL("**/stamps/**", { timeout: 30000 });
+    await page.waitForURL("**/arquivos/**", { timeout: 30000 });
 
     // Wait for flash notice to appear, or for the v2 version card
     try {
@@ -691,21 +691,21 @@ async function run() {
   });
 
   await test("Version: approve a different version", async () => {
-    // Create a uniquely-named stamp to avoid cross-test card matching issues
-    const uniqueStampPath = path.join(__dirname, "e2e-approve-test.tif");
+    // Create a uniquely-named arquivo to avoid cross-test card matching issues
+    const uniqueArquivoPath = path.join(__dirname, "e2e-approve-test.tif");
     const { execSync } = require("child_process");
-    execSync(`convert -size 50x50 xc:blue 'TIFF:${uniqueStampPath}'`);
+    execSync(`convert -size 50x50 xc:blue 'TIFF:${uniqueArquivoPath}'`);
 
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(uniqueStampPath);
+    await fileInput.setInputFiles(uniqueArquivoPath);
     await page.click('input[type="submit"]');
     await page.waitForTimeout(3000);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -715,7 +715,7 @@ async function run() {
     await versionForm.waitFor({ timeout: 5000 });
     await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
     await versionForm.locator('input[type="submit"]').click();
-    await page.waitForURL("**/stamps/**", { timeout: 15000 });
+    await page.waitForURL("**/arquivos/**", { timeout: 15000 });
     await page.waitForTimeout(3000);
 
     // Wait for version cards to render
@@ -733,7 +733,7 @@ async function run() {
     }
     await approveBtn.first().click();
 
-    await page.waitForURL("**/stamps/**", { timeout: 10000 });
+    await page.waitForURL("**/arquivos/**", { timeout: 10000 });
     await page.waitForTimeout(500);
 
     const body = await page.textContent("body");
@@ -750,7 +750,7 @@ async function run() {
     if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
 
     // Clean up
-    if (fs.existsSync(uniqueStampPath)) fs.unlinkSync(uniqueStampPath);
+    if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
   });
 
   // ── Download link ──
@@ -759,7 +759,7 @@ async function run() {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a", { timeout: 10000 });
 
-    // Navigate to any stamp's show page
+    // Navigate to any arquivo's show page
     await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(300);
@@ -784,13 +784,13 @@ async function run() {
 
   // ── Detail fields ──
 
-  await test("Show page displays all detail fields correctly for an arte stamp", async () => {
+  await test("Show page displays all detail fields correctly for an arte arquivo", async () => {
     // Navigate to 02-no_spot.tif (uploaded by previous preview test; if missing, upload fresh)
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    let stampLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
-    let cardExists = await stampLink.count();
+    let arquivoLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
+    let cardExists = await arquivoLink.count();
 
     if (cardExists === 0) {
       const filePath = path.join(testImagesDir, "02-no_spot.tif");
@@ -799,10 +799,10 @@ async function run() {
       await page.click('input[type="submit"]');
       await page.waitForTimeout(5000);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
-      stampLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
+      arquivoLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
     }
 
-    await stampLink.first().click();
+    await arquivoLink.first().click();
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -839,7 +839,7 @@ async function run() {
 
   // ── DXF Mold Organization ──
 
-  await test("DXF Mold Organization: unorganized badge on stamp card", async () => {
+  await test("DXF Mold Organization: unorganized badge on arquivo card", async () => {
     const dxfPath = path.join(testImagesDir, "29-30.dxf");
     if (!fs.existsSync(dxfPath)) throw new Error("DXF not found");
 
@@ -859,9 +859,9 @@ async function run() {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -911,9 +911,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -989,8 +989,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await errIcon.waitFor({ timeout: 5000 });
 
     // Go to show page and verify error message
-    const stampLink = card.locator("a").first();
-    await stampLink.click();
+    const arquivoLink = card.locator("a").first();
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1014,9 +1014,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1051,9 +1051,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1071,9 +1071,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1098,9 +1098,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1151,8 +1151,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await errIcon.waitFor({ timeout: 5000 });
 
       // Go to show page
-      const stampLink = card.locator("a").first();
-      await stampLink.click();
+      const arquivoLink = card.locator("a").first();
+      await arquivoLink.click();
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
@@ -1169,7 +1169,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const saveBtn = await page.$("button.layer-config-save");
       if (!saveBtn) throw new Error("Layer config save button not found");
       await saveBtn.click();
-      await page.waitForURL("**/stamps/**", { timeout: 10000 });
+      await page.waitForURL("**/arquivos/**", { timeout: 10000 });
       await page.waitForTimeout(500);
 
       body = await page.textContent("body");
@@ -1216,7 +1216,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
   // ── Time History empty state ──
 
-  await test("Time History shows empty state for a fresh stamp", async () => {
+  await test("Time History shows empty state for a fresh arquivo", async () => {
     // Upload a brand new file that has no time edits
     const filePath = path.join(testImagesDir, "02-no_spot.tif");
     if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
@@ -1228,9 +1228,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
 
     await page.waitForSelector("dl", { timeout: 10000 });
     await page.waitForTimeout(500);
@@ -1241,19 +1241,19 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
   // ── Gallery status badges ──
 
-  await test("Gallery shows status badge for failed stamps", async () => {
+  await test("Gallery shows status badge for failed arquivos", async () => {
     // Upload a file with unsupported extension to trigger validation rejection
     // The picker won't allow unsupported exts, so create a test by navigating directly
-    // Instead, verify that the existing stamps show proper info on cards
+    // Instead, verify that the existing arquivos show proper info on cards
 
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 5000 });
 
-    // Verify at least one stamp card shows a filename
+    // Verify at least one arquivo card shows a filename
     const anyCard = page.locator(".stamp-card").first();
     const cardText = await anyCard.textContent();
-    if (!cardText || cardText.trim().length === 0) throw new Error("Stamp card has no text content");
+    if (!cardText || cardText.trim().length === 0) throw new Error("Arquivo card has no text content");
   });
 
   // ── Client field ──
@@ -1262,9 +1262,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1318,13 +1318,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     if (searchRes[0].responsible !== "John E2E") throw new Error(`Wrong responsible: ${searchRes[0].responsible}`);
   });
 
-  await test("Client field: select existing client saves to stamp", async () => {
+  await test("Client field: select existing client saves to arquivo", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1365,9 +1365,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1426,9 +1426,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1488,27 +1488,27 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     });
     if (!searchRes.find(c => c.name === "Modal Client")) throw new Error("Modal Client not found in search");
 
-    // Verify client was auto-assigned to the stamp (stamp_uuid in dialog form)
+    // Verify client was auto-assigned to the arquivo (stamp_uuid in dialog form)
     await page.reload();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
     const clientNameDisplay = await page.$(".client-name-display");
     if (!clientNameDisplay) throw new Error("Client name display not found after reload");
     const displayName = await clientNameDisplay.textContent();
-    if (displayName !== "Modal Client") throw new Error(`Client not auto-assigned to stamp. Display value: "${displayName}"`);
+    if (displayName !== "Modal Client") throw new Error(`Client not auto-assigned to arquivo. Display value: "${displayName}"`);
   });
 
-  await test("Client field: has edit toggle button on stamp show page", async () => {
+  await test("Client field: has edit toggle button on arquivo show page", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    // Edit toggle button should be present on stamp show page
+    // Edit toggle button should be present on arquivo show page
     const editBtn = await page.$("button[data-action*='edit-toggle#edit']");
     if (!editBtn) throw new Error("Edit toggle button not found in Client section");
 
@@ -1523,9 +1523,9 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const stampLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await stampLink.waitFor({ timeout: 10000 });
-    await stampLink.click();
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
@@ -1556,10 +1556,10 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     if (!body.includes("already exists")) throw new Error(`Duplicate name should show error: "${body.slice(0, 200)}"`);
   });
 
-  // ── Size Selection (Arte stamps) ──
+  // ── Size Selection (Arte arquivos) ──
 
-  await test("Size Selection: section appears on arte stamps with a client", async () => {
-    // Create an arte stamp and assign a client so Size Selection appears
+  await test("Size Selection: section appears on arte arquivos with a client", async () => {
+    // Create an arte arquivo and assign a client so Size Selection appears
     const arteSizePath = path.join(__dirname, "e2e-size-arte.tif");
     if (!fs.existsSync(arteSizePath)) {
       const { execSync } = require("child_process");
@@ -1575,10 +1575,10 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Go to the arte stamp show page
+    // Go to the arte arquivo show page
     const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
     const sizeCardCount = await sizeCard.count();
-    if (sizeCardCount === 0) throw new Error("Arte stamp card not found");
+    if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
 
     const sizeLink = sizeCard.locator("a").first();
     await sizeLink.click();
@@ -1600,13 +1600,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       });
     }, csrf);
 
-    // Assign client to the arte stamp via fetch
+    // Assign client to the arte arquivo via fetch
     const clientAssigned = await page.evaluate(async (token) => {
       const clientRes = await fetch("/clients/search?q=Size Test Client");
       const clients = await clientRes.json();
       if (!clients[0]) return false;
       const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/stamps/${uuid}/update_client`, {
+      const res = await fetch(`/arquivos/${uuid}/update_client`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
@@ -1647,7 +1647,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
   });
 
   await test("Size Selection: full cascade flow selects and saves a size", async () => {
-    // ── Setup: create arte + organized stamps ──
+    // ── Setup: create arte + organized arquivos ──
     const artePath = path.join(__dirname, "e2e-cascade-arte.tif");
     if (!fs.existsSync(artePath)) {
       const { execSync } = require("child_process");
@@ -1660,7 +1660,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       execSync(`convert -size 20x20 xc:red 'TIFF:${orgPath}'`);
     }
 
-    // Upload arte stamp
+    // Upload arte arquivo
     await page.goto(BASE_URL);
     await page.waitForSelector('input[type="file"]', { timeout: 5000 });
     let fileInput = await page.$('input[type="file"]');
@@ -1669,7 +1669,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Upload organized stamp
+    // Upload organized arquivo
     await page.goto(BASE_URL);
     await page.waitForSelector('input[type="file"]', { timeout: 5000 });
     fileInput = await page.$('input[type="file"]');
@@ -1678,7 +1678,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // ── Navigate to arte stamp show page ──
+    // ── Navigate to arte arquivo show page ──
     const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
     await arteCard.waitFor({ timeout: 10000 });
     await arteCard.locator("a").first().click();
@@ -1703,13 +1703,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       });
     }, csrf);
 
-    // ── Assign client to arte stamp ──
+    // ── Assign client to arte arquivo ──
     const clientAssigned = await page.evaluate(async (token) => {
       const r = await fetch("/clients/search?q=Cascade Test Client");
       const clients = await r.json();
       if (!clients[0]) return false;
       const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/stamps/${uuid}/update_client`, {
+      const res = await fetch(`/arquivos/${uuid}/update_client`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
@@ -1785,20 +1785,20 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     }, csrf);
     if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
 
-    // ── Set modelo on arte stamp so Size Selection can use its molde ──
+    // ── Set modelo on arte arquivo so Size Selection can use its molde ──
     const modeloSet = await page.evaluate(async (token) => {
       const modeloRes = await fetch("/modelos/search?q=Cascade Modelo");
       const modelos = await modeloRes.json();
       if (!modelos[0]) return false;
       const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/stamps/${uuid}/update_modelo`, {
+      const res = await fetch(`/arquivos/${uuid}/update_modelo`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, _method: "patch", modelo_id: modelos[0].id })
       });
       return res.ok;
     }, csrf);
-    if (!modeloSet) throw new Error("Failed to set modelo on arte stamp");
+    if (!modeloSet) throw new Error("Failed to set modelo on arte arquivo");
 
     // ── Reload: Size Selection should now have pre-populated Piece select ──
     await page.reload();
@@ -1807,13 +1807,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const sectionBody = await page.textContent("body");
     if (!sectionBody.includes("Size Selection")) throw new Error("Size Selection section not found after setting modelo");
 
-    // Verify peca select is pre-populated (fetched from stamp.modelo.molde_id)
+    // Verify peca select is pre-populated (fetched from arquivo.modelo.molde_id)
     await page.waitForFunction(() => {
       const sel = document.querySelector("#cascade_peca");
       return sel && sel.options.length > 1;
     }, { timeout: 5000 });
 
-    // ── Navigate to gallery, then organized stamp's show page ──
+    // ── Navigate to gallery, then organized arquivo's show page ──
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-org" }).first();
@@ -1822,22 +1822,22 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    // ── Assign client to organized stamp (same client as arte) ──
+    // ── Assign client to organized arquivo (same client as arte) ──
     const orgClientSet = await page.evaluate(async (token) => {
       const clientRes = await fetch("/clients/search?q=Cascade Test Client");
       const clients = await clientRes.json();
       if (!clients[0]) return false;
       const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/stamps/${uuid}/update_client`, {
+      const res = await fetch(`/arquivos/${uuid}/update_client`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
       });
       return res.ok;
     }, csrf);
-    if (!orgClientSet) throw new Error("Failed to assign client to organized stamp");
+    if (!orgClientSet) throw new Error("Failed to assign client to organized arquivo");
 
-    // ── Organize the stamp (set molde_id, peca_id, create tamanho) ──
+    // ── Organize the arquivo (set molde_id, peca_id, create tamanho) ──
     const organized = await page.evaluate(async ({ token, chain }) => {
       const uuid = window.location.pathname.split("/").pop();
       const body = new URLSearchParams();
@@ -1849,16 +1849,16 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       body.append("tamanhos[0][width_mm]", "100");
       body.append("tamanhos[0][height_mm]", "200");
       body.append("tamanhos[0][area_mm2]", "5000");
-      const r = await fetch(`/stamps/${uuid}/organize`, {
+      const r = await fetch(`/arquivos/${uuid}/organize`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body
       });
       return r.ok;
     }, { token: csrf, chain });
-    if (!organized) throw new Error("Failed to organize stamp");
+    if (!organized) throw new Error("Failed to organize arquivo");
 
-    // ── Navigate back to arte stamp show page ──
+    // ── Navigate back to arte arquivo show page ──
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
@@ -1868,7 +1868,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(500);
 
     // ── Verify cascade selects work ──
-    // Peca select should already be pre-populated from stamp.modelo.molde_id
+    // Peca select should already be pre-populated from arquivo.modelo.molde_id
     await page.waitForFunction(() => {
       const sel = document.querySelector("#cascade_peca");
       return sel && sel.options.length > 1;
@@ -1983,7 +1983,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       if (!state.editBtnExists) throw new Error(`${context}: Edit button missing — should be in display mode`);
     }
 
-    // ── Upload arte stamp ──
+    // ── Upload arte arquivo ──
     await page.goto(BASE_URL);
     await page.waitForSelector('input[type="file"]', { timeout: 5000 });
     let fileInput = await page.$('input[type="file"]');
@@ -1992,7 +1992,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Go to arte stamp show page
+    // Go to arte arquivo show page
     const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
     await arteCard.waitFor({ timeout: 10000 });
     await arteCard.locator("a").first().click();
@@ -2096,8 +2096,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     let state = await getSizeState();
     console.log(`  [debug] after modelo assignment: ${JSON.stringify(state)}`);
 
-    // ── Create organized stamp and organize it ──
-    // Upload organized stamp
+    // ── Create organized arquivo and organize it ──
+    // Upload organized arquivo
     await page.goto(BASE_URL);
     await page.waitForSelector('input[type="file"]', { timeout: 5000 });
     fileInput = await page.$('input[type="file"]');
@@ -2106,7 +2106,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(5000);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Assign client to organized stamp
+    // Assign client to organized arquivo
     const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
     await orgCard.waitFor({ timeout: 10000 });
     await orgCard.locator("a").first().click();
@@ -2124,16 +2124,16 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const clients = await r.json();
       if (!clients[0]) return false;
       const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/stamps/${uuid}/update_client`, {
+      const res = await fetch(`/arquivos/${uuid}/update_client`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
       });
       return res.ok;
     }, { token: orgCsrf, clientName });
-    if (!orgClientSet) throw new Error("Failed to assign client to organized stamp");
+    if (!orgClientSet) throw new Error("Failed to assign client to organized arquivo");
 
-    // Organize the stamp
+    // Organize the arquivo
     const organized = await page.evaluate(async ({ token, chain }) => {
       const uuid = window.location.pathname.split("/").pop();
       const body = new URLSearchParams();
@@ -2145,16 +2145,16 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       body.append("tamanhos[0][width_mm]", "150");
       body.append("tamanhos[0][height_mm]", "250");
       body.append("tamanhos[0][area_mm2]", "8000");
-      const r = await fetch(`/stamps/${uuid}/organize`, {
+      const r = await fetch(`/arquivos/${uuid}/organize`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body
       });
       return r.ok;
     }, { token: orgCsrf, chain });
-    if (!organized) throw new Error("Failed to organize stamp");
+    if (!organized) throw new Error("Failed to organize arquivo");
 
-    // ── Navigate BACK to arte stamp show page ──
+    // ── Navigate BACK to arte arquivo show page ──
     await page.goto(BASE_URL);
     await page.waitForTimeout(500);
     const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();

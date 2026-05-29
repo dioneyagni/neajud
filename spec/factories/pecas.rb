@@ -1,5 +1,5 @@
 FactoryBot.define do
   factory :peca do
-    nome { "MyString" }
+    sequence(:nome) { |n| "Peca #{n}" }
   end
 end

@@ -1,5 +1,5 @@
 class Client < ApplicationRecord
-  has_many :stamps, dependent: :nullify
+  has_many :arquivos, dependent: :nullify
   has_many :modelos, dependent: :destroy
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }

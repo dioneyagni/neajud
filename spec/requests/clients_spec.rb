@@ -19,7 +19,7 @@ RSpec.describe "Clients", type: :request do
       expect {
         post clients_path, params: { client: { name: "Acme Corp", responsible: "John" } }
       }.to change(Client, :count).by(1)
-      expect(response).to redirect_to(stamps_path)
+      expect(response).to redirect_to(arquivos_path)
       expect(Client.last.name).to eq("Acme Corp")
     end
 
@@ -28,7 +28,7 @@ RSpec.describe "Clients", type: :request do
       expect {
         post clients_path, params: { client: { name: "ACME CORP", responsible: "Bob" } }
       }.not_to change(Client, :count)
-      expect(response).to redirect_to(stamps_path)
+      expect(response).to redirect_to(arquivos_path)
     end
 
     it "rejects blank name" do
@@ -37,21 +37,21 @@ RSpec.describe "Clients", type: :request do
       }.not_to change(Client, :count)
     end
 
-    it "assigns client to stamp when stamp_uuid is provided" do
-      stamp = create(:stamp)
+    it "assigns client to arquivo when arquivo_uuid is provided" do
+      arquivo = create(:arquivo)
       expect {
-        post clients_path, params: { client: { name: "Assign Corp", responsible: "John" }, stamp_uuid: stamp.uuid }
+        post clients_path, params: { client: { name: "Assign Corp", responsible: "John" }, arquivo_uuid: arquivo.uuid }
       }.to change(Client, :count).by(1)
-      stamp.reload
-      expect(stamp.client_id).to eq(Client.last.id)
+      arquivo.reload
+      expect(arquivo.client_id).to eq(Client.last.id)
     end
 
-    it "assigns existing client to stamp on duplicate name with stamp_uuid" do
+    it "assigns existing client to arquivo on duplicate name with arquivo_uuid" do
       existing = create(:client, name: "Acme Corp", responsible: "Jane")
-      stamp = create(:stamp)
-      post clients_path, params: { client: { name: "ACME CORP", responsible: "Bob" }, stamp_uuid: stamp.uuid }
-      stamp.reload
-      expect(stamp.client_id).to eq(existing.id)
+      arquivo = create(:arquivo)
+      post clients_path, params: { client: { name: "ACME CORP", responsible: "Bob" }, arquivo_uuid: arquivo.uuid }
+      arquivo.reload
+      expect(arquivo.client_id).to eq(existing.id)
     end
   end
 
@@ -59,7 +59,7 @@ RSpec.describe "Clients", type: :request do
     it "updates a client name and responsible" do
       client = create(:client, name: "Old Name", responsible: "Old Resp")
       patch client_path(client), params: { client: { name: "New Name", responsible: "New Resp" } }
-      expect(response).to redirect_to(stamps_path)
+      expect(response).to redirect_to(arquivos_path)
       client.reload
       expect(client.name).to eq("New Name")
       expect(client.responsible).to eq("New Resp")
@@ -67,17 +67,17 @@ RSpec.describe "Clients", type: :request do
   end
 
   describe "DELETE /clients/:id" do
-    it "destroys a client and nullifies stamp references" do
+    it "destroys a client and nullifies arquivo references" do
       client = create(:client, name: "ToDelete", responsible: "Resp")
-      stamp = create(:stamp, client: client)
+      arquivo = create(:arquivo, client: client)
 
       expect {
         delete client_path(client)
       }.to change(Client, :count).by(-1)
 
-      expect(response).to redirect_to(stamps_path)
-      stamp.reload
-      expect(stamp.client_id).to be_nil
+      expect(response).to redirect_to(arquivos_path)
+      arquivo.reload
+      expect(arquivo.client_id).to be_nil
     end
   end
 
@@ -102,23 +102,23 @@ RSpec.describe "Clients", type: :request do
     end
   end
 
-  describe "PATCH /stamps/:id/update_client" do
-    it "assigns a client to a stamp" do
+  describe "PATCH /arquivos/:id/update_client" do
+    it "assigns a client to an arquivo" do
       client = create(:client, name: "Test Client", responsible: "Test Resp")
-      stamp = create(:stamp)
-      patch update_client_stamp_path(stamp.uuid), params: { client_id: client.id }
-      expect(response).to redirect_to(stamp_path(stamp))
-      stamp.reload
-      expect(stamp.client_id).to eq(client.id)
+      arquivo = create(:arquivo)
+      patch update_client_arquivo_path(arquivo), params: { client_id: client.id }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.client_id).to eq(client.id)
     end
 
-    it "unlinks a client from a stamp" do
+    it "unlinks a client from an arquivo" do
       client = create(:client, name: "Test Client", responsible: "Test Resp")
-      stamp = create(:stamp, client: client)
-      patch update_client_stamp_path(stamp.uuid), params: { client_id: "" }
-      expect(response).to redirect_to(stamp_path(stamp))
-      stamp.reload
-      expect(stamp.client_id).to be_nil
+      arquivo = create(:arquivo, client: client)
+      patch update_client_arquivo_path(arquivo), params: { client_id: "" }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.client_id).to be_nil
     end
   end
 end

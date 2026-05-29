@@ -28,7 +28,7 @@
           <h4 style="margin-top: 0.75rem; color: var(--text-muted);">Molde: <%= @modelo.molde.nome %></h4>
 
           <% if @grouped_by_peca.any? %>
-            <% @grouped_by_peca.each do |peca, stamps| %>
+            <% @grouped_by_peca.each do |peca, arquivos| %>
               <div style="margin-top: 1rem;">
                 <h5 style="margin-bottom: 0.5rem; color: var(--accent-color);">
                   Peca: <%= peca&.nome || "—" %>
@@ -42,21 +42,21 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <% stamps.each do |stamp| %>
+                    <% arquivos.each do |arquivo| %>
                       <tr>
                         <td>
-                          <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
-                            <%= image_tag preview_stamp_path(stamp, t: stamp.approved_version&.updated_at&.to_i), alt: stamp.filename, class: "preview-thumb" %>
+                          <% if arquivo.preview_file.present? && File.exist?(arquivo.preview_file) %>
+                            <%= image_tag preview_arquivo_path(arquivo, t: arquivo.approved_version&.updated_at&.to_i), alt: arquivo.filename, class: "preview-thumb" %>
                           <% else %>
                             <span class="text-muted">—</span>
                           <% end %>
                         </td>
                         <td>
-                          <%= link_to stamp.filename, stamp_path(stamp) %>
+                          <%= link_to arquivo.filename, arquivo_path(arquivo) %>
                         </td>
                         <td>
-                          <% if stamp.tamanhos.any? %>
-                            <%= stamp.tamanhos.map { |t| "#{t.nome} (#{t.width_mm}x#{t.height_mm}mm)" }.join(", ") %>
+                          <% if arquivo.tamanhos.any? %>
+                            <%= arquivo.tamanhos.map { |t| "#{t.nome} (#{t.width_mm}x#{t.height_mm}mm)" }.join(", ") %>
                           <% else %>
                             <span class="text-muted">—</span>
                           <% end %>

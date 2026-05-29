@@ -7,12 +7,12 @@ class ModelosController < ApplicationController
 
   def show
     if @modelo.molde_id.present?
-      @organized_stamps = Stamp.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id)
+      @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id)
                                .includes(:peca, :tamanhos, approved_version: :image_metadata)
                                .order(:peca_id)
-      @grouped_by_peca = @organized_stamps.group_by(&:peca)
+      @grouped_by_peca = @organized_arquivos.group_by(&:peca)
     else
-      @organized_stamps = []
+      @organized_arquivos = []
       @grouped_by_peca = {}
     end
   end
@@ -30,31 +30,31 @@ class ModelosController < ApplicationController
   def create
     existing = Modelo.where("LOWER(nome) = ? AND client_id = ?", modelo_params[:nome].downcase, modelo_params[:client_id]).first
     if existing
-      assign_modelo_to_stamp(existing) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, alert: "Modelo \"#{existing.nome}\" already exists for this client."
+      assign_modelo_to_arquivo(existing) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, alert: "Modelo \"#{existing.nome}\" already exists for this client."
       return
     end
 
     @modelo = Modelo.new(modelo_params)
     if @modelo.save
-      assign_modelo_to_stamp(@modelo) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, notice: "Modelo registered."
+      assign_modelo_to_arquivo(@modelo) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, notice: "Modelo registered."
     else
-      redirect_back fallback_location: stamps_path, alert: @modelo.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @modelo.errors.full_messages.join(", ")
     end
   end
 
   def update
     if @modelo.update(modelo_params)
-      redirect_back fallback_location: stamps_path, notice: "Modelo updated."
+      redirect_back fallback_location: arquivos_path, notice: "Modelo updated."
     else
-      redirect_back fallback_location: stamps_path, alert: @modelo.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @modelo.errors.full_messages.join(", ")
     end
   end
 
   def destroy
     @modelo.destroy
-    redirect_back fallback_location: stamps_path, notice: "Modelo deleted."
+    redirect_back fallback_location: arquivos_path, notice: "Modelo deleted."
   end
 
   private
@@ -67,8 +67,8 @@ class ModelosController < ApplicationController
     params.require(:modelo).permit(:nome, :client_id, :molde_id)
   end
 
-  def assign_modelo_to_stamp(modelo)
-    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
-    stamp&.update(modelo_id: modelo.id)
+  def assign_modelo_to_arquivo(modelo)
+    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo&.update(modelo_id: modelo.id)
   end
 end

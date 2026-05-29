@@ -1,4 +1,4 @@
-module StampsHelper
+module ArquivosHelper
   def format_time(seconds)
     return "0:00" unless seconds
 
@@ -7,8 +7,8 @@ module StampsHelper
     format("%d:%02d", hours, mins)
   end
 
-  def preview_stamp_url(stamp)
-    preview_stamp_path(stamp) if stamp.preview_file.present?
+  def preview_arquivo_url(arquivo)
+    preview_arquivo_path(arquivo) if arquivo.preview_file.present?
   end
 
   def format_cm(pixels, dpi)

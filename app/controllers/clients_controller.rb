@@ -7,7 +7,7 @@ class ClientsController < ApplicationController
 
   def show
     @modelos = @client.modelos.order(:nome)
-    @art_stamps = @client.stamps.where(category: "artes")
+    @art_arquivos = @client.arquivos.where(category: "artes")
                                .includes(approved_version: :image_metadata)
                                .order(created_at: :desc)
                                .limit(20)
@@ -21,31 +21,31 @@ class ClientsController < ApplicationController
   def create
     existing = Client.where("LOWER(name) = ?", client_params[:name].downcase).first
     if existing
-      assign_client_to_stamp(existing) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, alert: "Client \"#{existing.name}\" already exists."
+      assign_client_to_arquivo(existing) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, alert: "Client \"#{existing.name}\" already exists."
       return
     end
 
     @client = Client.new(client_params)
     if @client.save
-      assign_client_to_stamp(@client) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, notice: "Client registered."
+      assign_client_to_arquivo(@client) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, notice: "Client registered."
     else
-      redirect_back fallback_location: stamps_path, alert: @client.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @client.errors.full_messages.join(", ")
     end
   end
 
   def update
     if @client.update(client_params)
-      redirect_back fallback_location: stamps_path, notice: "Client updated."
+      redirect_back fallback_location: arquivos_path, notice: "Client updated."
     else
-      redirect_back fallback_location: stamps_path, alert: @client.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @client.errors.full_messages.join(", ")
     end
   end
 
   def destroy
     @client.destroy
-    redirect_back fallback_location: stamps_path, notice: "Client deleted."
+    redirect_back fallback_location: arquivos_path, notice: "Client deleted."
   end
 
   private
@@ -58,8 +58,8 @@ class ClientsController < ApplicationController
     params.require(:client).permit(:name, :responsible)
   end
 
-  def assign_client_to_stamp(client)
-    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
-    stamp&.update(client_id: client.id)
+  def assign_client_to_arquivo(client)
+    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo&.update(client_id: client.id)
   end
 end

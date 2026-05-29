@@ -10,7 +10,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :stamps, only: %i[index new create show destroy] do
+  resources :arquivos, only: %i[index new create show destroy] do
     member do
       patch :update_time
       patch :update_client
@@ -55,7 +55,7 @@ Rails.application.routes.draw do
     end
   end
 
-  root "stamps#index"
+  root "arquivos#index"
 
   match "/.well-known/*path", via: :all, to: proc { |_| [ 204, {}, [] ] }
 end

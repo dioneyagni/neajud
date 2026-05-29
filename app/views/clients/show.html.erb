@@ -10,8 +10,8 @@
           <dd><%= @client.name %></dd>
           <dt>Responsible</dt>
           <dd><%= @client.responsible %></dd>
-          <dt>Stamps</dt>
-          <dd><%= @client.stamps.count %></dd>
+          <dt>Arquivos</dt>
+          <dd><%= @client.arquivos.count %></dd>
         </dl>
       </div>
 
@@ -60,7 +60,7 @@
               <tr>
 <th>Name</th>
                   <th>Mold</th>
-                  <th>Stamps</th>
+                  <th>Arquivos</th>
                   <th>View</th>
                 <th>Actions</th>
               </tr>
@@ -70,7 +70,7 @@
                 <tr>
                   <td><%= modelo.nome %></td>
                   <td><%= modelo.molde&.nome || "—" %></td>
-                  <td><%= modelo.stamps.count %></td>
+                  <td><%= modelo.arquivos.count %></td>
                   <td><%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm" %></td>
                   <td class="clients-table-actions">
                     <button class="btn btn-secondary btn-sm"
@@ -94,16 +94,16 @@
           <p class="gallery-empty" style="margin-top: 0.75rem">No modelos for this client yet.</p>
         <% end %>
       <div class="stamp-detail-section stamp-detail-section--full">
-        <h3>Stamps (Artes)</h3>
-        <% if @art_stamps.any? %>
-          <%= turbo_stream_from "stamps" %>
+        <h3>Arquivos (Artes)</h3>
+        <% if @art_arquivos.any? %>
+          <%= turbo_stream_from "arquivos" %>
           <div class="gallery">
-            <% @art_stamps.each do |stamp| %>
-              <%= render partial: "stamps/stamp_card", locals: { stamp: stamp } %>
+            <% @art_arquivos.each do |arquivo| %>
+              <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
             <% end %>
           </div>
         <% else %>
-          <p class="gallery-empty" style="margin-top: 0.75rem">No art stamps for this client yet.</p>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No art arquivos for this client yet.</p>
         <% end %>
       </div>
     </div>

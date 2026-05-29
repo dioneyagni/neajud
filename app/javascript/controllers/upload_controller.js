@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["dropzone", "input", "fileList", "submit"]
-  static values = { fieldName: { type: String, default: "stamp[original_file]" } }
+  static values = { fieldName: { type: String, default: "arquivo[original_file]" } }
 
   connect() {
     this.files = []
@@ -97,8 +97,8 @@ export default class extends Controller {
 
       const fd = new FormData()
       fd.append(this.fieldNameValue, file)
-      fd.append("stamp[batch_started_at]", batchStartedAt)
-      fd.append("stamp[batch_size]", batchSize)
+      fd.append("arquivo[batch_started_at]", batchStartedAt)
+      fd.append("arquivo[batch_size]", batchSize)
       if (csrf) fd.append("authenticity_token", csrf)
 
       try {

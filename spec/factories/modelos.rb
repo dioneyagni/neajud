@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :modelo do
     nome { "MyString" }
-    cliente { nil }
+    client
   end
 end

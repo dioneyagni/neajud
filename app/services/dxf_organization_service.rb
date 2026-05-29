@@ -1,18 +1,18 @@
 class DxfOrganizationService
   OVERLAP_ERROR = "file has 1 or more stacked cuts"
 
-  def self.call(stamp)
-    new(stamp).call
+  def self.call(arquivo)
+    new(arquivo).call
   end
 
-  def initialize(stamp)
-    @stamp = stamp
+  def initialize(arquivo)
+    @arquivo = arquivo
   end
 
   def call
-    return unless @stamp.extension.downcase == "dxf"
+    return unless @arquivo.extension.downcase == "dxf"
 
-    version = @stamp.approved_version
+    version = @arquivo.approved_version
     return unless version
 
     input_path = version.original_path
@@ -25,16 +25,16 @@ class DxfOrganizationService
 
   def detect_tamanhos(path)
     script = Rails.root.join("bin", "detect-tamanhos.js").to_s
-    filename = @stamp.filename.to_s
+    filename = @arquivo.filename.to_s
     output = `node #{Shellwords.escape(script)} #{Shellwords.escape(path)} #{Shellwords.escape(filename)} 2>/dev/null`.strip
     return if output.blank?
 
     result = JSON.parse(output)
     return unless result["tamanhos"].is_a?(Array) && result["tamanhos"].any?
 
-    @stamp.tamanhos.destroy_all
+    @arquivo.tamanhos.destroy_all
     tamanho_records = result["tamanhos"].map do |t|
-      @stamp.tamanhos.create!(
+      @arquivo.tamanhos.create!(
         nome: t["nome"],
         position: t["position"],
         width_mm: t["width_mm"],
@@ -63,19 +63,19 @@ class DxfOrganizationService
       }
 
       if unresolved.any?
-        @stamp.update!(organize_error: OVERLAP_ERROR)
+        @arquivo.update!(organize_error: OVERLAP_ERROR)
       else
-        @stamp.update!(organize_error: nil)
+        @arquivo.update!(organize_error: nil)
       end
     else
-      @stamp.update!(organize_error: nil)
+      @arquivo.update!(organize_error: nil)
     end
   rescue JSON::ParserError
     nil
   end
 
   def cut_layer_hole_colors
-    version = @stamp.approved_version
+    version = @arquivo.approved_version
     return [] unless version
 
     version.cut_layers.where(annotation: "hole").pluck(:color)

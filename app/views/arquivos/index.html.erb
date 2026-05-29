@@ -5,17 +5,17 @@
   <div class="upload-form-wrapper">
   <% accept_ext = FileCategory.extensions.map { |e| ".#{e}" }.join(",") %>
   <% hint_parts = FileCategory.all.map { |_name, config| "#{config[:label]}: #{config[:extensions].map(&:upcase).join(', ')}" }.join(" | ") %>
-  <%= form_with model: @stamp, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false, allowed_extensions: FileCategory.extensions.map { |e| ".#{e}" }.join(",") } } do |f| %>
-    <% if @stamp.errors.any? %>
+  <%= form_with model: @arquivo, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false, allowed_extensions: FileCategory.extensions.map { |e| ".#{e}" }.join(",") } } do |f| %>
+    <% if @arquivo.errors.any? %>
       <div class="form-errors">
-        <% @stamp.errors.full_messages.each do |msg| %>
+        <% @arquivo.errors.full_messages.each do |msg| %>
           <p class="error"><%= msg %></p>
         <% end %>
       </div>
     <% end %>
     <div class="upload-dropzone" data-upload-target="dropzone"
          data-action="dragenter->upload#dragOver dragover->upload#dragOver dragleave->upload#dragLeave drop->upload#drop click->upload#click">
-      <label for="stamp_original_file" style="display: block; cursor: pointer;">
+      <label for="arquivo_original_file" style="display: block; cursor: pointer;">
         <p>Drag & drop files here, or click to select</p>
         <p class="upload-hint"><%= hint_parts %></p>
       </label>
@@ -32,14 +32,14 @@
 
 <section>
   <h3>Gallery</h3>
-  <% if @stamps.any? %>
-    <%= turbo_stream_from "stamps" %>
+  <% if @arquivos.any? %>
+    <%= turbo_stream_from "arquivos" %>
     <div class="gallery">
-      <% @stamps.each do |stamp| %>
-        <%= render partial: "stamp_card", locals: { stamp: stamp } %>
+      <% @arquivos.each do |arquivo| %>
+        <%= render partial: "card", locals: { arquivo: arquivo } %>
       <% end %>
     </div>
   <% else %>
-    <p class="gallery-empty">No stamps uploaded yet.</p>
+    <p class="gallery-empty">No arquivos uploaded yet.</p>
   <% end %>
 </section>

@@ -1,11 +1,11 @@
 require "shellwords"
 require "set"
 
-class StampProcessingJob < ApplicationJob
+class ArquivoProcessingJob < ApplicationJob
   queue_as :default
 
   def perform(version_id)
-    version = StampVersion.find(version_id)
+    version = ArquivoVersion.find(version_id)
     version.update!(status: :processing)
 
     validate_format!(version)
@@ -19,14 +19,14 @@ class StampProcessingJob < ApplicationJob
     version.update!(status: :processed)
   rescue StandardError => e
     version.update!(status: :failed)
-    Rails.logger.error "[StampProcessingJob] Failed version #{version_id}: #{e.message}"
+    Rails.logger.error "[ArquivoProcessingJob] Failed version #{version_id}: #{e.message}"
   end
 
   private
 
   def validate_format!(version)
     ext = version.extension.downcase
-    unless Stamp::SUPPORTED_EXTENSIONS.include?(ext)
+    unless Arquivo::SUPPORTED_EXTENSIONS.include?(ext)
       version.update!(status: :unsupported_format)
       raise "Unsupported format: #{ext}"
     end
@@ -75,7 +75,7 @@ class StampProcessingJob < ApplicationJob
   def organize_dxf(version)
     return unless version.extension.downcase == "dxf"
 
-    DxfOrganizationService.call(version.stamp)
+    DxfOrganizationService.call(version.arquivo)
   end
 
   def extract_colors_from_svg(path)
