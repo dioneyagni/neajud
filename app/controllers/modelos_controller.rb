@@ -1,8 +1,20 @@
 class ModelosController < ApplicationController
-  before_action :set_modelo, only: %i[update destroy]
+  before_action :set_modelo, only: %i[show update destroy]
 
   def index
     @modelos = Modelo.includes(:client, :molde).order(:nome)
+  end
+
+  def show
+    if @modelo.molde_id.present?
+      @organized_stamps = Stamp.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id)
+                               .includes(:peca, :tamanhos, approved_version: :image_metadata)
+                               .order(:peca_id)
+      @grouped_by_peca = @organized_stamps.group_by(&:peca)
+    else
+      @organized_stamps = []
+      @grouped_by_peca = {}
+    end
   end
 
   def search
@@ -12,7 +24,7 @@ class ModelosController < ApplicationController
 
   def for_client
     modelos = Modelo.where(client_id: params[:client_id]).order(:nome)
-    render json: modelos.map { |m| { id: m.id, nome: m.nome } }
+    render json: modelos.map { |m| { id: m.id, nome: m.nome, molde_id: m.molde_id } }
   end
 
   def create

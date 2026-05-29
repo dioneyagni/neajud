@@ -1,4 +1,4 @@
-<div class="stamp-detail-section" data-controller="edit-toggle">
+<div class="stamp-detail-section" id="modelo-field-section" data-controller="edit-toggle dialog">
   <h3 class="section-heading-with-action">Model
     <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit model">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -9,7 +9,7 @@
     <% if @stamp.modelo.present? %>
       <div class="client-display">
         <span class="client-name-display"><%= @stamp.modelo.nome %></span>
-        <span class="client-responsible-display">(<%= @stamp.modelo.client.name %>)</span>
+        <span class="client-responsible-display">(<%= @stamp.modelo.client.name %><% if @stamp.modelo.molde %>, <%= @stamp.modelo.molde.nome %><% end %>)</span>
       </div>
     <% else %>
       <span class="client-empty">No model linked</span>
@@ -18,22 +18,19 @@
   </div>
 
   <div data-edit-toggle-target="form" style="display:none">
-    <%= form_with url: update_modelo_stamp_path(@stamp), method: :patch, data: { action: "turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
-      <div class="mold-field">
-        <label for="modelo_id">Model</label>
-        <select name="modelo_id" id="modelo_id" data-original-value="<%= @stamp.modelo_id %>">
-          <option value="">Select a model...</option>
-          <% if @stamp.client.present? %>
-            <% Modelo.where(client_id: @stamp.client_id).order(:nome).each do |m| %>
-              <option value="<%= m.id %>" <%= "selected" if @stamp.modelo_id == m.id %>><%= m.nome %></option>
-            <% end %>
-          <% else %>
-            <% Modelo.order(:nome).each do |m| %>
-              <option value="<%= m.id %>" <%= "selected" if @stamp.modelo_id == m.id %>><%= m.nome %> (<%= m.client.name %>)</option>
-            <% end %>
-          <% end %>
-        </select>
+    <form action="<%= update_modelo_stamp_path(@stamp) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @stamp.client.present? ? for_client_modelos_path(client_id: @stamp.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @stamp.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+      <input type="hidden" name="_method" value="patch">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <div class="combobox">
+        <input type="text"
+               class="combobox-input"
+               placeholder="Search model..."
+               value="<%= @stamp.modelo&.nome %>"
+               data-original-value="<%= @stamp.modelo&.nome %>"
+               data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
+        <div class="combobox-results"></div>
       </div>
+      <input type="hidden" name="modelo_id" value="<%= @stamp.modelo_id %>">
       <div class="edit-actions" style="margin-top: 0.5rem">
         <button type="submit" class="btn-icon btn-confirm" title="Confirm">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -42,6 +39,43 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
         </button>
       </div>
-    <% end %>
+    </form>
   </div>
+
+  <dialog data-dialog-target="dialog" class="client-dialog">
+    <form action="<%= modelos_path %>" method="post" class="client-form">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <input type="hidden" name="modelo[client_id]" value="<%= @stamp.client_id || '' %>">
+      <input type="hidden" name="stamp_uuid" value="<%= @stamp.uuid %>">
+      <h4 data-dialog-target="dialogTitle">Register New Model</h4>
+      <div class="client-field">
+        <label for="modelo_nome_dialog_stamp">Name</label>
+        <input type="text" name="modelo[nome]" id="modelo_nome_dialog_stamp" required>
+      </div>
+      <% if @stamp.client.blank? %>
+        <div class="client-field">
+          <label for="modelo_client_id_dialog_stamp">Client</label>
+          <select name="modelo[client_id]" id="modelo_client_id_dialog_stamp" required>
+            <option value="">Select a client...</option>
+            <% Client.order(:name).each do |c| %>
+              <option value="<%= c.id %>"><%= c.name %></option>
+            <% end %>
+          </select>
+        </div>
+      <% end %>
+      <div class="client-field">
+        <label for="modelo_molde_id_dialog_stamp">Mold</label>
+        <select name="modelo[molde_id]" id="modelo_molde_id_dialog_stamp">
+          <option value="">Select a mold...</option>
+          <% Molde.order(:nome).each do |m| %>
+            <option value="<%= m.id %>"><%= m.nome %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="client-dialog-actions">
+        <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
+      </div>
+    </form>
+  </dialog>
 </div>

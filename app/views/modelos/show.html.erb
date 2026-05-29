@@ -1,0 +1,83 @@
+<h2>Modelo: <%= @modelo.nome %></h2>
+
+<div class="stamp-detail">
+  <div class="stamp-detail-info">
+    <div class="stamp-detail-grid">
+      <div class="stamp-detail-section">
+        <h3>Details</h3>
+        <dl class="detail-grid">
+          <dt>Client</dt>
+          <dd><%= @modelo.client.name %></dd>
+          <dt>Molde</dt>
+          <dd><%= @modelo.molde&.nome || "—" %></dd>
+        </dl>
+      </div>
+
+      <div class="stamp-detail-section">
+        <h3>Actions</h3>
+        <div style="display: flex; gap: 0.5rem;">
+          <%= link_to "All Modelos", modelos_path, class: "btn btn-secondary" %>
+          <%= link_to "Client", client_path(@modelo.client), class: "btn btn-secondary" %>
+        </div>
+      </div>
+
+      <div class="stamp-detail-section stamp-detail-section--full">
+        <h3>Cortes (Organized Cuts)</h3>
+
+        <% if @modelo.molde.present? %>
+          <h4 style="margin-top: 0.75rem; color: var(--text-muted);">Molde: <%= @modelo.molde.nome %></h4>
+
+          <% if @grouped_by_peca.any? %>
+            <% @grouped_by_peca.each do |peca, stamps| %>
+              <div style="margin-top: 1rem;">
+                <h5 style="margin-bottom: 0.5rem; color: var(--accent-color);">
+                  Peca: <%= peca&.nome || "—" %>
+                </h5>
+                <table class="clients-table">
+                  <thead>
+                    <tr>
+                      <th>Preview</th>
+                      <th>File</th>
+                      <th>Tamanhos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% stamps.each do |stamp| %>
+                      <tr>
+                        <td>
+                          <% if stamp.preview_file.present? && File.exist?(stamp.preview_file) %>
+                            <%= image_tag preview_stamp_path(stamp, t: stamp.approved_version&.updated_at&.to_i), alt: stamp.filename, class: "preview-thumb" %>
+                          <% else %>
+                            <span class="text-muted">—</span>
+                          <% end %>
+                        </td>
+                        <td>
+                          <%= link_to stamp.filename, stamp_path(stamp) %>
+                        </td>
+                        <td>
+                          <% if stamp.tamanhos.any? %>
+                            <%= stamp.tamanhos.map { |t| "#{t.nome} (#{t.width_mm}x#{t.height_mm}mm)" }.join(", ") %>
+                          <% else %>
+                            <span class="text-muted">—</span>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="gallery-empty" style="margin-top: 0.75rem">
+              No organized cuts for this mold yet.
+            </p>
+          <% end %>
+        <% else %>
+          <p class="gallery-empty" style="margin-top: 0.75rem">
+            This modelo has no mold assigned.
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

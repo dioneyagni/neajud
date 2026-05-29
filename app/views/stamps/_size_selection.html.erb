@@ -1,0 +1,65 @@
+<div class="stamp-detail-section stamp-detail-section--full" id="size-selection-section"
+     data-controller="size-cascade edit-toggle"
+     data-size-cascade-molde-id-value="<%= stamp.modelo&.molde_id %>"
+     data-size-cascade-client-id-value="<%= stamp.client_id %>"
+      <% unless stamp.client.present? && stamp.modelo.present? %>style="display:none"<% end %>>
+  <h3 class="section-heading-with-action">Size Selection
+    <% if stamp.tamanho_id.present? %>
+      <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit size">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </button>
+    <% end %>
+  </h3>
+
+  <% if stamp.client.present? && stamp.modelo.present? %>
+    <div data-edit-toggle-target="display" class="edit-display" <%= 'style="display:none"'.html_safe unless stamp.tamanho_id.present? %>>
+      <% if stamp.tamanho.present? %>
+        <div class="client-display">
+          <span class="client-name-display"><%= stamp.tamanho.stamp&.peca&.nome || "—" %></span>
+          <span class="client-responsible-display">→ <%= stamp.tamanho.nome %>
+            <% if stamp.tamanho.width_mm && stamp.tamanho.height_mm %>
+              (<%= stamp.tamanho.width_mm.round(1) %>×<%= stamp.tamanho.height_mm.round(1) %> mm)
+            <% end %>
+          </span>
+        </div>
+      <% else %>
+        <span class="client-empty">No size selected.</span>
+      <% end %>
+    </div>
+
+    <div data-edit-toggle-target="form" <%= 'style="display:none"'.html_safe if stamp.tamanho_id.present? %>>
+      <p class="size-cascade-hint">Select from organized cuts: Piece → Size</p>
+      <div class="size-cascade-fields">
+        <div class="mold-field">
+          <label for="cascade_peca">Piece</label>
+          <select id="cascade_peca"
+                  data-action="change->size-cascade#onPecaChange"
+                  data-size-cascade-target="pecaSelect">
+            <option value="">Select a piece...</option>
+          </select>
+        </div>
+        <div class="mold-field">
+          <label for="cascade_tamanho">Size</label>
+          <select id="cascade_tamanho"
+                  data-action="change->size-cascade#onTamanhoChange"
+                  data-size-cascade-target="tamanhoSelect">
+            <option value="">Select a size...</option>
+          </select>
+        </div>
+      </div>
+
+      <%= form_with url: update_tamanho_stamp_path(stamp), method: :patch,
+            data: { turbo_stream: true } do |f| %>
+        <input type="hidden" name="tamanho_id" value="" data-size-cascade-target="tamanhoId">
+        <div class="edit-actions" style="margin-top: 0.75rem;">
+          <button type="submit" class="btn-icon btn-confirm" data-size-cascade-target="saveBtn" disabled title="Save Size">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </button>
+          <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+          </button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

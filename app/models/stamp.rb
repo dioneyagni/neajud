@@ -7,6 +7,7 @@ class Stamp < ApplicationRecord
   belongs_to :molde, optional: true
   belongs_to :peca, optional: true
   belongs_to :modelo, optional: true
+  belongs_to :tamanho, optional: true
 
   before_validation :set_uuid, on: :create
   after_update_commit :broadcast_stamp_card, if: :saved_change_to_approved_version_id?

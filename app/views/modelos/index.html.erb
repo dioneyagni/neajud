@@ -46,6 +46,7 @@
           <th>Client</th>
           <th>Mold</th>
           <th>Stamps</th>
+          <th>View</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -56,6 +57,7 @@
             <td><%= modelo.client.name %></td>
             <td><%= modelo.molde&.nome || "—" %></td>
             <td><%= modelo.stamps.count %></td>
+            <td><%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm" %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"
                       data-action="click->dialog#edit"

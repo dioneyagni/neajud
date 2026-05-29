@@ -61,6 +61,7 @@
 <th>Name</th>
                   <th>Mold</th>
                   <th>Stamps</th>
+                  <th>View</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -70,6 +71,7 @@
                   <td><%= modelo.nome %></td>
                   <td><%= modelo.molde&.nome || "—" %></td>
                   <td><%= modelo.stamps.count %></td>
+                  <td><%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm" %></td>
                   <td class="clients-table-actions">
                     <button class="btn btn-secondary btn-sm"
                             data-action="click->dialog#edit"
@@ -90,6 +92,18 @@
           </table>
         <% else %>
           <p class="gallery-empty" style="margin-top: 0.75rem">No modelos for this client yet.</p>
+        <% end %>
+      <div class="stamp-detail-section stamp-detail-section--full">
+        <h3>Stamps (Artes)</h3>
+        <% if @art_stamps.any? %>
+          <%= turbo_stream_from "stamps" %>
+          <div class="gallery">
+            <% @art_stamps.each do |stamp| %>
+              <%= render partial: "stamps/stamp_card", locals: { stamp: stamp } %>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No art stamps for this client yet.</p>
         <% end %>
       </div>
     </div>

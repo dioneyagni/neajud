@@ -1345,9 +1345,11 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await option.click();
     await page.waitForTimeout(1000);
 
-    // Verify success notice
-    const body = await page.textContent("body");
-    if (!body.includes("Client updated")) throw new Error(`Client not saved: "${body.slice(0, 200)}"`);
+    // Verify client name appears in display (Turbo Stream replaces section, no flash notice)
+    await page.waitForFunction(() => {
+      const display = document.querySelector(".client-name-display");
+      return display && display.textContent.includes("Test Client E2E");
+    }, { timeout: 5000 });
 
     // Reload to verify persistence
     await page.reload();
@@ -1552,6 +1554,717 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const body = await page.textContent("body");
     if (!body.includes("already exists")) throw new Error(`Duplicate name should show error: "${body.slice(0, 200)}"`);
+  });
+
+  // ── Size Selection (Arte stamps) ──
+
+  await test("Size Selection: section appears on arte stamps with a client", async () => {
+    // Create an arte stamp and assign a client so Size Selection appears
+    const arteSizePath = path.join(__dirname, "e2e-size-arte.tif");
+    if (!fs.existsSync(arteSizePath)) {
+      const { execSync } = require("child_process");
+      execSync(`convert -size 30x30 xc:blue 'TIFF:${arteSizePath}'`);
+    }
+
+    await page.goto(BASE_URL);
+    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+
+    const fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(arteSizePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // Go to the arte stamp show page
+    const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
+    const sizeCardCount = await sizeCard.count();
+    if (sizeCardCount === 0) throw new Error("Arte stamp card not found");
+
+    const sizeLink = sizeCard.locator("a").first();
+    await sizeLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Get CSRF for subsequent API calls
+    const csrf = await page.evaluate(() => {
+      const meta = document.querySelector("meta[name='csrf-token']");
+      return meta?.content || "";
+    });
+
+    // Create a client
+    await page.evaluate(async (token) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "client[name]": "Size Test Client", "client[responsible]": "Tester" })
+      });
+    }, csrf);
+
+    // Assign client to the arte stamp via fetch
+    const clientAssigned = await page.evaluate(async (token) => {
+      const clientRes = await fetch("/clients/search?q=Size Test Client");
+      const clients = await clientRes.json();
+      if (!clients[0]) return false;
+      const uuid = window.location.pathname.split("/").pop();
+      const res = await fetch(`/stamps/${uuid}/update_client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+      });
+      return res.ok;
+    }, csrf);
+
+    if (!clientAssigned) throw new Error("Failed to assign client");
+
+    // Reload to see Size Selection
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Size Selection")) throw new Error("Size Selection section not found");
+
+    // No modelo set yet — section should be hidden
+    await page.waitForSelector("#size-selection-section", { state: "attached", timeout: 5000 });
+    const debugInfo = await page.evaluate(() => {
+      const el = document.querySelector("#size-selection-section");
+      if (!el) return "NOT_FOUND";
+      const style = el.getAttribute("style") || "";
+      const clientId = el.getAttribute("data-size-cascade-client-id-value") || "";
+      const moldeId = el.getAttribute("data-size-cascade-molde-id-value") || "";
+      return `style="${style}" clientId="${clientId}" moldeId="${moldeId}"`;
+    });
+    if (debugInfo === "NOT_FOUND") throw new Error("Size Selection section not in DOM");
+    const rawStyle = await page.$eval("#size-selection-section", el => el.getAttribute("style"));
+    if (rawStyle !== "display:none") throw new Error(`Size Selection not hidden: style="${rawStyle}" (debug: ${debugInfo})`);
+
+    // Cascade selects and save button should NOT render (no modelo)
+    const pecaSelect = await page.$("#cascade_peca");
+    if (pecaSelect) throw new Error("Piece select should not render without a modelo");
+
+    const saveBtn = await page.$("[data-size-cascade-target='saveBtn']");
+    if (saveBtn) throw new Error("Save button should not render without a modelo");
+  });
+
+  await test("Size Selection: full cascade flow selects and saves a size", async () => {
+    // ── Setup: create arte + organized stamps ──
+    const artePath = path.join(__dirname, "e2e-cascade-arte.tif");
+    if (!fs.existsSync(artePath)) {
+      const { execSync } = require("child_process");
+      execSync(`convert -size 30x30 xc:green 'TIFF:${artePath}'`);
+    }
+
+    const orgPath = path.join(__dirname, "e2e-cascade-org.tif");
+    if (!fs.existsSync(orgPath)) {
+      const { execSync } = require("child_process");
+      execSync(`convert -size 20x20 xc:red 'TIFF:${orgPath}'`);
+    }
+
+    // Upload arte stamp
+    await page.goto(BASE_URL);
+    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+    let fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(artePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // Upload organized stamp
+    await page.goto(BASE_URL);
+    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+    fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(orgPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // ── Navigate to arte stamp show page ──
+    const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
+    await arteCard.waitFor({ timeout: 10000 });
+    await arteCard.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const csrf = await page.evaluate(() => {
+      const meta = document.querySelector("meta[name='csrf-token']");
+      return meta?.content || "";
+    });
+
+    // ── Create a client ──
+    await page.evaluate(async (token) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          authenticity_token: token,
+          "client[name]": "Cascade Test Client",
+          "client[responsible]": "Cascade Tester"
+        })
+      });
+    }, csrf);
+
+    // ── Assign client to arte stamp ──
+    const clientAssigned = await page.evaluate(async (token) => {
+      const r = await fetch("/clients/search?q=Cascade Test Client");
+      const clients = await r.json();
+      if (!clients[0]) return false;
+      const uuid = window.location.pathname.split("/").pop();
+      const res = await fetch(`/stamps/${uuid}/update_client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+      });
+      return res.ok;
+    }, csrf);
+    if (!clientAssigned) throw new Error("Failed to assign client");
+
+    // ── Reload to see Size Selection ──
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const body = await page.textContent("body");
+    if (!body.includes("Size Selection")) throw new Error("Size Selection section not found");
+    // No modelo set — section should be hidden
+    await page.waitForSelector("#size-selection-section", { state: "attached", timeout: 5000 });
+    const debugCascade = await page.evaluate(() => {
+      const el = document.querySelector("#size-selection-section");
+      if (!el) return "NOT_FOUND";
+      const style = el.getAttribute("style") || "";
+      const clientId = el.getAttribute("data-size-cascade-client-id-value") || "";
+      const moldeId = el.getAttribute("data-size-cascade-molde-id-value") || "";
+      return `style="${style}" clientId="${clientId}" moldeId="${moldeId}"`;
+    });
+    if (debugCascade === "NOT_FOUND") throw new Error("Size Selection section not in DOM");
+    const rawStyle = await page.$eval("#size-selection-section", el => el.getAttribute("style"));
+    if (rawStyle !== "display:none") throw new Error(`Size Selection not hidden: style="${rawStyle}" (debug: ${debugCascade})`);
+
+    // ── Create peca, molde (with peca), and modelo (with client + molde) ──
+    const chain = await page.evaluate(async (token) => {
+      // Create peca
+      await fetch("/pecas", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Cascade Peca" })
+      });
+
+      // Find peca id
+      const pecaRes = await fetch("/pecas/search?q=Cascade Peca");
+      const pecas = await pecaRes.json();
+      if (!pecas[0]) return null;
+
+      // Create molde with peca_ids
+      const moldeBody = new URLSearchParams();
+      moldeBody.append("authenticity_token", token);
+      moldeBody.append("molde[nome]", "Cascade Molde");
+      moldeBody.append("molde[peca_ids][]", pecas[0].id);
+      await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
+
+      // Find molde id
+      const moldeRes = await fetch("/moldes/search?q=Cascade Molde");
+      const moldes = await moldeRes.json();
+      if (!moldes[0]) return null;
+
+      // Find client id
+      const clientRes = await fetch("/clients/search?q=Cascade Test Client");
+      const clients = await clientRes.json();
+      if (!clients[0]) return null;
+
+      // Create modelo
+      await fetch("/modelos", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          authenticity_token: token,
+          "modelo[nome]": "Cascade Modelo",
+          "modelo[client_id]": clients[0].id,
+          "modelo[molde_id]": moldes[0].id
+        })
+      });
+
+      return { moldeId: moldes[0].id, pecaId: pecas[0].id };
+    }, csrf);
+    if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
+
+    // ── Set modelo on arte stamp so Size Selection can use its molde ──
+    const modeloSet = await page.evaluate(async (token) => {
+      const modeloRes = await fetch("/modelos/search?q=Cascade Modelo");
+      const modelos = await modeloRes.json();
+      if (!modelos[0]) return false;
+      const uuid = window.location.pathname.split("/").pop();
+      const res = await fetch(`/stamps/${uuid}/update_modelo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", modelo_id: modelos[0].id })
+      });
+      return res.ok;
+    }, csrf);
+    if (!modeloSet) throw new Error("Failed to set modelo on arte stamp");
+
+    // ── Reload: Size Selection should now have pre-populated Piece select ──
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const sectionBody = await page.textContent("body");
+    if (!sectionBody.includes("Size Selection")) throw new Error("Size Selection section not found after setting modelo");
+
+    // Verify peca select is pre-populated (fetched from stamp.modelo.molde_id)
+    await page.waitForFunction(() => {
+      const sel = document.querySelector("#cascade_peca");
+      return sel && sel.options.length > 1;
+    }, { timeout: 5000 });
+
+    // ── Navigate to gallery, then organized stamp's show page ──
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(500);
+    const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-org" }).first();
+    await orgCard.waitFor({ timeout: 10000 });
+    await orgCard.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // ── Assign client to organized stamp (same client as arte) ──
+    const orgClientSet = await page.evaluate(async (token) => {
+      const clientRes = await fetch("/clients/search?q=Cascade Test Client");
+      const clients = await clientRes.json();
+      if (!clients[0]) return false;
+      const uuid = window.location.pathname.split("/").pop();
+      const res = await fetch(`/stamps/${uuid}/update_client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+      });
+      return res.ok;
+    }, csrf);
+    if (!orgClientSet) throw new Error("Failed to assign client to organized stamp");
+
+    // ── Organize the stamp (set molde_id, peca_id, create tamanho) ──
+    const organized = await page.evaluate(async ({ token, chain }) => {
+      const uuid = window.location.pathname.split("/").pop();
+      const body = new URLSearchParams();
+      body.append("authenticity_token", token);
+      body.append("_method", "patch");
+      body.append("molde_id", chain.moldeId);
+      body.append("peca_id", chain.pecaId);
+      body.append("tamanhos[0][nome]", "42");
+      body.append("tamanhos[0][width_mm]", "100");
+      body.append("tamanhos[0][height_mm]", "200");
+      body.append("tamanhos[0][area_mm2]", "5000");
+      const r = await fetch(`/stamps/${uuid}/organize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body
+      });
+      return r.ok;
+    }, { token: csrf, chain });
+    if (!organized) throw new Error("Failed to organize stamp");
+
+    // ── Navigate back to arte stamp show page ──
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(500);
+    const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
+    await arteCard2.waitFor({ timeout: 10000 });
+    await arteCard2.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // ── Verify cascade selects work ──
+    // Peca select should already be pre-populated from stamp.modelo.molde_id
+    await page.waitForFunction(() => {
+      const sel = document.querySelector("#cascade_peca");
+      return sel && sel.options.length > 1;
+    }, { timeout: 5000 });
+    await page.waitForTimeout(300);
+
+    // Select peca -> should populate tamanho select
+    await page.selectOption("#cascade_peca", { label: "Cascade Peca" });
+    await page.waitForFunction(() => {
+      const sel = document.querySelector("#cascade_tamanho");
+      return sel && sel.options.length > 1;
+    }, { timeout: 5000 });
+    await page.waitForTimeout(300);
+
+    // Tamanho should have "42" with dimensions
+    const tamanhoOpts = await page.$eval("#cascade_tamanho", el =>
+      Array.from(el.options).map(o => o.text)
+    );
+    if (!tamanhoOpts.some(t => t.includes("42"))) {
+      throw new Error(`Tamanho "42" not found in options: ${JSON.stringify(tamanhoOpts)}`);
+    }
+
+    // Select tamanho by value (label can include Unicode × character)
+    const tamanhoVal = await page.$eval("#cascade_tamanho", el => {
+      const opt = Array.from(el.options).find(o => o.text.includes("42"));
+      return opt ? opt.value : null;
+    });
+    if (!tamanhoVal) throw new Error("Could not find tamanho option value for 42");
+    await page.selectOption("#cascade_tamanho", tamanhoVal);
+    await page.waitForTimeout(200);
+
+    // Save button should be enabled
+    const saveBtn = page.locator("[data-size-cascade-target='saveBtn']");
+    await saveBtn.waitFor({ timeout: 2000 });
+    const enabled = await saveBtn.evaluate(el => !el.disabled);
+    if (!enabled) throw new Error("Save button should be enabled after selecting tamanho");
+
+    // Click save -> should update in-place (Turbo Stream, no reload)
+    await saveBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Display mode should show peca name + tamanho
+    const body2 = await page.textContent("body");
+    if (!body2.includes("Cascade Peca")) throw new Error(`Peca not shown after save: "${body2.slice(0, 300)}"`);
+    if (!body2.includes("42")) throw new Error("Size 42 not shown as current size");
+
+    // Edit button should be visible (display mode)
+    const editBtn = page.locator("[title='Edit size']");
+    await editBtn.waitFor({ timeout: 3000 });
+
+    // Click edit -> form should show again (no reload)
+    await editBtn.click();
+    await page.waitForTimeout(300);
+    const pecaSelect = page.locator("#cascade_peca");
+    await pecaSelect.waitFor({ timeout: 3000 });
+
+    // Click cancel -> back to display (no reload)
+    const cancelBtn = page.locator("#size-selection-section [data-action='click->edit-toggle#cancel']");
+    await cancelBtn.click();
+    await page.waitForTimeout(300);
+
+    // Reload and verify persistence
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const body3 = await page.textContent("body");
+    if (!body3.includes("42")) throw new Error("Size 42 not persisted after reload");
+
+    // Clean up
+    if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+    if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
+  });
+
+  await test("Size Selection: comprehensive full flow — form closes after save and stays closed after reload", async () => {
+    const artePath = path.join(__dirname, "e2e-comp-arte.tif");
+    if (!fs.existsSync(artePath)) {
+      const { execSync } = require("child_process");
+      execSync(`convert -size 30x30 xc:purple 'TIFF:${artePath}'`);
+    }
+
+    const orgPath = path.join(__dirname, "e2e-comp-org.tif");
+    if (!fs.existsSync(orgPath)) {
+      const { execSync } = require("child_process");
+      execSync(`convert -size 20x20 xc:orange 'TIFF:${orgPath}'`);
+    }
+
+    // Helper: returns visibility state of display and form targets (scoped to size-selection-section)
+    async function getSizeState() {
+      return page.evaluate(() => {
+        const section = document.getElementById("size-selection-section");
+        if (!section) return { sectionInDOM: false };
+        const display = section.querySelector('[data-edit-toggle-target="display"]');
+        const form = section.querySelector('[data-edit-toggle-target="form"]');
+        const editBtn = section.querySelector('[title="Edit size"]');
+        return {
+          displayVisible: display ? display.offsetParent !== null : false,
+          displayStyle: display ? (display.getAttribute("style") || "") : "",
+          formVisible: form ? form.offsetParent !== null : false,
+          formStyle: form ? (form.getAttribute("style") || "") : "",
+          editBtnExists: !!editBtn,
+          sectionInDOM: true,
+          sectionHidden: section.style.display === "none",
+        };
+      });
+    }
+
+    async function assertDisplayMode(state, context) {
+      if (!state.sectionInDOM) throw new Error(`${context}: section not in DOM`);
+      if (state.sectionHidden) throw new Error(`${context}: section is hidden — expected visible with display mode`);
+      if (state.formVisible) throw new Error(`${context}: FORM is visible, expected DISPLAY mode (formStyle="${state.formStyle}")`);
+      if (!state.displayVisible) throw new Error(`${context}: DISPLAY is hidden, expected visible (displayStyle="${state.displayStyle}")`);
+      if (!state.editBtnExists) throw new Error(`${context}: Edit button missing — should be in display mode`);
+    }
+
+    // ── Upload arte stamp ──
+    await page.goto(BASE_URL);
+    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+    let fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(artePath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // Go to arte stamp show page
+    const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
+    await arteCard.waitFor({ timeout: 10000 });
+    await arteCard.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const csrf = await page.evaluate(() => {
+      const meta = document.querySelector("meta[name='csrf-token']");
+      return meta?.content || "";
+    });
+
+    // ── Create client ──
+    const clientName = "Comp Test Client " + Date.now();
+    await page.evaluate(async ({ token, name }) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "client[name]": name, "client[responsible]": "Tester" })
+      });
+    }, { token: csrf, name: clientName });
+
+    // ── Assign client via UI (combobox + turbo stream) ──
+    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+    await clientEditBtn.click();
+    await page.waitForTimeout(300);
+
+    const comboboxInput = await page.$(".combobox-input");
+    if (!comboboxInput) throw new Error("Combobox input not found");
+    await comboboxInput.focus();
+    await comboboxInput.fill(clientName);
+    await page.waitForTimeout(800);
+
+    // Click matching result
+    const option = page.locator(".combobox-option").filter({ hasText: clientName }).first();
+    await option.waitFor({ timeout: 5000 });
+    await option.click();
+    await page.waitForTimeout(1500);
+
+    // ── Create peca, molde, modelo ──
+    const chain = await page.evaluate(async ({ token, clientName }) => {
+      // Create peca
+      await fetch("/pecas", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Comp Peca" })
+      });
+      const pecaRes = await fetch("/pecas/search?q=Comp Peca");
+      const pecas = await pecaRes.json();
+      if (!pecas[0]) return null;
+
+      // Create molde with peca_ids
+      const moldeBody = new URLSearchParams();
+      moldeBody.append("authenticity_token", token);
+      moldeBody.append("molde[nome]", "Comp Molde");
+      moldeBody.append("molde[peca_ids][]", pecas[0].id);
+      await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
+      const moldeRes = await fetch("/moldes/search?q=Comp Molde");
+      const moldes = await moldeRes.json();
+      if (!moldes[0]) return null;
+
+      // Find client id
+      const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+      const clients = await clientRes.json();
+      if (!clients[0]) return null;
+
+      // Create modelo
+      await fetch("/modelos", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          authenticity_token: token,
+          "modelo[nome]": "Comp Modelo",
+          "modelo[client_id]": clients[0].id,
+          "modelo[molde_id]": moldes[0].id
+        })
+      });
+
+      return { moldeId: moldes[0].id, pecaId: pecas[0].id };
+    }, { token: csrf, clientName });
+    if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
+
+    // ── Assign modelo via combobox (no reload) ──
+    const modelEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Model" }).locator(".btn-edit").first();
+    await modelEditBtn.click();
+    await page.waitForTimeout(300);
+
+    const modelInput = await page.$(".stamp-detail-section[id='modelo-field-section'] .combobox-input");
+    if (!modelInput) throw new Error("Model combobox input not found");
+    await modelInput.focus();
+    await modelInput.fill("Comp Modelo");
+    await page.waitForTimeout(800);
+
+    const modelOption = page.locator(".combobox-option").filter({ hasText: "Comp Modelo" }).first();
+    await modelOption.waitFor({ timeout: 5000 });
+    await modelOption.click();
+    await page.waitForTimeout(1500);
+
+    // ── Verify Size Selection section is visible with display mode ──
+    // After modelo assigned, size selection should be visible (has client + modelo)
+    // But no tamanho yet — should show "No size selected" display, NOT form
+    let state = await getSizeState();
+    console.log(`  [debug] after modelo assignment: ${JSON.stringify(state)}`);
+
+    // ── Create organized stamp and organize it ──
+    // Upload organized stamp
+    await page.goto(BASE_URL);
+    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+    fileInput = await page.$('input[type="file"]');
+    await fileInput.setInputFiles(orgPath);
+    await page.click('input[type="submit"]');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+    // Assign client to organized stamp
+    const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
+    await orgCard.waitFor({ timeout: 10000 });
+    await orgCard.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const orgCsrf = await page.evaluate(() => {
+      const meta = document.querySelector("meta[name='csrf-token']");
+      return meta?.content || "";
+    });
+
+    // Assign client via API
+    const orgClientSet = await page.evaluate(async ({ token, clientName }) => {
+      const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+      const clients = await r.json();
+      if (!clients[0]) return false;
+      const uuid = window.location.pathname.split("/").pop();
+      const res = await fetch(`/stamps/${uuid}/update_client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+      });
+      return res.ok;
+    }, { token: orgCsrf, clientName });
+    if (!orgClientSet) throw new Error("Failed to assign client to organized stamp");
+
+    // Organize the stamp
+    const organized = await page.evaluate(async ({ token, chain }) => {
+      const uuid = window.location.pathname.split("/").pop();
+      const body = new URLSearchParams();
+      body.append("authenticity_token", token);
+      body.append("_method", "patch");
+      body.append("molde_id", chain.moldeId);
+      body.append("peca_id", chain.pecaId);
+      body.append("tamanhos[0][nome]", "99");
+      body.append("tamanhos[0][width_mm]", "150");
+      body.append("tamanhos[0][height_mm]", "250");
+      body.append("tamanhos[0][area_mm2]", "8000");
+      const r = await fetch(`/stamps/${uuid}/organize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body
+      });
+      return r.ok;
+    }, { token: orgCsrf, chain });
+    if (!organized) throw new Error("Failed to organize stamp");
+
+    // ── Navigate BACK to arte stamp show page ──
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(500);
+    const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
+    await arteCard2.waitFor({ timeout: 10000 });
+    await arteCard2.locator("a").first().click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // ── Size Selection: select peca + tamanho ──
+    state = await getSizeState();
+    console.log(`  [debug] before cascade: ${JSON.stringify(state)}`);
+
+    // Peca select should be populated from modelo.molde
+    await page.waitForFunction(() => {
+      const sel = document.querySelector("#cascade_peca");
+      return sel && sel.options.length > 1;
+    }, { timeout: 5000 });
+    await page.waitForTimeout(300);
+
+    // Select peca
+    await page.selectOption("#cascade_peca", { label: "Comp Peca" });
+    await page.waitForFunction(() => {
+      const sel = document.querySelector("#cascade_tamanho");
+      return sel && sel.options.length > 1;
+    }, { timeout: 5000 });
+    await page.waitForTimeout(300);
+
+    // Select tamanho "99"
+    const tamanhoVal = await page.$eval("#cascade_tamanho", el => {
+      const opt = Array.from(el.options).find(o => o.text.includes("99"));
+      return opt ? opt.value : null;
+    });
+    if (!tamanhoVal) throw new Error("Tamanho option for 99 not found");
+    await page.selectOption("#cascade_tamanho", tamanhoVal);
+    await page.waitForTimeout(200);
+
+    // Save button should be enabled
+    const saveBtn = page.locator("[data-size-cascade-target='saveBtn']");
+    await saveBtn.waitFor({ timeout: 2000 });
+    const enabled = await saveBtn.evaluate(el => !el.disabled);
+    if (!enabled) throw new Error("Save button should be enabled after selecting tamanho");
+
+    // ── SAVE ──
+    await saveBtn.click();
+    await page.waitForTimeout(2000);
+
+    // ── VERIFY: form is hidden, display is visible (display mode) ──
+    state = await getSizeState();
+    console.log(`  [debug] after save: ${JSON.stringify(state)}`);
+    await assertDisplayMode(state, "After save (no reload)");
+
+    // ── VERIFY: page content shows the size info ──
+    const bodyAfterSave = await page.textContent("body");
+    if (!bodyAfterSave.includes("99")) throw new Error("Size 99 not shown after save");
+
+    // ── VERIFY: click edit -> form shows, click cancel -> display shows ──
+    const editBtn = page.locator("[title='Edit size']");
+    await editBtn.waitFor({ timeout: 3000 });
+    await editBtn.click();
+    await page.waitForTimeout(300);
+
+    // After edit click, form should be visible
+    state = await getSizeState();
+    if (!state.formVisible) throw new Error(`After edit click, form should be visible: ${JSON.stringify(state)}`);
+
+    // Click cancel -> back to display
+    const cancelBtn = page.locator("#size-selection-section [data-action='click->edit-toggle#cancel']");
+    await cancelBtn.click();
+    await page.waitForTimeout(300);
+
+    state = await getSizeState();
+    await assertDisplayMode(state, "After cancel");
+
+    // ── VERIFY: RELOAD and check form stays closed ──
+    await page.reload();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    state = await getSizeState();
+    console.log(`  [debug] after reload: ${JSON.stringify(state)}`);
+    await assertDisplayMode(state, "After page reload");
+
+    const bodyAfterReload = await page.textContent("body");
+    if (!bodyAfterReload.includes("99")) throw new Error("Size 99 not persisted after reload");
+
+    // ── VERIFY: second flow — after reload, edit + save again, form should close ──
+    // Click edit
+    const editBtn2 = page.locator("[title='Edit size']");
+    await editBtn2.waitFor({ timeout: 3000 });
+    await editBtn2.click();
+    await page.waitForTimeout(300);
+
+    // Select peca + tamanho again
+    await page.selectOption("#cascade_peca", { label: "Comp Peca" });
+    await page.waitForTimeout(500);
+    await page.selectOption("#cascade_tamanho", tamanhoVal);
+    await page.waitForTimeout(200);
+
+    const saveBtn2 = page.locator("[data-size-cascade-target='saveBtn']");
+    await saveBtn2.waitFor({ timeout: 2000 });
+    await saveBtn2.click();
+    await page.waitForTimeout(2000);
+
+    state = await getSizeState();
+    console.log(`  [debug] after second save: ${JSON.stringify(state)}`);
+    await assertDisplayMode(state, "After second save (edit + save again)");
+
+    // Clean up
+    if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+    if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
   });
 
   // ── Clients page CRUD ──

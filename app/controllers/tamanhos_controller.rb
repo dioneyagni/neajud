@@ -1,7 +1,7 @@
 require "open3"
 
 class TamanhosController < ApplicationController
-  before_action :set_tamanho
+  before_action :set_tamanho, only: %i[download]
 
   def download
     stamp = @tamanho.stamp
@@ -29,6 +29,16 @@ class TamanhosController < ApplicationController
       filename: "#{@tamanho.nome}.dxf"
   rescue ActionController::MissingFile
     head :not_found
+  end
+
+  def for_cascade
+    scope = Stamp.where(organized: true, molde_id: params[:molde_id], peca_id: params[:peca_id])
+    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+    stamp_ids = scope.pluck(:id)
+    tamanhos = Tamanho.where(stamp_id: stamp_ids).order(:nome)
+    render json: tamanhos.map { |t|
+      { id: t.id, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }
+    }
   end
 
   private

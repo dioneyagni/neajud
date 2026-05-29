@@ -1,7 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { searchUrl: String }
+  static values = {
+    searchUrl: String,
+    displayField: { type: String, default: "name" },
+    extraFields: { type: String, default: "" },
+    registerLabel: { type: String, default: "Register new" }
+  }
 
   connect() {
     this.selected = false
@@ -13,15 +18,21 @@ export default class extends Controller {
 
     fetch(`${this.searchUrlValue}?q=${encodeURIComponent(q)}`)
       .then(r => r.json())
-      .then(clients => {
-        this.results.innerHTML = clients.map(c => `
-          <div class="combobox-option" data-id="${c.id}" data-name="${c.name.replace(/"/g, '&quot;')}" data-action="click->combobox#select">
-            <strong>${this._highlight(c.name, q)}</strong>
-            <span class="combobox-option-detail">${this._highlight(c.responsible, q)}</span>
-          </div>
-        `).join("") + `
+      .then(items => {
+        const extraFieldNames = this.extraFieldsValue ? this.extraFieldsValue.split(",") : []
+        this.results.innerHTML = items.map(item => {
+          const displayName = item[this.displayFieldValue] || item.nome || item.name || ""
+          const extras = extraFieldNames.map(f => item[f]).filter(v => v).join(" — ")
+          const label = extras ? `${displayName} (${extras})` : displayName
+          return `
+            <div class="combobox-option" data-id="${item.id}" data-name="${displayName.replace(/"/g, '&quot;')}" data-action="click->combobox#select">
+              <strong>${this._highlight(displayName, q)}</strong>
+              ${extras ? `<span class="combobox-option-detail">${this._highlight(extras, q)}</span>` : ""}
+            </div>
+          `
+        }).join("") + `
           <div class="combobox-option combobox-option-new" data-action="click->combobox#openNew">
-            + Register new client
+            + ${this.registerLabelValue}
           </div>
         `
         this.results.classList.add("combobox-results--open")
@@ -60,7 +71,8 @@ export default class extends Controller {
   }
 
   get hidden() {
-    return document.getElementById("client_id")
+    const hiddenInputs = this.element.querySelectorAll('input[type=hidden]')
+    return Array.from(hiddenInputs).find(i => i.name !== "authenticity_token" && i.name !== "_method") || hiddenInputs[0]
   }
 
   get results() {

@@ -1,5 +1,5 @@
 class StampsController < ApplicationController
-  before_action :set_stamp, only: %i[show update_time update_client update_modelo preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_stamp, only: %i[show update_time update_client update_modelo update_tamanho preview download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def index
@@ -111,7 +111,10 @@ class StampsController < ApplicationController
 
   def update_client
     if @stamp.update(client_id: params[:client_id].presence)
-      redirect_to @stamp, notice: "Client updated."
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @stamp, notice: "Client updated." }
+      end
     else
       redirect_to @stamp, alert: "Could not update client."
     end
@@ -123,9 +126,24 @@ class StampsController < ApplicationController
       molde_id: params[:molde_id].presence,
       peca_id: params[:peca_id].presence
     )
-      redirect_to @stamp, notice: "Modelo updated."
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @stamp, notice: "Modelo updated." }
+      end
     else
       redirect_to @stamp, alert: "Could not update modelo."
+    end
+  end
+
+  def update_tamanho
+    if @stamp.update(tamanho_id: params[:tamanho_id].presence)
+      @stamp.reload
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @stamp, notice: "Size updated." }
+      end
+    else
+      redirect_to @stamp, alert: "Could not update size."
     end
   end
 

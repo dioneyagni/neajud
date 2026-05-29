@@ -10,16 +10,29 @@ class PecasController < ApplicationController
     render json: pecas.map { |p| { id: p.id, nome: p.nome } }
   end
 
+  def for_cascade
+    scope = Stamp.where(organized: true, molde_id: params[:molde_id])
+    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+    organized_peca_ids = scope.distinct.pluck(:peca_id)
+    molde = Molde.find_by(id: params[:molde_id])
+    molde_peca_ids = molde ? molde.pecas.pluck(:id) : []
+    all_ids = (organized_peca_ids + molde_peca_ids).uniq
+    pecas = Peca.where(id: all_ids).order(:nome)
+    render json: pecas.map { |p| { id: p.id, nome: p.nome } }
+  end
+
   def create
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
     if existing
-      redirect_back fallback_location: stamps_path, alert: "Peca \"#{existing.nome}\" already exists."
+      assign_peca_to_stamp(existing) if params[:stamp_uuid].present?
+      redirect_back fallback_location: stamps_path, alert: "Piece \"#{existing.nome}\" already exists."
       return
     end
 
     @peca = Peca.new(peca_params)
     if @peca.save
-      redirect_back fallback_location: stamps_path, notice: "Peca registered."
+      assign_peca_to_stamp(@peca) if params[:stamp_uuid].present?
+      redirect_back fallback_location: stamps_path, notice: "Piece registered."
     else
       redirect_back fallback_location: stamps_path, alert: @peca.errors.full_messages.join(", ")
     end
@@ -42,6 +55,11 @@ class PecasController < ApplicationController
 
   def set_peca
     @peca = Peca.find(params[:id])
+  end
+
+  def assign_peca_to_stamp(peca)
+    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
+    stamp&.update(peca_id: peca.id)
   end
 
   def peca_params
