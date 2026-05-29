@@ -139,7 +139,7 @@ jobs:
             fi
             sleep 1
           done
-          node e2e/stamps.spec.js
+          node e2e/arquivos.spec.js
           EXIT_CODE=$?
           kill $SERVER_PID 2>/dev/null || true
           exit $EXIT_CODE
