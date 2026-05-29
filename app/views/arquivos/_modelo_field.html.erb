@@ -6,10 +6,10 @@
   </h3>
 
   <div data-edit-toggle-target="display" class="edit-display">
-    <% if @stamp.modelo.present? %>
+    <% if @arquivo.modelo.present? %>
       <div class="client-display">
-        <span class="client-name-display"><%= @stamp.modelo.nome %></span>
-        <span class="client-responsible-display">(<%= @stamp.modelo.client.name %><% if @stamp.modelo.molde %>, <%= @stamp.modelo.molde.nome %><% end %>)</span>
+        <span class="client-name-display"><%= @arquivo.modelo.nome %></span>
+        <span class="client-responsible-display">(<%= @arquivo.modelo.client.name %><% if @arquivo.modelo.molde %>, <%= @arquivo.modelo.molde.nome %><% end %>)</span>
       </div>
     <% else %>
       <span class="client-empty">No model linked</span>
@@ -18,19 +18,19 @@
   </div>
 
   <div data-edit-toggle-target="form" style="display:none">
-    <form action="<%= update_modelo_stamp_path(@stamp) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @stamp.client.present? ? for_client_modelos_path(client_id: @stamp.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @stamp.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+    <form action="<%= update_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
       <input type="hidden" name="_method" value="patch">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
       <div class="combobox">
         <input type="text"
                class="combobox-input"
                placeholder="Search model..."
-               value="<%= @stamp.modelo&.nome %>"
-               data-original-value="<%= @stamp.modelo&.nome %>"
+               value="<%= @arquivo.modelo&.nome %>"
+               data-original-value="<%= @arquivo.modelo&.nome %>"
                data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
         <div class="combobox-results"></div>
       </div>
-      <input type="hidden" name="modelo_id" value="<%= @stamp.modelo_id %>">
+      <input type="hidden" name="modelo_id" value="<%= @arquivo.modelo_id %>">
       <div class="edit-actions" style="margin-top: 0.5rem">
         <button type="submit" class="btn-icon btn-confirm" title="Confirm">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -45,17 +45,17 @@
   <dialog data-dialog-target="dialog" class="client-dialog">
     <form action="<%= modelos_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <input type="hidden" name="modelo[client_id]" value="<%= @stamp.client_id || '' %>">
-      <input type="hidden" name="stamp_uuid" value="<%= @stamp.uuid %>">
+      <input type="hidden" name="modelo[client_id]" value="<%= @arquivo.client_id || '' %>">
+      <input type="hidden" name="arquivo_uuid" value="<%= @arquivo.uuid %>">
       <h4 data-dialog-target="dialogTitle">Register New Model</h4>
       <div class="client-field">
-        <label for="modelo_nome_dialog_stamp">Name</label>
-        <input type="text" name="modelo[nome]" id="modelo_nome_dialog_stamp" required>
+        <label for="modelo_nome_dialog_arquivo">Name</label>
+        <input type="text" name="modelo[nome]" id="modelo_nome_dialog_arquivo" required>
       </div>
-      <% if @stamp.client.blank? %>
+      <% if @arquivo.client.blank? %>
         <div class="client-field">
-          <label for="modelo_client_id_dialog_stamp">Client</label>
-          <select name="modelo[client_id]" id="modelo_client_id_dialog_stamp" required>
+          <label for="modelo_client_id_dialog_arquivo">Client</label>
+          <select name="modelo[client_id]" id="modelo_client_id_dialog_arquivo" required>
             <option value="">Select a client...</option>
             <% Client.order(:name).each do |c| %>
               <option value="<%= c.id %>"><%= c.name %></option>
@@ -64,8 +64,8 @@
         </div>
       <% end %>
       <div class="client-field">
-        <label for="modelo_molde_id_dialog_stamp">Mold</label>
-        <select name="modelo[molde_id]" id="modelo_molde_id_dialog_stamp">
+        <label for="modelo_molde_id_dialog_arquivo">Mold</label>
+        <select name="modelo[molde_id]" id="modelo_molde_id_dialog_arquivo">
           <option value="">Select a mold...</option>
           <% Molde.order(:nome).each do |m| %>
             <option value="<%= m.id %>"><%= m.nome %></option>

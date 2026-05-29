@@ -1,6 +1,6 @@
 FactoryBot.define do
-  factory :stamp do
-    filename { "test_stamp" }
+  factory :arquivo do
+    filename { "test_arquivo" }
     extension { "tif" }
     mime_type { "image/tiff" }
   end

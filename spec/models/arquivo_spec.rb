@@ -1,7 +1,7 @@
 require "rails_helper"
 
-RSpec.describe Stamp, type: :model do
-  subject(:stamp) { build(:stamp) }
+RSpec.describe Arquivo, type: :model do
+  subject(:arquivo) { build(:arquivo) }
 
   describe "validations" do
     it { should validate_presence_of(:filename) }
@@ -10,13 +10,18 @@ RSpec.describe Stamp, type: :model do
   end
 
   describe "associations" do
-    it { should have_many(:stamp_time_logs).dependent(:destroy) }
-    it { should have_many(:stamp_versions) }
+    it { should have_many(:arquivo_time_logs).dependent(:destroy) }
+    it { should have_many(:arquivo_versions) }
+    it { should belong_to(:client).optional }
+    it { should belong_to(:molde).optional }
+    it { should belong_to(:peca).optional }
+    it { should belong_to(:modelo).optional }
+    it { should belong_to(:tamanho).optional }
   end
 
-  describe "enums" do
+  describe "statuses" do
     it "defines status enum with correct values" do
-      expect(Stamp.statuses).to eq({
+      expect(Arquivo.statuses).to eq({
         "pending" => "pending",
         "processing" => "processing",
         "processed" => "processed",
@@ -29,25 +34,25 @@ RSpec.describe Stamp, type: :model do
 
   describe "callbacks" do
     it "generates uuid before create" do
-      stamp.save!
-      expect(stamp.uuid).to be_present
-      expect(stamp.uuid).to match(/\A[0-9a-f-]{36}\z/)
+      arquivo.save!
+      expect(arquivo.uuid).to be_present
+      expect(arquivo.uuid).to match(/\A[0-9a-f-]{36}\z/)
     end
   end
 
   describe "SUPPORTED_EXTENSIONS" do
     it "includes all Artes formats" do
       artes = %w[tif tiff psd ai eps cdr pdf]
-      expect(Stamp::SUPPORTED_EXTENSIONS).to include(*artes)
+      expect(Arquivo::SUPPORTED_EXTENSIONS).to include(*artes)
     end
 
     it "includes all Corte formats" do
       corte = %w[dxf svg dwg cad]
-      expect(Stamp::SUPPORTED_EXTENSIONS).to include(*corte)
+      expect(Arquivo::SUPPORTED_EXTENSIONS).to include(*corte)
     end
 
     it "does not include removed formats" do
-      expect(Stamp::SUPPORTED_EXTENSIONS).not_to include("jpg", "jpeg")
+      expect(Arquivo::SUPPORTED_EXTENSIONS).not_to include("jpg", "jpeg")
     end
   end
 end

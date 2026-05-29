@@ -10,8 +10,8 @@
           <dd><%= @molde.nome %></dd>
           <dt>Peças</dt>
           <dd><%= @molde.pecas.pluck(:nome).join(", ").presence || "—" %></dd>
-          <dt>Stamps</dt>
-          <dd><%= @molde.stamps.count %></dd>
+          <dt>Arquivos</dt>
+          <dd><%= @molde.arquivos.count %></dd>
         </dl>
       </div>
 
@@ -24,16 +24,16 @@
       </div>
 
       <div class="stamp-detail-section stamp-detail-section--full">
-        <h3>Stamps</h3>
-        <% if @stamps.any? %>
-          <%= turbo_stream_from "stamps" %>
+        <h3>Arquivos</h3>
+        <% if @arquivos.any? %>
+          <%= turbo_stream_from "arquivos" %>
           <div class="gallery">
-            <% @stamps.each do |stamp| %>
-              <%= render partial: "stamps/stamp_card", locals: { stamp: stamp } %>
+            <% @arquivos.each do |arquivo| %>
+              <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
             <% end %>
           </div>
         <% else %>
-          <p class="gallery-empty" style="margin-top: 0.75rem">No stamps for this mold yet.</p>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No arquivos for this mold yet.</p>
         <% end %>
       </div>
     </div>

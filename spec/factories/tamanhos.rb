@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :tamanho do
-    stamp
+    arquivo
     sequence(:nome) { |n| "Size #{n}" }
     position { 1 }
     width_mm { 100.0 }

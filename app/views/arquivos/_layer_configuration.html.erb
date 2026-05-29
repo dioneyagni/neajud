@@ -1,4 +1,4 @@
-<div data-controller="layer-config" data-layer-config-version-id-value="<%= version.id %>" data-layer-config-url-value="<%= configure_layers_stamp_path(@stamp) %>">
+<div data-controller="layer-config" data-layer-config-version-id-value="<%= version.id %>" data-layer-config-url-value="<%= configure_layers_arquivo_path(@arquivo) %>">
   <div class="layer-config-list">
     <% version.cut_layers.order(:position).each_with_index do |layer, idx| %>
       <div class="layer-config-row">

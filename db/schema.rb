@@ -10,7 +10,86 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_22_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
+  create_table "arquivo_image_metadata", force: :cascade do |t|
+    t.integer "arquivo_version_id", null: false
+    t.string "colorspace"
+    t.string "colorspace_error"
+    t.datetime "created_at", null: false
+    t.float "dpi"
+    t.boolean "has_spots", default: false
+    t.integer "height_px"
+    t.string "icc_profile"
+    t.json "metadata"
+    t.datetime "updated_at", null: false
+    t.integer "width_px"
+    t.index ["arquivo_version_id"], name: "idx_stamp_image_metadata_on_version", unique: true
+    t.index ["arquivo_version_id"], name: "index_arquivo_image_metadata_on_arquivo_version_id"
+  end
+
+  create_table "arquivo_time_logs", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.string "changed_by"
+    t.datetime "created_at", null: false
+    t.integer "new_seconds", null: false
+    t.integer "previous_seconds", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["arquivo_id"], name: "index_arquivo_time_logs_on_arquivo_id"
+    t.index ["uuid"], name: "index_arquivo_time_logs_on_uuid", unique: true
+  end
+
+  create_table "arquivo_versions", force: :cascade do |t|
+    t.boolean "approved", default: false, null: false
+    t.integer "arquivo_id", null: false
+    t.string "category"
+    t.text "category_notes"
+    t.datetime "created_at", null: false
+    t.string "extension", null: false
+    t.string "filename", null: false
+    t.string "mime_type", null: false
+    t.string "original_file", null: false
+    t.string "preview_file"
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.integer "version_number", null: false
+    t.index ["arquivo_id", "version_number"], name: "index_arquivo_versions_on_arquivo_id_and_version_number", unique: true
+    t.index ["arquivo_id"], name: "index_arquivo_versions_on_arquivo_id"
+    t.index ["uuid"], name: "index_arquivo_versions_on_uuid", unique: true
+  end
+
+  create_table "arquivos", force: :cascade do |t|
+    t.integer "annotated_seconds"
+    t.integer "approved_version_id"
+    t.string "batch_id"
+    t.string "category"
+    t.text "category_notes"
+    t.integer "client_id"
+    t.datetime "created_at", null: false
+    t.integer "estimated_seconds", default: 0
+    t.string "extension", null: false
+    t.string "filename", null: false
+    t.string "mime_type", null: false
+    t.integer "modelo_id"
+    t.integer "molde_id"
+    t.string "molde_nome", default: "Novo Molde"
+    t.string "organize_error"
+    t.boolean "organized", default: false, null: false
+    t.integer "peca_id"
+    t.string "peca_nome", default: "Nova Peça"
+    t.integer "tamanho_id"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
+    t.index ["client_id"], name: "index_arquivos_on_client_id"
+    t.index ["modelo_id"], name: "index_arquivos_on_modelo_id"
+    t.index ["molde_id"], name: "index_arquivos_on_molde_id"
+    t.index ["peca_id"], name: "index_arquivos_on_peca_id"
+    t.index ["tamanho_id"], name: "index_arquivos_on_tamanho_id"
+    t.index ["uuid"], name: "index_arquivos_on_uuid", unique: true
+  end
+
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -43,16 +122,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_150000) do
   create_table "cut_layers", force: :cascade do |t|
     t.string "annotation", default: "cut"
     t.decimal "area_mm2", precision: 10, scale: 2
+    t.integer "arquivo_version_id", null: false
     t.string "color", null: false
     t.datetime "created_at", null: false
     t.decimal "height_mm", precision: 10, scale: 2
     t.string "layer_name", null: false
     t.decimal "perimeter_mm", precision: 10, scale: 2
     t.integer "position"
-    t.integer "stamp_version_id", null: false
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2
-    t.index ["stamp_version_id"], name: "index_cut_layers_on_stamp_version_id"
+    t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
   end
 
   create_table "modelos", force: :cascade do |t|
@@ -88,113 +167,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_150000) do
     t.index ["nome"], name: "index_pecas_on_nome", unique: true
   end
 
-  create_table "stamp_image_metadata", force: :cascade do |t|
-    t.string "colorspace"
-    t.string "colorspace_error"
-    t.datetime "created_at", null: false
-    t.float "dpi"
-    t.boolean "has_spots", default: false
-    t.integer "height_px"
-    t.string "icc_profile"
-    t.json "metadata"
-    t.integer "stamp_version_id", null: false
-    t.datetime "updated_at", null: false
-    t.integer "width_px"
-    t.index ["stamp_version_id"], name: "idx_stamp_image_metadata_on_version", unique: true
-    t.index ["stamp_version_id"], name: "index_stamp_image_metadata_on_stamp_version_id"
-  end
-
-  create_table "stamp_time_logs", force: :cascade do |t|
-    t.string "changed_by"
-    t.datetime "created_at", null: false
-    t.integer "new_seconds", null: false
-    t.integer "previous_seconds", null: false
-    t.integer "stamp_id", null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
-    t.index ["stamp_id"], name: "index_stamp_time_logs_on_stamp_id"
-    t.index ["uuid"], name: "index_stamp_time_logs_on_uuid", unique: true
-  end
-
-  create_table "stamp_versions", force: :cascade do |t|
-    t.boolean "approved", default: false, null: false
-    t.string "category"
-    t.text "category_notes"
-    t.datetime "created_at", null: false
-    t.string "extension", null: false
-    t.string "filename", null: false
-    t.string "mime_type", null: false
-    t.string "original_file", null: false
-    t.string "preview_file"
-    t.integer "stamp_id", null: false
-    t.string "status", default: "pending", null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
-    t.integer "version_number", null: false
-    t.index ["stamp_id", "version_number"], name: "index_stamp_versions_on_stamp_id_and_version_number", unique: true
-    t.index ["stamp_id"], name: "index_stamp_versions_on_stamp_id"
-    t.index ["uuid"], name: "index_stamp_versions_on_uuid", unique: true
-  end
-
-  create_table "stamps", force: :cascade do |t|
-    t.integer "annotated_seconds"
-    t.integer "approved_version_id"
-    t.string "batch_id"
-    t.string "category"
-    t.text "category_notes"
-    t.integer "client_id"
-    t.datetime "created_at", null: false
-    t.integer "estimated_seconds", default: 0
-    t.string "extension", null: false
-    t.string "filename", null: false
-    t.string "mime_type", null: false
-    t.integer "modelo_id"
-    t.integer "molde_id"
-    t.string "molde_nome", default: "Novo Molde"
-    t.string "organize_error"
-    t.boolean "organized", default: false, null: false
-    t.integer "peca_id"
-    t.string "peca_nome", default: "Nova Peça"
-    t.integer "tamanho_id"
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
-    t.index ["approved_version_id"], name: "index_stamps_on_approved_version_id"
-    t.index ["client_id"], name: "index_stamps_on_client_id"
-    t.index ["modelo_id"], name: "index_stamps_on_modelo_id"
-    t.index ["molde_id"], name: "index_stamps_on_molde_id"
-    t.index ["peca_id"], name: "index_stamps_on_peca_id"
-    t.index ["tamanho_id"], name: "index_stamps_on_tamanho_id"
-    t.index ["uuid"], name: "index_stamps_on_uuid", unique: true
-  end
-
   create_table "tamanhos", force: :cascade do |t|
     t.decimal "area_mm2", precision: 10, scale: 2
+    t.integer "arquivo_id", null: false
     t.datetime "created_at", null: false
     t.decimal "height_mm", precision: 10, scale: 2
     t.decimal "inner_lines_mm"
     t.string "nome", null: false
     t.decimal "perimeter_mm"
     t.integer "position"
-    t.integer "stamp_id", null: false
     t.decimal "total_line_mm"
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2
-    t.index ["stamp_id"], name: "index_tamanhos_on_stamp_id"
+    t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
   end
 
-  add_foreign_key "cut_layers", "stamp_versions"
+  add_foreign_key "arquivo_image_metadata", "arquivo_versions"
+  add_foreign_key "arquivo_time_logs", "arquivos"
+  add_foreign_key "arquivo_versions", "arquivos"
+  add_foreign_key "arquivos", "arquivo_versions", column: "approved_version_id"
+  add_foreign_key "arquivos", "clients"
+  add_foreign_key "arquivos", "modelos"
+  add_foreign_key "arquivos", "moldes"
+  add_foreign_key "arquivos", "pecas"
+  add_foreign_key "arquivos", "tamanhos"
+  add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "modelos", "clients"
   add_foreign_key "modelos", "moldes"
   add_foreign_key "molde_pecas", "moldes"
   add_foreign_key "molde_pecas", "pecas"
-  add_foreign_key "stamp_image_metadata", "stamp_versions"
-  add_foreign_key "stamp_time_logs", "stamps"
-  add_foreign_key "stamp_versions", "stamps"
-  add_foreign_key "stamps", "clients"
-  add_foreign_key "stamps", "modelos"
-  add_foreign_key "stamps", "moldes"
-  add_foreign_key "stamps", "pecas"
-  add_foreign_key "stamps", "stamp_versions", column: "approved_version_id"
-  add_foreign_key "stamps", "tamanhos"
-  add_foreign_key "tamanhos", "stamps"
+  add_foreign_key "tamanhos", "arquivos"
 end

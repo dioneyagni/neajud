@@ -1,27 +1,27 @@
 <div data-controller="dialog" data-create-title="Register New Mold" data-create-label="Register" data-create-url="<%= moldes_path %>">
-<%= form_with url: organize_stamp_path(stamp), method: :patch, class: "mold-organization-form",
+<%= form_with url: organize_arquivo_path(arquivo), method: :patch, class: "mold-organization-form",
       data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
-  <% if !stamp.organized? %>
+  <% if !arquivo.organized? %>
     <div class="mold-organization-alert">
       ⚠ This DXF file is not organized yet. Set the mold, piece, and sizes below.
     </div>
   <% end %>
-  <% if stamp.organize_error.present? %>
+  <% if arquivo.organize_error.present? %>
     <div class="mold-organization-error">
-      ⛔ <%= stamp.organize_error %>. If any overlapping element is a hole, mark it as "Hole" in Layer Configuration and save again.
+      ⛔ <%= arquivo.organize_error %>. If any overlapping element is a hole, mark it as "Hole" in Layer Configuration and save again.
     </div>
   <% end %>
 
   <div class="mold-organization-fields">
     <div class="mold-field">
       <label for="molde_id">Mold</label>
-      <% if stamp.organized? %>
-        <span class="field-display" data-edit-toggle-target="display"><%= stamp.molde&.nome || stamp.molde_nome %></span>
+      <% if arquivo.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= arquivo.molde&.nome || arquivo.molde_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="molde_id" id="molde_id" data-original-value="<%= stamp.molde_id %>">
+          <select name="molde_id" id="molde_id" data-original-value="<%= arquivo.molde_id %>">
             <option value="">Select a mold...</option>
             <% Molde.order(:nome).each do |m| %>
-              <option value="<%= m.id %>" <%= "selected" if stamp.molde_id == m.id %>><%= m.nome %></option>
+              <option value="<%= m.id %>" <%= "selected" if arquivo.molde_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
@@ -30,7 +30,7 @@
         <select name="molde_id" id="molde_id">
           <option value="">Select a mold...</option>
           <% Molde.order(:nome).each do |m| %>
-            <option value="<%= m.id %>" <%= "selected" if stamp.molde_id == m.id %>><%= m.nome %></option>
+            <option value="<%= m.id %>" <%= "selected" if arquivo.molde_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
@@ -38,13 +38,13 @@
     </div>
     <div class="mold-field">
       <label for="peca_id">Piece</label>
-      <% if stamp.organized? %>
-        <span class="field-display" data-edit-toggle-target="display"><%= stamp.peca&.nome || stamp.peca_nome %></span>
+      <% if arquivo.organized? %>
+        <span class="field-display" data-edit-toggle-target="display"><%= arquivo.peca&.nome || arquivo.peca_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="peca_id" id="peca_id" data-original-value="<%= stamp.peca_id %>">
+          <select name="peca_id" id="peca_id" data-original-value="<%= arquivo.peca_id %>">
             <option value="">Select a piece...</option>
             <% Peca.order(:nome).each do |p| %>
-              <option value="<%= p.id %>" <%= "selected" if stamp.peca_id == p.id %>><%= p.nome %></option>
+              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
@@ -53,7 +53,7 @@
         <select name="peca_id" id="peca_id">
           <option value="">Select a piece...</option>
           <% Peca.order(:nome).each do |p| %>
-            <option value="<%= p.id %>" <%= "selected" if stamp.peca_id == p.id %>><%= p.nome %></option>
+            <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
           <% end %>
         </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
@@ -63,17 +63,17 @@
 
   <div class="section-heading-with-action">
     <h4>Sizes</h4>
-    <% if stamp.organized? %>
+    <% if arquivo.organized? %>
       <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       </button>
     <% end %>
   </div>
 
-  <% if stamp.organized? %>
+  <% if arquivo.organized? %>
     <div class="edit-display" data-edit-toggle-target="display">
       <div class="tamanho-list tamanho-list--readonly">
-        <% stamp.tamanhos.each_with_index do |t, idx| %>
+        <% arquivo.tamanhos.each_with_index do |t, idx| %>
           <div class="tamanho-row">
             <span class="tamanho-indicator"><%= idx + 1 %>.</span>
             <span class="tamanho-nome"><%= t.nome %></span>
@@ -90,9 +90,9 @@
     </div>
   <% end %>
 
-  <div<%= stamp.organized? ? ' data-edit-toggle-target="form" style="display:none"'.html_safe : ''.html_safe %>>
+  <div<%= arquivo.organized? ? ' data-edit-toggle-target="form" style="display:none"'.html_safe : ''.html_safe %>>
     <div class="tamanho-list">
-      <% stamp.tamanhos.each_with_index do |t, idx| %>
+      <% arquivo.tamanhos.each_with_index do |t, idx| %>
         <div class="tamanho-row">
           <span class="tamanho-indicator"><%= idx + 1 %>.</span>
           <input type="hidden" name="tamanhos[<%= idx %>][width_mm]" value="<%= t.width_mm %>">
@@ -113,14 +113,14 @@
       <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
       </button>
-      <% if stamp.organized? %>
+      <% if arquivo.organized? %>
         <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
         </button>
       <% end %>
     </div>
 
-    <% unless stamp.organized? %>
+    <% unless arquivo.organized? %>
       </div>
     <% end %>
   </div>
@@ -129,7 +129,7 @@
   <dialog data-dialog-target="moldeDialog" class="client-dialog" id="molde_dialog_org">
     <form action="<%= moldes_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <input type="hidden" name="stamp_uuid" value="<%= stamp.uuid %>">
+      <input type="hidden" name="arquivo_uuid" value="<%= arquivo.uuid %>">
       <h4 data-dialog-target="dialogTitle">Register New Mold</h4>
       <div class="client-field">
         <label for="molde_nome_dialog_org">Name</label>
@@ -145,7 +145,7 @@
   <dialog data-dialog-target="pecaDialog" class="client-dialog" id="peca_dialog_org">
     <form action="<%= pecas_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <input type="hidden" name="stamp_uuid" value="<%= stamp.uuid %>">
+      <input type="hidden" name="arquivo_uuid" value="<%= arquivo.uuid %>">
       <h4>Register New Piece</h4>
       <div class="client-field">
         <label for="peca_nome_dialog_org">Name</label>

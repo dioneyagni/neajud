@@ -1,0 +1,50 @@
+<%= tag.div id: dom_id(arquivo), class: "stamp-card" do %>
+  <%= link_to arquivo_path(arquivo) do %>
+    <div class="stamp-card-thumb">
+      <% if arquivo.preview_file.present? && File.exist?(arquivo.preview_file) %>
+        <%= image_tag preview_arquivo_path(arquivo, t: arquivo.approved_version&.updated_at&.to_i), alt: arquivo.filename %>
+        <div class="stamp-card-icons-overlay">
+          <%= image_tag "#{arquivo.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <span class="stamp-card-ext-flag"><%= arquivo.extension.upcase %></span>
+        </div>
+      <% elsif arquivo.preview_file.present? %>
+        <%= image_tag "#{FileCategory.extension_icon(arquivo.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: arquivo.extension %>
+        <span class="stamp-card-preview-missing">Preview unavailable</span>
+        <div class="stamp-card-icons-overlay">
+          <%= image_tag "#{arquivo.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <span class="stamp-card-ext-flag"><%= arquivo.extension.upcase %></span>
+        </div>
+      <% elsif arquivo.failed? || arquivo.unsupported_format? || arquivo.invalid_colorspace? %>
+        <span class="file-icon">&#9888;</span>
+      <% else %>
+        <%= image_tag "#{FileCategory.extension_icon(arquivo.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: arquivo.extension %>
+        <div class="stamp-card-icons-overlay">
+          <%= image_tag "#{arquivo.program_icon}.svg", class: "stamp-card-program-icon", alt: "Program" %>
+          <span class="stamp-card-ext-flag"><%= arquivo.extension.upcase %></span>
+        </div>
+      <% end %>
+      <div class="stamp-card-status-overlay">
+        <% if !arquivo.client_id && arquivo.processed? %>
+          <%= image_tag "icons/status/no-client.svg", class: "stamp-card-status-icon", alt: "No Client" %>
+        <% end %>
+        <% if arquivo.extension == "dxf" && !arquivo.organized? %>
+          <%= image_tag "icons/status/not-organized.svg", class: "stamp-card-status-icon", alt: "Not Organized" %>
+        <% end %>
+        <% if arquivo.organize_error.present? %>
+          <%= image_tag "icons/status/stacked-cuts.svg", class: "stamp-card-status-icon", alt: "Stacked Cuts" %>
+        <% end %>
+      </div>
+    </div>
+    <div class="stamp-card-body">
+      <div class="stamp-card-name"><%= arquivo.filename %>.<%= arquivo.extension %></div>
+      <div class="stamp-card-meta">
+        <% if arquivo.failed? || arquivo.unsupported_format? || arquivo.invalid_colorspace? %>
+          <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= arquivo.status.humanize %></span>
+        <% end %>
+        <% if arquivo.annotated_seconds || arquivo.estimated_seconds&.positive? %>
+          <span><%= format_time(arquivo.annotated_seconds || arquivo.estimated_seconds) %></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

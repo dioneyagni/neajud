@@ -1,5 +1,5 @@
 class Peca < ApplicationRecord
-  has_many :stamps, dependent: :nullify
+  has_many :arquivos, dependent: :nullify
   has_many :molde_pecas, dependent: :destroy
   has_many :moldes, through: :molde_pecas
 

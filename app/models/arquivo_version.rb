@@ -1,13 +1,13 @@
-class StampVersion < ApplicationRecord
-  belongs_to :stamp
+class ArquivoVersion < ApplicationRecord
+  belongs_to :arquivo
 
-  has_one :image_metadata, class_name: "StampImageMetadata", dependent: :destroy
+  has_one :image_metadata, class_name: "ArquivoImageMetadata", dependent: :destroy
   has_many :cut_layers, dependent: :destroy
 
   before_validation :set_uuid, on: :create
 
   validates :uuid, presence: true, uniqueness: true
-  validates :version_number, presence: true, uniqueness: { scope: :stamp_id }
+  validates :version_number, presence: true, uniqueness: { scope: :arquivo_id }
   validates :filename, presence: true
   validates :extension, presence: true
   validates :mime_type, presence: true
@@ -21,7 +21,7 @@ class StampVersion < ApplicationRecord
   end
 
   def storage_dir
-    File.join(STORAGE_BASE, stamp.uuid, "v#{version_number}")
+    File.join(STORAGE_BASE, arquivo.uuid, "v#{version_number}")
   end
 
   def original_path

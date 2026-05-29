@@ -6,7 +6,7 @@ class MoldesController < ApplicationController
   end
 
   def show
-    @stamps = @molde.stamps.includes(approved_version: :image_metadata).order(created_at: :desc)
+    @arquivos = @molde.arquivos.includes(approved_version: :image_metadata).order(created_at: :desc)
   end
 
   def pecas
@@ -21,15 +21,15 @@ class MoldesController < ApplicationController
   def create
     existing = Molde.where("LOWER(nome) = ?", molde_params[:nome].downcase).first
     if existing
-      assign_molde_to_stamp(existing) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, alert: "Molde \"#{existing.nome}\" already exists."
+      assign_molde_to_arquivo(existing) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, alert: "Molde \"#{existing.nome}\" already exists."
       return
     end
 
     @molde = Molde.new(molde_params)
     if @molde.save
       @molde.peca_ids = params[:molde][:peca_ids].reject(&:blank?) if params[:molde][:peca_ids]
-      assign_molde_to_stamp(@molde) if params[:stamp_uuid].present?
+      assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
       redirect_back fallback_location: moldes_path, notice: "Molde registered."
     else
       redirect_back fallback_location: moldes_path, alert: @molde.errors.full_messages.join(", ")
@@ -60,8 +60,8 @@ class MoldesController < ApplicationController
     params.require(:molde).permit(:nome, peca_ids: [])
   end
 
-  def assign_molde_to_stamp(molde)
-    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
-    stamp&.update(molde_id: molde.id)
+  def assign_molde_to_arquivo(molde)
+    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo&.update(molde_id: molde.id)
   end
 end

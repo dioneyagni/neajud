@@ -4,11 +4,11 @@ class TamanhosController < ApplicationController
   before_action :set_tamanho, only: %i[download]
 
   def download
-    stamp = @tamanho.stamp
-    version = stamp.approved_version
+    arquivo = @tamanho.arquivo
+    version = arquivo.approved_version
     raise ActionController::MissingFile unless version && File.exist?(version.original_path.to_s)
 
-    output_dir = Rails.root.join("tmp", "tamanho_extracts", stamp.uuid)
+    output_dir = Rails.root.join("tmp", "tamanho_extracts", arquivo.uuid)
     FileUtils.mkdir_p(output_dir)
     output_path = output_dir.join("#{@tamanho.nome}.dxf")
 
@@ -32,10 +32,10 @@ class TamanhosController < ApplicationController
   end
 
   def for_cascade
-    scope = Stamp.where(organized: true, molde_id: params[:molde_id], peca_id: params[:peca_id])
+    scope = Arquivo.where(organized: true, molde_id: params[:molde_id], peca_id: params[:peca_id])
     scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
-    stamp_ids = scope.pluck(:id)
-    tamanhos = Tamanho.where(stamp_id: stamp_ids).order(:nome)
+    arquivo_ids = scope.pluck(:id)
+    tamanhos = Tamanho.where(arquivo_id: arquivo_ids).order(:nome)
     render json: tamanhos.map { |t|
       { id: t.id, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }
     }

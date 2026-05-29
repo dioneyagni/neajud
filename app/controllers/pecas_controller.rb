@@ -11,7 +11,7 @@ class PecasController < ApplicationController
   end
 
   def for_cascade
-    scope = Stamp.where(organized: true, molde_id: params[:molde_id])
+    scope = Arquivo.where(organized: true, molde_id: params[:molde_id])
     scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
     organized_peca_ids = scope.distinct.pluck(:peca_id)
     molde = Molde.find_by(id: params[:molde_id])
@@ -24,31 +24,31 @@ class PecasController < ApplicationController
   def create
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
     if existing
-      assign_peca_to_stamp(existing) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, alert: "Piece \"#{existing.nome}\" already exists."
+      assign_peca_to_arquivo(existing) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, alert: "Piece \"#{existing.nome}\" already exists."
       return
     end
 
     @peca = Peca.new(peca_params)
     if @peca.save
-      assign_peca_to_stamp(@peca) if params[:stamp_uuid].present?
-      redirect_back fallback_location: stamps_path, notice: "Piece registered."
+      assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
+      redirect_back fallback_location: arquivos_path, notice: "Piece registered."
     else
-      redirect_back fallback_location: stamps_path, alert: @peca.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @peca.errors.full_messages.join(", ")
     end
   end
 
   def update
     if @peca.update(peca_params)
-      redirect_back fallback_location: stamps_path, notice: "Peca updated."
+      redirect_back fallback_location: arquivos_path, notice: "Peca updated."
     else
-      redirect_back fallback_location: stamps_path, alert: @peca.errors.full_messages.join(", ")
+      redirect_back fallback_location: arquivos_path, alert: @peca.errors.full_messages.join(", ")
     end
   end
 
   def destroy
     @peca.destroy
-    redirect_back fallback_location: stamps_path, notice: "Peca deleted."
+    redirect_back fallback_location: arquivos_path, notice: "Peca deleted."
   end
 
   private
@@ -57,9 +57,9 @@ class PecasController < ApplicationController
     @peca = Peca.find(params[:id])
   end
 
-  def assign_peca_to_stamp(peca)
-    stamp = Stamp.find_by(uuid: params[:stamp_uuid])
-    stamp&.update(peca_id: peca.id)
+  def assign_peca_to_arquivo(peca)
+    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo&.update(peca_id: peca.id)
   end
 
   def peca_params

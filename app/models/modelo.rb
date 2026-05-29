@@ -1,7 +1,7 @@
 class Modelo < ApplicationRecord
   belongs_to :client
   belongs_to :molde, optional: true
-  has_many :stamps, dependent: :nullify
+  has_many :arquivos, dependent: :nullify
 
   validates :nome, presence: true
   validates :nome, uniqueness: { scope: :client_id, case_sensitive: false }

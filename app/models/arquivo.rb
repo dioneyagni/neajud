@@ -1,8 +1,8 @@
-class Stamp < ApplicationRecord
-  has_many :stamp_time_logs, dependent: :destroy
-  has_many :stamp_versions
+class Arquivo < ApplicationRecord
+  has_many :arquivo_time_logs, dependent: :destroy
+  has_many :arquivo_versions
   has_many :tamanhos, dependent: :destroy
-  belongs_to :approved_version, class_name: "StampVersion", optional: true
+  belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
   belongs_to :molde, optional: true
   belongs_to :peca, optional: true
@@ -10,8 +10,8 @@ class Stamp < ApplicationRecord
   belongs_to :tamanho, optional: true
 
   before_validation :set_uuid, on: :create
-  after_update_commit :broadcast_stamp_card, if: :saved_change_to_approved_version_id?
-  before_destroy :destroy_stamp_with_versions, prepend: true
+  after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
+  before_destroy :destroy_arquivo_with_versions, prepend: true
 
   validates :uuid, presence: true, uniqueness: true
   validates :filename, presence: true
@@ -63,7 +63,7 @@ class Stamp < ApplicationRecord
   end
 
   def next_version_number
-    (stamp_versions.maximum(:version_number) || 0) + 1
+    (arquivo_versions.maximum(:version_number) || 0) + 1
   end
 
   def approved_original_path
@@ -72,13 +72,13 @@ class Stamp < ApplicationRecord
 
   private
 
-  def broadcast_stamp_card
-    broadcast_replace_to "stamps", target: ActionView::RecordIdentifier.dom_id(self), partial: "stamps/stamp_card", locals: { stamp: self }
+  def broadcast_arquivo_card
+    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(self), partial: "arquivos/card", locals: { arquivo: self }
   end
 
-  def destroy_stamp_with_versions
+  def destroy_arquivo_with_versions
     update_column(:approved_version_id, nil)
-    stamp_versions.each(&:destroy)
+    arquivo_versions.each(&:destroy)
   end
 
   def set_uuid

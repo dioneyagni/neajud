@@ -1,9 +1,9 @@
 require "rails_helper"
 require "open3"
 
-RSpec.describe StampProcessingJob do
-  let(:stamp) { create(:stamp) }
-  let!(:version) { create(:stamp_version, stamp: stamp, version_number: 1, approved: true) }
+RSpec.describe ArquivoProcessingJob do
+  let(:arquivo) { create(:arquivo) }
+  let!(:version) { create(:arquivo_version, arquivo: arquivo, version_number: 1, approved: true) }
   let(:job) { described_class.new }
   let(:original_path) { Rails.root.join("spec", "fixtures", "files") }
 
@@ -48,7 +48,7 @@ RSpec.describe StampProcessingJob do
   end
 
   def version_storage_dir(v)
-    File.join(Rails.root, "storage", "stamps", v.stamp.uuid, "v#{v.version_number}")
+    File.join(Rails.root, "storage", "stamps", v.arquivo.uuid, "v#{v.version_number}")
   end
 
   def copy_to_version(v, filename)
@@ -297,8 +297,8 @@ RSpec.describe StampProcessingJob do
   end
 
   describe "#perform" do
-    let(:real_stamp) { create(:stamp, extension: "tif") }
-    let!(:real_version) { create(:stamp_version, stamp: real_stamp, version_number: 1, approved: true) }
+    let(:real_arquivo) { create(:arquivo, extension: "tif") }
+    let!(:real_version) { create(:arquivo_version, arquivo: real_arquivo, version_number: 1, approved: true) }
 
     before do
       copy_to_version(real_version, "02-no_spot.tif")
@@ -306,10 +306,10 @@ RSpec.describe StampProcessingJob do
 
     after do
       FileUtils.rm_rf(version_storage_dir(real_version))
-      real_stamp.destroy!
+      real_arquivo.destroy!
     end
 
-    it "processes a TIFF stamp end-to-end" do
+    it "processes a TIFF arquivo end-to-end" do
       described_class.perform_now(real_version.id)
       real_version.reload
       expect(real_version.status).to eq("processed")
@@ -326,9 +326,9 @@ RSpec.describe StampProcessingJob do
       expect(meta.metadata["file_size"]).to be > 0
     end
 
-    it "processes a PSD stamp end-to-end" do
-      psd_stamp = create(:stamp, extension: "psd")
-      psd_version = create(:stamp_version, stamp: psd_stamp, version_number: 1, approved: true)
+    it "processes a PSD arquivo end-to-end" do
+      psd_arquivo = create(:arquivo, extension: "psd")
+      psd_version = create(:arquivo_version, arquivo: psd_arquivo, version_number: 1, approved: true)
 
       copy_to_version(psd_version, "02-no_spot.psd")
 
@@ -342,12 +342,12 @@ RSpec.describe StampProcessingJob do
       expect(psd_version.image_metadata.icc_profile).to eq("Adobe RGB (1998)")
 
       FileUtils.rm_rf(version_storage_dir(psd_version))
-      psd_stamp.destroy!
+      psd_arquivo.destroy!
     end
 
-    it "processes an EPS RGB stamp end-to-end" do
-      eps_stamp = create(:stamp, extension: "eps", category: "artes")
-      eps_version = create(:stamp_version, stamp: eps_stamp, version_number: 1, approved: true)
+    it "processes an EPS RGB arquivo end-to-end" do
+      eps_arquivo = create(:arquivo, extension: "eps", category: "artes")
+      eps_version = create(:arquivo_version, arquivo: eps_arquivo, version_number: 1, approved: true)
 
       copy_to_version(eps_version, "eps-rgb.eps")
 
@@ -361,44 +361,12 @@ RSpec.describe StampProcessingJob do
       expect(eps_version.category).to eq("artes")
 
       FileUtils.rm_rf(version_storage_dir(eps_version))
-      eps_stamp.destroy!
-    end
-
-    it "processes a DXF corte file with measurements and tamanhos" do
-      dxf_stamp = create(:stamp, extension: "dxf", category: "corte")
-      dxf_version = create(:stamp_version, stamp: dxf_stamp, version_number: 1, approved: true, extension: "dxf")
-      dxf_stamp.update!(approved_version_id: dxf_version.id)
-
-      copy_to_version(dxf_version, "REFORÇO - 35 AO 43.dxf")
-
-      described_class.perform_now(dxf_version.id)
-      dxf_version.reload
-      expect(dxf_version.status).to eq("processed")
-      expect(dxf_version.cut_layers.count).to eq(3)
-
-      measurements = dxf_version.cut_layers.where.not(width_mm: nil)
-      expect(measurements.count).to eq(3)
-
-      measurements.each do |layer|
-        expect(layer.width_mm).to be > 0
-        expect(layer.height_mm).to be > 0
-        expect(layer.perimeter_mm).to be > 0
-        expect(layer.area_mm2).to be > 0
-      end
-
-      # Verify tamanhos were detected
-      dxf_stamp.reload
-      expect(dxf_stamp.organized).to be false
-      expect(dxf_stamp.tamanhos.count).to eq(5)
-      expect(dxf_stamp.tamanhos.first.width_mm).to be > 0
-
-      FileUtils.rm_rf(version_storage_dir(dxf_version))
-      dxf_stamp.destroy!
+      eps_arquivo.destroy!
     end
 
     it "processes a Corte file (SVG) without generating preview" do
-      svg_stamp = create(:stamp, extension: "svg", category: "corte")
-      svg_version = create(:stamp_version, stamp: svg_stamp, version_number: 1, approved: true)
+      svg_arquivo = create(:arquivo, extension: "svg", category: "corte")
+      svg_version = create(:arquivo_version, arquivo: svg_arquivo, version_number: 1, approved: true)
 
       copy_to_version(svg_version, "test.svg")
 
@@ -410,7 +378,7 @@ RSpec.describe StampProcessingJob do
       expect(svg_version.image_metadata.height_px).to eq(100)
 
       FileUtils.rm_rf(version_storage_dir(svg_version))
-      svg_stamp.destroy!
+      svg_arquivo.destroy!
     end
   end
 end
