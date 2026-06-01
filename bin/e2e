@@ -29,6 +29,7 @@ echo "       Done."
 # Step 2: Prepare test database
 echo "[2/5] Preparing test database..."
 bin/rails db:test:prepare 2>&1 | tail -1
+bin/rails db:seed 2>&1 | tail -1
 echo "       Done."
 
 # Step 3: Start Rails server in background
@@ -58,7 +59,13 @@ done
 echo "[4/5] Running Playwright E2E tests..."
 set +e
 node e2e/arquivos.spec.js "$@"
-EXIT_CODE=$?
+ARQUIVOS_EXIT=$?
+node e2e/movimentos.spec.js "$@"
+MOVIMENTOS_EXIT=$?
+EXIT_CODE=0
+if [ "$ARQUIVOS_EXIT" -ne 0 ] || [ "$MOVIMENTOS_EXIT" -ne 0 ]; then
+  EXIT_CODE=1
+fi
 set -e
 
 echo "       Exit code: $EXIT_CODE"

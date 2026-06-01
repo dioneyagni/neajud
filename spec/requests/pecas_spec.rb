@@ -56,10 +56,10 @@ RSpec.describe "Pecas", type: :request do
     it "updates a peca" do
       peca = create(:peca, nome: "Solado")
 
-      patch peca_path(peca), params: { peca: { nome: "Cabedal" } }
+      patch peca_path(peca), params: { peca: { nome: "Peca Atualizada" } }
 
       peca.reload
-      expect(peca.nome).to eq("Cabedal")
+      expect(peca.nome).to eq("Peca Atualizada")
     end
   end
 

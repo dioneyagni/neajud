@@ -138,6 +138,227 @@ RSpec.describe "Arquivos", type: :request do
       }.to change(ArquivoTimeLog, :count).by(1)
       expect(arquivo.reload.annotated_seconds).to eq(300)
     end
+
+    it "responds with turbo stream when requested" do
+      arquivo = create(:arquivo, estimated_seconds: 120)
+      patch update_time_arquivo_path(arquivo), params: { annotated_seconds: 300 }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
+    end
+  end
+
+  describe "PATCH /arquivos/:id/update_modelo" do
+    it "assigns modelo, molde and peca to an arquivo" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      arquivo = create(:arquivo)
+
+      patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id, molde_id: molde.id, peca_id: peca.id }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.modelo_id).to eq(modelo.id)
+      expect(arquivo.molde_id).to eq(molde.id)
+      expect(arquivo.peca_id).to eq(peca.id)
+    end
+
+    it "responds with turbo stream when requested" do
+      modelo = create(:modelo)
+      arquivo = create(:arquivo)
+
+      patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
+    end
+  end
+
+  describe "PATCH /arquivos/:id/update_tamanho" do
+    it "assigns a tamanho to an arquivo" do
+      arquivo = create(:arquivo)
+      tamanho = create(:tamanho, arquivo: arquivo)
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: tamanho.id }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.tamanho_id).to eq(tamanho.id)
+    end
+
+    it "unlinks a tamanho from an arquivo" do
+      tamanho = create(:tamanho)
+      arquivo = create(:arquivo, tamanho: tamanho)
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: "" }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.tamanho_id).to be_nil
+    end
+
+    it "responds with turbo stream when requested" do
+      arquivo = create(:arquivo)
+      tamanho = create(:tamanho, arquivo: arquivo)
+
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: tamanho.id }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
+    end
+  end
+
+  describe "GET /arquivos/:id/preview" do
+    it "returns 404 when no preview file exists" do
+      arquivo = create(:arquivo)
+      get preview_arquivo_path(arquivo)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "serves the preview image" do
+      arquivo = create(:arquivo)
+      version = create(:arquivo_version, arquivo: arquivo, approved: true)
+      arquivo.update!(approved_version_id: version.id)
+      preview_path = File.join(version.storage_dir, "preview.png")
+      FileUtils.mkdir_p(File.dirname(preview_path))
+      File.write(preview_path, "fake-png-data")
+      version.update!(preview_file: preview_path)
+
+      get preview_arquivo_path(arquivo)
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("image/png")
+    end
+  end
+
+  describe "GET /arquivos/:id/download" do
+    it "returns 404 when no approved version exists" do
+      arquivo = create(:arquivo)
+      get download_arquivo_path(arquivo)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "downloads the approved file" do
+      arquivo = create(:arquivo, extension: "dxf")
+      version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf", original_file: "test.dxf")
+      arquivo.update!(approved_version_id: version.id)
+      original_dir = File.join(version.storage_dir, "original")
+      FileUtils.mkdir_p(original_dir)
+      File.write(File.join(original_dir, "test.dxf"), "fake-dxf-content")
+
+      get download_arquivo_path(arquivo)
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Content-Disposition"]).to include("attachment")
+    end
+  end
+
+  describe "POST /arquivos/:id/upload_version" do
+    it "uploads a new version and redirects" do
+      arquivo = create(:arquivo, extension: "tif")
+      file = Rack::Test::UploadedFile.new(
+        Rails.root.join("e2e/test-image.tif"),
+        "image/tiff"
+      )
+
+      expect {
+        post upload_version_arquivo_path(arquivo), params: { original_file: file }
+      }.to change(arquivo.arquivo_versions, :count).by(1)
+      expect(response).to redirect_to(arquivo_path(arquivo))
+    end
+
+    it "returns alert when no file is provided" do
+      arquivo = create(:arquivo)
+      post upload_version_arquivo_path(arquivo), params: {}
+      expect(response).to redirect_to(arquivo_path(arquivo))
+    end
+  end
+
+  describe "PATCH /arquivos/:id/approve_version" do
+    it "marks a version as approved" do
+      arquivo = create(:arquivo)
+      v1 = create(:arquivo_version, arquivo: arquivo, approved: true, version_number: 1)
+      arquivo.update!(approved_version_id: v1.id)
+      v2 = create(:arquivo_version, arquivo: arquivo, approved: false, version_number: 2)
+
+      patch approve_version_arquivo_path(arquivo), params: { version_id: v2.id }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      expect(v1.reload.approved).to be false
+      expect(v2.reload.approved).to be true
+      expect(arquivo.reload.approved_version_id).to eq(v2.id)
+    end
+  end
+
+  describe "GET /arquivos/:id/version_preview" do
+    it "returns 404 when version has no preview" do
+      arquivo = create(:arquivo)
+      version = create(:arquivo_version, arquivo: arquivo)
+      get version_preview_arquivo_path(arquivo, version_id: version.id)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "serves the version preview image" do
+      arquivo = create(:arquivo)
+      version = create(:arquivo_version, arquivo: arquivo)
+      preview_path = File.join(version.storage_dir, "preview.png")
+      FileUtils.mkdir_p(File.dirname(preview_path))
+      File.write(preview_path, "fake-png-data")
+      version.update!(preview_file: preview_path)
+
+      get version_preview_arquivo_path(arquivo, version_id: version.id)
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("image/png")
+    end
+  end
+
+  describe "PATCH /arquivos/:id/configure_layers" do
+    it "saves layer annotations and redirects" do
+      arquivo = create(:arquivo, extension: "dxf")
+      version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf")
+      arquivo.update!(approved_version_id: version.id)
+
+      patch configure_layers_arquivo_path(arquivo), params: {
+        version_id: version.id,
+        layer_annotations: {
+          "0" => { color: "#FF0000", layer_name: "Layer1", annotation: "cut" }
+        }
+      }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      expect(version.cut_layers.count).to eq(1)
+      expect(version.cut_layers.first.annotation).to eq("cut")
+    end
+  end
+
+  describe "PATCH /arquivos/:id/organize" do
+    it "marks as organized and creates tamanhos" do
+      molde = create(:molde)
+      peca = create(:peca)
+      arquivo = create(:arquivo, extension: "dxf")
+
+      patch organize_arquivo_path(arquivo), params: {
+        molde_id: molde.id,
+        peca_id: peca.id,
+        molde_nome: "Test Molde",
+        peca_nome: "Test Peca",
+        tamanhos: {
+          "0" => { nome: "Size A", width_mm: 100, height_mm: 50 }
+        }
+      }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.organized).to be true
+      expect(arquivo.tamanhos.count).to eq(1)
+      expect(arquivo.tamanhos.first.nome).to eq("Size A")
+    end
+
+    it "responds with turbo stream when requested" do
+      molde = create(:molde)
+      peca = create(:peca)
+      arquivo = create(:arquivo, extension: "dxf")
+
+      patch organize_arquivo_path(arquivo), params: {
+        molde_id: molde.id,
+        peca_id: peca.id,
+        tamanhos: { "0" => { nome: "Size A", width_mm: 100, height_mm: 50 } }
+      }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
+    end
   end
 
   describe "DELETE /arquivos/:id" do
