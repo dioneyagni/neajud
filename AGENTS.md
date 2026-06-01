@@ -244,6 +244,43 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
 
+## Nested forms gotcha (<form> dentro de <dialog> quebra o form pai)
+
+Todo `<form>` aninhado dentro de outro `<form>` **fecha o form externo automaticamente**
+no DOM renderizado, mesmo que o HTML fonte pareça correto. Isso deixa submits e campos
+órfãos — o clique no botão "não faz nada".
+
+```html
+<!-- ERRADO — <form> dentro de <dialog> dentro de <form> quebra o form externo -->
+<form action="/movimentos">
+  <div data-controller="client-select">
+    <input name="client_id">
+    <dialog>
+      <form action="/clients">…</form>   <!-- ← fecha o form /movimentos aqui -->
+    </dialog>
+  </div>
+  <input type="submit">  <!-- ← fica fora de qualquer form -->
+</form>
+
+<!-- CERTO — dialog fora do form principal, controller envolve ambos -->
+<div data-controller="client-select">
+  <form action="/movimentos">
+    <input name="client_id">
+  </form>
+  <dialog>
+    <!-- sem <form> — usa fetch via Stimulus -->
+    <div data-form-action="/clients">…</div>
+  </dialog>
+  <input type="submit">  <!-- ← dentro do form /movimentos -->
+</div>
+```
+
+**Como detectar:**
+- RSpec request specs (`post /materiais, params: {...}`) **não pegam** — mandam HTTP direto, sem DOM.
+- `form.submit()` via JS também passa direto.
+- Só E2E com clique real (`page.click('input[type="submit"]')`) descobre.
+- Verifique com `page.evaluate(() => document.querySelector('input[type="submit"]').form)` — se for `null`, o form está quebrado.
+
 ## Stimulus gotchas (data-action event target)
 
 When a method is called via `data-action="click->controller#method"`, `event.target` is the

@@ -51,6 +51,28 @@ RSpec.describe "Tamanhos", type: :request do
     end
   end
 
+  describe "GET /tamanhos/for_cascade" do
+    it "returns tamanhos as JSON for given molde_id and peca_id" do
+      molde = create(:molde)
+      peca = create(:peca)
+      arquivo = create(:arquivo, organized: true, molde: molde, peca: peca)
+      tamanho = create(:tamanho, arquivo: arquivo, nome: "G", position: 1, width_mm: 100, height_mm: 50)
+
+      get for_cascade_tamanhos_path, params: { molde_id: molde.id, peca_id: peca.id }
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json).to be_an(Array)
+      expect(json.first["nome"]).to eq("G")
+    end
+
+    it "returns empty array when no matching tamanhos" do
+      get for_cascade_tamanhos_path, params: { molde_id: 99999, peca_id: 99999 }
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json).to eq([])
+    end
+  end
+
   describe "INSERT entity DXF extraction" do
     it "extracts each tamanho from a DXF with INSERT entities and block references" do
       arquivo = create(:arquivo, extension: "dxf", filename: "36 ao 48")

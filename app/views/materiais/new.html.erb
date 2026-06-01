@@ -1,0 +1,111 @@
+<h2>Register Movement</h2>
+
+<div data-controller="client-select group-select" data-client-select-search-url-value="<%= search_clients_path %>">
+  <div class="stamp-detail-section" style="margin-bottom: 1rem;">
+    <%= form_with model: @movimento, url: materiais_path, local: true, data: { turbo: false }, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
+      <div class="client-field">
+        <%= f.label :client_id, "Client" %>
+        <div class="combobox">
+          <input type="text"
+                 class="combobox-input"
+                 placeholder="Search client..."
+                 data-client-select-target="input"
+                 data-action="focus->client-select#search input->client-select#search blur->client-select#blur">
+          <div class="combobox-results" data-client-select-target="results"></div>
+        </div>
+        <input type="hidden" name="movimento_estoque[client_id]" data-client-select-target="hidden">
+      </div>
+
+      <div class="client-field">
+        <%= f.label :tipo, "Type" %>
+        <div class="tipo-radios">
+          <label class="tipo-radio tipo-radio--entrada">
+            <%= f.radio_button :tipo, "entrada", checked: true %>
+            <span class="tipo-radio-indicator">+</span>
+            <span class="tipo-radio-label">Entrada</span>
+          </label>
+          <label class="tipo-radio tipo-radio--saida">
+            <%= f.radio_button :tipo, "saida" %>
+            <span class="tipo-radio-indicator">−</span>
+            <span class="tipo-radio-label">Saída</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="client-field">
+        <%= f.label :grupo_material_id, "Group" %>
+        <div class="combobox">
+          <input type="text"
+                 class="combobox-input"
+                 placeholder="Search group..."
+                 data-group-select-target="input"
+                 data-action="focus->group-select#search input->group-select#search blur->group-select#blur">
+          <div class="combobox-results" data-group-select-target="results"></div>
+        </div>
+        <input type="hidden" name="movimento_estoque[grupo_material_id]" data-group-select-target="hidden">
+      </div>
+
+      <div class="client-field">
+        <%= f.label :cor_material_id, "Color" %>
+        <%= f.collection_select :cor_material_id, CorMaterial.order(:nome), :id, :nome, { include_blank: "Select color..." }, required: true %>
+      </div>
+
+      <div class="client-field">
+        <%= f.label :largura, "Width (m)" %>
+        <%= f.text_field :largura, inputmode: "decimal", placeholder: "ex: 1,40", required: true, class: "combobox-input" %>
+      </div>
+
+      <div class="client-field">
+        <%= f.label :gramatura, "Weight" %>
+        <%= f.select :gramatura, options_for_select(%w[60g 80g 100g 120g 150g 180g 200g 250g 300g]), { include_blank: "Select weight..." }, required: true %>
+      </div>
+
+      <div class="client-field">
+        <%= f.label :quantidade, "Quantity" %>
+        <%= f.number_field :quantidade, step: "0.01", min: 0.01, required: true %>
+      </div>
+
+      <div class="client-field">
+        <%= f.label :valor, "Unit value (optional)" %>
+        <%= f.number_field :valor, step: "0.01", min: 0 %>
+      </div>
+
+      <div class="client-dialog-actions" style="grid-column: span 2; gap: 1rem;">
+        <%= f.submit "Register Movement", class: "btn btn-primary" %>
+        <%= link_to "Cancel", materiais_path, class: "btn btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+
+  <dialog data-client-select-target="dialog" class="client-dialog" data-action="click->client-select#backdropClose">
+    <div class="client-form" data-form-action="<%= clients_path %>">
+      <h4>Register New Client</h4>
+      <div class="client-field">
+        <label for="client_name_dialog">Name</label>
+        <input type="text" name="client[name]" id="client_name_dialog" required>
+      </div>
+      <div class="client-field">
+        <label for="client_responsible_dialog">Responsible</label>
+        <input type="text" name="client[responsible]" id="client_responsible_dialog" required>
+      </div>
+      <div class="client-dialog-actions">
+        <button type="button" data-action="click->client-select#closeNew" class="btn btn-secondary">Cancel</button>
+        <button type="button" data-action="click->client-select#submitNew" class="btn btn-primary">Register</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog data-group-select-target="dialog" class="client-dialog" data-action="click->group-select#backdropClose">
+    <div class="client-form" data-form-action="<%= create_grupo_materiais_path %>">
+      <h4>Register New Group</h4>
+      <div class="client-field">
+        <label for="grupo_nome_dialog">Name</label>
+        <input type="text" name="grupo_material[nome]" id="grupo_nome_dialog" required>
+      </div>
+      <div class="client-dialog-actions">
+        <button type="button" data-action="click->group-select#closeNew" class="btn btn-secondary">Cancel</button>
+        <button type="button" data-action="click->group-select#submitNew" class="btn btn-primary">Register</button>
+      </div>
+    </div>
+  </dialog>
+</div>

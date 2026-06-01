@@ -81,6 +81,22 @@ RSpec.describe "Clients", type: :request do
     end
   end
 
+  describe "GET /clients/:id" do
+    it "renders the client show page" do
+      client = create(:client, name: "Show Corp", responsible: "Tester")
+      get client_path(client)
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Show Corp")
+      expect(response.body).to include("Details")
+      expect(response.body).to include("Modelos")
+    end
+
+    it "returns 404 for nonexistent client" do
+      get client_path(99999)
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "GET /clients/search" do
     it "returns matching clients as JSON" do
       create(:client, name: "Alpha Corp", responsible: "Alice")
@@ -119,6 +135,15 @@ RSpec.describe "Clients", type: :request do
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.client_id).to be_nil
+    end
+
+    it "responds with turbo stream when requested" do
+      client = create(:client, name: "Turbo Client", responsible: "Turbo Resp")
+      arquivo = create(:arquivo)
+      patch update_client_arquivo_path(arquivo), params: { client_id: client.id }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
     end
   end
 end

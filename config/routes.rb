@@ -10,7 +10,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :arquivos, only: %i[index new create show destroy] do
+  resources :arquivos, only: %i[index create show destroy] do
     member do
       patch :update_time
       patch :update_client
@@ -54,6 +54,16 @@ Rails.application.routes.draw do
       get :for_client
     end
   end
+
+  resources :materiais, only: %i[index new create] do
+    collection do
+      get :grupos
+      get :cores
+      post :create_grupo
+    end
+  end
+
+  resources :movimentos, only: %i[index new create]
 
   root "arquivos#index"
 

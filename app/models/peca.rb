@@ -1,6 +1,6 @@
 class Peca < ApplicationRecord
   has_many :arquivos, dependent: :nullify
-  has_many :molde_pecas, dependent: :destroy
+  has_many :molde_pecas, dependent: :delete_all
   has_many :moldes, through: :molde_pecas
 
   validates :nome, presence: true, uniqueness: { case_sensitive: false }

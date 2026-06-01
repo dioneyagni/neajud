@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_31_164252) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -119,6 +119,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "cor_materiais", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "nome", null: false
+    t.datetime "updated_at", null: false
+    t.index ["nome"], name: "index_cor_materiais_on_nome", unique: true
+  end
+
   create_table "cut_layers", force: :cascade do |t|
     t.string "annotation", default: "cut"
     t.decimal "area_mm2", precision: 10, scale: 2
@@ -132,6 +139,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2
     t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
+  end
+
+  create_table "grupo_materiais", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "nome", null: false
+    t.datetime "updated_at", null: false
+    t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
+  end
+
+  create_table "materia_primas", force: :cascade do |t|
+    t.integer "cor_material_id", null: false
+    t.datetime "created_at", null: false
+    t.string "gramatura", null: false
+    t.integer "grupo_material_id", null: false
+    t.string "largura", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
+    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura"], name: "idx_materia_primas_composite", unique: true
+    t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
   end
 
   create_table "modelos", force: :cascade do |t|
@@ -158,6 +184,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
     t.string "nome", null: false
     t.datetime "updated_at", null: false
     t.index ["nome"], name: "index_moldes_on_nome", unique: true
+  end
+
+  create_table "movimento_estoques", force: :cascade do |t|
+    t.integer "client_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "materia_prima_id", null: false
+    t.decimal "quantidade", default: "0.0", null: false
+    t.string "tipo", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "valor", precision: 10, scale: 2
+    t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
+    t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
+    t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
   end
 
   create_table "pecas", force: :cascade do |t|
@@ -192,9 +231,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_223347) do
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "materia_primas", "cor_materiais"
+  add_foreign_key "materia_primas", "grupo_materiais"
   add_foreign_key "modelos", "clients"
   add_foreign_key "modelos", "moldes"
   add_foreign_key "molde_pecas", "moldes"
   add_foreign_key "molde_pecas", "pecas"
+  add_foreign_key "movimento_estoques", "clients"
+  add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "tamanhos", "arquivos"
 end

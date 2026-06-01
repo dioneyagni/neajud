@@ -72,23 +72,28 @@ section {
   margin-bottom: 2rem;
 }
 
-.notice, .alert {
-  padding: 0.75rem 1rem;
+.flash-notice {
+  padding: 1rem 1.25rem;
   border-radius: 8px;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 200;
 }
 
 .notice {
-  background: #e8f5e9;
-  color: #1b5e20;
-  border: 1px solid #c8e6c9;
+  background: #43a047;
+  color: #fff;
+  border: none;
 }
 
 .alert {
-  background: #fce4ec;
-  color: #b71c1c;
-  border: 1px solid #f8bbd0;
+  background: #e53935;
+  color: #fff;
+  border: none;
 }
 
 /* Upload dropzone (Google Drive style) */
@@ -1231,6 +1236,66 @@ section {
   gap: 0.5rem;
   justify-content: flex-end;
   margin-top: 1rem;
+}
+
+/* Type radio buttons (entrada/saída) */
+
+.tipo-radios {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tipo-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tipo-radio input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tipo-radio-indicator {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #dadce0;
+  transition: color 0.15s;
+}
+
+.tipo-radio-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #5f6368;
+  transition: color 0.15s;
+}
+
+.tipo-radio--entrada input[type="radio"]:checked ~ .tipo-radio-indicator,
+.tipo-radio--entrada input[type="radio"]:checked ~ .tipo-radio-label {
+  color: #34a853;
+}
+
+.tipo-radio--entrada:has(input[type="radio"]:checked) {
+  border-color: #34a853;
+  background: #e6f4ea;
+}
+
+.tipo-radio--saida input[type="radio"]:checked ~ .tipo-radio-indicator,
+.tipo-radio--saida input[type="radio"]:checked ~ .tipo-radio-label {
+  color: #ea4335;
+}
+
+.tipo-radio--saida:has(input[type="radio"]:checked) {
+  border-color: #ea4335;
+  background: #fce8e6;
 }
 
 /* Responsive */
