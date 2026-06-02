@@ -42,6 +42,8 @@ RSpec.describe "Arquivos", type: :request do
   end
 
   describe "GET /arquivos (gallery pagination and view toggle)" do
+    let!(:arquivo) { create(:arquivo) }
+
     it "defaults to grid view" do
       get arquivos_path
       expect(response.body).to include('view-toggle-btn--active')
@@ -499,6 +501,7 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     it "renders the batch toolbar data attributes on index page" do
+      create(:arquivo)
       get arquivos_path
       expect(response.body).to include('data-controller="batch-select"')
       expect(response.body).to include('data-batch-select-target="toolbar"')

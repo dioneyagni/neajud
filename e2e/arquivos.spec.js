@@ -3005,18 +3005,25 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       }
       await page.goto(BASE_URL);
       await page.waitForSelector(".stamp-card", { timeout: 5000 });
-      cardCount = (await page.$$(".stamp-card")).length;
     }
+    // Record UUIDs of files to delete
     const checkboxes = await page.$$(".stamp-card-checkbox input");
+    const deletedIds = [];
+    for (let i = 0; i < Math.min(2, checkboxes.length); i++) {
+      deletedIds.push(await checkboxes[i].getAttribute("value"));
+    }
     await checkboxes[0].check();
     await checkboxes[1].check();
     await page.waitForSelector(".batch-toolbar:not(.batch-toolbar--hidden)", { timeout: 3000 });
     // Click delete — dialog auto-accepted
-    await page.click("[data-batch-select-target='deleteButton']");
-    // Wait for page reload
-    await page.waitForTimeout(3000);
-    const newCardCount = (await page.$$(".stamp-card")).length;
-    if (newCardCount >= cardCount) throw new Error(`Expected fewer cards after batch delete (was ${cardCount}, now ${newCardCount})`);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }),
+      page.click("[data-batch-select-target='deleteButton']"),
+    ]);
+    const currentIds = await page.$$eval(".stamp-card-checkbox input", els => els.map(e => e.value));
+    for (const id of deletedIds) {
+      if (currentIds.includes(id)) throw new Error(`File ${id} still present after batch delete`);
+    }
   });
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;

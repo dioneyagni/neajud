@@ -249,18 +249,23 @@ class ArquivosController < ApplicationController
     destroyed = 0
     errors = []
 
-    ids.each do |uuid|
-      arquivo = Arquivo.find_by(uuid: uuid)
-      unless arquivo
-        errors << uuid
-        next
-      end
+    ActiveRecord::Base.connection.execute("PRAGMA defer_foreign_keys = ON")
 
-      begin
-        arquivo.destroy!
-        destroyed += 1
-      rescue => e
-        errors << { uuid: uuid, error: e.message }
+    ActiveRecord::Base.transaction do
+      ids.each do |uuid|
+        arquivo = Arquivo.find_by(uuid: uuid)
+        unless arquivo
+          errors << uuid
+          next
+        end
+
+        begin
+          arquivo.destroy!
+          destroyed += 1
+        rescue => e
+          errors << { uuid: uuid, error: e.message }
+          raise ActiveRecord::Rollback
+        end
       end
     end
 
