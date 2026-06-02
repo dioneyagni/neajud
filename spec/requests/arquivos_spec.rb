@@ -41,6 +41,74 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
+  describe "GET /arquivos (gallery pagination and view toggle)" do
+    it "defaults to grid view" do
+      get arquivos_path
+      expect(response.body).to include('view-toggle-btn--active')
+      expect(response.body).to include('class="gallery"')
+    end
+
+    it "renders list view when view=list" do
+      get arquivos_path(view: "list")
+      expect(response.body).to include('class="list-view"')
+      expect(response.body).not_to include('class="gallery"')
+    end
+
+    it "renders grid view when view=grid" do
+      get arquivos_path(view: "grid")
+      expect(response.body).to include('class="gallery"')
+      expect(response.body).not_to include('class="list-view"')
+    end
+
+    it "falls back to grid for invalid view param" do
+      get arquivos_path(view: "invalid")
+      expect(response.body).to include('class="gallery"')
+    end
+
+    it "marks the active toggle button" do
+      get arquivos_path(view: "list")
+      expect(response.body).to match(/view-toggle-btn--active.*List/)
+      get arquivos_path(view: "grid")
+      expect(response.body).to match(/view-toggle-btn--active.*Grid/)
+    end
+
+    it "renders pagination only when many pages exist" do
+      starting = Arquivo.count
+      pages_needed = (starting.to_f / 12).ceil
+      if pages_needed <= 1
+        get arquivos_path
+        expect(response.body).not_to include('class="pagination"')
+      end
+    end
+
+    it "renders extra page links when more arquivos are added" do
+      before_count = Arquivo.count
+      create_list(:arquivo, 13)
+      get arquivos_path
+      expect(response.body).to include('class="pagination"')
+      expect(response.body).to include("page=2")
+    end
+
+    it "renders pagination in list view when many arquivos exist" do
+      create_list(:arquivo, 51)
+      get arquivos_path(view: "list")
+      expect(response.body).to include('class="pagination"')
+    end
+
+    it "accepts page param and clamps to valid range" do
+      get arquivos_path(page: 2)
+      expect(response.body).to include('class="gallery"')
+      get arquivos_path(page: 999)
+      expect(response.body).to include('class="gallery"')
+    end
+
+    it "toggle links omit page param" do
+      get arquivos_path(view: "grid", page: 3)
+      expect(response.body).to match(%r{href="/arquivos\?view=list"})
+      expect(response.body).to match(%r{href="/arquivos\?view=grid"})
+    end
+  end
+
   describe "GET / (upload form)" do
     it "renders the drop zone" do
       get root_path

@@ -2,8 +2,11 @@ class ArquivosController < ApplicationController
   before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho preview download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
+  PER_PAGE_GRID = 12
+  PER_PAGE_LIST = 50
+
   def index
-    @arquivos = Arquivo.includes(:approved_version).order(created_at: :desc)
+    load_gallery
     @arquivo = Arquivo.new
   end
 
@@ -17,10 +20,10 @@ class ArquivosController < ApplicationController
 
   def create
     @arquivo = Arquivo.new(arquivo_params)
-    @arquivos = Arquivo.order(created_at: :desc)
 
     unless file_uploaded?
       @arquivo.errors.add(:original_file, "select a file to upload")
+      load_gallery
       return render :index, status: :unprocessable_content
     end
 
@@ -33,6 +36,7 @@ class ArquivosController < ApplicationController
       ArquivoProcessingJob.perform_now(version.id)
       redirect_to arquivos_path, notice: "Arquivo uploaded successfully. Processing started."
     else
+      load_gallery
       render :index, status: :unprocessable_content
     end
   end
@@ -354,5 +358,17 @@ class ArquivosController < ApplicationController
 
   def arquivo_params
     params.require(:arquivo).permit(:filename, :extension, :mime_type)
+  end
+
+  def load_gallery
+    @view = %w[grid list].include?(params[:view]) ? params[:view] : "grid"
+    per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
+    @page = [ params[:page].to_i, 1 ].max
+
+    base = Arquivo.includes(:approved_version).order(created_at: :desc)
+    @total = base.count
+    @total_pages = (@total.to_f / per_page).ceil
+    @page = @page.clamp(1, [ @total_pages, 1 ].max)
+    @arquivos = base.offset((@page - 1) * per_page).limit(per_page)
   end
 end

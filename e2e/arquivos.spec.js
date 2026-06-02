@@ -2866,6 +2866,74 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     if (hiddenValue !== expectedId) throw new Error(`Hidden field value ${hiddenValue} does not match selected client id ${expectedId}`);
   });
 
+  // ── Gallery view toggle & pagination ──
+
+  await test("Gallery defaults to grid view with toggle buttons", async () => {
+    await page.goto(BASE_URL);
+    const hasGrid = await page.$(".gallery");
+    if (!hasGrid) throw new Error("Default view is not grid");
+    const toggleGrid = await page.$(".view-toggle-btn--active");
+    if (!toggleGrid) throw new Error("No active toggle button");
+    const text = await toggleGrid.textContent();
+    if (!text.includes("Grid")) throw new Error(`Active toggle is not Grid: "${text}"`);
+  });
+
+  await test("Switching to list view shows list layout", async () => {
+    await page.goto(BASE_URL);
+    await page.click(".view-toggle-btn:has-text('List')");
+    await page.waitForURL("**/arquivos?view=list");
+    const listView = await page.$(".list-view");
+    if (!listView) throw new Error("List view not rendered after toggle");
+    const gallery = await page.$(".gallery");
+    if (gallery) throw new Error("Grid still rendered after switching to list");
+  });
+
+  await test("Switching back to grid view shows grid layout", async () => {
+    await page.goto(`${BASE_URL}?view=list`);
+    await page.click(".view-toggle-btn:has-text('Grid')");
+    await page.waitForURL("**/arquivos?view=grid");
+    const gallery = await page.$(".gallery");
+    if (!gallery) throw new Error("Grid not rendered after switching back");
+    const listView = await page.$(".list-view");
+    if (listView) throw new Error("List still rendered after switching to grid");
+  });
+
+  await test("Pagination controls appear when many files exist", async () => {
+    await page.goto(BASE_URL);
+    const pagination = await page.$(".pagination");
+    if (!pagination) {
+      // Not enough files — upload enough to trigger pagination (12 per page)
+      for (let i = 0; i < 14; i++) {
+        const input = await page.$('input[type="file"]');
+        await input.setInputFiles(testImagePath);
+        await page.click('input[type="submit"]');
+        await page.waitForTimeout(1500);
+      }
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".pagination", { timeout: 15000 });
+    }
+  });
+
+  await test("Pagination next link navigates to page 2", async () => {
+    await page.goto(BASE_URL);
+    const nextLink = await page.$(".pagination-link:has-text('Next')");
+    if (!nextLink) {
+      // Upload more files to get pagination if needed
+      for (let i = 0; i < 14; i++) {
+        const input = await page.$('input[type="file"]');
+        await input.setInputFiles(testImagePath);
+        await page.click('input[type="submit"]');
+        await page.waitForTimeout(1500);
+      }
+      await page.goto(BASE_URL);
+    }
+    await page.waitForSelector(".pagination-link:has-text('Next')", { timeout: 15000 });
+    await page.click(".pagination-link:has-text('Next')");
+    await page.waitForURL("**/arquivos?page=2*");
+    // Verify page 2 content rendered (gallery should exist)
+    await page.waitForSelector(".gallery", { timeout: 5000 });
+  });
+
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;
   console.log(summary);
 
