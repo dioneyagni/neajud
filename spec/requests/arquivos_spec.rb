@@ -441,4 +441,69 @@ RSpec.describe "Arquivos", type: :request do
       expect(response).to redirect_to(arquivos_path)
     end
   end
+
+  describe "DELETE /arquivos/batch_destroy" do
+    it "destroys multiple arquivos by uuid" do
+      a1 = create(:arquivo)
+      a2 = create(:arquivo)
+      expect {
+        delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, a2.uuid ] }, as: :json
+      }.to change(Arquivo, :count).by(-2)
+    end
+
+    it "returns json with destroyed count" do
+      a1 = create(:arquivo)
+      a2 = create(:arquivo)
+      delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, a2.uuid ] }, as: :json
+      expect(response).to have_http_status(:success)
+      body = response.parsed_body
+      expect(body["destroyed"]).to eq(2)
+      expect(body["errors"]).to eq([])
+    end
+
+    it "handles nonexistent uuids gracefully" do
+      a1 = create(:arquivo)
+      delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, "nonexistent" ] }, as: :json
+      expect(response).to have_http_status(:success)
+      body = response.parsed_body
+      expect(body["destroyed"]).to eq(1)
+      expect(body["errors"]).to eq([ "nonexistent" ])
+    end
+
+    it "returns 422 when ids is empty" do
+      delete batch_destroy_arquivos_path, params: { ids: [] }, as: :json
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "returns 422 when ids is missing" do
+      delete batch_destroy_arquivos_path, as: :json
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "destroys arquivos with complex FK relationships" do
+      a = create(:arquivo)
+      v = create(:arquivo_version, arquivo: a, version_number: 1, status: :processed)
+      a.update!(approved_version_id: v.id)
+      ArquivoImageMetadata.create!(arquivo_version: v, icc_profile: "sRGB", width_px: 100, height_px: 100)
+      CutLayer.create!(arquivo_version: v, layer_name: "L1", color: "#000", annotation: "cut")
+      create(:arquivo_time_log, arquivo: a)
+      create(:tamanho, arquivo: a)
+
+      expect {
+        delete batch_destroy_arquivos_path, params: { ids: [ a.uuid ] }, as: :json
+      }.to change(Arquivo, :count).by(-1)
+      expect(response).to have_http_status(:success)
+      body = response.parsed_body
+      expect(body["destroyed"]).to eq(1)
+      expect(body["errors"]).to eq([])
+    end
+
+    it "renders the batch toolbar data attributes on index page" do
+      get arquivos_path
+      expect(response.body).to include('data-controller="batch-select"')
+      expect(response.body).to include('data-batch-select-target="toolbar"')
+      expect(response.body).to include('data-batch-select-target="count"')
+      expect(response.body).to include('data-batch-select-target="deleteButton"')
+    end
+  end
 end

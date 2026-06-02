@@ -20,6 +20,9 @@ async function run() {
     if (msg.type() === "error") {
       consoleErrors.push(msg.text());
     }
+    if (msg.text().includes("[batch-select]")) {
+      console.log(`  [BROWSER] ${msg.text()}`);
+    }
   });
 
   page.on("pageerror", (err) => {
@@ -2932,6 +2935,88 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForURL("**/arquivos?page=2*");
     // Verify page 2 content rendered (gallery should exist)
     await page.waitForSelector(".gallery", { timeout: 5000 });
+  });
+
+  // ── Batch select & delete ──
+
+  await test("Batch toolbar appears when checkboxes are checked in grid view", async () => {
+    await page.goto(BASE_URL);
+    // Upload files if none exist
+    const cards = await page.$$(".stamp-card-checkbox input");
+    if (cards.length < 2) {
+      for (let i = 0; i < 3; i++) {
+        const input = await page.$('input[type="file"]');
+        await input.setInputFiles(testImagePath);
+        await page.click('input[type="submit"]');
+        await page.waitForTimeout(1500);
+      }
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".stamp-card", { timeout: 5000 });
+    }
+    const checkbox = (await page.$$(".stamp-card-checkbox input"))[0];
+    const checkboxValue = await checkbox.getAttribute("value");
+    if (!checkboxValue) throw new Error("Checkbox has no value");
+    await checkbox.check();
+    await page.waitForSelector(".batch-toolbar:not(.batch-toolbar--hidden)", { timeout: 3000 });
+    const toolbarVisible = await page.$(".batch-toolbar:not(.batch-toolbar--hidden)");
+    if (!toolbarVisible) throw new Error("Batch toolbar did not appear after checking checkbox");
+    const countText = await page.textContent("[data-batch-select-target='count']");
+    if (!countText.includes("1")) throw new Error(`Expected "1 selected", got "${countText}"`);
+    // Uncheck — toolbar hides
+    await checkbox.uncheck();
+    await page.waitForTimeout(300);
+    const toolbarHidden = await page.$(".batch-toolbar.batch-toolbar--hidden");
+    if (!toolbarHidden) throw new Error("Batch toolbar did not hide after unchecking");
+  });
+
+  await test("Select All checks all visible checkboxes in grid view", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 5000 });
+    // Ensure we have enough cards visible
+    let cardCount = (await page.$$(".stamp-card")).length;
+    if (cardCount < 2) {
+      for (let i = 0; i < 3; i++) {
+        const input = await page.$('input[type="file"]');
+        await input.setInputFiles(testImagePath);
+        await page.click('input[type="submit"]');
+        await page.waitForTimeout(1500);
+      }
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".stamp-card", { timeout: 5000 });
+      cardCount = (await page.$$(".stamp-card")).length;
+    }
+    const selectAll = page.locator("[data-batch-select-target='selectAll']");
+    await selectAll.check();
+    const checked = await page.$$eval(".stamp-card-checkbox input:checked", els => els.length);
+    if (checked !== cardCount) throw new Error(`Expected ${cardCount} checked, got ${checked}`);
+  });
+
+  await test("Batch delete removes selected files", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 5000 });
+    // Upload at least 2 files if needed
+    let cardCount = (await page.$$(".stamp-card")).length;
+    if (cardCount < 2) {
+      for (let i = 0; i < 3; i++) {
+        const input = await page.$('input[type="file"]');
+        await input.setInputFiles(testImagePath);
+        await page.click('input[type="submit"]');
+        await page.waitForTimeout(1500);
+      }
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".stamp-card", { timeout: 5000 });
+      cardCount = (await page.$$(".stamp-card")).length;
+    }
+    const checkboxes = await page.$$(".stamp-card-checkbox input");
+    await checkboxes[0].check();
+    await checkboxes[1].check();
+    await page.waitForSelector(".batch-toolbar:not(.batch-toolbar--hidden)", { timeout: 3000 });
+    // Click delete — dialog auto-accepted
+    await page.click("[data-batch-select-target='deleteButton']");
+    // Wait for page reload
+    await page.waitForTimeout(3000);
+    const newCardCount = (await page.$$(".stamp-card")).length;
+    if (newCardCount >= cardCount) throw new Error(`Expected fewer cards after batch delete (was ${cardCount}, now ${newCardCount})`);
   });
 
   const summary = `\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total\n`;

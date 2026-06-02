@@ -77,8 +77,14 @@ class Arquivo < ApplicationRecord
   end
 
   def destroy_arquivo_with_versions
-    update_column(:approved_version_id, nil)
-    arquivo_versions.each(&:destroy)
+    update_columns(approved_version_id: nil, tamanho_id: nil, client_id: nil, modelo_id: nil, molde_id: nil, peca_id: nil)
+    arquivo_time_logs.destroy_all
+    tamanhos.destroy_all
+    arquivo_versions.each do |v|
+      v.image_metadata&.destroy!
+      v.cut_layers.destroy_all
+      v.destroy!
+    end
   end
 
   def set_uuid

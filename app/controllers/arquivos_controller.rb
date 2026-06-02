@@ -1,5 +1,6 @@
 class ArquivosController < ApplicationController
   before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho preview download destroy upload_version approve_version version_preview configure_layers organize]
+  skip_before_action :verify_authenticity_token, only: [ :batch_destroy ]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   PER_PAGE_GRID = 12
@@ -237,6 +238,33 @@ class ArquivosController < ApplicationController
     FileUtils.rm_rf(File.join(STORAGE_BASE, @arquivo.uuid))
     @arquivo.destroy!
     redirect_to arquivos_path, notice: "Arquivo deleted."
+  end
+
+  def batch_destroy
+    ids = params[:ids]
+    unless ids.is_a?(Array) && ids.any?
+      return render json: { error: "No IDs provided" }, status: :unprocessable_content
+    end
+
+    destroyed = 0
+    errors = []
+
+    ids.each do |uuid|
+      arquivo = Arquivo.find_by(uuid: uuid)
+      unless arquivo
+        errors << uuid
+        next
+      end
+
+      begin
+        arquivo.destroy!
+        destroyed += 1
+      rescue => e
+        errors << { uuid: uuid, error: e.message }
+      end
+    end
+
+    render json: { destroyed: destroyed, errors: errors }
   end
 
   private

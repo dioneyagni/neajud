@@ -30,19 +30,28 @@
   </div>
 </section>
 
-<section>
+<section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">
   <h3>Gallery</h3>
   <% if @arquivos.any? %>
     <%= turbo_stream_from "arquivos" %>
 
+    <div class="batch-toolbar batch-toolbar--hidden" data-batch-select-target="toolbar">
+      <span data-batch-select-target="count">0 selected</span>
+      <button type="button" class="batch-delete-btn" data-batch-select-target="deleteButton" data-action="batch-select#batchDelete">Delete Selected</button>
+    </div>
+
     <div class="view-toggle">
+      <label class="select-all-label">
+        <input type="checkbox" data-batch-select-target="selectAll" data-action="batch-select#toggleAll">
+      </label>
       <%= link_to "Grid", arquivos_path(view: "grid"), class: "view-toggle-btn #{@view == 'grid' ? 'view-toggle-btn--active' : ''}" %>
       <%= link_to "List", arquivos_path(view: "list"), class: "view-toggle-btn #{@view == 'list' ? 'view-toggle-btn--active' : ''}" %>
     </div>
 
     <% if @view == "list" %>
-      <div class="list-view">
+      <div class="list-view" data-batch-select-target="list">
         <div class="list-header">
+          <div class="list-header-checkbox"></div>
           <div class="list-header-icon"></div>
           <div class="list-header-name">Name</div>
           <div class="list-header-client">Client</div>
@@ -55,7 +64,7 @@
         <% end %>
       </div>
     <% else %>
-      <div class="gallery">
+      <div class="gallery" data-batch-select-target="gallery">
         <% @arquivos.each do |arquivo| %>
           <%= render partial: "card", locals: { arquivo: arquivo } %>
         <% end %>

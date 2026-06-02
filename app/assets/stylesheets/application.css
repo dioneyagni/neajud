@@ -1328,6 +1328,14 @@ section {
     gap: 0.5rem;
   }
 
+  .list-item {
+    grid-template-columns: 30px 1fr;
+  }
+
+  .list-item-checkbox {
+    padding: 0.5rem 0.25rem;
+  }
+
   .list-item-client,
   .list-item-status,
   .list-item-time,
@@ -1368,6 +1376,99 @@ section {
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
+/* ── Batch toolbar ── */
+
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #e8f0fe;
+  border: 1px solid #c5d9f7;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: #1a73e8;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.batch-toolbar--hidden {
+  display: none;
+}
+
+.batch-delete-btn {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid #d93025;
+  border-radius: 6px;
+  background: #d93025;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.batch-delete-btn:hover {
+  background: #b3261e;
+}
+
+.batch-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem;
+  cursor: pointer;
+}
+
+.select-all-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ── Stamp card checkbox ── */
+
+.stamp-card {
+  position: relative;
+}
+
+.stamp-card-checkbox {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.stamp-card:hover .stamp-card-checkbox,
+.stamp-card-checkbox:focus-within {
+  opacity: 1;
+}
+
+.stamp-card-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* When checked, always visible */
+.stamp-card-checkbox:has(input:checked) {
+  opacity: 1;
+}
+
 /* ── List view ── */
 
 .list-view {
@@ -1379,7 +1480,7 @@ section {
 
 .list-header {
   display: grid;
-  grid-template-columns: 48px 2fr 1fr 100px 90px 100px;
+  grid-template-columns: 36px 48px 2fr 1fr 100px 90px 100px;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
   background: #f8f9fa;
@@ -1389,6 +1490,10 @@ section {
   color: #5f6368;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.list-header-checkbox {
+  width: 36px;
 }
 
 .list-header-icon {
@@ -1408,11 +1513,31 @@ section {
   background: #f8f9fa;
 }
 
+.list-item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+}
+
+.list-item-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.list-item-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .list-item-link {
   display: grid;
   grid-template-columns: 48px 2fr 1fr 100px 90px 100px;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1rem 0.5rem 0;
   align-items: center;
   color: inherit;
 }

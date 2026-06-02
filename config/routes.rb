@@ -24,6 +24,9 @@ Rails.application.routes.draw do
       patch :configure_layers
       patch :organize
     end
+    collection do
+      delete :batch_destroy
+    end
   end
 
   resources :clients, only: %i[show index create update destroy] do
