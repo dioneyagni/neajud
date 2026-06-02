@@ -30,15 +30,66 @@
   </div>
 </section>
 
-<section>
+<section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">
   <h3>Gallery</h3>
   <% if @arquivos.any? %>
     <%= turbo_stream_from "arquivos" %>
-    <div class="gallery">
-      <% @arquivos.each do |arquivo| %>
-        <%= render partial: "card", locals: { arquivo: arquivo } %>
-      <% end %>
+
+    <div class="batch-toolbar batch-toolbar--hidden" data-batch-select-target="toolbar">
+      <span data-batch-select-target="count">0 selected</span>
+      <button type="button" class="batch-delete-btn" data-batch-select-target="deleteButton" data-action="batch-select#batchDelete">Delete Selected</button>
     </div>
+
+    <div class="view-toggle">
+      <label class="select-all-label">
+        <input type="checkbox" data-batch-select-target="selectAll" data-action="batch-select#toggleAll">
+      </label>
+      <%= link_to "Grid", arquivos_path(view: "grid"), class: "view-toggle-btn #{@view == 'grid' ? 'view-toggle-btn--active' : ''}" %>
+      <%= link_to "List", arquivos_path(view: "list"), class: "view-toggle-btn #{@view == 'list' ? 'view-toggle-btn--active' : ''}" %>
+    </div>
+
+    <% if @view == "list" %>
+      <div class="list-view" data-batch-select-target="list">
+        <div class="list-header">
+          <div class="list-header-checkbox"></div>
+          <div class="list-header-icon"></div>
+          <div class="list-header-name">Name</div>
+          <div class="list-header-client">Client</div>
+          <div class="list-header-status">Status</div>
+          <div class="list-header-time">Time</div>
+          <div class="list-header-category">Category</div>
+        </div>
+        <% @arquivos.each do |arquivo| %>
+          <%= render partial: "list_item", locals: { arquivo: arquivo } %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="gallery" data-batch-select-target="gallery">
+        <% @arquivos.each do |arquivo| %>
+          <%= render partial: "card", locals: { arquivo: arquivo } %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @total_pages > 1 %>
+      <div class="pagination">
+        <% if @page > 1 %>
+          <%= link_to "&laquo; Previous".html_safe, arquivos_path(view: @view, page: @page - 1), class: "pagination-link" %>
+        <% end %>
+        <% (1..@total_pages).each do |p| %>
+          <% if p == @page %>
+            <span class="pagination-current"><%= p %></span>
+          <% elsif p == 1 || p == @total_pages || (p - @page).abs <= 2 %>
+            <%= link_to p, arquivos_path(view: @view, page: p), class: "pagination-link" %>
+          <% elsif p == @page - 3 || p == @page + 3 %>
+            <span class="pagination-ellipsis">&hellip;</span>
+          <% end %>
+        <% end %>
+        <% if @page < @total_pages %>
+          <%= link_to "Next &raquo;".html_safe, arquivos_path(view: @view, page: @page + 1), class: "pagination-link" %>
+        <% end %>
+      </div>
+    <% end %>
   <% else %>
     <p class="gallery-empty">No arquivos uploaded yet.</p>
   <% end %>

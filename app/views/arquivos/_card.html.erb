@@ -1,4 +1,7 @@
 <%= tag.div id: dom_id(arquivo), class: "stamp-card" do %>
+  <label class="stamp-card-checkbox">
+    <input type="checkbox" name="arquivo_ids[]" value="<%= arquivo.uuid %>" data-batch-select-target="checkbox" data-action="change->batch-select#toggle">
+  </label>
   <%= link_to arquivo_path(arquivo) do %>
     <div class="stamp-card-thumb">
       <% if arquivo.preview_file.present? && File.exist?(arquivo.preview_file) %>

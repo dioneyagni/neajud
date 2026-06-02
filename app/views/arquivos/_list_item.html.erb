@@ -1,0 +1,33 @@
+<%= tag.div id: dom_id(arquivo), class: "list-item" do %>
+  <label class="list-item-checkbox">
+    <input type="checkbox" name="arquivo_ids[]" value="<%= arquivo.uuid %>" data-batch-select-target="checkbox" data-action="change->batch-select#toggle">
+  </label>
+  <%= link_to arquivo_path(arquivo), class: "list-item-link" do %>
+    <div class="list-item-icon">
+      <% if arquivo.preview_file.present? && File.exist?(arquivo.preview_file) %>
+        <%= image_tag preview_arquivo_path(arquivo, t: arquivo.approved_version&.updated_at&.to_i), alt: arquivo.filename, class: "list-item-thumb" %>
+      <% else %>
+        <%= image_tag "#{FileCategory.extension_icon(arquivo.extension)}.svg", class: "list-item-ext-icon", alt: arquivo.extension %>
+      <% end %>
+    </div>
+    <div class="list-item-name">
+      <%= arquivo.filename %>.<span class="list-item-ext"><%= arquivo.extension %></span>
+    </div>
+    <div class="list-item-client">
+      <%= arquivo.client&.name || "—" %>
+    </div>
+    <div class="list-item-status">
+      <% if arquivo.status %>
+        <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= arquivo.status.humanize %></span>
+      <% end %>
+    </div>
+    <div class="list-item-time">
+      <% if arquivo.annotated_seconds || arquivo.estimated_seconds&.positive? %>
+        <%= format_time(arquivo.annotated_seconds || arquivo.estimated_seconds) %>
+      <% end %>
+    </div>
+    <div class="list-item-category">
+      <%= arquivo.category&.humanize || "—" %>
+    </div>
+  <% end %>
+<% end %>
