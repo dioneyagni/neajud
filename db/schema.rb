@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_31_164252) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_02_132845) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -79,6 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_164252) do
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
     t.integer "tamanho_id"
+    t.string "tipo_corte"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
@@ -87,7 +88,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_164252) do
     t.index ["molde_id"], name: "index_arquivos_on_molde_id"
     t.index ["peca_id"], name: "index_arquivos_on_peca_id"
     t.index ["tamanho_id"], name: "index_arquivos_on_tamanho_id"
+    t.index ["tipo_corte"], name: "index_arquivos_on_tipo_corte"
     t.index ["uuid"], name: "index_arquivos_on_uuid", unique: true
+  end
+
+  create_table "arte_cortes", force: :cascade do |t|
+    t.integer "arte_id", null: false
+    t.integer "corte_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["arte_id"], name: "index_arte_cortes_on_arte_id"
+    t.index ["corte_id", "arte_id"], name: "index_arte_cortes_on_corte_id_and_arte_id", unique: true
+    t.index ["corte_id"], name: "index_arte_cortes_on_corte_id"
   end
 
   create_table "bans", force: :cascade do |t|
@@ -230,6 +242,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_164252) do
   add_foreign_key "arquivos", "moldes"
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "tamanhos"
+  add_foreign_key "arte_cortes", "arquivos", column: "arte_id"
+  add_foreign_key "arte_cortes", "arquivos", column: "corte_id"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"

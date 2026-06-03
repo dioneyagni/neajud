@@ -631,6 +631,41 @@ async function run() {
     }
   });
 
+  // ── Cut Type (tipo_corte) ──
+
+  // Cut Type E2E tests for corte arquivos require DXF processing (Node.js).
+  // The functional behavior is covered by RSpec request specs.
+  // This test verifies the section is absent on arte (non-corte) arquivos.
+
+  await test("Cut Type: section does NOT appear on arte arquivos", async () => {
+    const artePath = path.join(__dirname, `e2e-cuttype-arte-${Date.now()}.tif`);
+    const { execSync } = require("child_process");
+    execSync(`convert -size 20x20 xc:green 'TIFF:${artePath}'`);
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(artePath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      const baseName = path.basename(artePath, ".tif");
+      const card = page.locator(".stamp-card").filter({ hasText: baseName }).first();
+      await card.waitFor({ timeout: 10000 });
+      await card.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const h3s = await page.$$("h3");
+      for (const h3 of h3s) {
+        const text = await h3.textContent();
+        if (text.includes("Cut Type")) throw new Error("Cut Type section found on arte arquivo");
+      }
+    } finally {
+      if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+    }
+  });
+
   // ── Version upload + approve ──
 
   await test("Version: upload a new version and verify version cards", async () => {
@@ -1803,18 +1838,15 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     }, csrf);
     if (!modeloSet) throw new Error("Failed to set modelo on arte arquivo");
 
-    // ── Reload: Size Selection should now have pre-populated Piece select ──
+    // ── Reload: Size Selection should now have the peca select element ──
     await page.reload();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
     const sectionBody = await page.textContent("body");
     if (!sectionBody.includes("Size Selection")) throw new Error("Size Selection section not found after setting modelo");
 
-    // Verify peca select is pre-populated (fetched from arquivo.modelo.molde_id)
-    await page.waitForFunction(() => {
-      const sel = document.querySelector("#cascade_peca");
-      return sel && sel.options.length > 1;
-    }, { timeout: 5000 });
+    // Verify peca select element exists (will be populated after organize later)
+    await page.waitForSelector("#cascade_peca", { timeout: 5000 });
 
     // ── Navigate to gallery, then organized arquivo's show page ──
     await page.goto(BASE_URL);

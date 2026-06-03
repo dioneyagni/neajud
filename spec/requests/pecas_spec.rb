@@ -41,7 +41,7 @@ RSpec.describe "Pecas", type: :request do
       peca = create(:peca, nome: "Solado")
       molde.pecas << peca
       client = create(:client, name: "Test Client", responsible: "John")
-      arquivo = create(:arquivo, molde: molde, peca: peca, client: client, organized: true)
+      create(:arquivo, molde: molde, peca: peca, client: client, organized: true)
 
       get for_cascade_pecas_path(molde_id: molde.id, client_id: client.id)
 
@@ -49,6 +49,32 @@ RSpec.describe "Pecas", type: :request do
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)
       expect(json.first["nome"]).to eq("Solado")
+    end
+
+    it "returns pecas from organized arquivos regardless of tipo_corte" do
+      molde = create(:molde)
+      peca = create(:peca, nome: "Solado")
+      molde.pecas << peca
+      create(:arquivo, tipo_corte: "apenas_corte", molde: molde, peca: peca, organized: true)
+
+      get for_cascade_pecas_path(molde_id: molde.id)
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json.length).to eq(1)
+      expect(json.first["nome"]).to eq("Solado")
+    end
+
+    it "returns empty array when no organized arquivos exist" do
+      molde = create(:molde)
+      peca = create(:peca)
+      molde.pecas << peca
+
+      get for_cascade_pecas_path(molde_id: molde.id)
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json).to eq([])
     end
   end
 

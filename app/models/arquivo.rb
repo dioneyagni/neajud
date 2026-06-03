@@ -10,6 +10,7 @@ class Arquivo < ApplicationRecord
   belongs_to :tamanho, optional: true
 
   before_validation :set_uuid, on: :create
+  before_validation :set_default_tipo_corte
   after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
@@ -18,8 +19,18 @@ class Arquivo < ApplicationRecord
   validates :extension, presence: true
   validates :mime_type, presence: true
   validates :category, inclusion: { in: FileCategory.keys }, allow_nil: true
+  validates :tipo_corte, inclusion: { in: %w[apenas_corte corte_estampa] }, if: :corte?
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
+
+  def corte?
+    category == "corte"
+  end
+
+  def artes_vinculadas
+    return Arquivo.none unless corte? && tipo_corte == "corte_estampa"
+    Arquivo.where(category: "artes", tamanho_id: tamanhos.pluck(:id))
+  end
 
   delegate :preview_file, :category_notes,
            to: :approved_version, allow_nil: true, prefix: false
@@ -71,6 +82,10 @@ class Arquivo < ApplicationRecord
   end
 
   private
+
+  def set_default_tipo_corte
+    self.tipo_corte ||= "corte_estampa" if corte?
+  end
 
   def broadcast_arquivo_card
     broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(self), partial: "arquivos/card", locals: { arquivo: self }

@@ -274,6 +274,35 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
+  describe "PATCH /arquivos/:id/update_tipo_corte" do
+    it "sets tipo_corte to apenas_corte" do
+      arquivo = create(:arquivo, extension: "dxf", category: "corte")
+
+      patch update_tipo_corte_arquivo_path(arquivo), params: { tipo_corte: "apenas_corte" }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.tipo_corte).to eq("apenas_corte")
+    end
+
+    it "sets tipo_corte to corte_estampa" do
+      arquivo = create(:arquivo, extension: "dxf", category: "corte", tipo_corte: "apenas_corte")
+
+      patch update_tipo_corte_arquivo_path(arquivo), params: { tipo_corte: "corte_estampa" }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      arquivo.reload
+      expect(arquivo.tipo_corte).to eq("corte_estampa")
+    end
+
+    it "responds with turbo stream when requested" do
+      arquivo = create(:arquivo, extension: "dxf", category: "corte")
+
+      patch update_tipo_corte_arquivo_path(arquivo), params: { tipo_corte: "apenas_corte" }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("<turbo-stream")
+    end
+  end
+
   describe "GET /arquivos/:id/preview" do
     it "returns 404 when no preview file exists" do
       arquivo = create(:arquivo)

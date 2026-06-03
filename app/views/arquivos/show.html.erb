@@ -33,6 +33,12 @@
         </div>
       <% end %>
 
+      <% if @arquivo.category == "corte" %>
+        <div id="tipo-corte-section" class="stamp-detail-section stamp-detail-section--full">
+          <%= render "tipo_corte", arquivo: @arquivo %>
+        </div>
+      <% end %>
+
       <% if @arquivo.category == "artes" %>
         <%= render "size_selection", arquivo: @arquivo %>
       <% end %>

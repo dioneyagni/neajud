@@ -71,6 +71,19 @@ RSpec.describe "Tamanhos", type: :request do
       json = JSON.parse(response.body)
       expect(json).to eq([])
     end
+
+    it "returns tamanhos from organized arquivos regardless of tipo_corte" do
+      molde = create(:molde)
+      peca = create(:peca)
+      arquivo = create(:arquivo, tipo_corte: "apenas_corte", organized: true, molde: molde, peca: peca)
+      create(:tamanho, arquivo: arquivo, nome: "G", position: 1)
+
+      get for_cascade_tamanhos_path, params: { molde_id: molde.id, peca_id: peca.id }
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json.length).to eq(1)
+      expect(json.first["nome"]).to eq("G")
+    end
   end
 
   describe "INSERT entity DXF extraction" do
