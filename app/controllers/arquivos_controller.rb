@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview download destroy upload_version approve_version version_preview configure_layers organize]
   skip_before_action :verify_authenticity_token, only: [ :batch_destroy ]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -112,6 +112,26 @@ class ArquivosController < ApplicationController
       DxfOrganizationService.call(@arquivo)
     end
     redirect_to @arquivo, notice: "Layer configuration saved."
+  end
+
+  def add_modelo
+    modelo = Modelo.find(params[:modelo_id])
+    unless @arquivo.modelos.include?(modelo)
+      @arquivo.modelos << modelo
+    end
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @arquivo, notice: "Modelo added." }
+    end
+  end
+
+  def remove_modelo
+    modelo = @arquivo.modelos.find(params[:modelo_id])
+    @arquivo.modelos.delete(modelo)
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @arquivo, notice: "Modelo removed." }
+    end
   end
 
   def update_client

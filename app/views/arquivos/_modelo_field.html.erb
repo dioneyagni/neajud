@@ -5,42 +5,96 @@
     </button>
   </h3>
 
-  <div data-edit-toggle-target="display" class="edit-display">
-    <% if @arquivo.modelo.present? %>
-      <div class="client-display">
-        <span class="client-name-display"><%= @arquivo.modelo.nome %></span>
-        <span class="client-responsible-display">(<%= @arquivo.modelo.client.name %><% if @arquivo.modelo.molde %>, <%= @arquivo.modelo.molde.nome %><% end %>)</span>
-      </div>
-    <% else %>
-      <span class="client-empty">No model linked</span>
-    <% end %>
-    <%= link_to "Manage Models", modelos_path, class: "back-link" %>
-  </div>
+  <% if @arquivo.corte? %>
+    <div data-edit-toggle-target="display" class="edit-display">
+      <% if @arquivo.modelos.any? %>
+        <% @arquivo.modelos.each do |modelo| %>
+          <div class="client-display">
+            <span class="client-name-display"><%= modelo.nome %></span>
+            <span class="client-responsible-display">(<%= modelo.client.name %><% if modelo.molde %>, <%= modelo.molde.nome %><% end %>)</span>
+            <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_id: modelo.id), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <span class="client-empty">No models linked</span>
+      <% end %>
+      <%= link_to "Manage Models", modelos_path, class: "back-link" %>
+    </div>
 
-  <div data-edit-toggle-target="form" style="display:none">
-    <form action="<%= update_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
-      <input type="hidden" name="_method" value="patch">
-      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <div class="combobox">
-        <input type="text"
-               class="combobox-input"
-               placeholder="Search model..."
-               value="<%= @arquivo.modelo&.nome %>"
-               data-original-value="<%= @arquivo.modelo&.nome %>"
-               data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
-        <div class="combobox-results"></div>
-      </div>
-      <input type="hidden" name="modelo_id" value="<%= @arquivo.modelo_id %>">
-      <div class="edit-actions" style="margin-top: 0.5rem">
-        <button type="submit" class="btn-icon btn-confirm" title="Confirm">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-        </button>
-        <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-        </button>
-      </div>
-    </form>
-  </div>
+    <div data-edit-toggle-target="form" style="display:none">
+      <% if @arquivo.modelos.any? %>
+        <% @arquivo.modelos.each do |modelo| %>
+          <div class="client-display">
+            <span class="client-name-display"><%= modelo.nome %></span>
+            <span class="client-responsible-display">(<%= modelo.client.name %><% if modelo.molde %>, <%= modelo.molde.nome %><% end %>)</span>
+            <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_id: modelo.id), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <span class="client-empty">No models linked</span>
+      <% end %>
+      <form action="<%= add_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" style="margin-top: 0.5rem" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        <div class="combobox">
+          <input type="text"
+                 class="combobox-input"
+                 placeholder="Add model..."
+                 data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
+          <div class="combobox-results"></div>
+        </div>
+        <input type="hidden" name="modelo_id" value="">
+        <div class="edit-actions" style="margin-top: 0.5rem">
+          <button type="submit" class="btn-icon btn-confirm" title="Add">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+          <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  <% else %>
+    <div data-edit-toggle-target="display" class="edit-display">
+      <% if @arquivo.modelo.present? %>
+        <div class="client-display">
+          <span class="client-name-display"><%= @arquivo.modelo.nome %></span>
+          <span class="client-responsible-display">(<%= @arquivo.modelo.client.name %><% if @arquivo.modelo.molde %>, <%= @arquivo.modelo.molde.nome %><% end %>)</span>
+        </div>
+      <% else %>
+        <span class="client-empty">No model linked</span>
+      <% end %>
+      <%= link_to "Manage Models", modelos_path, class: "back-link" %>
+    </div>
+
+    <div data-edit-toggle-target="form" style="display:none">
+      <form action="<%= update_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+        <input type="hidden" name="_method" value="patch">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        <div class="combobox">
+          <input type="text"
+                 class="combobox-input"
+                 placeholder="Search model..."
+                 value="<%= @arquivo.modelo&.nome %>"
+                 data-original-value="<%= @arquivo.modelo&.nome %>"
+                 data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
+          <div class="combobox-results"></div>
+        </div>
+        <input type="hidden" name="modelo_id" value="<%= @arquivo.modelo_id %>">
+        <div class="edit-actions" style="margin-top: 0.5rem">
+          <button type="submit" class="btn-icon btn-confirm" title="Confirm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </button>
+          <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  <% end %>
 
   <dialog data-dialog-target="dialog" class="client-dialog">
     <form action="<%= modelos_path %>" method="post" class="client-form">

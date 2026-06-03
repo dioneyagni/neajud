@@ -17,6 +17,8 @@ Rails.application.routes.draw do
       patch :update_modelo
       patch :update_tamanho
       patch :update_tipo_corte
+      post :add_modelo
+      delete :remove_modelo
       get :preview
       get :download
       post :upload_version
