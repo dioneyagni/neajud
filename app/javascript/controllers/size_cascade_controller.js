@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { moldeId: Number, clientId: Number }
+  static values = { moldeId: Number, modeloId: Number, clientId: Number }
   static targets = ["pecaSelect", "tamanhoSelect", "tamanhoId", "saveBtn"]
 
   connect() {
@@ -10,13 +10,20 @@ export default class extends Controller {
     }
   }
 
-  cascadeUrl(base) {
+  baseParams() {
     const params = new URLSearchParams()
     params.set("molde_id", this.moldeIdValue)
+    if (this.hasModeloIdValue && this.modeloIdValue) {
+      params.set("modelo_id", this.modeloIdValue)
+    }
     if (this.hasClientIdValue && this.clientIdValue) {
       params.set("client_id", this.clientIdValue)
     }
-    return `${base}?${params}`
+    return params
+  }
+
+  cascadeUrl(base) {
+    return `${base}?${this.baseParams()}`
   }
 
   fetchPecas() {
@@ -35,12 +42,8 @@ export default class extends Controller {
     this.saveBtnTarget.disabled = true
     if (!pecaId) return
 
-    const params = new URLSearchParams()
-    params.set("molde_id", this.moldeIdValue)
+    const params = this.baseParams()
     params.set("peca_id", pecaId)
-    if (this.hasClientIdValue && this.clientIdValue) {
-      params.set("client_id", this.clientIdValue)
-    }
     fetch(`/tamanhos/for_cascade?${params}`)
       .then(r => r.json())
       .then(tamanhos => {

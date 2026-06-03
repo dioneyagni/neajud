@@ -7,7 +7,7 @@ class ModelosController < ApplicationController
 
   def show
     if @modelo.molde_id.present?
-      @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id)
+      @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
                                .includes(:peca, :tamanhos, approved_version: :image_metadata)
                                .order(:peca_id)
       @grouped_by_peca = @organized_arquivos.group_by(&:peca)

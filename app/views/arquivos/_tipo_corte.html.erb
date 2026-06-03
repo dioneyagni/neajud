@@ -1,0 +1,38 @@
+<div data-controller="tipo-corte"
+     data-tipo-corte-linked-value="<%= arquivo.artes_vinculadas.any? %>">
+  <h3>Cut Type</h3>
+
+  <%= form_with url: update_tipo_corte_arquivo_path(arquivo), method: :patch,
+        data: { tipo_corte_target: "form" } do |f| %>
+    <label class="tipo-corte-radio">
+      <%= f.radio_button :tipo_corte, "corte_estampa",
+            checked: arquivo.tipo_corte == "corte_estampa",
+            data: { action: "tipo-corte#change", tipo_corte_target: "radio" } %>
+      <span>Corte e Estampa — exibe artes vinculadas a este corte</span>
+    </label>
+
+    <label class="tipo-corte-radio">
+      <%= f.radio_button :tipo_corte, "apenas_corte",
+            checked: arquivo.tipo_corte == "apenas_corte",
+            data: { action: "tipo-corte#change", tipo_corte_target: "radio" } %>
+      <span>Apenas Corte — não permite vincular artes</span>
+    </label>
+  <% end %>
+
+  <% if arquivo.tipo_corte == "corte_estampa" %>
+    <% artes = arquivo.artes_vinculadas %>
+    <% if artes.any? %>
+      <div data-tipo-corte-target="artesList">
+        <h4>Artes Vinculadas (<%= artes.count %>)</h4>
+        <%= turbo_stream_from "arquivos" %>
+        <div class="gallery">
+          <% artes.each do |arte| %>
+            <%= render partial: "arquivos/card", locals: { arquivo: arte } %>
+          <% end %>
+        </div>
+      </div>
+    <% else %>
+      <p class="gallery-empty">Nenhuma arte vinculada a este corte.</p>
+    <% end %>
+  <% end %>
+</div>

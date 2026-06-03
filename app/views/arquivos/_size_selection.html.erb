@@ -1,6 +1,7 @@
 <div class="stamp-detail-section stamp-detail-section--full" id="size-selection-section"
      data-controller="size-cascade edit-toggle"
      data-size-cascade-molde-id-value="<%= arquivo.modelo&.molde_id %>"
+     data-size-cascade-modelo-id-value="<%= arquivo.modelo_id %>"
      data-size-cascade-client-id-value="<%= arquivo.client_id %>"
       <% unless arquivo.client.present? && arquivo.modelo.present? %>style="display:none"<% end %>>
   <h3 class="section-heading-with-action">Size Selection

@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte preview download destroy upload_version approve_version version_preview configure_layers organize]
   skip_before_action :verify_authenticity_token, only: [ :batch_destroy ]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -152,6 +152,17 @@ class ArquivosController < ApplicationController
     end
   end
 
+  def update_tipo_corte
+    if @arquivo.update(tipo_corte: params[:tipo_corte])
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @arquivo, notice: "Cut type updated." }
+      end
+    else
+      redirect_to @arquivo, alert: "Could not update cut type."
+    end
+  end
+
   def update_time
     previous_seconds = @arquivo.annotated_seconds || @arquivo.estimated_seconds
     new_seconds = parse_hmm(params[:annotated_seconds])
@@ -211,6 +222,8 @@ class ArquivosController < ApplicationController
     update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
     @arquivo.update!(update_attrs)
     if params[:tamanhos].respond_to?(:values)
+      tamanho_ids = @arquivo.tamanhos.pluck(:id)
+      Arquivo.where(tamanho_id: tamanho_ids).update_all(tamanho_id: nil)
       @arquivo.tamanhos.destroy_all
       tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
       tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
