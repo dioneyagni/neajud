@@ -7,10 +7,15 @@ class ClientsController < ApplicationController
 
   def show
     @modelos = @client.modelos.order(:nome)
-    @art_arquivos = @client.arquivos.where(category: "artes")
-                               .includes(approved_version: :image_metadata)
-                               .order(created_at: :desc)
-                               .limit(20)
+    @arquivos_by_modelo = {}
+    @modelos.each do |modelo|
+      direct = Arquivo.where(client_id: @client.id, modelo_id: modelo.id)
+      via_join_ids = modelo.vinculated_arquivos.where(client_id: @client.id).select(:id)
+      @arquivos_by_modelo[modelo] = direct.or(Arquivo.where(id: via_join_ids))
+                                        .includes(approved_version: :image_metadata)
+                                        .order(created_at: :desc)
+                                        .limit(20)
+    end
   end
 
   def search
