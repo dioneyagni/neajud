@@ -9,8 +9,8 @@ class ClientsController < ApplicationController
     @modelos = @client.modelos.order(:nome)
     @arquivos_by_modelo = {}
     @modelos.each do |modelo|
-      direct = Arquivo.where(client_id: @client.id, modelo_id: modelo.id)
-      via_join_ids = modelo.vinculated_arquivos.where(client_id: @client.id).select(:id)
+      direct = Arquivo.where(client_id: @client.id, modelo_id: modelo.id, category: "artes")
+      via_join_ids = modelo.vinculated_arquivos.where(client_id: @client.id, category: "artes").select(:id)
       @arquivos_by_modelo[modelo] = direct.or(Arquivo.where(id: via_join_ids))
                                         .includes(approved_version: :image_metadata)
                                         .order(created_at: :desc)
