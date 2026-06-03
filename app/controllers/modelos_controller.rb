@@ -7,7 +7,9 @@ class ModelosController < ApplicationController
 
   def show
     if @modelo.molde_id.present?
+      via_join_ids = @modelo.vinculated_arquivos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
       @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
+                               .or(Arquivo.where(id: via_join_ids))
                                .includes(:peca, :tamanhos, approved_version: :image_metadata)
                                .order(:peca_id)
       @grouped_by_peca = @organized_arquivos.group_by(&:peca)
@@ -69,6 +71,12 @@ class ModelosController < ApplicationController
 
   def assign_modelo_to_arquivo(modelo)
     arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
-    arquivo&.update(modelo_id: modelo.id)
+    return unless arquivo
+
+    if arquivo.corte?
+      arquivo.modelos << modelo unless arquivo.modelos.include?(modelo)
+    else
+      arquivo.update(modelo_id: modelo.id)
+    end
   end
 end

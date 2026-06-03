@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_02_132845) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_03_140650) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -25,6 +25,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_132845) do
     t.integer "width_px"
     t.index ["arquivo_version_id"], name: "idx_stamp_image_metadata_on_version", unique: true
     t.index ["arquivo_version_id"], name: "index_arquivo_image_metadata_on_arquivo_version_id"
+  end
+
+  create_table "arquivo_modelos", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "modelo_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["arquivo_id", "modelo_id"], name: "index_arquivo_modelos_on_arquivo_id_and_modelo_id", unique: true
+    t.index ["arquivo_id"], name: "index_arquivo_modelos_on_arquivo_id"
+    t.index ["modelo_id"], name: "index_arquivo_modelos_on_modelo_id"
   end
 
   create_table "arquivo_time_logs", force: :cascade do |t|
@@ -234,6 +244,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_132845) do
   end
 
   add_foreign_key "arquivo_image_metadata", "arquivo_versions"
+  add_foreign_key "arquivo_modelos", "arquivos"
+  add_foreign_key "arquivo_modelos", "modelos"
   add_foreign_key "arquivo_time_logs", "arquivos"
   add_foreign_key "arquivo_versions", "arquivos"
   add_foreign_key "arquivos", "arquivo_versions", column: "approved_version_id"
