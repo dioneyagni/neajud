@@ -3141,50 +3141,26 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Create a client + modelo via API, then assign both and the tamanho
+      // Create a client via API
       const csrf = await page.evaluate(() =>
         document.querySelector("meta[name='csrf-token']")?.content || ""
       );
 
-      const setupResp = await page.evaluate(async (token) => {
-        // Create client
-        const cResp = await fetch("/clients", {
+      const clientResult = await page.evaluate(async (token) => {
+        // Create client via /clients
+        const r = await fetch("/clients", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "client[nome]": "CorteCompCliente", "client[responsavel]": "Test" })
+          body: new URLSearchParams({ authenticity_token: token, "client[name]": "CorteCompCliente", "client[responsible]": "Test" })
         });
-        if (!cResp.ok && cResp.status !== 422) return { ok: false, step: "create client", status: cResp.status };
-
-        // Create modelo
-        const mResp = await fetch("/modelos", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "modelo[nome]": "CorteCompModelo", "modelo[molde_id]": "1", "modelo[client_id]": "1" })
-        });
-        if (!mResp.ok && mResp.status !== 422) return { ok: false, step: "create modelo", status: mResp.status };
-
+        if (!r.ok) return { ok: false };
+        // The client was created — we know it exists, assign via API
         return { ok: true };
       }, csrf);
 
-      if (!setupResp.ok) throw new Error(`Setup failed at ${setupResp.step}: ${setupResp.status}`);
+      if (!clientResult.ok) throw new Error("Failed to create client");
 
-      // Reload so the client/modelo combo becomes available
-      await page.reload();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
-
-      // Assign client via the UI
-      const clientSelect = await page.$("#client_id");
-      if (!clientSelect) throw new Error("Client select not found on arte page");
-      const clientOption = await clientSelect.$('option[value]:not([value=""])');
-      if (!clientOption) throw new Error("No client option available");
-      const clientValue = await clientOption.getAttribute("value");
-      await clientSelect.selectOption(clientValue);
-      const clientSubmit = page.locator('#client-section button[type="submit"], #client-section input[type="submit"]');
-      if (await clientSubmit.count() > 0) await clientSubmit.click();
-      await page.waitForTimeout(1000);
-
-      // Assign tamanho via the API
+      // Get client ID via search API, then assign client + tamanho
       const arteUuid = await page.evaluate(() => {
         const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
         return m ? m[1] : null;
@@ -3195,20 +3171,42 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         document.querySelector("meta[name='csrf-token']")?.content || ""
       );
 
-      const updateResp = await page.evaluate(async ({ uuid, tamanhoId, token }) => {
-        const fd = new URLSearchParams();
-        fd.append("tamanho_id", tamanhoId);
-        if (token) fd.append("authenticity_token", token);
-        const r = await fetch(`/arquivos/${uuid}/update_tamanho`, {
+      const apiResp = await page.evaluate(async ({ uuid, tamanhoId, token }) => {
+        // Find the client ID
+        const searchResp = await fetch("/clients/search?q=CorteCompCliente", {
+          headers: { Accept: "application/json" }
+        });
+        const clients = await searchResp.json();
+        const client = clients.find(c => c.name === "CorteCompCliente");
+        if (!client) return { ok: false, step: "find client" };
+
+        // Assign client
+        const cFd = new URLSearchParams();
+        cFd.append("client_id", client.id);
+        if (token) cFd.append("authenticity_token", token);
+        const cResp = await fetch(`/arquivos/${uuid}/update_client`, {
           method: "PATCH",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: fd.toString()
+          body: cFd.toString()
         });
-        return r.status;
+        if (!cResp.ok && cResp.status !== 302) return { ok: false, step: "update client", status: cResp.status };
+
+        // Assign tamanho
+        const tFd = new URLSearchParams();
+        tFd.append("tamanho_id", tamanhoId);
+        if (token) tFd.append("authenticity_token", token);
+        const tResp = await fetch(`/arquivos/${uuid}/update_tamanho`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: tFd.toString()
+        });
+        if (!tResp.ok && tResp.status !== 302) return { ok: false, step: "update tamanho", status: tResp.status };
+
+        return { ok: true };
       }, { uuid: arteUuid, tamanhoId: selectedTamanho.id, token: csrf2 });
 
-      if (updateResp !== 200 && updateResp !== 302) {
-        throw new Error(`update_tamanho returned ${updateResp}`);
+      if (!apiResp.ok) {
+        throw new Error(`API setup failed at ${apiResp.step}${apiResp.status ? ": " + apiResp.status : ""}`);
       }
 
       // Reload to render the new comparison section
