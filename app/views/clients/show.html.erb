@@ -114,5 +114,35 @@
         </div>
       <% end %>
     </div>
+
+    <div class="stamp-detail-section stamp-detail-section--full" style="margin-top: 1.5rem;">
+      <h3>Materials</h3>
+      <% if @client_materiais.any? %>
+        <table class="clients-table" style="margin-top: 0.5rem;">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Color</th>
+              <th>Width</th>
+              <th>Weight</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @client_materiais.each do |mp| %>
+              <tr>
+                <td><%= mp.grupo_material.nome %></td>
+                <td><%= mp.cor_material.nome %></td>
+                <td><%= mp.largura %></td>
+                <td><%= mp.gramatura %></td>
+                <td><%= @client_saldos[mp.id] || 0 %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <p class="gallery-empty" style="margin-top: 0.5rem;">No materials for this client yet.</p>
+      <% end %>
+    </div>
   </div>
 </div>

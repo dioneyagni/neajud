@@ -633,9 +633,33 @@ async function run() {
 
   // ── Cut Type (tipo_corte) ──
 
-  // Cut Type E2E tests for corte arquivos require DXF processing (Node.js).
-  // The functional behavior is covered by RSpec request specs.
-  // This test verifies the section is absent on arte (non-corte) arquivos.
+  await test("Cut Type: section appears on corte DXF arquivos", async () => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await arquivoLink.waitFor({ timeout: 10000 });
+    await arquivoLink.click();
+    await page.waitForSelector("h2", { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    const body = await page.textContent("body");
+    if (!body.includes("Cut Type")) throw new Error("Cut Type section not found on corte arquivo");
+
+    // Verify both radio buttons exist
+    const corteEstampa = await page.$('input[type="radio"][value="corte_estampa"]');
+    if (!corteEstampa) throw new Error("Radio 'corte_estampa' not found");
+    const apenasCorte = await page.$('input[type="radio"][value="apenas_corte"]');
+    if (!apenasCorte) throw new Error("Radio 'apenas_corte' not found");
+
+    // Default should be corte_estampa
+    const isChecked = await corteEstampa.isChecked();
+    if (!isChecked) throw new Error("Default tipo_corte should be 'corte_estampa'");
+
+    // Verify the controller is present
+    const section = await page.$("#tipo-corte-section [data-controller='tipo-corte']");
+    if (!section) throw new Error("tipo-corte Stimulus controller not found");
+  });
 
   await test("Cut Type: section does NOT appear on arte arquivos", async () => {
     const artePath = path.join(__dirname, `e2e-cuttype-arte-${Date.now()}.tif`);
