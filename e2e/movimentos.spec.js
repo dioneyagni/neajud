@@ -67,10 +67,10 @@ async function run() {
     }
   });
 
-  await test("Submit empty form shows error redirect", async () => {
+  await test("Submit empty form shows error on same page", async () => {
     await page.goto(`${BASE_URL}/movimentos/new`);
     await page.click('input[type="submit"]');
-    await page.waitForURL("**/materiais");
+    await page.waitForSelector(".flash-notice", { timeout: 10000 });
     const body = await page.textContent("body");
     if (!body.includes("Invalid material")) {
       console.log(`        Body preview: ${body.slice(0, 300)}`);
@@ -92,9 +92,9 @@ async function run() {
     const clientOption = page.locator(".combobox-option[data-name='Fagner']");
     await clientOption.click();
 
-    await page.selectOption('select[name="movimento_estoque[cor_material_id]"]', { label: "Azul" });
-    await page.fill('input[name="movimento_estoque[largura]"]', "9.99");
-    await page.selectOption('select[name="movimento_estoque[gramatura]"]', "100g");
+    await page.click('.color-swatch[title="Azul"]');
+    await page.evaluate(() => { document.querySelector('input[name="movimento_estoque[largura]"]').value = "9,99" });
+    await page.evaluate(() => { document.querySelector('input[name="movimento_estoque[gramatura]"]').value = "100g" });
     await page.fill('input[name="movimento_estoque[quantidade]"]', "42");
 
     await page.click('input[type="submit"]');
@@ -125,9 +125,9 @@ async function run() {
     await page.locator(".combobox-option[data-name='Lipe']").click();
 
     await page.locator(".tipo-radio--saida").click();
-    await page.selectOption('select[name="movimento_estoque[cor_material_id]"]', { label: "Azul" });
-    await page.fill('input[name="movimento_estoque[largura]"]', "9.99");
-    await page.selectOption('select[name="movimento_estoque[gramatura]"]', "100g");
+    await page.click('.color-swatch[title="Azul"]');
+    await page.evaluate(() => { document.querySelector('input[name="movimento_estoque[largura]"]').value = "9,99" });
+    await page.evaluate(() => { document.querySelector('input[name="movimento_estoque[gramatura]"]').value = "100g" });
     await page.fill('input[name="movimento_estoque[quantidade]"]', "7");
 
     await page.click('input[type="submit"]');
@@ -138,6 +138,68 @@ async function run() {
     if (!body.includes("Out")) throw new Error("Saida type not shown as 'Out'");
     if (!body.includes("7")) throw new Error("Quantity 7 not found in history");
     if (!body.includes("Lipe")) throw new Error("Client Lipe not found in history");
+  });
+
+  await test("Range slider: click display to edit width value", async () => {
+    await page.goto(`${BASE_URL}/movimentos/new`);
+
+    // Find the first range slider (width)
+    const displaySpan = page.locator(".range-slider-value").first();
+    await displaySpan.waitFor({ timeout: 5000 });
+
+    const originalText = await displaySpan.textContent();
+
+    // Click to enter edit mode
+    await displaySpan.click();
+    await page.waitForTimeout(200);
+
+    // Editor should be visible
+    const editor = page.locator(".range-slider-editor").first();
+    const editorVisible = await editor.evaluate(el => !el.classList.contains("range-slider-editor--hidden"));
+    if (!editorVisible) throw new Error("Editor not visible after clicking display");
+
+    // Change the value
+    await editor.fill("1,75");
+    await page.waitForTimeout(100);
+
+    // Press Enter to commit
+    await editor.press("Enter");
+    await page.waitForTimeout(200);
+
+    // Display should show the new value
+    const newText = await displaySpan.textContent();
+    if (!newText.includes("1,75")) throw new Error(`Expected "1,75" in display, got "${newText}"`);
+
+    // Hidden input should have the formatted value
+    const hiddenInput = page.locator("input[data-range-slider-target='hidden']").first();
+    const hiddenVal = await hiddenInput.getAttribute("value");
+    if (!hiddenVal.includes("1,75")) throw new Error(`Expected "1,75" in hidden, got "${hiddenVal}"`);
+
+    // Editor should be hidden again
+    const editorHidden = await editor.evaluate(el => el.classList.contains("range-slider-editor--hidden"));
+    if (!editorHidden) throw new Error("Editor not hidden after commit");
+  });
+
+  await test("Range slider: blur editor also commits value", async () => {
+    await page.goto(`${BASE_URL}/movimentos/new`);
+
+    const displaySpan = page.locator(".range-slider-value").first();
+    await displaySpan.waitFor({ timeout: 5000 });
+
+    // Click to edit
+    await displaySpan.click();
+    await page.waitForTimeout(200);
+
+    const editor = page.locator(".range-slider-editor").first();
+    await editor.fill("0,80");
+
+    // Blur the editor (click elsewhere)
+    await page.locator("h2").click();
+    await page.waitForTimeout(200);
+
+    // Display should update
+    const newText = await displaySpan.textContent();
+    if (!newText.includes("0,80")) throw new Error(`Expected "0,80" in display after blur, got "${newText}"`);
   });
 
   console.log(`\nResults: ${passed} passed, ${failed} failed\n`);

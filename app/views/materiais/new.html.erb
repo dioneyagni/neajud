@@ -1,26 +1,31 @@
 <h2>Register Movement</h2>
 
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+
 <div data-controller="client-select group-select" data-client-select-search-url-value="<%= search_clients_path %>">
   <div class="stamp-detail-section" style="margin-bottom: 1rem;">
-    <%= form_with model: @movimento, url: materiais_path, local: true, data: { turbo: false }, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
+    <%= form_with model: @movimento, url: materiais_path, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
       <div class="client-field">
         <%= f.label :client_id, "Client" %>
         <div class="combobox">
           <input type="text"
                  class="combobox-input"
                  placeholder="Search client..."
+                 value="<%= @selected_client_nome %>"
                  data-client-select-target="input"
                  data-action="focus->client-select#search input->client-select#search blur->client-select#blur">
           <div class="combobox-results" data-client-select-target="results"></div>
         </div>
-        <input type="hidden" name="movimento_estoque[client_id]" data-client-select-target="hidden">
+        <input type="hidden" name="movimento_estoque[client_id]" data-client-select-target="hidden" value="<%= @movimento.client_id %>">
       </div>
 
       <div class="client-field">
         <%= f.label :tipo, "Type" %>
         <div class="tipo-radios">
           <label class="tipo-radio tipo-radio--entrada">
-            <%= f.radio_button :tipo, "entrada", checked: true %>
+            <%= f.radio_button :tipo, "entrada", checked: @movimento.tipo != "saida" %>
             <span class="tipo-radio-indicator">+</span>
             <span class="tipo-radio-label">Entrada</span>
           </label>
@@ -38,26 +43,55 @@
           <input type="text"
                  class="combobox-input"
                  placeholder="Search group..."
+                 value="<%= @selected_grupo_nome %>"
                  data-group-select-target="input"
                  data-action="focus->group-select#search input->group-select#search blur->group-select#blur">
           <div class="combobox-results" data-group-select-target="results"></div>
         </div>
-        <input type="hidden" name="movimento_estoque[grupo_material_id]" data-group-select-target="hidden">
+        <input type="hidden" name="movimento_estoque[grupo_material_id]" data-group-select-target="hidden" value="<%= @selected_grupo_id %>">
       </div>
 
-      <div class="client-field">
+      <div class="client-field" data-controller="color-picker">
         <%= f.label :cor_material_id, "Color" %>
-        <%= f.collection_select :cor_material_id, CorMaterial.order(:nome), :id, :nome, { include_blank: "Select color..." }, required: true %>
+        <div class="color-swatch-grid">
+          <% @cores.each do |cor| %>
+            <button type="button"
+                    class="color-swatch<%= ' selected' if @selected_cor_id.to_s == cor.id.to_s %>"
+                    style="background-color: <%= CorMaterial::COLOR_HEX[cor.nome] || '#CCCCCC' %>;"
+                    title="<%= cor.nome %>"
+                    data-action="click->color-picker#select"
+                    data-id="<%= cor.id %>">
+            </button>
+          <% end %>
+        </div>
+        <span class="color-swatch-name" data-color-picker-target="name"><%= @selected_cor_id.present? ? @cores.find { |c| c.id == @selected_cor_id.to_i }&.nome : '' %></span>
+        <input type="hidden" name="movimento_estoque[cor_material_id]" data-color-picker-target="input" value="<%= @selected_cor_id %>">
       </div>
 
-      <div class="client-field">
+      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value=" m" data-range-slider-decimal-value="true">
         <%= f.label :largura, "Width (m)" %>
-        <%= f.text_field :largura, inputmode: "decimal", placeholder: "ex: 1,40", required: true, class: "combobox-input" %>
+        <div class="range-slider-wrapper">
+          <input type="range"
+                 min="0.50" max="2.00" step="0.01" value="<%= @largura_val || '1.40' %>"
+                 data-range-slider-target="input"
+                 data-action="input->range-slider#update">
+          <input type="hidden" name="movimento_estoque[largura]" data-range-slider-target="hidden" value="<%= @largura_val ? @largura_val.tr('.', ',') + ' m' : '1,40 m' %>">
+          <span class="range-slider-value" data-range-slider-target="display" data-action="click->range-slider#edit"><%= @largura_val ? @largura_val.tr('.', ',') + ' m' : '1,40 m' %></span>
+          <input type="text" class="range-slider-editor range-slider-editor--hidden" data-range-slider-target="editor" data-action="blur->range-slider#commit keydown->range-slider#commit">
+        </div>
       </div>
 
-      <div class="client-field">
+      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value="g">
         <%= f.label :gramatura, "Weight" %>
-        <%= f.select :gramatura, options_for_select(%w[60g 80g 100g 120g 150g 180g 200g 250g 300g]), { include_blank: "Select weight..." }, required: true %>
+        <div class="range-slider-wrapper">
+          <input type="range"
+                 min="20" max="300" step="10" value="<%= @gramatura_val || '100' %>"
+                 data-range-slider-target="input"
+                 data-action="input->range-slider#update">
+          <input type="hidden" name="movimento_estoque[gramatura]" data-range-slider-target="hidden" value="<%= (@gramatura_val || '100') + 'g' %>">
+          <span class="range-slider-value" data-range-slider-target="display" data-action="click->range-slider#edit"><%= (@gramatura_val || '100') + 'g' %></span>
+          <input type="text" class="range-slider-editor range-slider-editor--hidden" data-range-slider-target="editor" data-action="blur->range-slider#commit keydown->range-slider#commit">
+        </div>
       </div>
 
       <div class="client-field">

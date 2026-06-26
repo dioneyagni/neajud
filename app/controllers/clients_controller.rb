@@ -7,10 +7,24 @@ class ClientsController < ApplicationController
 
   def show
     @modelos = @client.modelos.order(:nome)
-    @art_arquivos = @client.arquivos.where(category: "artes")
-                               .includes(approved_version: :image_metadata)
-                               .order(created_at: :desc)
-                               .limit(20)
+    @arquivos_by_modelo = {}
+    @modelos.each do |modelo|
+      direct = Arquivo.where(client_id: @client.id, modelo_id: modelo.id, category: "artes")
+      via_join_ids = modelo.vinculated_arquivos.where(client_id: @client.id, category: "artes").select(:id)
+      @arquivos_by_modelo[modelo] = direct.or(Arquivo.where(id: via_join_ids))
+                                        .includes(approved_version: :image_metadata)
+                                        .order(created_at: :desc)
+                                        .limit(20)
+    end
+
+    @client_materiais = MateriaPrima
+      .joins(:movimento_estoques)
+      .where(movimento_estoques: { client_id: @client.id })
+      .includes(:grupo_material, :cor_material)
+      .distinct
+      .order(:largura)
+
+    @client_saldos = compute_client_saldos
   end
 
   def search
@@ -61,5 +75,16 @@ class ClientsController < ApplicationController
   def assign_client_to_arquivo(client)
     arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
     arquivo&.update(client_id: client.id)
+  end
+
+  def compute_client_saldos
+    data = @client.movimento_estoques.group(:materia_prima_id).select(
+      "materia_prima_id",
+      "SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE 0 END) AS total_in",
+      "SUM(CASE WHEN tipo = 'saida' THEN quantidade ELSE 0 END) AS total_out"
+    )
+    data.each_with_object({}) do |row, hash|
+      hash[row.materia_prima_id] = row.total_in.to_f - row.total_out.to_f
+    end
   end
 end

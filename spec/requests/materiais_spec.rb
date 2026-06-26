@@ -75,7 +75,7 @@ RSpec.describe "Materiais", type: :request do
        .and change(MovimentoEstoque, :count).by(1)
     end
 
-    it "redirects with alert when required fields are missing" do
+    it "renders new with alert when required fields are missing" do
       post materiais_path, params: {
         movimento_estoque: {
           client_id: "", tipo: "", grupo_material_id: "",
@@ -84,8 +84,7 @@ RSpec.describe "Materiais", type: :request do
         }
       }
 
-      expect(response).to redirect_to(materiais_path)
-      follow_redirect!
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Invalid material")
     end
 
@@ -166,6 +165,34 @@ RSpec.describe "Materiais", type: :request do
       json = response.parsed_body
       names = json.map { |g| g["nome"] }
       expect(names).to contain_exactly("Offset")
+    end
+  end
+
+  describe "GET /materiais/cores" do
+    it "returns JSON of colors" do
+      cor
+      get cores_materiais_path
+      expect(response).to have_http_status(:ok)
+      json = response.parsed_body
+      expect(json).to be_an(Array)
+      names = json.map { |c| c["nome"] }
+      expect(names).to include("Vermelho")
+    end
+  end
+
+  describe "POST /materiais/create_grupo" do
+    it "creates a new group" do
+      expect {
+        post create_grupo_materiais_path, params: { grupo_material: { nome: "New Test Group #{Time.now.to_i}" } }
+      }.to change(GrupoMaterial, :count).by(1)
+    end
+
+    it "redirects with alert when group already exists" do
+      grupo
+      post create_grupo_materiais_path, params: { grupo_material: { nome: "Oxford" } }
+      expect(response).to redirect_to(materiais_path)
+      follow_redirect!
+      expect(response.body).to include("already exists")
     end
   end
 end

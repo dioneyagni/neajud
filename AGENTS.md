@@ -146,6 +146,8 @@ Quando criar uma nova action em `StampsController` (ou qualquer controller com `
 - **Stimulus controller**: testar interação real (clique, input, submit) no E2E
 - **Controller action**: testar que responde e persiste o estado esperado
 - **Modal/dialog**: testar abrir, preencher, submit, **fechar (Cancel)**, e verificar resultado pós-redirect. Verificar também posicionamento (centrado no viewport) via `getBoundingClientRect()`
+- **Range slider (click-to-edit)**: E2E test must verify: (1) click display → editor appears (hidden class removed), (2) edit value + Enter/blur → display and hidden input updated, (3) editor hidden again after commit
+- **Tipo corte**: E2E tests must cover both positive (section appears on corte files with both radio buttons, default `corte_estampa`) and negative (section absent on arte files)
 - **Cobertura mínima**: antes de merge, `bin/rspec && bash bin/e2e` deve passar 100%
 
 ## Architecture

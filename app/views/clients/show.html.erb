@@ -93,19 +93,56 @@
         <% else %>
           <p class="gallery-empty" style="margin-top: 0.75rem">No modelos for this client yet.</p>
         <% end %>
-      <div class="stamp-detail-section stamp-detail-section--full">
-        <h3>Arquivos (Artes)</h3>
-        <% if @art_arquivos.any? %>
-          <%= turbo_stream_from "arquivos" %>
-          <div class="gallery">
-            <% @art_arquivos.each do |arquivo| %>
-              <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
+      <% @arquivos_by_modelo.each do |modelo, arquivos| %>
+        <div class="stamp-detail-section stamp-detail-section--full">
+          <h3><%= modelo.nome %>
+            <span style="font-weight:normal;font-size:0.85rem;color:var(--text-muted);">
+              — <%= modelo.client.name %><%= modelo.molde ? ", #{modelo.molde.nome}" : "" %>
+            </span>
+            <%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm", style: "float:right" %>
+          </h3>
+          <% if arquivos.any? %>
+            <%= turbo_stream_from "arquivos" %>
+            <div class="gallery">
+              <% arquivos.each do |arquivo| %>
+                <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="gallery-empty" style="margin-top: 0.75rem">No arquivos for this model yet.</p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="stamp-detail-section stamp-detail-section--full" style="margin-top: 1.5rem;">
+      <h3>Materials</h3>
+      <% if @client_materiais.any? %>
+        <table class="clients-table" style="margin-top: 0.5rem;">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Color</th>
+              <th>Width</th>
+              <th>Weight</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @client_materiais.each do |mp| %>
+              <tr>
+                <td><%= mp.grupo_material.nome %></td>
+                <td><%= mp.cor_material.nome %></td>
+                <td><%= mp.largura %></td>
+                <td><%= mp.gramatura %></td>
+                <td><%= @client_saldos[mp.id] || 0 %></td>
+              </tr>
             <% end %>
-          </div>
-        <% else %>
-          <p class="gallery-empty" style="margin-top: 0.75rem">No art arquivos for this client yet.</p>
-        <% end %>
-      </div>
+          </tbody>
+        </table>
+      <% else %>
+        <p class="gallery-empty" style="margin-top: 0.5rem;">No materials for this client yet.</p>
+      <% end %>
     </div>
   </div>
 </div>

@@ -4,33 +4,44 @@ class MovimentosController < ApplicationController
   end
 
   def new
+    @cores = CorMaterial.order(:nome)
     @movimento = MovimentoEstoque.new
   end
 
   def create
     normalize_decimal_separator
 
+    @cores = CorMaterial.order(:nome)
+    @movimento = MovimentoEstoque.new(movimento_params.except(:grupo_material_id, :cor_material_id, :largura, :gramatura))
+
     mp = find_or_create_materia_prima
     unless mp
-      redirect_to materiais_path, alert: "Invalid material: check group, color, width and weight."
+      flash.now[:alert] = "Invalid material: check group, color, width and weight."
+      populate_selected_values
+      render :new, status: :unprocessable_content
       return
     end
 
-    @movimento = mp.movimento_estoques.new(
-      client_id: movimento_params[:client_id],
-      tipo: movimento_params[:tipo],
-      quantidade: movimento_params[:quantidade],
-      valor: movimento_params[:valor].presence
-    )
+    @movimento.materia_prima = mp
 
     if @movimento.save
       redirect_to materiais_path, notice: "Movement registered: #{@movimento.tipo == 'entrada' ? 'In' : 'Out'} #{@movimento.quantidade} of #{mp.nome_completo} (#{@movimento.client.name})."
     else
-      redirect_to materiais_path, alert: @movimento.errors.full_messages.join(", ")
+      populate_selected_values
+      render :new, status: :unprocessable_content
     end
   end
 
   private
+
+  def populate_selected_values
+    @selected_cor_id = movimento_params[:cor_material_id]
+    @selected_grupo_id = movimento_params[:grupo_material_id]
+    @largura_val = movimento_params[:largura]
+    @gramatura_val = movimento_params[:gramatura]&.sub(/g\z/, "")
+    @selected_client_nome = Client.find_by(id: @movimento.client_id)&.name
+    @selected_grupo_nome = GrupoMaterial.find_by(id: @selected_grupo_id)&.nome
+  end
 
   def normalize_decimal_separator
     %w[largura quantidade valor].each do |field|
