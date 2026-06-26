@@ -3085,69 +3085,44 @@ await test("DXF Mold Organization: save organization marks as organized", async 
   // ── Corte Comparison on Arte Show Page ──
 
   await test("Corte Comparison: arte with tamanho shows corte sizes table", async () => {
-    // Setup: upload and organize CABEDAL DXF if not already organized
+    // Find the CABEDAL DXF (organized by previous test) and extract tamanho IDs
     const cabedalPath = path.join(testImagesDir, "CABEDAL - 35 AO 43.dxf");
     if (!fs.existsSync(cabedalPath)) throw new Error("DXF not found");
 
     await page.goto(BASE_URL);
-    let cabedalCard = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first();
-    let cabedalExists = await cabedalCard.count();
-
+    const cabedalCard = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first();
+    const cabedalExists = await cabedalCard.count();
     if (cabedalExists === 0) {
+      // Upload CABEDAL if not present
       const fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(cabedalPath);
       await page.click('input[type="submit"]');
       await page.waitForTimeout(5000);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
-      cabedalCard = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first();
     }
 
-    // Navigate to CABEDAL and organize if not already
-    await cabedalCard.locator("a").first().click();
+    // Navigate to CABEDAL and get tamanho IDs from the display (not form)
+    const cCard = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first();
+    await cCard.locator("a").first().click();
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    const hasOrganizeBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
-    if (hasOrganizeBtn) {
-      // Create molde + peca via API
-      const csrf = await page.evaluate(() => {
-        return document.querySelector("meta[name='csrf-token']")?.content || "";
-      });
-      await page.evaluate(async (token) => {
-        await fetch("/moldes", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteComp" })
-        });
-        await fetch("/pecas", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "SizeTest" })
-        });
-      }, csrf);
-
-      await page.selectOption('select[name="molde_id"]', { label: "CorteComp" });
-      await page.selectOption('select[name="peca_id"]', { label: "SizeTest" });
-      await hasOrganizeBtn.click();
-      await page.waitForTimeout(1500);
-    }
-
-    // Get the CABEDAL URL and tamanho IDs from its page
-    const cabedalUrl = page.url();
+    // Extract tamanho IDs from data-tamanho-id attributes on the page
     const cabedalTamanhos = await page.evaluate(() => {
       const rows = document.querySelectorAll(".tamanho-row");
       return Array.from(rows).map(row => ({
         id: row.getAttribute("data-tamanho-id"),
-        nome: row.querySelector(".tamanho-input")?.value || "",
-        measurements: row.querySelector(".tamanho-measurements")?.textContent || ""
+        nome: (row.querySelector(".tamanho-input")?.value || "").trim(),
       }));
     });
 
-    if (cabedalTamanhos.length === 0) throw new Error("No tamanhos found on CABEDAL corte");
+    if (cabedalTamanhos.length === 0) {
+      throw new Error("No tamanhos found on CABEDAL. Ensure previous test organized it.");
+    }
     const selectedTamanho = cabedalTamanhos[0];
 
-    // Upload a fresh arte
-    const artePath = path.join(__dirname, `e2e-corte-compare-arte-${Date.now()}.tif`);
+    // Upload a fresh arte TIF
+    const artePath = path.join(__dirname, `e2e-corte-compare-${Date.now()}.tif`);
     const { execSync } = require("child_process");
     execSync(`convert -size 30x30 xc:blue 'TIFF:${artePath}'`);
 
@@ -3166,85 +3141,95 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Assign client + modelo so size_cascade can see the corte sizes
-      const bodyText = await page.textContent("body");
-      if (!bodyText.includes("Client")) throw new Error("Client section not found");
+      // Create a client + modelo via API, then assign both and the tamanho
+      const csrf = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
 
-      const csrf2 = await page.evaluate(() => {
-        return document.querySelector("meta[name='csrf-token']")?.content || "";
-      });
-
-      // Create a client and modelo for this test
-      await page.evaluate(async (token) => {
-        await fetch("/clients", {
+      const setupResp = await page.evaluate(async (token) => {
+        // Create client
+        const cResp = await fetch("/clients", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "client[nome]": "CorteCompCliente", "client[responsavel]": "Test" })
         });
-        await fetch("/modelos", {
+        if (!cResp.ok && cResp.status !== 422) return { ok: false, step: "create client", status: cResp.status };
+
+        // Create modelo
+        const mResp = await fetch("/modelos", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "modelo[nome]": "CorteCompModelo", "modelo[molde_id]": "1", "modelo[client_id]": "1" })
         });
-      }, csrf2);
+        if (!mResp.ok && mResp.status !== 422) return { ok: false, step: "create modelo", status: mResp.status };
 
-      // Select client
-      const clientSelect = await page.$("#client_id");
-      if (clientSelect) {
-        await clientSelect.selectOption({ label: "CorteCompCliente" });
-        await page.click('#client-section button[type="submit"]');
-        await page.waitForTimeout(1000);
-      }
+        return { ok: true };
+      }, csrf);
 
-      // Reload page to reflect client
+      if (!setupResp.ok) throw new Error(`Setup failed at ${setupResp.step}: ${setupResp.status}`);
+
+      // Reload so the client/modelo combo becomes available
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Now assign the tamanho directly via the update_tamanho endpoint
+      // Assign client via the UI
+      const clientSelect = await page.$("#client_id");
+      if (!clientSelect) throw new Error("Client select not found on arte page");
+      const clientOption = await clientSelect.$('option[value]:not([value=""])');
+      if (!clientOption) throw new Error("No client option available");
+      const clientValue = await clientOption.getAttribute("value");
+      await clientSelect.selectOption(clientValue);
+      const clientSubmit = page.locator('#client-section button[type="submit"], #client-section input[type="submit"]');
+      if (await clientSubmit.count() > 0) await clientSubmit.click();
+      await page.waitForTimeout(1000);
+
+      // Assign tamanho via the API
       const arteUuid = await page.evaluate(() => {
-        const match = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
-        return match ? match[1] : null;
+        const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
+        return m ? m[1] : null;
       });
+      if (!arteUuid) throw new Error("Could not extract arte UUID from URL");
 
-      const csrf3 = await page.evaluate(() => {
-        return document.querySelector("meta[name='csrf-token']")?.content || "";
-      });
+      const csrf2 = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
 
-      const resp = await page.evaluate(async ({ uuid, tamanhoId, token }) => {
+      const updateResp = await page.evaluate(async ({ uuid, tamanhoId, token }) => {
         const fd = new URLSearchParams();
         fd.append("tamanho_id", tamanhoId);
         if (token) fd.append("authenticity_token", token);
         const r = await fetch(`/arquivos/${uuid}/update_tamanho`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "text/html" },
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: fd.toString()
         });
         return r.status;
-      }, { uuid: arteUuid, tamanhoId: selectedTamanho.id, token: csrf3 });
+      }, { uuid: arteUuid, tamanhoId: selectedTamanho.id, token: csrf2 });
 
-      if (resp !== 200 && resp !== 302) throw new Error(`update_tamanho returned ${resp}`);
+      if (updateResp !== 200 && updateResp !== 302) {
+        throw new Error(`update_tamanho returned ${updateResp}`);
+      }
 
-      // Reload to see the comparison
+      // Reload to render the new comparison section
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
       const finalBody = await page.textContent("body");
 
-      // Check the comparison section exists
-      if (!finalBody.includes("Comparison with Corte")) throw new Error("Comparison with Corte section not found");
+      if (!finalBody.includes("Comparison with Corte")) {
+        throw new Error("Comparison with Corte section not found on arte page");
+      }
+      if (!finalBody.includes("CABEDAL")) {
+        throw new Error("Corte name CABEDAL not found in comparison section");
+      }
+      if (!finalBody.includes(selectedTamanho.nome)) {
+        throw new Error(`Selected tamanho "${selectedTamanho.nome}" not found in comparison table`);
+      }
 
-      // Check the corte name appears in the comparison header
-      if (!finalBody.includes("CABEDAL")) throw new Error("Corte name CABEDAL not found in comparison");
-
-      // Check the selected tamanho is highlighted (table should show it)
-      if (!finalBody.includes(selectedTamanho.nome)) throw new Error(`Selected tamanho "${selectedTamanho.nome}" not found in comparison table`);
-
-      // Check the badge indicator exists
       const hasBadge = await page.$(".badge-selected");
-      if (!hasBadge) throw new Error("Selected size badge (✓) not found in comparison table");
-
+      if (!hasBadge) throw new Error("Selected size badge not found in comparison table");
     } finally {
       if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
     }
