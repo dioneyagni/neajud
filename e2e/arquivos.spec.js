@@ -3138,12 +3138,12 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await saveBtn.click();
       await page.waitForTimeout(1500);
 
-      // Get the tamanho ID from the organization
+      // Get the tamanho ID from the organization (read-only display rows)
       const tamanhos = await page.evaluate(() => {
-        const rows = document.querySelectorAll(".tamanho-row");
+        const rows = document.querySelectorAll(".tamanho-list--readonly .tamanho-row");
         return Array.from(rows).map(row => ({
           id: row.getAttribute("data-tamanho-id"),
-          nome: (row.querySelector(".tamanho-input")?.value || "").trim()
+          nome: (row.querySelector(".tamanho-nome")?.textContent || "").trim()
         }));
       });
       if (tamanhos.length === 0) throw new Error("No tamanhos after organization");

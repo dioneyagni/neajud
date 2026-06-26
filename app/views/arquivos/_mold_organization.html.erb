@@ -74,7 +74,7 @@
     <div class="edit-display" data-edit-toggle-target="display">
       <div class="tamanho-list tamanho-list--readonly">
         <% arquivo.tamanhos.each_with_index do |t, idx| %>
-          <div class="tamanho-row">
+          <div class="tamanho-row" data-tamanho-id="<%= t.id %>">
             <span class="tamanho-indicator"><%= idx + 1 %>.</span>
             <span class="tamanho-nome"><%= t.nome %></span>
             <span class="tamanho-measurements">
