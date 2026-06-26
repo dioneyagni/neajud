@@ -3130,6 +3130,10 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         });
       }, csrf);
 
+      // Reload so the <select> options include the newly created molde/peca
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+
       await page.selectOption('select[name="molde_id"]', { label: "CorteCompMold" });
       await page.selectOption('select[name="peca_id"]', { label: "CorteCompPiece" });
 
