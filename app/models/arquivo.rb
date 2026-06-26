@@ -10,6 +10,7 @@ class Arquivo < ApplicationRecord
   belongs_to :peca, optional: true
   belongs_to :modelo, optional: true
   belongs_to :tamanho, optional: true
+  has_one :corte, through: :tamanho, source: :arquivo
 
   before_validation :set_uuid, on: :create
   before_validation :set_default_tipo_corte

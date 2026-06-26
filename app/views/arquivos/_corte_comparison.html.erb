@@ -1,0 +1,39 @@
+<% if (corte = arquivo.corte) %>
+  <div class="stamp-detail-section stamp-detail-section--full corte-comparison-section">
+    <h3>Comparison with Corte</h3>
+    <div class="corte-comparison-header">
+      <%= image_tag "#{FileCategory.extension_icon(corte.extension)}.svg", class: "stamp-detail-ext-icon", alt: corte.extension %>
+      <span><%= corte.filename %>.<%= corte.extension %></span>
+      <%= link_to "View corte →", arquivo_path(corte), class: "corte-link" %>
+    </div>
+
+    <table class="corte-comparison-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Size</th>
+          <th>Width</th>
+          <th>Height</th>
+          <th>Area</th>
+          <th>Perimeter</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% corte.tamanhos.each do |t| %>
+          <tr class="<%= 'selected' if t.id == arquivo.tamanho_id %>">
+            <td class="corte-comparison-check">
+              <% if t.id == arquivo.tamanho_id %>
+                <span class="badge-selected" title="Selected size">✓</span>
+              <% end %>
+            </td>
+            <td><%= t.nome %></td>
+            <td><%= t.width_mm ? "#{t.width_mm.round(1)} mm" : "—" %></td>
+            <td><%= t.height_mm ? "#{t.height_mm.round(1)} mm" : "—" %></td>
+            <td><%= t.area_mm2 ? "#{t.area_mm2.round(1)} mm²" : "—" %></td>
+            <td><%= t.perimeter_mm ? "#{t.perimeter_mm.round(1)} mm" : "—" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

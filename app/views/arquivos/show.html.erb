@@ -41,6 +41,7 @@
 
       <% if @arquivo.category == "artes" %>
         <%= render "size_selection", arquivo: @arquivo %>
+        <%= render "corte_comparison", arquivo: @arquivo %>
       <% end %>
 
       <div class="stamp-detail-section">
