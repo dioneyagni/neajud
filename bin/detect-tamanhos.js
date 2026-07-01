@@ -146,18 +146,23 @@ for (const pl of result.polylines) {
 
 closed.sort((a, b) => b.bboxArea - a.bboxArea);
 
-// Outer polylines = those whose centroid is NOT inside any larger polyline
+// Outer polylines = those NOT fully contained inside any larger polyline
+// (prevents legitimate separate shapes from being excluded when their
+// centroid happens to fall inside a neighboring shape's polygon)
 const outer = [];
 for (const poly of closed) {
-  let contained = false;
+  let fullyContained = false;
   for (const other of closed) {
     if (other === poly) continue;
-    if (other.bboxArea > poly.bboxArea && pointInPolygon(poly.centroid.x, poly.centroid.y, other.vertices)) {
-      contained = true;
-      break;
+    if (other.bboxArea > poly.bboxArea) {
+      const allInside = poly.vertices.every(v => pointInPolygon(v[0], v[1], other.vertices));
+      if (allInside) {
+        fullyContained = true;
+        break;
+      }
     }
   }
-  if (!contained) {
+  if (!fullyContained) {
     outer.push(poly);
   }
 }

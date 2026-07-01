@@ -34,7 +34,7 @@ class DxfOrganizationService
 
     @arquivo.tamanhos.destroy_all
     tamanho_records = result["tamanhos"].map do |t|
-      @arquivo.tamanhos.create!(
+      record = @arquivo.tamanhos.create!(
         nome: t["nome"],
         position: t["position"],
         width_mm: t["width_mm"],
@@ -44,6 +44,8 @@ class DxfOrganizationService
         inner_lines_mm: t["inner_lines_mm"],
         total_line_mm: t["total_line_mm"]
       )
+      generate_tamanho_preview(record, path)
+      record
     end
 
     overlaps = result["overlaps"] || []
@@ -87,5 +89,48 @@ class DxfOrganizationService
 
       records[idx]&.destroy!
     end
+  end
+
+  def generate_tamanho_preview(tamanho, dxf_path)
+    version = @arquivo.approved_version
+    return unless version
+
+    preview_dir = File.join(version.storage_dir, "tamanho_previews")
+    png_path = File.join(preview_dir, "#{tamanho.position}.png")
+
+    if File.exist?(png_path)
+      tamanho.update_column(:preview_file, png_path)
+      return
+    end
+
+    FileUtils.mkdir_p(preview_dir)
+
+    extracted_dxf = File.join(preview_dir, "#{tamanho.position}.dxf")
+    svg_path = File.join(preview_dir, "#{tamanho.position}.svg")
+
+    extract_script = Rails.root.join("bin", "extract-tamanho-dxf.js").to_s
+    preview_script = Rails.root.join("bin", "generate-dxf-preview.js").to_s
+
+    extract_output = `node #{Shellwords.escape(extract_script)} #{Shellwords.escape(dxf_path)} #{Shellwords.escape(extracted_dxf)} #{Shellwords.escape(tamanho.position.to_s)} 2>/dev/null`
+    return unless $?.success? && File.exist?(extracted_dxf)
+
+    svg_output = `node #{Shellwords.escape(preview_script)} #{Shellwords.escape(extracted_dxf)} #{Shellwords.escape(svg_path)} 2>/dev/null`
+    return unless $?.success? && File.exist?(svg_path)
+
+    system("convert", svg_path, "-resize", "150x>", "-define", "png:color-type=6", png_path)
+    return unless $?.success? && File.exist?(png_path)
+
+    tamanho.update_column(:preview_file, png_path)
+  end
+
+  def self.generate_tamanho_previews(arquivo)
+    service = new(arquivo)
+    version = arquivo.approved_version
+    return unless version
+
+    dxf_path = version.original_path
+    return unless File.exist?(dxf_path)
+
+    arquivo.tamanhos.each { |t| service.send(:generate_tamanho_preview, t, dxf_path) }
   end
 end

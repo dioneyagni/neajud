@@ -10,6 +10,7 @@ class Arquivo < ApplicationRecord
   belongs_to :peca, optional: true
   belongs_to :modelo, optional: true
   belongs_to :tamanho, optional: true
+  has_one :corte, through: :tamanho, source: :arquivo
 
   before_validation :set_uuid, on: :create
   before_validation :set_default_tipo_corte
@@ -27,6 +28,11 @@ class Arquivo < ApplicationRecord
 
   def corte?
     category == "corte"
+  end
+
+  def corte_via_modelo
+    return nil unless modelo&.molde
+    Arquivo.where(organized: true, molde_id: modelo.molde_id).first
   end
 
   def artes_vinculadas

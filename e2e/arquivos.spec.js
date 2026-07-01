@@ -1620,388 +1620,91 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
   // ── Size Selection (Arte arquivos) ──
 
-  await test("Size Selection: section appears on arte arquivos with a client", async () => {
-    // Create an arte arquivo and assign a client so Size Selection appears
+  await test("Size Selection: hidden by default, only shown when corte has organize_error", async () => {
     const arteSizePath = path.join(__dirname, "e2e-size-arte.tif");
     if (!fs.existsSync(arteSizePath)) {
       const { execSync } = require("child_process");
       execSync(`convert -size 30x30 xc:blue 'TIFF:${arteSizePath}'`);
     }
 
-    await page.goto(BASE_URL);
-    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+    let arteUuid = null;
+    let clientId = null;
 
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(arteSizePath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+    try {
+      await page.goto(BASE_URL);
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
 
-    // Go to the arte arquivo show page
-    const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
-    const sizeCardCount = await sizeCard.count();
-    if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(arteSizePath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    const sizeLink = sizeCard.locator("a").first();
-    await sizeLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
+      const sizeCardCount = await sizeCard.count();
+      if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
 
-    // Get CSRF for subsequent API calls
-    const csrf = await page.evaluate(() => {
-      const meta = document.querySelector("meta[name='csrf-token']");
-      return meta?.content || "";
-    });
+      const sizeLink = sizeCard.locator("a").first();
+      await sizeLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // Create a client
-    await page.evaluate(async (token) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "client[name]": "Size Test Client", "client[responsible]": "Tester" })
+      const csrf = await page.evaluate(() => {
+        const meta = document.querySelector("meta[name='csrf-token']");
+        return meta?.content || "";
       });
-    }, csrf);
 
-    // Assign client to the arte arquivo via fetch
-    const clientAssigned = await page.evaluate(async (token) => {
-      const clientRes = await fetch("/clients/search?q=Size Test Client");
-      const clients = await clientRes.json();
-      if (!clients[0]) return false;
-      const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/arquivos/${uuid}/update_client`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+      arteUuid = await page.evaluate(() => window.location.pathname.split("/").pop());
+
+      await page.evaluate(async (token) => {
+        await fetch("/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "client[name]": "Size Test Client", "client[responsible]": "Tester" })
+        });
+      }, csrf);
+
+      clientId = await page.evaluate(async () => {
+        const r = await fetch("/clients/search?q=Size Test Client");
+        const clients = await r.json();
+        return clients[0] ? clients[0].id : null;
       });
-      return res.ok;
-    }, csrf);
 
-    if (!clientAssigned) throw new Error("Failed to assign client");
+      const clientAssigned = await page.evaluate(async ({ token, clientId }) => {
+        const uuid = window.location.pathname.split("/").pop();
+        const res = await fetch(`/arquivos/${uuid}/update_client`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clientId })
+        });
+        return res.ok;
+      }, { token: csrf, clientId });
 
-    // Reload to see Size Selection
-    await page.reload();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      if (!clientAssigned) throw new Error("Failed to assign client");
 
-    const body = await page.textContent("body");
-    if (!body.includes("Size Selection")) throw new Error("Size Selection section not found");
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // No modelo set yet — section should be hidden
-    await page.waitForSelector("#size-selection-section", { state: "attached", timeout: 5000 });
-    const debugInfo = await page.evaluate(() => {
-      const el = document.querySelector("#size-selection-section");
-      if (!el) return "NOT_FOUND";
-      const style = el.getAttribute("style") || "";
-      const clientId = el.getAttribute("data-size-cascade-client-id-value") || "";
-      const moldeId = el.getAttribute("data-size-cascade-molde-id-value") || "";
-      return `style="${style}" clientId="${clientId}" moldeId="${moldeId}"`;
-    });
-    if (debugInfo === "NOT_FOUND") throw new Error("Size Selection section not in DOM");
-    const rawStyle = await page.$eval("#size-selection-section", el => el.getAttribute("style"));
-    if (rawStyle !== "display:none") throw new Error(`Size Selection not hidden: style="${rawStyle}" (debug: ${debugInfo})`);
+      const sectionInDOM = await page.evaluate(() => !!document.querySelector("#size-selection-section"));
+      if (sectionInDOM) throw new Error("Size Selection section should not be in DOM for normal arte files");
 
-    // Cascade selects and save button should NOT render (no modelo)
-    const pecaSelect = await page.$("#cascade_peca");
-    if (pecaSelect) throw new Error("Piece select should not render without a modelo");
-
-    const saveBtn = await page.$("[data-size-cascade-target='saveBtn']");
-    if (saveBtn) throw new Error("Save button should not render without a modelo");
+      const body = await page.textContent("body");
+      if (body.includes("Size Selection")) throw new Error("Size Selection text should not appear for normal arte files");
+    } finally {
+      await page.evaluate(async ({ clientId, arteUuid }) => {
+        try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+      }, { clientId, arteUuid }).catch(() => {});
+      if (fs.existsSync(arteSizePath)) fs.unlinkSync(arteSizePath);
+    }
   });
 
-  await test("Size Selection: full cascade flow selects and saves a size", async () => {
-    // ── Setup: create arte + organized arquivos ──
-    const artePath = path.join(__dirname, "e2e-cascade-arte.tif");
-    if (!fs.existsSync(artePath)) {
-      const { execSync } = require("child_process");
-      execSync(`convert -size 30x30 xc:green 'TIFF:${artePath}'`);
-    }
 
-    const orgPath = path.join(__dirname, "e2e-cascade-org.tif");
-    if (!fs.existsSync(orgPath)) {
-      const { execSync } = require("child_process");
-      execSync(`convert -size 20x20 xc:red 'TIFF:${orgPath}'`);
-    }
 
-    // Upload arte arquivo
-    await page.goto(BASE_URL);
-    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
-    let fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(artePath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Upload organized arquivo
-    await page.goto(BASE_URL);
-    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
-    fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(orgPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // ── Navigate to arte arquivo show page ──
-    const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
-    await arteCard.waitFor({ timeout: 10000 });
-    await arteCard.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const csrf = await page.evaluate(() => {
-      const meta = document.querySelector("meta[name='csrf-token']");
-      return meta?.content || "";
-    });
-
-    // ── Create a client ──
-    await page.evaluate(async (token) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          authenticity_token: token,
-          "client[name]": "Cascade Test Client",
-          "client[responsible]": "Cascade Tester"
-        })
-      });
-    }, csrf);
-
-    // ── Assign client to arte arquivo ──
-    const clientAssigned = await page.evaluate(async (token) => {
-      const r = await fetch("/clients/search?q=Cascade Test Client");
-      const clients = await r.json();
-      if (!clients[0]) return false;
-      const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/arquivos/${uuid}/update_client`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
-      });
-      return res.ok;
-    }, csrf);
-    if (!clientAssigned) throw new Error("Failed to assign client");
-
-    // ── Reload to see Size Selection ──
-    await page.reload();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-    const body = await page.textContent("body");
-    if (!body.includes("Size Selection")) throw new Error("Size Selection section not found");
-    // No modelo set — section should be hidden
-    await page.waitForSelector("#size-selection-section", { state: "attached", timeout: 5000 });
-    const debugCascade = await page.evaluate(() => {
-      const el = document.querySelector("#size-selection-section");
-      if (!el) return "NOT_FOUND";
-      const style = el.getAttribute("style") || "";
-      const clientId = el.getAttribute("data-size-cascade-client-id-value") || "";
-      const moldeId = el.getAttribute("data-size-cascade-molde-id-value") || "";
-      return `style="${style}" clientId="${clientId}" moldeId="${moldeId}"`;
-    });
-    if (debugCascade === "NOT_FOUND") throw new Error("Size Selection section not in DOM");
-    const rawStyle = await page.$eval("#size-selection-section", el => el.getAttribute("style"));
-    if (rawStyle !== "display:none") throw new Error(`Size Selection not hidden: style="${rawStyle}" (debug: ${debugCascade})`);
-
-    // ── Create peca, molde (with peca), and modelo (with client + molde) ──
-    const chain = await page.evaluate(async (token) => {
-      // Create peca
-      await fetch("/pecas", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Cascade Peca" })
-      });
-
-      // Find peca id
-      const pecaRes = await fetch("/pecas/search?q=Cascade Peca");
-      const pecas = await pecaRes.json();
-      if (!pecas[0]) return null;
-
-      // Create molde with peca_ids
-      const moldeBody = new URLSearchParams();
-      moldeBody.append("authenticity_token", token);
-      moldeBody.append("molde[nome]", "Cascade Molde");
-      moldeBody.append("molde[peca_ids][]", pecas[0].id);
-      await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
-
-      // Find molde id
-      const moldeRes = await fetch("/moldes/search?q=Cascade Molde");
-      const moldes = await moldeRes.json();
-      if (!moldes[0]) return null;
-
-      // Find client id
-      const clientRes = await fetch("/clients/search?q=Cascade Test Client");
-      const clients = await clientRes.json();
-      if (!clients[0]) return null;
-
-      // Create modelo
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          authenticity_token: token,
-          "modelo[nome]": "Cascade Modelo",
-          "modelo[client_id]": clients[0].id,
-          "modelo[molde_id]": moldes[0].id
-        })
-      });
-
-      return { moldeId: moldes[0].id, pecaId: pecas[0].id };
-    }, csrf);
-    if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
-
-    // ── Set modelo on arte arquivo so Size Selection can use its molde ──
-    const modeloSet = await page.evaluate(async (token) => {
-      const modeloRes = await fetch("/modelos/search?q=Cascade Modelo");
-      const modelos = await modeloRes.json();
-      if (!modelos[0]) return false;
-      const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/arquivos/${uuid}/update_modelo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", modelo_id: modelos[0].id })
-      });
-      return res.ok;
-    }, csrf);
-    if (!modeloSet) throw new Error("Failed to set modelo on arte arquivo");
-
-    // ── Reload: Size Selection should now have the peca select element ──
-    await page.reload();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-    const sectionBody = await page.textContent("body");
-    if (!sectionBody.includes("Size Selection")) throw new Error("Size Selection section not found after setting modelo");
-
-    // Verify peca select element exists (will be populated after organize later)
-    await page.waitForSelector("#cascade_peca", { timeout: 5000 });
-
-    // ── Navigate to gallery, then organized arquivo's show page ──
-    await page.goto(BASE_URL);
-    await page.waitForTimeout(500);
-    const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-org" }).first();
-    await orgCard.waitFor({ timeout: 10000 });
-    await orgCard.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    // ── Assign client to organized arquivo (same client as arte) ──
-    const orgClientSet = await page.evaluate(async (token) => {
-      const clientRes = await fetch("/clients/search?q=Cascade Test Client");
-      const clients = await clientRes.json();
-      if (!clients[0]) return false;
-      const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/arquivos/${uuid}/update_client`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
-      });
-      return res.ok;
-    }, csrf);
-    if (!orgClientSet) throw new Error("Failed to assign client to organized arquivo");
-
-    // ── Organize the arquivo (set molde_id, peca_id, create tamanho) ──
-    const organized = await page.evaluate(async ({ token, chain }) => {
-      const uuid = window.location.pathname.split("/").pop();
-      const body = new URLSearchParams();
-      body.append("authenticity_token", token);
-      body.append("_method", "patch");
-      body.append("molde_id", chain.moldeId);
-      body.append("peca_id", chain.pecaId);
-      body.append("tamanhos[0][nome]", "42");
-      body.append("tamanhos[0][width_mm]", "100");
-      body.append("tamanhos[0][height_mm]", "200");
-      body.append("tamanhos[0][area_mm2]", "5000");
-      const r = await fetch(`/arquivos/${uuid}/organize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body
-      });
-      return r.ok;
-    }, { token: csrf, chain });
-    if (!organized) throw new Error("Failed to organize arquivo");
-
-    // ── Navigate back to arte arquivo show page ──
-    await page.goto(BASE_URL);
-    await page.waitForTimeout(500);
-    const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-cascade-arte" }).first();
-    await arteCard2.waitFor({ timeout: 10000 });
-    await arteCard2.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    // ── Verify cascade selects work ──
-    // Peca select should already be pre-populated from arquivo.modelo.molde_id
-    await page.waitForFunction(() => {
-      const sel = document.querySelector("#cascade_peca");
-      return sel && sel.options.length > 1;
-    }, { timeout: 5000 });
-    await page.waitForTimeout(300);
-
-    // Select peca -> should populate tamanho select
-    await page.selectOption("#cascade_peca", { label: "Cascade Peca" });
-    await page.waitForFunction(() => {
-      const sel = document.querySelector("#cascade_tamanho");
-      return sel && sel.options.length > 1;
-    }, { timeout: 5000 });
-    await page.waitForTimeout(300);
-
-    // Tamanho should have "42" with dimensions
-    const tamanhoOpts = await page.$eval("#cascade_tamanho", el =>
-      Array.from(el.options).map(o => o.text)
-    );
-    if (!tamanhoOpts.some(t => t.includes("42"))) {
-      throw new Error(`Tamanho "42" not found in options: ${JSON.stringify(tamanhoOpts)}`);
-    }
-
-    // Select tamanho by value (label can include Unicode × character)
-    const tamanhoVal = await page.$eval("#cascade_tamanho", el => {
-      const opt = Array.from(el.options).find(o => o.text.includes("42"));
-      return opt ? opt.value : null;
-    });
-    if (!tamanhoVal) throw new Error("Could not find tamanho option value for 42");
-    await page.selectOption("#cascade_tamanho", tamanhoVal);
-    await page.waitForTimeout(200);
-
-    // Save button should be enabled
-    const saveBtn = page.locator("[data-size-cascade-target='saveBtn']");
-    await saveBtn.waitFor({ timeout: 2000 });
-    const enabled = await saveBtn.evaluate(el => !el.disabled);
-    if (!enabled) throw new Error("Save button should be enabled after selecting tamanho");
-
-    // Click save -> should update in-place (Turbo Stream, no reload)
-    await saveBtn.click();
-    await page.waitForTimeout(1500);
-
-    // Display mode should show peca name + tamanho
-    const body2 = await page.textContent("body");
-    if (!body2.includes("Cascade Peca")) throw new Error(`Peca not shown after save: "${body2.slice(0, 300)}"`);
-    if (!body2.includes("42")) throw new Error("Size 42 not shown as current size");
-
-    // Edit button should be visible (display mode)
-    const editBtn = page.locator("[title='Edit size']");
-    await editBtn.waitFor({ timeout: 3000 });
-
-    // Click edit -> form should show again (no reload)
-    await editBtn.click();
-    await page.waitForTimeout(300);
-    const pecaSelect = page.locator("#cascade_peca");
-    await pecaSelect.waitFor({ timeout: 3000 });
-
-    // Click cancel -> back to display (no reload)
-    const cancelBtn = page.locator("#size-selection-section [data-action='click->edit-toggle#cancel']");
-    await cancelBtn.click();
-    await page.waitForTimeout(300);
-
-    // Reload and verify persistence
-    await page.reload();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-    const body3 = await page.textContent("body");
-    if (!body3.includes("42")) throw new Error("Size 42 not persisted after reload");
-
-    // Clean up
-    if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
-    if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
-  });
-
-  await test("Size Selection: comprehensive full flow — form closes after save and stays closed after reload", async () => {
+  await test("Size Selection: hidden for normal artes — comparison table shows linked tamanho instead", async () => {
     const artePath = path.join(__dirname, "e2e-comp-arte.tif");
     if (!fs.existsSync(artePath)) {
       const { execSync } = require("child_process");
@@ -2014,318 +1717,260 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       execSync(`convert -size 20x20 xc:orange 'TIFF:${orgPath}'`);
     }
 
-    // Helper: returns visibility state of display and form targets (scoped to size-selection-section)
-    async function getSizeState() {
-      return page.evaluate(() => {
-        const section = document.getElementById("size-selection-section");
-        if (!section) return { sectionInDOM: false };
-        const display = section.querySelector('[data-edit-toggle-target="display"]');
-        const form = section.querySelector('[data-edit-toggle-target="form"]');
-        const editBtn = section.querySelector('[title="Edit size"]');
-        return {
-          displayVisible: display ? display.offsetParent !== null : false,
-          displayStyle: display ? (display.getAttribute("style") || "") : "",
-          formVisible: form ? form.offsetParent !== null : false,
-          formStyle: form ? (form.getAttribute("style") || "") : "",
-          editBtnExists: !!editBtn,
-          sectionInDOM: true,
-          sectionHidden: section.style.display === "none",
-        };
+    let arteUuid = null;
+    let orgUuid = null;
+    let clientName = null;
+    let pecaId = null;
+    let moldeId = null;
+    let modeloId = null;
+
+    try {
+      // ── Upload arte arquivo ──
+      await page.goto(BASE_URL);
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+      let fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(artePath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      // Go to arte arquivo show page
+      const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
+      await arteCard.waitFor({ timeout: 10000 });
+      await arteCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      arteUuid = await page.evaluate(() => window.location.pathname.split("/").pop());
+
+      const csrf = await page.evaluate(() => {
+        const meta = document.querySelector("meta[name='csrf-token']");
+        return meta?.content || "";
       });
+
+      // ── Create client ──
+      clientName = "Comp Test Client " + Date.now();
+      await page.evaluate(async ({ token, name }) => {
+        await fetch("/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "client[name]": name, "client[responsible]": "Tester" })
+        });
+      }, { token: csrf, name: clientName });
+
+      // ── Assign client via UI (combobox + turbo stream) ──
+      const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
+      await clientEditBtn.click();
+      await page.waitForTimeout(300);
+
+      const comboboxInput = await page.$(".combobox-input");
+      if (!comboboxInput) throw new Error("Combobox input not found");
+      await comboboxInput.focus();
+      await comboboxInput.fill(clientName);
+      await page.waitForTimeout(800);
+
+      const option = page.locator(".combobox-option").filter({ hasText: clientName }).first();
+      await option.waitFor({ timeout: 5000 });
+      await option.click();
+      await page.waitForTimeout(1500);
+
+      // ── Create peca, molde, modelo ──
+      const chain = await page.evaluate(async ({ token, clientName }) => {
+        await fetch("/pecas", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Comp Peca" })
+        });
+        const pecaRes = await fetch("/pecas/search?q=Comp Peca");
+        const pecas = await pecaRes.json();
+        if (!pecas[0]) return null;
+
+        const moldeBody = new URLSearchParams();
+        moldeBody.append("authenticity_token", token);
+        moldeBody.append("molde[nome]", "Comp Molde");
+        moldeBody.append("molde[peca_ids][]", pecas[0].id);
+        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
+        const moldeRes = await fetch("/moldes/search?q=Comp Molde");
+        const moldes = await moldeRes.json();
+        if (!moldes[0]) return null;
+
+        const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+        const clients = await clientRes.json();
+        if (!clients[0]) return null;
+
+        await fetch("/modelos", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            authenticity_token: token,
+            "modelo[nome]": "Comp Modelo",
+            "modelo[client_id]": clients[0].id,
+            "modelo[molde_id]": moldes[0].id
+          })
+        });
+
+        return { moldeId: moldes[0].id, pecaId: pecas[0].id };
+      }, { token: csrf, clientName });
+      if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
+      moldeId = chain.moldeId;
+      pecaId = chain.pecaId;
+
+      // ── Assign modelo via combobox ──
+      const modelEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Model" }).locator(".btn-edit").first();
+      await modelEditBtn.click();
+      await page.waitForTimeout(300);
+
+      const modelInput = await page.$(".stamp-detail-section[id='modelo-field-section'] .combobox-input");
+      if (!modelInput) throw new Error("Model combobox input not found");
+      await modelInput.focus();
+      await modelInput.fill("Comp Modelo");
+      await page.waitForTimeout(800);
+
+      const modelOption = page.locator(".combobox-option").filter({ hasText: "Comp Modelo" }).first();
+      await modelOption.waitFor({ timeout: 5000 });
+      await modelOption.click();
+      await page.waitForTimeout(1500);
+
+      // ── Create organized arquivo and organize it ──
+      await page.goto(BASE_URL);
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+      fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(orgPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
+      await orgCard.waitFor({ timeout: 10000 });
+      await orgCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      orgUuid = await page.evaluate(() => window.location.pathname.split("/").pop());
+
+      const orgCsrf = await page.evaluate(() => {
+        const meta = document.querySelector("meta[name='csrf-token']");
+        return meta?.content || "";
+      });
+
+      const orgClientSet = await page.evaluate(async ({ token, clientName }) => {
+        const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+        const clients = await r.json();
+        if (!clients[0]) return false;
+        const uuid = window.location.pathname.split("/").pop();
+        const res = await fetch(`/arquivos/${uuid}/update_client`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+        });
+        return res.ok;
+      }, { token: orgCsrf, clientName });
+      if (!orgClientSet) throw new Error("Failed to assign client to organized arquivo");
+
+      // Organize the arquivo — create tamanho "99"
+      const organized = await page.evaluate(async ({ token, chain }) => {
+        const uuid = window.location.pathname.split("/").pop();
+        const body = new URLSearchParams();
+        body.append("authenticity_token", token);
+        body.append("_method", "patch");
+        body.append("molde_id", chain.moldeId);
+        body.append("peca_id", chain.pecaId);
+        body.append("tamanhos[0][nome]", "99");
+        body.append("tamanhos[0][width_mm]", "150");
+        body.append("tamanhos[0][height_mm]", "250");
+        body.append("tamanhos[0][area_mm2]", "8000");
+        const r = await fetch(`/arquivos/${uuid}/organize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
+        return r.ok;
+      }, { token: orgCsrf, chain });
+      if (!organized) throw new Error("Failed to organize arquivo");
+
+      // ── Navigate to arte show page and set tamanho via API ──
+      await page.goto(BASE_URL);
+      await page.waitForTimeout(500);
+      const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
+      await arteCard2.waitFor({ timeout: 10000 });
+      await arteCard2.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      // Find the organized arquivo's tamanho id via the correct molde/peca
+      const tamanhoId = await page.evaluate(async ({ token, moldeId, pecaId }) => {
+        const r = await fetch(`/tamanhos/for_cascade?molde_id=${moldeId}&peca_id=${pecaId}`);
+        const all = await r.json();
+        const found = all.find(t => t.nome === "99");
+        return found ? found.id : null;
+      }, { token: csrf, moldeId, pecaId });
+
+      if (!tamanhoId) throw new Error("Tamanho '99' not found via for_cascade API");
+
+      // Set tamanho via API
+      const setResult = await page.evaluate(async ({ token, tamanhoId }) => {
+        const uuid = window.location.pathname.split("/").pop();
+        const body = new URLSearchParams({ authenticity_token: token, _method: "patch", tamanho_id: tamanhoId });
+        const r = await fetch(`/arquivos/${uuid}/update_tamanho`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
+        return r.ok || r.status === 302;
+      }, { token: csrf, tamanhoId });
+      if (!setResult) throw new Error("Failed to set tamanho via API");
+
+      // ── Reload to see Comparison with Corte ──
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      // Verify Size Selection is NOT in the DOM
+      const sizeSelInDOM = await page.evaluate(() => !!document.querySelector("#size-selection-section"));
+      if (sizeSelInDOM) throw new Error("Size Selection section should not be in DOM for normal arte files");
+
+      // Verify Comparison with Corte shows the correct tamanho
+      const body = await page.textContent("body");
+      if (!body.includes("Comparison with Corte")) throw new Error("Comparison with Corte section not found");
+      if (!body.includes("99")) throw new Error("Tamanho '99' not found in comparison table");
+
+      const badge = await page.$(".badge-selected");
+      if (!badge) throw new Error("Selected size badge not found in comparison table");
+
+      // Verify Size Selection text is absent
+      if (body.includes("Size Selection")) throw new Error("Size Selection text should not appear for normal arte files");
+
+    } finally {
+      // Cleanup DB records
+      await page.evaluate(async ({ pecaId, moldeId, clientName, arteUuid, orgUuid }) => {
+        // Find modelo and client IDs
+        let modeloId = null;
+        let clientId = null;
+        try {
+          const mr = await fetch("/modelos/search?q=Comp Modelo");
+          const modelos = await mr.json();
+          if (modelos[0]) modeloId = modelos[0].id;
+        } catch (_) {}
+        try {
+          const cr = await fetch("/clients/search?q=" + encodeURIComponent(clientName || ""));
+          const clients = await cr.json();
+          if (clients[0]) clientId = clients[0].id;
+        } catch (_) {}
+        // Delete in reverse dependency order
+        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
+        // Delete molde after peca (no hard dep via models since we already removed modelo)
+        try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (orgUuid) await fetch(`/arquivos/${orgUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
+      }, { pecaId, moldeId, clientName, arteUuid, orgUuid }).catch(() => {});
+      // Cleanup local files
+      if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+      if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
     }
 
-    async function assertDisplayMode(state, context) {
-      if (!state.sectionInDOM) throw new Error(`${context}: section not in DOM`);
-      if (state.sectionHidden) throw new Error(`${context}: section is hidden — expected visible with display mode`);
-      if (state.formVisible) throw new Error(`${context}: FORM is visible, expected DISPLAY mode (formStyle="${state.formStyle}")`);
-      if (!state.displayVisible) throw new Error(`${context}: DISPLAY is hidden, expected visible (displayStyle="${state.displayStyle}")`);
-      if (!state.editBtnExists) throw new Error(`${context}: Edit button missing — should be in display mode`);
-    }
-
-    // ── Upload arte arquivo ──
-    await page.goto(BASE_URL);
-    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
-    let fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(artePath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
-
-    // Go to arte arquivo show page
-    const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
-    await arteCard.waitFor({ timeout: 10000 });
-    await arteCard.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const csrf = await page.evaluate(() => {
-      const meta = document.querySelector("meta[name='csrf-token']");
-      return meta?.content || "";
-    });
-
-    // ── Create client ──
-    const clientName = "Comp Test Client " + Date.now();
-    await page.evaluate(async ({ token, name }) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "client[name]": name, "client[responsible]": "Tester" })
-      });
-    }, { token: csrf, name: clientName });
-
-    // ── Assign client via UI (combobox + turbo stream) ──
-    const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
-    await clientEditBtn.click();
-    await page.waitForTimeout(300);
-
-    const comboboxInput = await page.$(".combobox-input");
-    if (!comboboxInput) throw new Error("Combobox input not found");
-    await comboboxInput.focus();
-    await comboboxInput.fill(clientName);
-    await page.waitForTimeout(800);
-
-    // Click matching result
-    const option = page.locator(".combobox-option").filter({ hasText: clientName }).first();
-    await option.waitFor({ timeout: 5000 });
-    await option.click();
-    await page.waitForTimeout(1500);
-
-    // ── Create peca, molde, modelo ──
-    const chain = await page.evaluate(async ({ token, clientName }) => {
-      // Create peca
-      await fetch("/pecas", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Comp Peca" })
-      });
-      const pecaRes = await fetch("/pecas/search?q=Comp Peca");
-      const pecas = await pecaRes.json();
-      if (!pecas[0]) return null;
-
-      // Create molde with peca_ids
-      const moldeBody = new URLSearchParams();
-      moldeBody.append("authenticity_token", token);
-      moldeBody.append("molde[nome]", "Comp Molde");
-      moldeBody.append("molde[peca_ids][]", pecas[0].id);
-      await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
-      const moldeRes = await fetch("/moldes/search?q=Comp Molde");
-      const moldes = await moldeRes.json();
-      if (!moldes[0]) return null;
-
-      // Find client id
-      const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
-      const clients = await clientRes.json();
-      if (!clients[0]) return null;
-
-      // Create modelo
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          authenticity_token: token,
-          "modelo[nome]": "Comp Modelo",
-          "modelo[client_id]": clients[0].id,
-          "modelo[molde_id]": moldes[0].id
-        })
-      });
-
-      return { moldeId: moldes[0].id, pecaId: pecas[0].id };
-    }, { token: csrf, clientName });
-    if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
-
-    // ── Assign modelo via combobox (no reload) ──
-    const modelEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Model" }).locator(".btn-edit").first();
-    await modelEditBtn.click();
-    await page.waitForTimeout(300);
-
-    const modelInput = await page.$(".stamp-detail-section[id='modelo-field-section'] .combobox-input");
-    if (!modelInput) throw new Error("Model combobox input not found");
-    await modelInput.focus();
-    await modelInput.fill("Comp Modelo");
-    await page.waitForTimeout(800);
-
-    const modelOption = page.locator(".combobox-option").filter({ hasText: "Comp Modelo" }).first();
-    await modelOption.waitFor({ timeout: 5000 });
-    await modelOption.click();
-    await page.waitForTimeout(1500);
-
-    // ── Verify Size Selection section is visible with display mode ──
-    // After modelo assigned, size selection should be visible (has client + modelo)
-    // But no tamanho yet — should show "No size selected" display, NOT form
-    let state = await getSizeState();
-    console.log(`  [debug] after modelo assignment: ${JSON.stringify(state)}`);
-
-    // ── Create organized arquivo and organize it ──
-    // Upload organized arquivo
-    await page.goto(BASE_URL);
-    await page.waitForSelector('input[type="file"]', { timeout: 5000 });
-    fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(orgPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
-
-    // Assign client to organized arquivo
-    const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
-    await orgCard.waitFor({ timeout: 10000 });
-    await orgCard.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const orgCsrf = await page.evaluate(() => {
-      const meta = document.querySelector("meta[name='csrf-token']");
-      return meta?.content || "";
-    });
-
-    // Assign client via API
-    const orgClientSet = await page.evaluate(async ({ token, clientName }) => {
-      const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
-      const clients = await r.json();
-      if (!clients[0]) return false;
-      const uuid = window.location.pathname.split("/").pop();
-      const res = await fetch(`/arquivos/${uuid}/update_client`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
-      });
-      return res.ok;
-    }, { token: orgCsrf, clientName });
-    if (!orgClientSet) throw new Error("Failed to assign client to organized arquivo");
-
-    // Organize the arquivo
-    const organized = await page.evaluate(async ({ token, chain }) => {
-      const uuid = window.location.pathname.split("/").pop();
-      const body = new URLSearchParams();
-      body.append("authenticity_token", token);
-      body.append("_method", "patch");
-      body.append("molde_id", chain.moldeId);
-      body.append("peca_id", chain.pecaId);
-      body.append("tamanhos[0][nome]", "99");
-      body.append("tamanhos[0][width_mm]", "150");
-      body.append("tamanhos[0][height_mm]", "250");
-      body.append("tamanhos[0][area_mm2]", "8000");
-      const r = await fetch(`/arquivos/${uuid}/organize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body
-      });
-      return r.ok;
-    }, { token: orgCsrf, chain });
-    if (!organized) throw new Error("Failed to organize arquivo");
-
-    // ── Navigate BACK to arte arquivo show page ──
-    await page.goto(BASE_URL);
-    await page.waitForTimeout(500);
-    const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
-    await arteCard2.waitFor({ timeout: 10000 });
-    await arteCard2.locator("a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    // ── Size Selection: select peca + tamanho ──
-    state = await getSizeState();
-    console.log(`  [debug] before cascade: ${JSON.stringify(state)}`);
-
-    // Peca select should be populated from modelo.molde
-    await page.waitForFunction(() => {
-      const sel = document.querySelector("#cascade_peca");
-      return sel && sel.options.length > 1;
-    }, { timeout: 5000 });
-    await page.waitForTimeout(300);
-
-    // Select peca
-    await page.selectOption("#cascade_peca", { label: "Comp Peca" });
-    await page.waitForFunction(() => {
-      const sel = document.querySelector("#cascade_tamanho");
-      return sel && sel.options.length > 1;
-    }, { timeout: 5000 });
-    await page.waitForTimeout(300);
-
-    // Select tamanho "99"
-    const tamanhoVal = await page.$eval("#cascade_tamanho", el => {
-      const opt = Array.from(el.options).find(o => o.text.includes("99"));
-      return opt ? opt.value : null;
-    });
-    if (!tamanhoVal) throw new Error("Tamanho option for 99 not found");
-    await page.selectOption("#cascade_tamanho", tamanhoVal);
-    await page.waitForTimeout(200);
-
-    // Save button should be enabled
-    const saveBtn = page.locator("[data-size-cascade-target='saveBtn']");
-    await saveBtn.waitFor({ timeout: 2000 });
-    const enabled = await saveBtn.evaluate(el => !el.disabled);
-    if (!enabled) throw new Error("Save button should be enabled after selecting tamanho");
-
-    // ── SAVE ──
-    await saveBtn.click();
-    await page.waitForTimeout(2000);
-
-    // ── VERIFY: form is hidden, display is visible (display mode) ──
-    state = await getSizeState();
-    console.log(`  [debug] after save: ${JSON.stringify(state)}`);
-    await assertDisplayMode(state, "After save (no reload)");
-
-    // ── VERIFY: page content shows the size info ──
-    const bodyAfterSave = await page.textContent("body");
-    if (!bodyAfterSave.includes("99")) throw new Error("Size 99 not shown after save");
-
-    // ── VERIFY: click edit -> form shows, click cancel -> display shows ──
-    const editBtn = page.locator("[title='Edit size']");
-    await editBtn.waitFor({ timeout: 3000 });
-    await editBtn.click();
-    await page.waitForTimeout(300);
-
-    // After edit click, form should be visible
-    state = await getSizeState();
-    if (!state.formVisible) throw new Error(`After edit click, form should be visible: ${JSON.stringify(state)}`);
-
-    // Click cancel -> back to display
-    const cancelBtn = page.locator("#size-selection-section [data-action='click->edit-toggle#cancel']");
-    await cancelBtn.click();
-    await page.waitForTimeout(300);
-
-    state = await getSizeState();
-    await assertDisplayMode(state, "After cancel");
-
-    // ── VERIFY: RELOAD and check form stays closed ──
-    await page.reload();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    state = await getSizeState();
-    console.log(`  [debug] after reload: ${JSON.stringify(state)}`);
-    await assertDisplayMode(state, "After page reload");
-
-    const bodyAfterReload = await page.textContent("body");
-    if (!bodyAfterReload.includes("99")) throw new Error("Size 99 not persisted after reload");
-
-    // ── VERIFY: second flow — after reload, edit + save again, form should close ──
-    // Click edit
-    const editBtn2 = page.locator("[title='Edit size']");
-    await editBtn2.waitFor({ timeout: 3000 });
-    await editBtn2.click();
-    await page.waitForTimeout(300);
-
-    // Select peca + tamanho again
-    await page.selectOption("#cascade_peca", { label: "Comp Peca" });
-    await page.waitForTimeout(500);
-    await page.selectOption("#cascade_tamanho", tamanhoVal);
-    await page.waitForTimeout(200);
-
-    const saveBtn2 = page.locator("[data-size-cascade-target='saveBtn']");
-    await saveBtn2.waitFor({ timeout: 2000 });
-    await saveBtn2.click();
-    await page.waitForTimeout(2000);
-
-    state = await getSizeState();
-    console.log(`  [debug] after second save: ${JSON.stringify(state)}`);
-    await assertDisplayMode(state, "After second save (edit + save again)");
-
-    // Clean up
-    if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
-    if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
   });
-
   // ── Clients page CRUD ──
 
   await test("Clients page: renders table with clients", async () => {
@@ -3079,6 +2724,428 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const currentIds = await page.$$eval(".stamp-card-checkbox input", els => els.map(e => e.value));
     for (const id of deletedIds) {
       if (currentIds.includes(id)) throw new Error(`File ${id} still present after batch delete`);
+    }
+  });
+
+  // ── Auto-detection: update_modelo triggers MoldMatchService ──
+
+  await test("Auto-detection: update_modelo triggers MoldMatchService and selects tamanho", async () => {
+    const dxfSrc = path.join(testImagesDir, "29-30.dxf");
+    if (!fs.existsSync(dxfSrc)) throw new Error("DXF not found");
+
+    const { execSync } = require("child_process");
+    const ts = Date.now();
+
+    // Copy DXF to a unique temp name so we can find it reliably
+    const dxfName = `auto-detect-${ts}.dxf`;
+    const dxfPath = path.join(__dirname, dxfName);
+    fs.copyFileSync(dxfSrc, dxfPath);
+
+    // Arte TIF sized to match 29-30's sole tamanho (218.69×225.48mm at 300 DPI)
+    const artePath = path.join(__dirname, `auto-detect-arte-${ts}.tif`);
+    execSync(`convert -size 2583x2663 xc:white -units PixelsPerInch -density 300 -fill "#E8E8E8" -draw "roundrectangle 50,50 2533,2613 20,20" -define tiff:bits-per-sample=8 'TIFF:${artePath}'`);
+
+    const displayName = path.basename(dxfName, ".dxf");
+    const arteDisplay = path.basename(artePath, ".tif");
+    let dxfUuid = null;
+    let arteUuid = null;
+    let moldeId = null;
+
+    try {
+      await page.goto(BASE_URL);
+
+      // Upload both files
+      const fileInput = await page.$('input[type="file"]');
+      if (!fileInput) throw new Error("File input not found");
+      await fileInput.setInputFiles([dxfPath, artePath]);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      // ── Organize the DXF ──
+      const dxfCard = page.locator(".stamp-card").filter({ hasText: displayName }).first();
+      await dxfCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const csrf = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
+
+      // Create molde + peca via API
+      await page.evaluate(async (token) => {
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold" })
+        });
+        await fetch("/pecas", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "AutoDetectPiece" })
+        });
+      }, csrf);
+
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+
+      await page.selectOption('select[name="molde_id"]', { label: "AutoDetectMold" });
+      await page.selectOption('select[name="peca_id"]', { label: "AutoDetectPiece" });
+
+      const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
+      if (!saveBtn) throw new Error("Save button not found on mold organization form");
+      await saveBtn.click();
+      await page.waitForTimeout(1500);
+
+      // Get the molde_id from the organized DXF page
+      dxfUuid = await page.evaluate(() => {
+        const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
+        return m ? m[1] : null;
+      });
+
+      moldeId = await page.evaluate(async () => {
+        const r = await fetch("/moldes/search?q=AutoDetectMold");
+        const list = await r.json();
+        const m = list.find(x => x.nome === "AutoDetectMold");
+        return m ? m.id : null;
+      });
+      if (!moldeId) throw new Error("Could not find molde after organization");
+
+      // ── Navigate to the arte ──
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".stamp-card", { timeout: 10000 });
+
+      const arteCard = page.locator(".stamp-card").filter({ hasText: arteDisplay }).first();
+      await arteCard.waitFor({ timeout: 10000 });
+      await arteCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      arteUuid = await page.evaluate(() => {
+        const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
+        return m ? m[1] : null;
+      });
+
+      // Wait for processing to complete
+      const processedCheck = await page.evaluate(async (uuid) => {
+        for (let i = 0; i < 30; i++) {
+          const r = await fetch(`/arquivos/${uuid}`);
+          const text = await r.text();
+          if (text.includes("processed")) return true;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        return false;
+      }, arteUuid);
+      if (!processedCheck) throw new Error("Arte processing did not complete within 30s");
+
+      // Create client and assign to arte
+      const csrf2 = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
+
+      const apiOk = await page.evaluate(async ({ token, arteUuid, moldeId }) => {
+        // Create client
+        const cResp = await fetch("/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "client[name]": "AutoDetectClient", "client[responsible]": "T" })
+        });
+        if (!cResp.ok) return { ok: false, step: "create client" };
+
+        // Find it back
+        const sResp = await fetch("/clients/search?q=AutoDetectClient", { headers: { Accept: "application/json" } });
+        const list = await sResp.json();
+        const client = list.find(c => c.name === "AutoDetectClient");
+        if (!client) return { ok: false, step: "find client" };
+
+        // Assign client to arte
+        const cf = new URLSearchParams({ authenticity_token: token, client_id: client.id });
+        const cr = await fetch(`/arquivos/${arteUuid}/update_client`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: cf.toString()
+        });
+        if (!cr.ok && cr.status !== 302) return { ok: false, step: "update client", status: cr.status };
+
+        // Create a Modelo linked to the organized molde, under this client
+        const mr = await fetch("/modelos", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            authenticity_token: token,
+            "modelo[nome]": "AutoDetectModel",
+            "modelo[client_id]": client.id,
+            "modelo[molde_id]": moldeId
+          })
+        });
+        if (!mr.ok) return { ok: false, step: "create modelo", status: mr.status };
+
+        // Find modelo back
+        const msResp = await fetch("/modelos/search?q=AutoDetectModel", { headers: { Accept: "application/json" } });
+        const models = await msResp.json();
+        const modelo = models.find(m => m.nome === "AutoDetectModel");
+        if (!modelo) return { ok: false, step: "find modelo" };
+
+        // Assign modelo to arte via update_modelo (triggers MoldMatchService)
+        const mf = new URLSearchParams({ authenticity_token: token, modelo_id: modelo.id });
+        const mur = await fetch(`/arquivos/${arteUuid}/update_modelo`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: mf.toString()
+        });
+        if (!mur.ok && mur.status !== 302) return { ok: false, step: "update modelo", status: mur.status };
+
+        return { ok: true };
+      }, { token: csrf2, arteUuid, moldeId });
+
+      if (!apiOk.ok) {
+        throw new Error(`Setup failed at ${apiOk.step}${apiOk.status ? ": " + apiOk.status : ""}`);
+      }
+
+      // Reload to render the post-update state
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const body = await page.textContent("body");
+
+      if (!body.includes("Comparison with Corte")) {
+        throw new Error("Comparison with Corte section not found after modelo assignment");
+      }
+
+      if (!body.includes(displayName)) {
+        throw new Error(`Corte name '${displayName}' not found in comparison section`);
+      }
+
+      const badge = await page.$(".badge-selected");
+      if (!badge) throw new Error("No selected size badge found — auto-detection did not set a tamanho");
+    } finally {
+      await page.evaluate(async ({ dxfUuid, arteUuid }) => {
+        let clientId, moldeId, pecaId, modeloId;
+        try {
+          const cr = await fetch("/clients/search?q=AutoDetectClient");
+          const clients = await cr.json();
+          const c = clients.find(x => x.name === "AutoDetectClient");
+          if (c) clientId = c.id;
+        } catch (_) {}
+        try {
+          const mr = await fetch("/moldes/search?q=AutoDetectMold");
+          const moldes = await mr.json();
+          const m = moldes.find(x => x.nome === "AutoDetectMold");
+          if (m) moldeId = m.id;
+        } catch (_) {}
+        try {
+          const pr = await fetch("/pecas/search?q=AutoDetectPiece");
+          const pecas = await pr.json();
+          const p = pecas.find(x => x.nome === "AutoDetectPiece");
+          if (p) pecaId = p.id;
+        } catch (_) {}
+        try {
+          const mr2 = await fetch("/modelos/search?q=AutoDetectModel");
+          const modelos = await mr2.json();
+          const mo = modelos.find(x => x.nome === "AutoDetectModel");
+          if (mo) modeloId = mo.id;
+        } catch (_) {}
+        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
+      }, { dxfUuid, arteUuid }).catch(() => {});
+      if (fs.existsSync(dxfPath)) fs.unlinkSync(dxfPath);
+      if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+    }
+  });
+
+  // ── Corte Comparison on Arte Show Page ──
+
+  await test("Corte Comparison: arte with tamanho shows corte sizes table", async () => {
+    const dxfPath = path.join(testImagesDir, "29-30.dxf");
+    if (!fs.existsSync(dxfPath)) throw new Error("DXF not found");
+    const { execSync } = require("child_process");
+
+    // Upload the DXF and arte TIF
+    const artePath = path.join(__dirname, `e2e-compare-arte-${Date.now()}.tif`);
+    execSync(`convert -size 30x30 xc:blue 'TIFF:${artePath}'`);
+
+    let dxfUuid = null;
+    let arteUuid = null;
+
+    try {
+      await page.goto(BASE_URL);
+
+      // Upload both files
+      const fileInput = await page.$('input[type="file"]');
+      if (!fileInput) throw new Error("File input not found");
+      await fileInput.setInputFiles([dxfPath, artePath]);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(5000);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+
+      const arteBaseName = path.basename(artePath, ".tif");
+
+      // Organize the 29-30 DXF
+      const dxfCard = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
+      await dxfCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      // Create molde + peca via API
+      const csrf = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
+
+      await page.evaluate(async (token) => {
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold" })
+        });
+        await fetch("/pecas", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "CorteCompPiece" })
+        });
+      }, csrf);
+
+      // Reload so the <select> options include the newly created molde/peca
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+
+      await page.selectOption('select[name="molde_id"]', { label: "CorteCompMold" });
+      await page.selectOption('select[name="peca_id"]', { label: "CorteCompPiece" });
+
+      const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
+      if (!saveBtn) throw new Error("Save button not found on mold organization form");
+      await saveBtn.click();
+      await page.waitForTimeout(1500);
+
+      // Get the tamanho ID from the organization (read-only display rows)
+      const tamanhos = await page.evaluate(() => {
+        const rows = document.querySelectorAll(".tamanho-list--readonly .tamanho-row");
+        return Array.from(rows).map(row => ({
+          id: row.getAttribute("data-tamanho-id"),
+          nome: (row.querySelector(".tamanho-nome")?.textContent || "").trim()
+        }));
+      });
+      if (tamanhos.length === 0) throw new Error("No tamanhos after organization");
+      const selectedTamanho = tamanhos[0];
+
+      // Get the 29-30 DXF UUID
+      dxfUuid = await page.evaluate(() => {
+        const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
+        return m ? m[1] : null;
+      });
+
+      // Navigate to the arte
+      await page.goto(BASE_URL);
+      await page.waitForSelector(".stamp-card", { timeout: 10000 });
+      const arteCard = page.locator(".stamp-card").filter({ hasText: arteBaseName }).first();
+      await arteCard.waitFor({ timeout: 10000 });
+      await arteCard.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      arteUuid = await page.evaluate(() => {
+        const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
+        return m ? m[1] : null;
+      });
+
+      // Create a client and assign client + tamanho via API
+      const csrf2 = await page.evaluate(() =>
+        document.querySelector("meta[name='csrf-token']")?.content || ""
+      );
+
+      const apiOk = await page.evaluate(async ({ token, tamanhoId }) => {
+        // Create client
+        const cResp = await fetch("/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "client[name]": "CorteCompClient", "client[responsible]": "T" })
+        });
+        if (!cResp.ok) return { ok: false, step: "create client" };
+
+        // Find it back
+        const sResp = await fetch("/clients/search?q=CorteCompClient", { headers: { Accept: "application/json" } });
+        const list = await sResp.json();
+        const client = list.find(c => c.name === "CorteCompClient");
+        if (!client) return { ok: false, step: "find client" };
+
+        // Assign client to arte
+        const arteUuid = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/)?.[1];
+        if (!arteUuid) return { ok: false, step: "uuid" };
+        const cf = new URLSearchParams({ authenticity_token: token, client_id: client.id });
+        const cr = await fetch(`/arquivos/${arteUuid}/update_client`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: cf.toString()
+        });
+        if (!cr.ok && cr.status !== 302) return { ok: false, step: "update client", status: cr.status };
+
+        const tf = new URLSearchParams({ authenticity_token: token, tamanho_id: tamanhoId });
+        const tr = await fetch(`/arquivos/${arteUuid}/update_tamanho`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: tf.toString()
+        });
+        if (!tr.ok && tr.status !== 302) return { ok: false, step: "update tamanho", status: tr.status };
+
+        return { ok: true };
+      }, { token: csrf2, tamanhoId: selectedTamanho.id });
+
+      if (!apiOk.ok) {
+        throw new Error(`Setup failed at ${apiOk.step}${apiOk.status ? ": " + apiOk.status : ""}`);
+      }
+
+      // Reload to render the comparison
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const body = await page.textContent("body");
+
+      if (!body.includes("Comparison with Corte")) {
+        throw new Error("Comparison with Corte section not found");
+      }
+      if (!body.includes("29-30")) {
+        throw new Error("Corte name '29-30' not found in comparison");
+      }
+      if (!body.includes(selectedTamanho.nome)) {
+        throw new Error(`Tamanho "${selectedTamanho.nome}" not found in comparison table`);
+      }
+      const badge = await page.$(".badge-selected");
+      if (!badge) throw new Error("Selected size badge not found");
+    } finally {
+      await page.evaluate(async ({ dxfUuid, arteUuid }) => {
+        // Find IDs via search
+        let clientId, moldeId, pecaId;
+        try {
+          const cr = await fetch("/clients/search?q=CorteCompClient");
+          const clients = await cr.json();
+          const c = clients.find(x => x.name === "CorteCompClient");
+          if (c) clientId = c.id;
+        } catch (_) {}
+        try {
+          const mr = await fetch("/moldes/search?q=CorteCompMold");
+          const moldes = await mr.json();
+          const m = moldes.find(x => x.name === "CorteCompMold");
+          if (m) moldeId = m.id;
+        } catch (_) {}
+        try {
+          const pr = await fetch("/pecas/search?q=CorteCompPiece");
+          const pecas = await pr.json();
+          const p = pecas.find(x => x.name === "CorteCompPiece");
+          if (p) pecaId = p.id;
+        } catch (_) {}
+        // Delete in reverse dependency order
+        try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
+      }, { dxfUuid, arteUuid }).catch(() => {});
+      if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
     }
   });
 

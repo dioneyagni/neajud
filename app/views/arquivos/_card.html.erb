@@ -36,6 +36,9 @@
         <% if arquivo.organize_error.present? %>
           <%= image_tag "icons/status/stacked-cuts.svg", class: "stamp-card-status-icon", alt: "Stacked Cuts" %>
         <% end %>
+        <% if arquivo.tamanhos.any? && arquivo.tamanhos.none? { |t| t.preview_file.present? && File.exist?(t.preview_file.to_s) } %>
+          <%= image_tag "icons/status/no-tamanho-preview.svg", class: "stamp-card-status-icon", alt: "Missing Preview" %>
+        <% end %>
       </div>
     </div>
     <div class="stamp-card-body">

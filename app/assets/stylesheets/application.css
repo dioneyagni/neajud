@@ -1771,3 +1771,68 @@ section {
   font-size: 0.85rem;
   color: #80868b;
 }
+
+.corte-comparison-section {
+  margin-top: 1rem;
+}
+
+.corte-comparison-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f1f3f4;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.corte-link {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.corte-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.corte-comparison-table th {
+  text-align: left;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 2px solid #e0e0e0;
+  font-weight: 600;
+  color: #5f6368;
+}
+
+.corte-comparison-table td {
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid #eee;
+}
+
+.corte-comparison-table tr.selected {
+  background: #e8f0fe;
+  font-weight: 600;
+}
+
+.corte-comparison-table tr.selected td:first-child {
+  border-left: 3px solid #1a73e8;
+}
+
+.corte-comparison-check {
+  width: 1.5rem;
+}
+
+.badge-selected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

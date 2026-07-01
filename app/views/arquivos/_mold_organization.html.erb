@@ -74,7 +74,7 @@
     <div class="edit-display" data-edit-toggle-target="display">
       <div class="tamanho-list tamanho-list--readonly">
         <% arquivo.tamanhos.each_with_index do |t, idx| %>
-          <div class="tamanho-row">
+          <div class="tamanho-row" data-tamanho-id="<%= t.id %>">
             <span class="tamanho-indicator"><%= idx + 1 %>.</span>
             <span class="tamanho-nome"><%= t.nome %></span>
             <span class="tamanho-measurements">
@@ -83,7 +83,7 @@
               · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
               · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
             </span>
-            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
+            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf", data: { turbo: false } %>
           </div>
         <% end %>
       </div>
