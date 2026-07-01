@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_03_140650) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -237,6 +237,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_140650) do
     t.string "nome", null: false
     t.decimal "perimeter_mm"
     t.integer "position"
+    t.string "preview_file"
     t.decimal "total_line_mm"
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2

@@ -146,11 +146,27 @@ class ArquivosController < ApplicationController
   end
 
   def update_modelo
-    if @arquivo.update(
-      modelo_id: params[:modelo_id].presence,
-      molde_id: params[:molde_id].presence,
-      peca_id: params[:peca_id].presence
-    )
+    updates = { modelo_id: params[:modelo_id].presence }
+    updates[:molde_id] = params[:molde_id].presence if params[:molde_id].present?
+    updates[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
+
+    if @arquivo.update(updates)
+      @arquivo.reload
+      unless @arquivo.tamanho_id
+        matched_tamanho = MoldMatchService.call(@arquivo)
+        if matched_tamanho
+          @arquivo.update(tamanho_id: matched_tamanho.id)
+          corte = matched_tamanho.arquivo
+          if corte && corte.molde_id != @arquivo.molde_id
+            @arquivo.update_column(:molde_id, corte.molde_id)
+            @arquivo.reload
+          end
+        else
+          corte = @arquivo.corte_via_modelo
+          primeiro_tamanho = corte&.tamanhos&.first
+          @arquivo.update(tamanho_id: primeiro_tamanho.id) if primeiro_tamanho
+        end
+      end
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @arquivo, notice: "Modelo updated." }
@@ -242,23 +258,29 @@ class ArquivosController < ApplicationController
     update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
     @arquivo.update!(update_attrs)
     if params[:tamanhos].respond_to?(:values)
+      old_previews = @arquivo.tamanhos.each_with_object({}) { |t, h| h[t.position] = t.preview_file }
       tamanho_ids = @arquivo.tamanhos.pluck(:id)
       Arquivo.where(tamanho_id: tamanho_ids).update_all(tamanho_id: nil)
       @arquivo.tamanhos.destroy_all
       tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
       tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
+        pos = idx + 1
+        preview = old_previews[pos]
         @arquivo.tamanhos.create!(
           nome: t["nome"].presence || "Size #{idx + 1}",
-          position: idx + 1,
+          position: pos,
           width_mm: t["width_mm"],
           height_mm: t["height_mm"],
-          area_mm2: t["area_mm2"]
+          area_mm2: t["area_mm2"],
+          preview_file: preview
         )
       end
     end
 
     if @arquivo.organize_error.present?
       DxfOrganizationService.call(@arquivo)
+    elsif @arquivo.tamanhos.any? && @arquivo.tamanhos.all? { |t| t.preview_file.blank? }
+      DxfOrganizationService.generate_tamanho_previews(@arquivo)
     end
 
     respond_to do |format|

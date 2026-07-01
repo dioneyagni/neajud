@@ -1,4 +1,5 @@
-<% if (corte = arquivo.corte) %>
+<% corte = arquivo.corte || arquivo.corte_via_modelo %>
+<% if corte && corte.tamanhos.any? %>
   <div class="stamp-detail-section stamp-detail-section--full corte-comparison-section">
     <h3>Comparison with Corte</h3>
     <div class="corte-comparison-header">
@@ -16,6 +17,7 @@
           <th>Height</th>
           <th>Area</th>
           <th>Perimeter</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -31,6 +33,13 @@
             <td><%= t.height_mm ? "#{t.height_mm.round(1)} mm" : "—" %></td>
             <td><%= t.area_mm2 ? "#{t.area_mm2.round(1)} mm²" : "—" %></td>
             <td><%= t.perimeter_mm ? "#{t.perimeter_mm.round(1)} mm" : "—" %></td>
+            <td>
+              <% if t.id != arquivo.tamanho_id %>
+                <%= button_to "Select", update_tamanho_arquivo_path(arquivo),
+                      params: { tamanho_id: t.id }, method: :patch,
+                      class: "btn btn-sm btn-primary" %>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>

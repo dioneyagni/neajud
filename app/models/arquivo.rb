@@ -30,6 +30,11 @@ class Arquivo < ApplicationRecord
     category == "corte"
   end
 
+  def corte_via_modelo
+    return nil unless modelo&.molde
+    Arquivo.where(organized: true, molde_id: modelo.molde_id).first
+  end
+
   def artes_vinculadas
     return Arquivo.none unless corte? && tipo_corte == "corte_estampa"
     Arquivo.where(category: "artes", tamanho_id: tamanhos.pluck(:id))

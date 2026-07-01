@@ -83,7 +83,7 @@
               · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
               · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
             </span>
-            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf" %>
+            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf", data: { turbo: false } %>
           </div>
         <% end %>
       </div>
