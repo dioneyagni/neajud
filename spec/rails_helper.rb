@@ -38,6 +38,18 @@ RSpec.configure do |config|
   config.use_transactional_fixtures = true
   config.filter_rails_from_backtrace!
 
+  # E2E tests leave data in the test database; RSpec "empty state" tests and
+  # count-based guards break when data persists between runs. Truncate every
+  # table (except schema metadata) before the suite, then reload seeds.
+  config.before(:suite) do
+    conn = ActiveRecord::Base.connection
+    conn.execute("PRAGMA foreign_keys = OFF")
+    tables = conn.tables - %w[schema_migrations ar_internal_metadata]
+    tables.each { |t| conn.execute("DELETE FROM #{conn.quote_table_name(t)}") }
+    conn.execute("PRAGMA foreign_keys = ON")
+    Rails.application.load_seed
+  end
+
   config.include FactoryBot::Syntax::Methods
 end
 
