@@ -1,0 +1,89 @@
+<h2>
+  Pedido
+  <span style="font-size:0.8rem; color:var(--text-muted);">#<%= @pedido.uuid.first(8) %></span>
+  <span class="badge badge-<%= @pedido.status %>"><%= @pedido.status %></span>
+</h2>
+
+<% if @pedido.client %>
+  <p><strong>Cliente:</strong> <%= @pedido.client.name %></p>
+<% end %>
+<p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
+
+<% if @pedido.status == "rascunho" %>
+  <div style="margin: 1rem 0; display:flex; gap:0.5rem;">
+    <%= button_to "Confirmar Pedido", confirmar_pedido_path(@pedido), method: :post,
+          class: "btn btn-primary",
+          data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
+    <%= button_to "Excluir Rascunho", @pedido, method: :delete,
+          class: "btn btn-secondary",
+          data: { turbo_confirm: "Delete this draft?" } %>
+  </div>
+<% end %>
+
+<h3 style="margin-top: 1.5rem;">Itens (<%= @pedido.itens_pedido.count %>)</h3>
+
+<% @pedido.itens_pedido.includes(:arquivo, :materia_prima).each do |item| %>
+  <div class="pedido-item"
+       data-controller="grade-editor"
+       data-grade-editor-item-uuid-value="<%= item.uuid %>"
+       data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(@pedido, id: item.uuid) %>">
+    <div class="pedido-item-preview">
+      <% if item.arquivo.preview_file.present? %>
+        <img src="<%= preview_arquivo_path(item.arquivo) %>" alt="<%= item.arquivo.filename %>">
+      <% end %>
+    </div>
+
+    <div class="pedido-item-info">
+      <div class="pedido-item-header">
+        <strong><%= link_to item.arquivo.filename, item.arquivo %></strong>
+        <span class="pedido-item-client">(<%= item.arquivo.client&.name %>)</span>
+      </div>
+
+      <% if item.materia_prima %>
+        <div class="pedido-item-material">
+          <strong>Material:</strong> <%= item.materia_prima.nome_completo %>
+        </div>
+      <% end %>
+
+      <% grades_map = item.grades.index_by(&:tamanho_nome) %>
+      <div class="grade-cards">
+        <% tamanhos_for_arte(item.arquivo).each do |t| %>
+          <% grade = grades_map[t[:nome]] %>
+          <div class="grade-card">
+            <span class="grade-card-label"><%= t[:nome] %></span>
+            <input type="number"
+                   class="grade-card-input grade-qtd-input"
+                   data-tamanho-nome="<%= t[:nome] %>"
+                   value="<%= grade&.quantidade || 0 %>"
+                   min="0" step="1">
+          </div>
+        <% end %>
+      </div>
+
+      <% corte = item.arquivo.corte || item.arquivo.corte_via_modelo %>
+      <% if corte %>
+        <div class="pedido-item-corte">
+          Corte: <%= link_to corte.filename, corte %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="pedido-item-actions">
+      <% if @pedido.status == "rascunho" %>
+        <button type="button" class="btn btn-sm btn-primary grade-save-btn"
+                data-action="click->grade-editor#save">Salvar</button>
+        <%= button_to "Remover", remover_item_pedido_path(@pedido, id: item.uuid),
+              method: :delete, class: "btn btn-secondary btn-sm",
+              data: { turbo_confirm: "Remove this item?" } %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @pedido.itens_pedido.empty? %>
+  <p class="gallery-empty">No items yet. Go to the gallery and add artes to this pedido.</p>
+<% end %>
+
+<div class="back-link-wrapper" style="margin-top:1rem;">
+  <%= link_to "Back to Pedidos", pedidos_path, class: "back-link" %>
+</div>

@@ -30,6 +30,7 @@
   </div>
 </section>
 
+<div data-controller="add-to-order">
 <section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">
   <h3>Gallery</h3>
   <% if @arquivos.any? %>
@@ -94,3 +95,6 @@
     <p class="gallery-empty">No arquivos uploaded yet.</p>
   <% end %>
 </section>
+
+<%= render "pedidos/add_to_order_modal" %>
+</div>

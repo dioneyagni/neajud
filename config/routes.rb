@@ -65,11 +65,24 @@ Rails.application.routes.draw do
     collection do
       get :grupos
       get :cores
+      get :search
       post :create_grupo
     end
   end
 
   resources :movimentos, only: %i[index new create]
+
+  resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
+    collection do
+      post :adicionar_item
+    end
+    member do
+      delete :remover_item
+      patch :atualizar_item
+      post :confirmar
+      get :resumo
+    end
+  end
 
   root "arquivos#index"
 

@@ -1,0 +1,50 @@
+<dialog class="add-to-order-dialog"
+        data-add-to-order-target="modal">
+  <div class="add-to-order-content">
+    <div class="add-to-order-header">
+      <h3>Adicionar ao Pedido</h3>
+      <button type="button" class="btn-icon btn-cancel"
+              data-action="click->add-to-order#close"
+              title="Fechar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="20" width="20" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="add-to-order-body">
+      <div class="add-to-order-preview" data-add-to-order-target="preview"></div>
+
+      <div class="add-to-order-info">
+        <strong data-add-to-order-target="filename"></strong>
+        <span style="font-size:0.85rem; color:var(--text-muted);" data-add-to-order-target="client"></span>
+      </div>
+
+      <div class="add-to-order-material"
+           data-controller="combobox"
+           data-combobox-search-url-value="/materiais/search"
+           data-combobox-display-field-value="nome_completo"
+           data-combobox-extra-fields-value="saldo"
+           data-combobox-register-url-value="/materiais/new"
+           data-combobox-register-label-value="Novo material">
+        <label>Material:</label>
+        <div class="combobox">
+          <input type="text" class="combobox-input"
+                 placeholder="Buscar material..."
+                 data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
+          <div class="combobox-results"></div>
+        </div>
+        <input type="hidden" data-add-to-order-target="materialHidden">
+      </div>
+
+      <div class="add-to-order-grades" data-add-to-order-target="gradeContainer"></div>
+
+      <div class="add-to-order-error add-to-order-error--hidden" data-add-to-order-target="errorContainer"></div>
+    </div>
+
+    <div class="add-to-order-footer">
+      <button type="button" class="btn btn-secondary" data-action="click->add-to-order#close">Cancelar</button>
+      <button type="button" class="btn btn-primary" data-action="click->add-to-order#submit" data-add-to-order-target="submitBtn">
+        Adicionar
+      </button>
+    </div>
+  </div>
+</dialog>
