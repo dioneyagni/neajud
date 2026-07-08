@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_01_160002) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -170,6 +170,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
   end
 
+  create_table "itens_pedido", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "materia_prima_id"
+    t.integer "pedido_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["arquivo_id"], name: "index_itens_pedido_on_arquivo_id"
+    t.index ["materia_prima_id"], name: "index_itens_pedido_on_materia_prima_id"
+    t.index ["pedido_id"], name: "index_itens_pedido_on_pedido_id"
+    t.index ["uuid"], name: "index_itens_pedido_on_uuid", unique: true
+  end
+
+  create_table "itens_pedido_grade", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "item_pedido_id", null: false
+    t.integer "quantidade", default: 0, null: false
+    t.string "tamanho_nome", null: false
+    t.datetime "updated_at", null: false
+    t.index ["item_pedido_id", "tamanho_nome"], name: "idx_grade_on_item_and_tamanho", unique: true
+    t.index ["item_pedido_id"], name: "index_itens_pedido_grade_on_item_pedido_id"
+  end
+
   create_table "materia_primas", force: :cascade do |t|
     t.integer "cor_material_id", null: false
     t.datetime "created_at", null: false
@@ -228,6 +251,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
     t.index ["nome"], name: "index_pecas_on_nome", unique: true
   end
 
+  create_table "pedidos", force: :cascade do |t|
+    t.integer "client_id"
+    t.datetime "created_at", null: false
+    t.text "observacoes"
+    t.string "status", default: "rascunho", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["client_id"], name: "index_pedidos_on_client_id"
+    t.index ["status"], name: "index_pedidos_on_status"
+    t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
+  end
+
   create_table "tamanhos", force: :cascade do |t|
     t.decimal "area_mm2", precision: 10, scale: 2
     t.integer "arquivo_id", null: false
@@ -258,6 +293,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
   add_foreign_key "arte_cortes", "arquivos", column: "arte_id"
   add_foreign_key "arte_cortes", "arquivos", column: "corte_id"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "itens_pedido", "arquivos"
+  add_foreign_key "itens_pedido", "materia_primas"
+  add_foreign_key "itens_pedido", "pedidos"
+  add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"
   add_foreign_key "modelos", "clients"
@@ -266,5 +305,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_150000) do
   add_foreign_key "molde_pecas", "pecas"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
+  add_foreign_key "pedidos", "clients"
   add_foreign_key "tamanhos", "arquivos"
 end

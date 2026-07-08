@@ -1,0 +1,54 @@
+<h2>Pedidos</h2>
+
+<div class="clients-toolbar">
+  <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
+    <%= @pedidos.count %> pedidos
+  </span>
+  <%= button_to "+ Novo Pedido", pedidos_path, method: :post, class: "btn btn-primary", style: "margin-left:auto;" %>
+</div>
+
+<div style="margin: 1rem 0;">
+  <table class="clients-table">
+    <thead>
+      <tr>
+        <th>Pedido</th>
+        <th>Cliente</th>
+        <th>Itens</th>
+        <th>Status</th>
+        <th>Data</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @pedidos.each do |p| %>
+        <tr>
+          <td><%= link_to p.uuid.first(8), p %></td>
+          <td><%= p.client&.name || "—" %></td>
+          <td><%= p.itens_pedido.count %></td>
+          <td><%= p.status %></td>
+          <td><%= l p.created_at, format: :short %></td>
+          <td>
+            <% if p.status == "rascunho" %>
+              <div class="pedido-actions">
+                <%= link_to "Resumo", resumo_pedido_path(p), class: "btn btn-sm btn-outline" %>
+                <%= link_to "Confirmar", confirmar_pedido_path(p),
+                      data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },
+                      class: "btn btn-sm btn-primary" %>
+                <%= link_to "Excluir", p,
+                      data: { turbo_method: :delete, turbo_confirm: "Delete this pedido?" },
+                      class: "btn btn-sm btn-danger" %>
+              </div>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+      <% if @pedidos.empty? %>
+        <tr><td colspan="6" class="gallery-empty">No pedidos yet.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="back-link-wrapper">
+  <%= link_to "Back to Gallery", root_path, class: "back-link" %>
+</div>

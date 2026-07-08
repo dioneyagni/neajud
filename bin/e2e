@@ -62,8 +62,10 @@ node e2e/arquivos.spec.js "$@"
 ARQUIVOS_EXIT=$?
 node e2e/movimentos.spec.js "$@"
 MOVIMENTOS_EXIT=$?
+node e2e/pedidos.spec.js "$@"
+PEDIDOS_EXIT=$?
 EXIT_CODE=0
-if [ "$ARQUIVOS_EXIT" -ne 0 ] || [ "$MOVIMENTOS_EXIT" -ne 0 ]; then
+if [ "$ARQUIVOS_EXIT" -ne 0 ] || [ "$MOVIMENTOS_EXIT" -ne 0 ] || [ "$PEDIDOS_EXIT" -ne 0 ]; then
   EXIT_CODE=1
 fi
 set -e

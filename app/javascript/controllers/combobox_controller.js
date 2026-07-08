@@ -5,7 +5,8 @@ export default class extends Controller {
     searchUrl: String,
     displayField: { type: String, default: "name" },
     extraFields: { type: String, default: "" },
-    registerLabel: { type: String, default: "Register new" }
+    registerLabel: { type: String, default: "Register new" },
+    registerUrl: { type: String, default: "" }
   }
 
   connect() {
@@ -50,6 +51,10 @@ export default class extends Controller {
 
   openNew() {
     this.results.classList.remove("combobox-results--open")
+    if (this.registerUrlValue) {
+      window.location.href = this.registerUrlValue
+      return
+    }
     const dialogEl = this.element.closest("[data-controller*='dialog']")
     if (dialogEl) {
       const dialogController = this.application.getControllerForElementAndIdentifier(dialogEl, "dialog")

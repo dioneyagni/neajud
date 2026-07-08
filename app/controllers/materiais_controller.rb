@@ -10,7 +10,8 @@ class MateriaisController < ApplicationController
   def new
     @grupos = GrupoMaterial.order(:nome)
     @cores = CorMaterial.order(:nome)
-    @movimento = MovimentoEstoque.new
+    @movimento = MovimentoEstoque.new(client_id: params[:client_id])
+    @selected_client_nome = Client.find_by(id: params[:client_id])&.name
   end
 
   def create
@@ -60,6 +61,26 @@ class MateriaisController < ApplicationController
 
   def cores
     render json: CorMaterial.order(:nome).map { |c| { id: c.id, nome: c.nome } }
+  end
+
+  def search
+    materiais = MateriaPrima.includes(:grupo_material, :cor_material)
+
+    if params[:client_id].present?
+      client_material_ids = MovimentoEstoque.where(client_id: params[:client_id])
+        .distinct.pluck(:materia_prima_id)
+      materiais = materiais.where(id: client_material_ids)
+    end
+
+    if params[:q].present?
+      q = "%#{params[:q]}%"
+      materiais = materiais
+        .joins(:grupo_material, :cor_material)
+        .where("grupo_materiais.nome LIKE ? OR cor_materiais.nome LIKE ? OR materia_primas.largura LIKE ? OR materia_primas.gramatura LIKE ?", q, q, q, q)
+    end
+    render json: materiais.limit(20).map { |m|
+      { id: m.id, nome_completo: m.nome_completo, saldo: m.saldo }
+    }
   end
 
   private
