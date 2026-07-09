@@ -2,4 +2,6 @@
 # CVEs that are not relevant to the application can be enumerated on the ignore list below.
 
 ignore:
-  - CVE-THAT-DOES-NOT-APPLY
+  # CSS parser / minifier — DoS via deeply nested blocks/comments, not relevant here
+  - CVE-2026-54696
+  - CVE-2026-54522
