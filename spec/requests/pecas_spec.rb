@@ -12,6 +12,15 @@ RSpec.describe "Pecas", type: :request do
     end
   end
 
+  describe "GET /pecas/new" do
+    it "renders the new page" do
+      get new_peca_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Register New Peça")
+    end
+  end
+
   describe "POST /pecas" do
     it "creates a peca with valid params" do
       expect {
@@ -19,6 +28,29 @@ RSpec.describe "Pecas", type: :request do
       }.to change(Peca, :count).by(1)
 
       expect(Peca.last.nome).to eq("Solado")
+    end
+
+    it "redirects to pecas index on success" do
+      post pecas_path, params: { peca: { nome: "Solado" } }
+
+      expect(response).to redirect_to(pecas_path)
+    end
+
+    it "renders new on validation failure" do
+      post pecas_path, params: { peca: { nome: "" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Register New Peça")
+    end
+
+    it "redirects to edit molde when molde_id is present" do
+      molde = create(:molde, nome: "Sapato")
+
+      post pecas_path, params: { peca: { nome: "Solado" }, molde_id: molde.id }
+
+      expect(response).to redirect_to(edit_molde_path(molde))
+      molde.reload
+      expect(molde.pecas.pluck(:nome)).to include("Solado")
     end
   end
 

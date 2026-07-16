@@ -29,7 +29,15 @@ echo "       Done."
 # Step 2: Prepare test database
 echo "[2/5] Preparing test database..."
 bin/rails db:test:prepare 2>&1 | tail -1
-bin/rails db:seed 2>&1 | tail -1
+# Truncate all tables to ensure clean state for E2E
+bin/rails runner '
+conn = ActiveRecord::Base.connection
+conn.execute("PRAGMA foreign_keys = OFF")
+tables = conn.tables - %w[schema_migrations ar_internal_metadata]
+tables.each { |t| conn.execute("DELETE FROM #{conn.quote_table_name(t)}") }
+conn.execute("PRAGMA foreign_keys = ON")
+Rails.application.load_seed
+' 2>&1 | tail -1
 echo "       Done."
 
 # Step 3: Start Rails server in background

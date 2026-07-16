@@ -23,6 +23,27 @@ RSpec.describe "Moldes", type: :request do
     end
   end
 
+  describe "GET /moldes/new" do
+    it "renders the new page" do
+      get new_molde_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Register New Molde")
+      expect(response.body).to include("Componentes")
+    end
+  end
+
+  describe "GET /moldes/:id/edit" do
+    it "renders the edit page" do
+      molde = create(:molde, nome: "Sapato")
+
+      get edit_molde_path(molde)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Edit Molde")
+    end
+  end
+
   describe "POST /moldes" do
     it "creates a molde with valid params" do
       expect {
@@ -30,6 +51,19 @@ RSpec.describe "Moldes", type: :request do
       }.to change(Molde, :count).by(1)
 
       expect(Molde.last.nome).to eq("Sapato")
+    end
+
+    it "redirects to molde show page on success" do
+      post moldes_path, params: { molde: { nome: "Chinelo" } }
+
+      expect(response).to redirect_to(molde_path(Molde.last))
+    end
+
+    it "renders new on validation failure" do
+      post moldes_path, params: { molde: { nome: "" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Register New Molde")
     end
   end
 

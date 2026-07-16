@@ -2177,65 +2177,56 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const body = await page.textContent("body");
     if (!body.includes("Moldes")) throw new Error("Moldes heading not found");
 
-    const newBtn = await page.$("button.btn-primary");
-    if (!newBtn) throw new Error("New Molde button not found");
+    const newLink = await page.$('a[href*="/moldes/new"]');
+    if (!newLink) throw new Error("New Molde link not found");
 
     const backLink = await page.$('a[href="/"]');
     if (!backLink) throw new Error("Back to Gallery link not found");
   });
 
-  await test("Moldes page: create a new molde via dialog", async () => {
-    await page.goto(`${BASE_URL}/moldes`);
+  async function createMolde(page, nome) {
+    await page.goto(`${BASE_URL}/moldes/new`);
     await page.waitForSelector("h2", { timeout: 5000 });
-
-    const newBtn = await page.$("button.btn-primary");
-    await newBtn.click();
-    await page.waitForTimeout(300);
-
-    const dialog = await page.$("dialog[open]");
-    if (!dialog) throw new Error("Dialog did not open");
-
-    const title = await dialog.$eval("h4", el => el.textContent);
-    if (title !== "Register New Molde") throw new Error(`Wrong dialog title: ${title}`);
-
-    const nomeInput = await dialog.$("#molde_nome_dialog");
-    await nomeInput.fill(`E2E Molde ${Date.now()}`);
-
-    const registerBtn = await dialog.$("button[type='submit']");
-    await registerBtn.click();
+    await page.fill("input[name='molde[nome]']", nome);
+    await page.click("input[type='submit']");
     await page.waitForTimeout(1000);
+  }
+
+  await test("Moldes page: create a new molde via dedicated page", async () => {
+    const nome = `E2E Molde ${Date.now()}`;
+    await createMolde(page, nome);
 
     const body = await page.textContent("body");
-    if (!body.includes("registered")) throw new Error(`Molde not registered: "${body.slice(0, 200)}"`);
+    if (!body.includes(nome)) throw new Error(`Molde page did not show molde name: "${body.slice(0, 200)}"`);
   });
 
-  await test("Moldes page: edit a molde via dialog", async () => {
-    await page.goto(`${BASE_URL}/moldes`);
-    await page.waitForSelector(".clients-table", { timeout: 5000 });
+  await test("Moldes page: new page shows peças list", async () => {
+    await page.goto(`${BASE_URL}/moldes/new`);
+    await page.waitForSelector("h2", { timeout: 5000 });
 
-    const editBtn = await page.$("button[data-action='click->dialog#edit']");
-    if (!editBtn) throw new Error("Edit button not found");
+    const body = await page.textContent("body");
+    if (!body.includes("Componentes")) throw new Error("Componentes heading not found");
+  });
 
-    await editBtn.click();
-    await page.waitForTimeout(300);
+  await test("Moldes page: edit a molde via dedicated page", async () => {
+    await createMolde(page, `E2E Edit ${Date.now()}`);
+    const currentUrl = page.url();
 
-    const dialog = await page.$("dialog[open]");
-    if (!dialog) throw new Error("Edit dialog did not open");
+    // Navigate to edit
+    await page.goto(`${currentUrl}/edit`);
+    await page.waitForSelector("h2", { timeout: 5000 });
 
-    const title = await dialog.$eval("h4", el => el.textContent);
-    if (!title.includes("Edit")) throw new Error(`Wrong dialog title: ${title}`);
+    const nomeInput = await page.$("input[name='molde[nome]']");
+    if (!nomeInput) throw new Error("Name input not found on edit page");
 
-    const nomeInput = await dialog.$("#molde_nome_dialog");
     const currentName = await nomeInput.inputValue();
-
     await nomeInput.fill(`${currentName} Edited`);
 
-    const updateBtn = await dialog.$("button[type='submit']");
-    await updateBtn.click();
+    await page.click("input[type='submit']");
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("updated")) throw new Error(`Molde not updated: "${body.slice(0, 200)}"`);
+    if (!body.includes(currentName)) throw new Error(`Molde not updated: "${body.slice(0, 200)}"`);
   });
 
   await test("Moldes page: delete a molde", async () => {
@@ -2269,57 +2260,41 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForSelector("h2", { timeout: 5000 });
 
     const body = await page.textContent("body");
-    if (!body.includes("Pecas")) throw new Error("Pecas heading not found");
+    if (!body.includes("Peças")) throw new Error("Peças heading not found: " + body.slice(0, 200));
 
-    const newBtn = await page.$("button.btn-primary");
-    if (!newBtn) throw new Error("New Peca button not found");
+    const newLink = await page.$('a[href*="/pecas/new"]');
+    if (!newLink) throw new Error("New Peça link not found");
   });
 
-  await test("Pecas page: create a new peca via dialog", async () => {
-    await page.goto(`${BASE_URL}/pecas`);
+  await test("Pecas page: create a new peca via dedicated page", async () => {
+    await page.goto(`${BASE_URL}/pecas/new`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
-    const newBtn = await page.$("button.btn-primary");
-    await newBtn.click();
-    await page.waitForTimeout(300);
-
-    const dialog = await page.$("dialog[open]");
-    if (!dialog) throw new Error("Dialog did not open");
-
-    const title = await dialog.$eval("h4", el => el.textContent);
-    if (title !== "Register New Peca") throw new Error(`Wrong dialog title: ${title}`);
-
-    const nomeInput = await dialog.$("#peca_nome_dialog");
-    await nomeInput.fill(`E2E Peca ${Date.now()}`);
-
-    const registerBtn = await dialog.$("button[type='submit']");
-    await registerBtn.click();
+    await page.fill("input[name='peca[nome]']", `E2E Peca ${Date.now()}`);
+    await page.click("input[type='submit']");
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
     if (!body.includes("registered")) throw new Error(`Peca not registered: "${body.slice(0, 200)}"`);
   });
 
-  await test("Pecas page: edit a peca via dialog", async () => {
+  await test("Pecas page: edit a peca via dedicated page", async () => {
     await page.goto(`${BASE_URL}/pecas`);
     await page.waitForSelector(".clients-table", { timeout: 5000 });
 
-    const editBtn = await page.$("button[data-action='click->dialog#edit']");
-    if (!editBtn) throw new Error("Edit button not found");
+    const editLink = await page.$('a[href*="/edit"]');
+    if (!editLink) throw new Error("Edit link not found");
 
-    await editBtn.click();
-    await page.waitForTimeout(300);
+    await editLink.click();
+    await page.waitForTimeout(500);
 
-    const dialog = await page.$("dialog[open]");
-    if (!dialog) throw new Error("Edit dialog did not open");
+    const nomeInput = await page.$("input[name='peca[nome]']");
+    if (!nomeInput) throw new Error("Name input not found");
 
-    const nomeInput = await dialog.$("#peca_nome_dialog");
     const currentName = await nomeInput.inputValue();
-
     await nomeInput.fill(`${currentName} Edited`);
 
-    const updateBtn = await dialog.$("button[type='submit']");
-    await updateBtn.click();
+    await page.click("input[type='submit']");
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");

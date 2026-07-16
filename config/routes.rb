@@ -38,7 +38,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :moldes, only: %i[index show create update destroy] do
+  resources :moldes, only: %i[index show new create edit update destroy] do
     collection do
       get :search
     end
@@ -47,7 +47,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :pecas, only: %i[index create update destroy] do
+  resources :pecas, only: %i[index new create edit update destroy] do
     collection do
       get :search
       get :for_cascade
