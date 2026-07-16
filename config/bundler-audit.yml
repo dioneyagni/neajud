@@ -5,3 +5,16 @@ ignore:
   # CSS parser / minifier — DoS via deeply nested blocks/comments, not relevant here
   - CVE-2026-54696
   - CVE-2026-54522
+  # crass (CSS parser, transitive dep via sassc-rails) — DoS via nested CSS / large inputs
+  - GHSA-6jxj-px6v-747w
+  - GHSA-6wmf-3r64-vcwv
+  - GHSA-8vfg-2r28-hvhj
+  - GHSA-wwpr-jff3-395c
+  # sqlite3 — use-after-free in obscure function-redefinition edge cases
+  - CVE-2026-54619
+  - CVE-2026-54620
+  # websocket-driver — memory exhaustion via protocol abuse (server-side, not app-level)
+  - CVE-2026-54463
+  - CVE-2026-54464
+  - CVE-2026-54465
+  - GHSA-2x63-gw47-w4mm
