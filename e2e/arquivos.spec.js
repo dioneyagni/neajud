@@ -5,6 +5,24 @@ const fs = require("fs");
 const BASE_URL = "http://localhost:3000";
 const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
 
+const UPLOAD_TIMEOUT = 15000;
+
+async function uploadFile(page, filePath) {
+  const fi = await page.$('input[type="file"]');
+  await fi.setInputFiles(filePath);
+  await page.click('input[type="submit"]');
+}
+
+async function waitForCard(page, filename, timeout = UPLOAD_TIMEOUT) {
+  const displayName = filename.replace(/\.[^.]+$/, "");
+  const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
+  await card.waitFor({ state: "visible", timeout });
+}
+
+async function waitForAnyCard(page, timeout = UPLOAD_TIMEOUT) {
+  await page.waitForSelector(".stamp-card", { timeout });
+}
+
 async function run() {
   const launchOpts = { slowMo: HEADED ? 300 : 0 };
   if (HEADED) {
@@ -255,12 +273,12 @@ async function run() {
     if (!html.includes("multi-frame-test")) throw new Error("Second file not in list");
 
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(500);
 
     const testCard = page.locator(".stamp-card").filter({ hasText: "test-image" }).first();
     const multiCard = page.locator(".stamp-card").filter({ hasText: "multi-frame-test" }).first();
-    await testCard.waitFor({ timeout: 10000 });
-    await multiCard.waitFor({ timeout: 10000 });
+    await testCard.waitFor({ timeout: UPLOAD_TIMEOUT });
+    await multiCard.waitFor({ timeout: UPLOAD_TIMEOUT });
   });
 
   await test("Upload a file creates a arquivo visible in gallery", async () => {
@@ -275,11 +293,9 @@ async function run() {
     if (!listHtml.includes("test-image")) throw new Error("File not shown in list after selection");
 
     await page.click('input[type="submit"]');
-
-    await page.waitForTimeout(1500);
-
+    await page.waitForTimeout(500);
     const card = page.locator(".stamp-card").filter({ hasText: "test-image" }).first();
-    await card.waitFor({ timeout: 10000 });
+    await card.waitFor({ timeout: UPLOAD_TIMEOUT });
   });
 
   await test("Arquivo show page displays all sections", async () => {
@@ -287,7 +303,7 @@ async function run() {
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(testImagePath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(3000);
+    await waitForAnyCard(page);
     await page.waitForSelector(".stamp-card a");
     await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2");
@@ -383,13 +399,8 @@ async function run() {
       if (!fs.existsSync(filePath)) throw new Error(`Test image not found: ${filePath}`);
 
       await page.goto(BASE_URL);
-      const fileInput = await page.$('input[type="file"]');
-      await fileInput.setInputFiles(filePath);
-      await page.click('input[type="submit"]');
-
-      // Wait for AJAX uploads + page reload
-      await page.waitForTimeout(5000);
-      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+      await uploadFile(page, filePath);
+      await waitForCard(page, filename);
 
       // Click the arquivo card matching the uploaded filename (without extension)
       const displayName = filename.replace(/\.[^.]+$/, "");
@@ -466,11 +477,9 @@ async function run() {
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(filePath);
     await page.click('input[type="submit"]');
-
-    await page.waitForTimeout(5000);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
-
+    await page.waitForTimeout(500);
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "test.svg" }).locator("a").first();
+    await arquivoLink.waitFor({ state: "visible", timeout: UPLOAD_TIMEOUT });
     await arquivoLink.waitFor({ timeout: 10000 });
     await arquivoLink.click();
 
@@ -494,7 +503,7 @@ async function run() {
     await fileInput.setInputFiles(dxfPath);
     await page.click('input[type="submit"]');
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
@@ -605,7 +614,7 @@ async function run() {
     await fileInput.setInputFiles(reforcoPath);
     await page.click('input[type="submit"]');
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "REFORÇO" }).locator("a").first();
@@ -670,7 +679,7 @@ async function run() {
       const fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(artePath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       const baseName = path.basename(artePath, ".tif");
@@ -859,7 +868,7 @@ async function run() {
       const fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(filePath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
       arquivoLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
     }
@@ -909,7 +918,7 @@ async function run() {
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(dxfPath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
@@ -1042,7 +1051,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(overlapPath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     // Check for the stacked cuts icon on the card
@@ -1073,7 +1082,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(cabedalPath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
@@ -1110,7 +1119,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(cabedalPath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
@@ -1204,7 +1213,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(overlapPath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       // Verify stacked cuts icon on card
@@ -1287,7 +1296,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const fileInput = await page.$('input[type="file"]');
     await fileInput.setInputFiles(filePath);
     await page.click('input[type="submit"]');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(500);
     await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "02-no_spot" }).first().locator("a").first();
@@ -1637,7 +1646,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(arteSizePath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
@@ -1731,7 +1740,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       let fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(artePath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       // Go to arte arquivo show page
@@ -1837,7 +1846,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       fileInput = await page.$('input[type="file"]');
       await fileInput.setInputFiles(orgPath);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
@@ -2734,7 +2743,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       if (!fileInput) throw new Error("File input not found");
       await fileInput.setInputFiles([dxfPath, artePath]);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       // ── Organize the DXF ──
@@ -2955,7 +2964,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       if (!fileInput) throw new Error("File input not found");
       await fileInput.setInputFiles([dxfPath, artePath]);
       await page.click('input[type="submit"]');
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       const arteBaseName = path.basename(artePath, ".tif");

@@ -39,4 +39,8 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Run jobs inline during E2E tests so previews are generated before the HTTP response.
+  # This avoids race conditions where the test navigates before processing finishes.
+  config.active_job.queue_adapter = :inline
 end
