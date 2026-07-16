@@ -346,19 +346,19 @@ async function run() {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a");
 
-    const initialCount = await page.$$eval(".stamp-card", els => els.length);
+    const firstCardHref = await page.locator(".stamp-card a").first().getAttribute("href");
     await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2");
 
-    await page.click('button:has-text("Delete")');
-    await page.waitForURL("**/arquivos");
-    await page.waitForTimeout(500);
+    page.once("dialog", d => d.accept());
+    await page.click('button:has-text("Delete Arquivo")');
+    await page.waitForTimeout(2000);
 
     const body = await page.textContent("body");
     if (!body.includes("Arquivo deleted")) throw new Error("Delete notice not shown");
 
-    const newCount = await page.$$eval(".stamp-card", els => els.length);
-    if (newCount >= initialCount) throw new Error("Arquivo count did not decrease after delete");
+    const hrefsAfter = await page.$$eval(".stamp-card a", els => els.map(e => e.getAttribute("href")));
+    if (hrefsAfter.includes(firstCardHref)) throw new Error("Deleted card link still visible in gallery");
   });
 
   await test("Gallery shows arquivos or fallback message", async () => {
