@@ -23,6 +23,7 @@ export default class extends Controller {
 
   commit(event) {
     if (event.type === "keydown" && event.key !== "Enter") return
+    event.preventDefault()
     this._applyEdit()
   }
 
