@@ -6,6 +6,12 @@ echo ""
 
 export PATH="$HOME/.local/share/mise/installs/node/22.22.2/bin:$PATH"
 export LD_LIBRARY_PATH="$HOME/.local/chromium-libs/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+
+# Safety: never run outside test environment — check BEFORE overwriting RAILS_ENV
+if [ "${RAILS_ENV:-test}" != "test" ]; then
+  echo "ERROR: bin/e2e must run with RAILS_ENV=test (got '$RAILS_ENV')" >&2
+  exit 1
+fi
 export RAILS_ENV=test
 export CABLE_ADAPTER=async
 
