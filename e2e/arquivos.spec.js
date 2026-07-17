@@ -1629,11 +1629,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
   // ── Size Selection (Arte arquivos) ──
 
   await test("Size Selection: hidden by default, only shown when corte has organize_error", async () => {
-    const arteSizePath = path.join(__dirname, "e2e-size-arte.tif");
+    const arteSizePath = path.join(__dirname, `e2e-size-arte-${Date.now()}.tif`);
     if (!fs.existsSync(arteSizePath)) {
       const { execSync } = require("child_process");
       execSync(`convert -size 30x30 xc:blue 'TIFF:${arteSizePath}'`);
     }
+
+    const arteBaseName = path.basename(arteSizePath, ".tif");
 
     let arteUuid = null;
     let clientId = null;
@@ -1648,7 +1650,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForTimeout(500);
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-      const sizeCard = page.locator(".stamp-card").filter({ hasText: "e2e-size-arte" }).first();
+      const sizeCard = page.locator(".stamp-card").filter({ hasText: arteBaseName }).first();
       const sizeCardCount = await sizeCard.count();
       if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
 
