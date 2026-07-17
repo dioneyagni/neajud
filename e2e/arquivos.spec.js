@@ -2996,6 +2996,15 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
 
+      // If the DXF was already organized by a prior test, the <select> is hidden
+      // in an edit-toggle form span. Force it visible for this interaction.
+      await page.evaluate(() => {
+        const forms = document.querySelectorAll('[data-edit-toggle-target="form"]');
+        forms.forEach(el => el.style.display = "");
+        const displays = document.querySelectorAll('[data-edit-toggle-target="display"]');
+        displays.forEach(el => el.style.display = "none");
+      });
+
       await page.selectOption('select[name="molde_id"]', { label: "CorteCompMold" });
       await page.selectOption('select[name="peca_id"]', { label: "CorteCompPiece" });
 
