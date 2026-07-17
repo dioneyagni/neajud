@@ -366,7 +366,6 @@ async function run() {
     await page.locator(".stamp-card a").first().click();
     await page.waitForSelector("h2");
 
-    page.once("dialog", d => d.accept());
     await page.click('button:has-text("Delete Arquivo")');
     await page.waitForTimeout(2000);
 
