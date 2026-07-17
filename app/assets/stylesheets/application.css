@@ -1445,6 +1445,48 @@ section {
   display: none;
 }
 
+/* Molde form */
+.molde-componentes-section {
+  margin-top: 1.5rem;
+}
+
+.componentes-buscar {
+  position: relative;
+  max-width: 400px;
+}
+
+.componentes-input {
+  width: 100%;
+}
+
+.componentes-lista {
+  list-style: none;
+  margin-top: 0.75rem;
+  padding: 0;
+  max-width: 400px;
+}
+
+.componentes-lista li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  background: #fff;
+}
+
+.componentes-lista .componente-nome {
+  flex: 1;
+}
+
+.componentes-lista .btn-sm {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
 /* Client dialog */
 
 .client-dialog {

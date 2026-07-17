@@ -1,0 +1,25 @@
+<h2>Register New Peça</h2>
+
+<%= form_with model: @peca, local: true do |f| %>
+  <% if @peca.errors.any? %>
+    <div class="flash flash--error">
+      <%= @peca.errors.full_messages.join(", ") %>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag :molde_id, @molde_id if @molde_id.present? %>
+
+  <div class="client-field">
+    <%= f.label :nome, "Name" %>
+    <%= f.text_field :nome, required: true, autofocus: true %>
+  </div>
+
+  <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+    <%= f.submit "Register Peça", class: "btn btn-primary" %>
+    <%= link_to "Cancel", @molde_id.present? ? edit_molde_path(@molde_id) : pecas_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>
+
+<div class="back-link-wrapper">
+  <%= link_to "Back to Peças", pecas_path, class: "back-link" %>
+</div>

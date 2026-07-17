@@ -1,8 +1,13 @@
 class PecasController < ApplicationController
-  before_action :set_peca, only: %i[update destroy]
+  before_action :set_peca, only: %i[edit update destroy]
 
   def index
     @pecas = Peca.order(:nome)
+  end
+
+  def new
+    @peca = Peca.new
+    @molde_id = params[:molde_id]
   end
 
   def search
@@ -22,30 +27,39 @@ class PecasController < ApplicationController
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
     if existing
       assign_peca_to_arquivo(existing) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, alert: "Piece \"#{existing.nome}\" already exists."
+      redirect_to pecas_path, alert: "Piece \"#{existing.nome}\" already exists."
       return
     end
 
     @peca = Peca.new(peca_params)
     if @peca.save
       assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, notice: "Piece registered."
+      if params[:molde_id].present?
+        Molde.find(params[:molde_id]).pecas << @peca
+        redirect_to edit_molde_path(params[:molde_id]), notice: "Peça added to molde."
+      else
+        redirect_to pecas_path, notice: "Piece registered."
+      end
     else
-      redirect_back fallback_location: arquivos_path, alert: @peca.errors.full_messages.join(", ")
+      @molde_id = params[:molde_id]
+      render :new, status: :unprocessable_entity
     end
+  end
+
+  def edit
   end
 
   def update
     if @peca.update(peca_params)
-      redirect_back fallback_location: arquivos_path, notice: "Peca updated."
+      redirect_to pecas_path, notice: "Peca updated."
     else
-      redirect_back fallback_location: arquivos_path, alert: @peca.errors.full_messages.join(", ")
+      render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
     @peca.destroy
-    redirect_back fallback_location: arquivos_path, notice: "Peca deleted."
+    redirect_to pecas_path, notice: "Peca deleted."
   end
 
   private

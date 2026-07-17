@@ -1,5 +1,5 @@
 class MoldesController < ApplicationController
-  before_action :set_molde, only: %i[show update destroy pecas]
+  before_action :set_molde, only: %i[show edit update destroy pecas]
 
   def index
     @moldes = Molde.includes(:pecas).order(:nome)
@@ -7,6 +7,15 @@ class MoldesController < ApplicationController
 
   def show
     @arquivos = @molde.arquivos.includes(approved_version: :image_metadata).order(created_at: :desc)
+  end
+
+  def new
+    @molde = Molde.new
+    @pecas = Peca.order(:nome)
+  end
+
+  def edit
+    @pecas = Peca.order(:nome)
   end
 
   def pecas
@@ -22,7 +31,7 @@ class MoldesController < ApplicationController
     existing = Molde.where("LOWER(nome) = ?", molde_params[:nome].downcase).first
     if existing
       assign_molde_to_arquivo(existing) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, alert: "Molde \"#{existing.nome}\" already exists."
+      redirect_to moldes_path, alert: "Molde \"#{existing.nome}\" already exists."
       return
     end
 
@@ -30,24 +39,26 @@ class MoldesController < ApplicationController
     if @molde.save
       @molde.peca_ids = params[:molde][:peca_ids].reject(&:blank?) if params[:molde][:peca_ids]
       assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: moldes_path, notice: "Molde registered."
+      redirect_to molde_path(@molde), notice: "Molde registered."
     else
-      redirect_back fallback_location: moldes_path, alert: @molde.errors.full_messages.join(", ")
+      @pecas = Peca.order(:nome)
+      render :new, status: :unprocessable_entity
     end
   end
 
   def update
     if @molde.update(molde_params)
       @molde.peca_ids = params[:molde][:peca_ids].reject(&:blank?) if params[:molde][:peca_ids]
-      redirect_back fallback_location: moldes_path, notice: "Molde updated."
+      redirect_to molde_path(@molde), notice: "Molde updated."
     else
-      redirect_back fallback_location: moldes_path, alert: @molde.errors.full_messages.join(", ")
+      @pecas = Peca.order(:nome)
+      render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
     @molde.destroy
-    redirect_back fallback_location: moldes_path, notice: "Molde deleted."
+    redirect_to moldes_path, notice: "Molde deleted."
   end
 
   private

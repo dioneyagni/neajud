@@ -1,0 +1,23 @@
+<h2>Edit Peça</h2>
+
+<%= form_with model: @peca, local: true do |f| %>
+  <% if @peca.errors.any? %>
+    <div class="flash flash--error">
+      <%= @peca.errors.full_messages.join(", ") %>
+    </div>
+  <% end %>
+
+  <div class="client-field">
+    <%= f.label :nome, "Name" %>
+    <%= f.text_field :nome, required: true, autofocus: true %>
+  </div>
+
+  <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+    <%= f.submit "Update Peça", class: "btn btn-primary" %>
+    <%= link_to "Cancel", pecas_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>
+
+<div class="back-link-wrapper">
+  <%= link_to "Back to Peças", pecas_path, class: "back-link" %>
+</div>
