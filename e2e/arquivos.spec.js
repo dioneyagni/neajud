@@ -1651,6 +1651,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
       const sizeCard = page.locator(".stamp-card").filter({ hasText: arteBaseName }).first();
+      await sizeCard.waitFor({ state: "visible", timeout: 15000 });
       const sizeCardCount = await sizeCard.count();
       if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
 
