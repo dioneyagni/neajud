@@ -315,6 +315,15 @@ close() {
 }
 ```
 
+## Guard: nunca rodar bin/e2e com RAILS_ENV errado
+
+O `bin/e2e` truncateia o banco de dados para garantir estado limpo. Se
+rodar com `RAILS_ENV=development`, destrói todos os dados de desenvolvimento.
+O script tem guard clause no início que aborta se `RAILS_ENV != "test"`.
+
+⚠️ Nunca rode `bin/e2e` com `RAILS_ENV=development`. O script já força
+test, mas um `export RAILS_ENV=development` antes no shell pode sobrescrever.
+
 ## Key constraints
 
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
