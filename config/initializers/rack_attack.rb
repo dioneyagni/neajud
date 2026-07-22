@@ -1,14 +1,14 @@
 class Rack::Attack
-  LIMIT_STAMPS_CREATE = 30
-  LIMIT_STAMPS_UPDATE = 60
+  LIMIT_ARQUIVOS_CREATE = 30
+  LIMIT_ARQUIVOS_UPDATE = 60
   PERIOD = 60
 
-  throttle("stamps/create", limit: LIMIT_STAMPS_CREATE, period: PERIOD) do |req|
-    req.ip if req.post? && req.path == "/stamps"
+  throttle("arquivos/create", limit: LIMIT_ARQUIVOS_CREATE, period: PERIOD) do |req|
+    req.ip if req.post? && req.path == "/arquivos"
   end
 
-  throttle("stamps/update", limit: LIMIT_STAMPS_UPDATE, period: PERIOD) do |req|
-    req.ip if req.patch? && req.path.match?(%r{\A/stamps/\w+/update_time\z})
+  throttle("arquivos/update", limit: LIMIT_ARQUIVOS_UPDATE, period: PERIOD) do |req|
+    req.ip if req.patch? && req.path.match?(%r{\A/arquivos/\w+/update_time\z})
   end
 
   self.throttled_responder = ->(env) {

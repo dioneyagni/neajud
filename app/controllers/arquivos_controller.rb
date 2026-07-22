@@ -362,7 +362,7 @@ class ArquivosController < ApplicationController
     version
   end
 
-  STORAGE_BASE = Rails.root.join("storage", "stamps")
+  STORAGE_BASE = ArquivoVersion::STORAGE_BASE
 
   def file_uploaded?
     upload = params[:arquivo][:original_file]

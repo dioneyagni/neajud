@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_01_160002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000608) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -102,16 +102,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_160002) do
     t.index ["uuid"], name: "index_arquivos_on_uuid", unique: true
   end
 
-  create_table "arte_cortes", force: :cascade do |t|
-    t.integer "arte_id", null: false
-    t.integer "corte_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["arte_id"], name: "index_arte_cortes_on_arte_id"
-    t.index ["corte_id", "arte_id"], name: "index_arte_cortes_on_corte_id_and_arte_id", unique: true
-    t.index ["corte_id"], name: "index_arte_cortes_on_corte_id"
-  end
-
   create_table "bans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -121,17 +111,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_160002) do
     t.string "uuid", null: false
     t.index ["ip_address"], name: "index_bans_on_ip_address"
     t.index ["uuid"], name: "index_bans_on_uuid", unique: true
-  end
-
-  create_table "batch_uploads", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "failed_files", default: 0
-    t.integer "processed_files", default: 0
-    t.integer "total_files", default: 0
-    t.datetime "updated_at", null: false
-    t.string "uploaded_by"
-    t.string "uuid", null: false
-    t.index ["uuid"], name: "index_batch_uploads_on_uuid", unique: true
   end
 
   create_table "clients", force: :cascade do |t|
@@ -290,8 +269,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_01_160002) do
   add_foreign_key "arquivos", "moldes"
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "tamanhos"
-  add_foreign_key "arte_cortes", "arquivos", column: "arte_id"
-  add_foreign_key "arte_cortes", "arquivos", column: "corte_id"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "itens_pedido", "arquivos"
   add_foreign_key "itens_pedido", "materia_primas"
