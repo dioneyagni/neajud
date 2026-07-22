@@ -78,8 +78,14 @@ node e2e/movimentos.spec.js "$@"
 MOVIMENTOS_EXIT=$?
 node e2e/pedidos.spec.js "$@"
 PEDIDOS_EXIT=$?
+node e2e/clients.spec.js "$@"
+CLIENTS_EXIT=$?
+node e2e/modelos.spec.js "$@"
+MODELOS_EXIT=$?
+node e2e/materiais.spec.js "$@"
+MATERIAIS_EXIT=$?
 EXIT_CODE=0
-if [ "$ARQUIVOS_EXIT" -ne 0 ] || [ "$MOVIMENTOS_EXIT" -ne 0 ] || [ "$PEDIDOS_EXIT" -ne 0 ]; then
+if [ "$ARQUIVOS_EXIT" -ne 0 ] || [ "$MOVIMENTOS_EXIT" -ne 0 ] || [ "$PEDIDOS_EXIT" -ne 0 ] || [ "$CLIENTS_EXIT" -ne 0 ] || [ "$MODELOS_EXIT" -ne 0 ] || [ "$MATERIAIS_EXIT" -ne 0 ]; then
   EXIT_CODE=1
 fi
 set -e
