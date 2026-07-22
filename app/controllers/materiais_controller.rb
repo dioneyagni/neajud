@@ -55,7 +55,7 @@ class MateriaisController < ApplicationController
     end
 
     if params[:q].present?
-      q = "%#{params[:q]}%"
+      q = "%#{params[:q].to_s.gsub(/[%_]/, '\\\\\0')}%"
       materiais = materiais
         .joins(:grupo_material, :cor_material)
         .where("grupo_materiais.nome LIKE ? OR cor_materiais.nome LIKE ? OR materia_primas.largura LIKE ? OR materia_primas.gramatura LIKE ?", q, q, q, q)

@@ -10,7 +10,8 @@ class Modelo < ApplicationRecord
 
   scope :search, ->(q) {
     return all if q.blank?
-    where("nome LIKE ?", "%#{q}%")
+    pattern = "%#{q.to_s.gsub(/[%_]/, '\\\\\0')}%"
+    where("nome LIKE ?", pattern)
   }
 
   scope :for_client, ->(client_id) {
