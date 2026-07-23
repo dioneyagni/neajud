@@ -1,9 +1,10 @@
 class Arquivo < ApplicationRecord
   has_many :arquivo_time_logs, dependent: :destroy
-  has_many :arquivo_versions
+  has_many :arquivo_versions, dependent: :destroy
   has_many :tamanhos, dependent: :destroy
   has_many :arquivo_modelos, dependent: :destroy
   has_many :modelos, through: :arquivo_modelos
+  has_many :itens_pedido, class_name: "ItemPedido", dependent: :restrict_with_error
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
   belongs_to :molde, optional: true
@@ -101,14 +102,6 @@ class Arquivo < ApplicationRecord
 
   def destroy_arquivo_with_versions
     update_columns(approved_version_id: nil, tamanho_id: nil, client_id: nil, modelo_id: nil, molde_id: nil, peca_id: nil)
-    arquivo_modelos.destroy_all
-    arquivo_time_logs.destroy_all
-    tamanhos.destroy_all
-    arquivo_versions.each do |v|
-      v.image_metadata&.destroy!
-      v.cut_layers.destroy_all
-      v.destroy!
-    end
   end
 
   def set_uuid

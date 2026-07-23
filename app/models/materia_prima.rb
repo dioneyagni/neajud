@@ -2,6 +2,7 @@ class MateriaPrima < ApplicationRecord
   belongs_to :grupo_material
   belongs_to :cor_material
   has_many :movimento_estoques, dependent: :restrict_with_error
+  has_many :itens_pedido, class_name: "ItemPedido", dependent: :nullify
 
   validates :largura, presence: true
   validates :gramatura, presence: true
