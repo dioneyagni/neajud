@@ -516,10 +516,10 @@ async function run() {
     if (!body.includes("corte")) throw new Error("Category not corte");
 
     // Verify Layer Configuration section exists
-    if (!body.includes("layer configuration")) throw new Error("Layer Configuration section not found");
+    if (!body.includes("layers")) throw new Error("Layer Configuration section not found");
 
-    // Verify layer row: swatch, name, color code, select
-    const layerRow = await page.$(".layer-config-row");
+    // Verify layer row in read-only mode: swatch, name, color code, annotation badge
+    const layerRow = await page.$('[data-edit-toggle-target="display"] .layer-config-row');
     if (!layerRow) throw new Error("Layer config row not found");
 
     const swatch = await layerRow.$(".layer-swatch");
@@ -543,8 +543,24 @@ async function run() {
     const measureText = await measurements.textContent();
     if (!measureText.includes("mm")) throw new Error(`Measurements missing mm unit. Got: "${measureText}"`);
 
-    const select = await layerRow.$("select.layer-annotation-select");
-    if (!select) throw new Error("Annotation select not found");
+    // Verify annotation badge in read-only mode
+    const badge = await layerRow.$(".layer-annotation-badge");
+    if (!badge) throw new Error("Annotation badge not found");
+    const badgeText = (await badge.textContent()).trim().toLowerCase();
+    if (badgeText !== "cut") throw new Error(`Expected default annotation "cut", got "${badgeText}"`);
+
+    // Click edit button to enter edit mode and verify select
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      document.querySelector('button[title="Edit layers"]').click();
+    });
+    await page.waitForTimeout(500);
+
+    const form = await page.$('form[action*="configure_layers"]');
+    if (!form) throw new Error("Layer config form not found");
+    const select = await form.$("select.layer-annotation-select");
+    if (!select) throw new Error("Annotation select not found in edit mode");
     const selectedValue = await select.inputValue();
     if (selectedValue !== "cut") throw new Error(`Expected default annotation "cut", got "${selectedValue}"`);
 
@@ -553,6 +569,12 @@ async function run() {
     const expectedOptions = ["cut", "hole", "engraving", "ignore"];
     const hasAll = expectedOptions.every(v => optionValues.includes(v));
     if (!hasAll) throw new Error(`Select options missing. Got: ${optionValues.join(",")}`);
+
+    // Cancel to go back to read-only
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-edit-toggle-target="form"] .btn-cancel');
+      if (btn) btn.click();
+    });
   });
 
   await test("DXF Layer Configuration: change annotation and save", async () => {
@@ -566,17 +588,27 @@ async function run() {
     await page.waitForTimeout(500);
 
     // Verify measurements exist before save
-    const beforeMeasure = await page.$(".layer-measurements");
+    const beforeMeasure = await page.$('[data-edit-toggle-target="display"] .layer-measurements');
     if (!beforeMeasure) throw new Error("Measurements not found before save");
     const beforeText = await beforeMeasure.textContent();
 
-    // Change first layer annotation to "Furo" (hole)
-    const select = await page.$("select.layer-annotation-select");
+    // Click edit button to enter edit mode
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      document.querySelector('button[title="Edit layers"]').click();
+    });
+    await page.waitForTimeout(500);
+
+    // Change first layer annotation to "hole"
+    const form = await page.$('form[action*="configure_layers"]');
+    if (!form) throw new Error("Layer config form not found");
+    const select = await form.$("select.layer-annotation-select");
     if (!select) throw new Error("Annotation select not found");
     await select.selectOption("hole");
 
-    // Click Save
-    const saveBtn = await page.$("button.layer-config-save");
+    // Click Save (submit button in form)
+    const saveBtn = await form.$('button[type="submit"]');
     if (!saveBtn) throw new Error("Save button not found");
     await saveBtn.click();
 
@@ -588,14 +620,14 @@ async function run() {
     const body = await page.textContent("body");
     if (!body.includes("Layer configuration saved")) throw new Error("Success notice not shown");
 
-    // Verify annotation persisted
-    const selectAfter = await page.$("select.layer-annotation-select");
-    if (!selectAfter) throw new Error("Annotation select not found after save");
-    const valueAfter = await selectAfter.inputValue();
-    if (valueAfter !== "hole") throw new Error(`Expected "hole" after save, got "${valueAfter}"`);
+    // Verify annotation persisted in read-only badge
+    const badge = await page.$('[data-edit-toggle-target="display"] .layer-annotation-badge');
+    if (!badge) throw new Error("Annotation badge not found after save");
+    const badgeText = (await badge.textContent()).trim().toLowerCase();
+    if (badgeText !== "hole") throw new Error(`Expected "hole" after save, got "${badgeText}"`);
 
     // Verify measurements still present after save
-    const afterMeasure = await page.$(".layer-measurements");
+    const afterMeasure = await page.$('[data-edit-toggle-target="display"] .layer-measurements');
     if (!afterMeasure) throw new Error("Measurements not found after save");
     const afterText = await afterMeasure.textContent();
     if (afterText !== beforeText) throw new Error(`Measurements changed after save. Before: "${beforeText}" After: "${afterText}"`);
@@ -625,8 +657,8 @@ async function run() {
     const bodyText = await page.textContent("body");
     if (!bodyText.toLowerCase().includes("processed")) throw new Error("Status not processed");
 
-    // Verify all 3 layer rows exist
-    const layerRows = await page.$$(".layer-config-row");
+    // Verify all 3 layer rows exist in read-only display
+    const layerRows = await page.$$('[data-edit-toggle-target="display"] .layer-config-row');
     if (layerRows.length !== 3) throw new Error(`Expected 3 layer rows, got ${layerRows.length}`);
 
     // Verify each row has measurements
@@ -1230,13 +1262,24 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       if (!body.includes("stacked cuts")) throw new Error("Overlap error not found on show page");
 
       // Mark both layers as hole in Layer Configuration
-      const selects = await page.$$("select.layer-annotation-select");
+      // Click edit button to enter edit mode
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        const btn = document.querySelector('button[title="Edit layers"]');
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(500);
+
+      const form = await page.$('form[action*="configure_layers"]');
+      if (!form) throw new Error("Layer config form not found");
+      const selects = await form.$$("select.layer-annotation-select");
       if (selects.length < 2) throw new Error(`Expected 2 layer selects, got ${selects.length}`);
 
       await selects[0].selectOption("hole");
       await selects[1].selectOption("hole");
 
-      const saveBtn = await page.$("button.layer-config-save");
+      const saveBtn = await form.$('button[type="submit"]');
       if (!saveBtn) throw new Error("Layer config save button not found");
       await saveBtn.click();
       await page.waitForURL("**/arquivos/**", { timeout: 10000 });

@@ -1,5 +1,37 @@
-<div data-controller="layer-config" data-layer-config-version-id-value="<%= version.id %>" data-layer-config-url-value="<%= configure_layers_arquivo_path(@arquivo) %>">
-  <div class="layer-config-list">
+<%= form_with url: configure_layers_arquivo_path(@arquivo), method: :patch,
+      data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
+  <%= hidden_field_tag :version_id, version.id %>
+
+  <div class="section-heading-with-action">
+    <h4>Layers</h4>
+    <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit layers">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    </button>
+  </div>
+
+  <div class="layer-config-list" data-edit-toggle-target="display">
+    <% version.cut_layers.order(:position).each do |layer| %>
+      <div class="layer-config-row">
+        <span class="layer-swatch" style="background-color: <%= layer.color %>; width: 24px; height: 24px; border: 1px solid #ccc; border-radius: 3px; display: inline-block;"></span>
+        <span class="layer-name"><%= layer.layer_name %></span>
+        <span class="layer-color-code"><%= layer.color %></span>
+        <span class="layer-measurements">
+          <% if layer.width_mm && layer.height_mm %>
+            <%= layer.width_mm.round(1) %>×<%= layer.height_mm.round(1) %> mm
+            <% if layer.perimeter_mm %>
+              · P <%= layer.perimeter_mm.round(1) %> mm
+            <% end %>
+            <% if layer.area_mm2 %>
+              · A <%= number_with_delimiter(layer.area_mm2.round(1)) %> mm²
+            <% end %>
+          <% end %>
+        </span>
+        <span class="layer-annotation-badge layer-annotation-badge--<%= layer.annotation %>"><%= layer.annotation.capitalize %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="layer-config-list" data-edit-toggle-target="form" style="display:none">
     <% version.cut_layers.order(:position).each_with_index do |layer, idx| %>
       <div class="layer-config-row">
         <span class="layer-swatch" style="background-color: <%= layer.color %>; width: 24px; height: 24px; border: 1px solid #ccc; border-radius: 3px; display: inline-block;"></span>
@@ -16,14 +48,24 @@
             <% end %>
           <% end %>
         </span>
-        <select class="layer-annotation-select" data-layer-config-target="select" data-index="<%= idx %>">
+        <select class="layer-annotation-select" name="layer_annotations[<%= idx %>][annotation]">
           <option value="cut" <%= "selected" if layer.annotation == "cut" %>>Cut</option>
           <option value="hole" <%= "selected" if layer.annotation == "hole" %>>Hole</option>
           <option value="engraving" <%= "selected" if layer.annotation == "engraving" %>>Engraving</option>
           <option value="ignore" <%= "selected" if layer.annotation == "ignore" %>>Ignore</option>
         </select>
+        <input type="hidden" name="layer_annotations[<%= idx %>][layer_name]" value="<%= layer.layer_name %>">
+        <input type="hidden" name="layer_annotations[<%= idx %>][color]" value="<%= layer.color %>">
       </div>
     <% end %>
+
+    <div class="edit-actions">
+      <button type="submit" class="btn-icon btn-confirm" data-async-form-target="submit" title="Save">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </button>
+      <button type="button" class="btn-icon btn-cancel" data-action="click->edit-toggle#cancel" title="Cancel">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+      </button>
+    </div>
   </div>
-  <button data-action="click->layer-config#save" class="layer-config-save">Save Configuration</button>
-</div>
+<% end %>

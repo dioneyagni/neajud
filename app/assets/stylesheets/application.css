@@ -1038,18 +1038,33 @@ section {
   font-size: 0.9rem;
 }
 
-.layer-config-save {
-  padding: 0.5rem 1.5rem;
-  background: #1967d2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+.layer-annotation-badge {
+  margin-left: auto;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.layer-config-save:hover {
-  background: #1557b0;
+.layer-annotation-badge--cut {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.layer-annotation-badge--hole {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.layer-annotation-badge--engraving {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.layer-annotation-badge--ignore {
+  background: #f5f5f5;
+  color: #757575;
 }
 
 /* Version list */
