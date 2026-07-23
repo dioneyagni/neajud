@@ -40,8 +40,8 @@
           <tr>
             <td><%= link_to client.name, client_path(client) %></td>
             <td><%= client.responsible %></td>
-            <td><%= client.modelos.count %></td>
-            <td><%= client.arquivos.count %></td>
+            <td><%= client.modelos_count %></td>
+            <td><%= client.arquivos_count %></td>
             <td class="clients-table-actions">
               <button class="btn btn-secondary btn-sm"
                       data-action="click->dialog#edit"

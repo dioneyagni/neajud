@@ -35,8 +35,8 @@
         <%= link_to "Movements", movimentos_path, class: "header-nav-link" %>
         <%= link_to pedidos_path, class: "header-nav-link", data: { controller: "pedido-counter" } do %>
           Pedidos
-          <% if current_pedido_count > 0 %>
-            <span class="header-pedido-counter" data-pedido-counter-target="count">(<%= current_pedido_count %>)</span>
+          <% if @current_pedido_count > 0 %>
+            <span class="header-pedido-counter" data-pedido-counter-target="count">(<%= @current_pedido_count %>)</span>
           <% else %>
             <span class="header-pedido-counter header-pedido-counter--hidden" data-pedido-counter-target="count"></span>
           <% end %>

@@ -18,8 +18,8 @@
       <% @moldes.each do |molde| %>
         <tr>
           <td><%= link_to molde.nome, molde_path(molde) %></td>
-          <td><%= molde.pecas.pluck(:nome).join(", ") %></td>
-          <td><%= molde.arquivos.count %></td>
+          <td><%= molde.pecas.map(&:nome).join(", ") %></td>
+          <td><%= molde.arquivos_count %></td>
           <td class="clients-table-actions">
             <%= link_to "Edit", edit_molde_path(molde), class: "btn btn-secondary btn-sm" %>
             <%= button_to "Delete", molde_path(molde), method: :delete,

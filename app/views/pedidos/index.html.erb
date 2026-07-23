@@ -2,7 +2,7 @@
 
 <div class="clients-toolbar">
   <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
-    <%= @pedidos.count %> pedidos
+    <%= @pedidos.size %> pedidos
   </span>
   <%= button_to "+ Novo Pedido", pedidos_path, method: :post, class: "btn btn-primary", style: "margin-left:auto;" %>
 </div>
@@ -24,7 +24,7 @@
         <tr>
           <td><%= link_to p.uuid.first(8), p %></td>
           <td><%= p.client&.name || "—" %></td>
-          <td><%= p.itens_pedido.count %></td>
+          <td><%= p.itens_count %></td>
           <td><%= p.status %></td>
           <td><%= l p.created_at, format: :short %></td>
           <td>

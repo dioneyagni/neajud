@@ -15,11 +15,11 @@
       </tr>
     </thead>
     <tbody>
-      <% @pecas.includes(:moldes).each do |peca| %>
+      <% @pecas.each do |peca| %>
         <tr>
           <td><%= peca.nome %></td>
-          <td><%= peca.moldes.pluck(:nome).join(", ") %></td>
-          <td><%= peca.arquivos.count %></td>
+          <td><%= peca.moldes.map(&:nome).join(", ") %></td>
+          <td><%= peca.arquivos_count %></td>
           <td class="clients-table-actions">
             <%= link_to "Edit", edit_peca_path(peca), class: "btn btn-secondary btn-sm" %>
             <%= button_to "Delete", peca_path(peca), method: :delete,

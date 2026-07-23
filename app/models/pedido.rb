@@ -15,7 +15,7 @@ class Pedido < ApplicationRecord
   end
 
   def total_itens
-    itens_pedido.sum { |i| i.grades.sum(:quantidade) }
+    itens_pedido.left_joins(:grades).sum("COALESCE(itens_pedido_grade.quantidade, 0)")
   end
 
   private

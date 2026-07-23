@@ -2,7 +2,10 @@ class ClientsController < ApplicationController
   before_action :set_client, only: %i[show update destroy]
 
   def index
-    @clients = Client.order(:name)
+    @clients = Client.left_joins(:modelos, :arquivos)
+                     .select("clients.*, COUNT(DISTINCT modelos.id) AS modelos_count, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                     .group(:id)
+                     .order(:name)
   end
 
   def show

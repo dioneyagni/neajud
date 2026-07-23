@@ -2,7 +2,11 @@ class PecasController < ApplicationController
   before_action :set_peca, only: %i[edit update destroy]
 
   def index
-    @pecas = Peca.order(:nome)
+    @pecas = Peca.left_joins(:arquivos)
+                  .includes(:moldes)
+                  .select("pecas.*, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                  .group(:id)
+                  .order(:nome)
   end
 
   def new

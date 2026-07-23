@@ -2,10 +2,15 @@ class PedidosController < ApplicationController
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item]
 
   def index
-    @pedidos = Pedido.order(created_at: :desc)
+    @pedidos = Pedido.left_joins(:itens_pedido)
+                      .includes(:client)
+                      .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
+                      .group(:id)
+                      .order(created_at: :desc)
   end
 
   def show
+    @pedido = Pedido.includes(itens_pedido: { arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { modelo: :molde }, approved_version: :image_metadata ], materia_prima: :grupo_material }).find_by!(uuid: params[:uuid])
   end
 
   def create
