@@ -8,6 +8,7 @@ class Client < ApplicationRecord
 
   scope :search, ->(q) {
     return all if q.blank?
-    where("name LIKE ? OR responsible LIKE ?", "%#{q}%", "%#{q}%")
+    pattern = "%#{q.to_s.gsub(/[%_]/, '\\\\\0')}%"
+    where("name LIKE ? OR responsible LIKE ?", pattern, pattern)
   }
 end

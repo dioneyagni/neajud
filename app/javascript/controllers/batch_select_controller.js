@@ -29,7 +29,6 @@ export default class extends Controller {
 
   batchDelete() {
     const ids = this.checkboxTargets.filter(cb => cb.checked).map(cb => cb.value)
-    console.log("[batch-select] checked ids:", JSON.stringify(ids), "url:", this.data.get("delete-url"))
     if (ids.length === 0) return
     if (!confirm(`Delete ${ids.length} arquivo(s)?`)) return
 
@@ -38,7 +37,6 @@ export default class extends Controller {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || ""
     const url = this.data.get("delete-url")
-    console.log("[batch-select] fetch:", url, "ids:", JSON.stringify(ids), "csrf:", csrfToken ? "yes" : "no")
     fetch(url, {
       method: "DELETE",
       headers: {
@@ -48,8 +46,6 @@ export default class extends Controller {
       },
       body: JSON.stringify({ ids: ids })
     }).then(async r => {
-      const body = await r.text()
-      console.log("[batch-select] response status:", r.status, "body:", body)
       if (!r.ok) throw new Error("Delete failed")
       window.location.reload()
     }).catch(e => {

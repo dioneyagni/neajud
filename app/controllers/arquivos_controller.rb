@@ -1,6 +1,5 @@
 class ArquivosController < ApplicationController
   before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview download destroy upload_version approve_version version_preview configure_layers organize]
-  skip_before_action :verify_authenticity_token, only: [ :batch_destroy ]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   PER_PAGE_GRID = 12
@@ -91,11 +90,16 @@ class ArquivosController < ApplicationController
   def configure_layers
     version = @arquivo.arquivo_versions.find(params[:version_id])
     annotations = params[:layer_annotations]
-    raise "Invalid layer_annotations" unless annotations.is_a?(ActionController::Parameters) || annotations.is_a?(Hash)
+    unless annotations.is_a?(ActionController::Parameters) || annotations.is_a?(Hash)
+      return head :bad_request
+    end
 
     existing = version.cut_layers.index_by(&:color)
     version.cut_layers.destroy_all
-    annotations.values.map(&:permit!).map(&:to_h).each_with_index do |layer, idx|
+    permitted = annotations.values.map { |v|
+      v.is_a?(ActionController::Parameters) ? v.permit(:layer_name, :color, :annotation) : v.to_unsafe_h
+    }
+    permitted.each_with_index do |layer, idx|
       prev = existing[layer["color"]]
       version.cut_layers.create!(
         layer_name: layer["layer_name"],
@@ -262,7 +266,10 @@ class ArquivosController < ApplicationController
       tamanho_ids = @arquivo.tamanhos.pluck(:id)
       Arquivo.where(tamanho_id: tamanho_ids).update_all(tamanho_id: nil)
       @arquivo.tamanhos.destroy_all
-      tamanhos = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
+      raw = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
+      tamanhos = raw.transform_values { |v|
+        v.is_a?(Hash) ? v.slice("nome", "position", "width_mm", "height_mm", "area_mm2") : v
+      }
       tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
         pos = idx + 1
         preview = old_previews[pos]
