@@ -22,7 +22,7 @@
 
 <h3 style="margin-top: 1.5rem;">Itens (<%= @pedido.itens_pedido.count %>)</h3>
 
-<% @pedido.itens_pedido.includes(:arquivo, :materia_prima).each do |item| %>
+<% @pedido.itens_pedido.each do |item| %>
   <div class="pedido-item"
        data-controller="grade-editor"
        data-grade-editor-item-uuid-value="<%= item.uuid %>"

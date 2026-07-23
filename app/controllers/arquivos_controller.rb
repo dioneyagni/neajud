@@ -460,7 +460,7 @@ class ArquivosController < ApplicationController
     per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
     @page = [ params[:page].to_i, 1 ].max
 
-    base = Arquivo.includes(:approved_version).order(created_at: :desc)
+    base = Arquivo.includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil
     @page = @page.clamp(1, [ @total_pages, 1 ].max)

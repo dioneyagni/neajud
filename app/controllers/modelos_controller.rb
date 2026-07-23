@@ -2,7 +2,11 @@ class ModelosController < ApplicationController
   before_action :set_modelo, only: %i[show update destroy]
 
   def index
-    @modelos = Modelo.includes(:client, :molde).order(:nome)
+    @modelos = Modelo.left_joins(:arquivos)
+                      .includes(:client, :molde)
+                      .select("modelos.*, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                      .group(:id)
+                      .order(:nome)
   end
 
   def show

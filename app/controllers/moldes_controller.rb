@@ -2,7 +2,11 @@ class MoldesController < ApplicationController
   before_action :set_molde, only: %i[show edit update destroy pecas]
 
   def index
-    @moldes = Molde.includes(:pecas).order(:nome)
+    @moldes = Molde.left_joins(:arquivos)
+                    .includes(:pecas)
+                    .select("moldes.*, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                    .group(:id)
+                    .order(:nome)
   end
 
   def show
