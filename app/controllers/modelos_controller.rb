@@ -11,6 +11,8 @@ class ModelosController < ApplicationController
 
   def show
     if @modelo.molde_id.present?
+      @modelo.sync_modelo_pecas! if @modelo.modelo_pecas.empty?
+
       via_join_ids = @modelo.vinculated_arquivos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
       @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
                                .or(Arquivo.where(id: via_join_ids))
