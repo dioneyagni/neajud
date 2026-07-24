@@ -27,46 +27,47 @@
         <% if @modelo.molde.present? %>
           <h4 style="margin-top: 0.75rem; color: var(--text-muted);">Molde: <%= @modelo.molde.nome %></h4>
 
-          <% if @grouped_by_peca.any? %>
-            <% @grouped_by_peca.each do |peca, arquivos| %>
-              <div style="margin-top: 1rem;">
-                <h5 style="margin-bottom: 0.5rem; color: var(--accent-color);">
-                  Peca: <%= peca&.nome || "—" %>
-                </h5>
-                <table class="clients-table">
-                  <thead>
-                    <tr>
-                      <th>Preview</th>
-                      <th>File</th>
-                      <th>Tamanhos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <% arquivos.each do |arquivo| %>
-                      <tr>
-                        <td>
-                          <% if arquivo.preview_file.present? && File.exist?(arquivo.preview_file) %>
-                            <%= image_tag preview_arquivo_path(arquivo, t: arquivo.approved_version&.updated_at&.to_i), alt: arquivo.filename, class: "preview-thumb" %>
-                          <% else %>
-                            <span class="text-muted">—</span>
+          <% if @modelo_pecas.any? %>
+            <div class="modelo-pecas-list">
+              <% @modelo_pecas.each do |mp| %>
+                <div class="modelo-peca-row" data-controller="toggle-switch">
+                  <div class="modelo-peca-info">
+                    <span class="modelo-peca-name"><%= mp.peca.nome %></span>
+
+                    <% if mp.needs_cut %>
+                      <% if mp.corte_arquivo %>
+                        <span class="modelo-peca-status modelo-peca-status--has-corte">
+                          <%= link_to mp.corte_arquivo.filename, arquivo_path(mp.corte_arquivo), class: "modelo-peca-file-link" %>
+                          <% if mp.corte_arquivo.tamanhos.any? %>
+                            <span class="modelo-peca-sizes">
+                              <%= mp.corte_arquivo.tamanhos.map { |t| t.nome }.join(", ") %>
+                            </span>
                           <% end %>
-                        </td>
-                        <td>
-                          <%= link_to arquivo.filename, arquivo_path(arquivo) %>
-                        </td>
-                        <td>
-                          <% if arquivo.tamanhos.any? %>
-                            <%= arquivo.tamanhos.map { |t| "#{t.nome} (#{t.width_mm}x#{t.height_mm}mm)" }.join(", ") %>
-                          <% else %>
-                            <span class="text-muted">—</span>
-                          <% end %>
-                        </td>
-                      </tr>
+                        </span>
+                      <% else %>
+                        <span class="modelo-peca-status modelo-peca-status--missing">
+                          Corte ausente
+                        </span>
+                      <% end %>
+                    <% else %>
+                      <span class="modelo-peca-status modelo-peca-status--not-needed">
+                        Não corta
+                      </span>
                     <% end %>
-                  </tbody>
-                </table>
-              </div>
-            <% end %>
+                  </div>
+
+                  <div class="modelo-peca-toggle">
+                    <span class="toggle-label"><%= mp.needs_cut ? "Cortar" : "Não corta" %></span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" <%= "checked" if mp.needs_cut %>
+                             data-action="change->toggle-switch#onChange"
+                             data-url="<%= update_peca_config_modelo_path(@modelo, modelo_peca_id: mp.id) %>">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              <% end %>
+            </div>
           <% else %>
             <p class="gallery-empty" style="margin-top: 0.75rem">
               No organized cuts for this mold yet.

@@ -1,5 +1,5 @@
 class ModelosController < ApplicationController
-  before_action :set_modelo, only: %i[show update destroy]
+  before_action :set_modelo, only: %i[show update destroy update_peca_config]
 
   def index
     @modelos = Modelo.left_joins(:arquivos)
@@ -11,16 +11,34 @@ class ModelosController < ApplicationController
 
   def show
     if @modelo.molde_id.present?
+      @modelo.sync_modelo_pecas! if @modelo.modelo_pecas.empty?
+
       via_join_ids = @modelo.vinculated_arquivos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
       @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
                                .or(Arquivo.where(id: via_join_ids))
                                .includes(:peca, :tamanhos, approved_version: :image_metadata)
                                .order(:peca_id)
       @grouped_by_peca = @organized_arquivos.group_by(&:peca)
+
+      @modelo_pecas = @modelo.modelo_pecas.includes(:peca).order("pecas.nome")
+      organized = @organized_arquivos
+      @modelo_pecas.each do |mp|
+        mp.define_singleton_method(:corte_arquivo) do
+          organized.find { |a| a.peca_id == mp.peca_id }
+        end
+      end
     else
       @organized_arquivos = []
       @grouped_by_peca = {}
+      @modelo_pecas = []
     end
+  end
+
+  def update_peca_config
+    mp = @modelo.modelo_pecas.find(params[:modelo_peca_id])
+    mp.update!(needs_cut: params[:needs_cut] == "true")
+
+    redirect_to modelo_path(@modelo), notice: "Piece configuration updated."
   end
 
   def search
@@ -43,6 +61,7 @@ class ModelosController < ApplicationController
 
     @modelo = Modelo.new(modelo_params)
     if @modelo.save
+      @modelo.sync_modelo_pecas! if @modelo.molde_id.present?
       assign_modelo_to_arquivo(@modelo) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, notice: "Modelo registered."
     else
@@ -51,7 +70,10 @@ class ModelosController < ApplicationController
   end
 
   def update
+    molde_changed = @modelo.molde_id_changed? && @modelo.molde_id != modelo_params[:molde_id]
+
     if @modelo.update(modelo_params)
+      @modelo.sync_modelo_pecas! if molde_changed && @modelo.molde_id.present?
       redirect_back fallback_location: arquivos_path, notice: "Modelo updated."
     else
       redirect_back fallback_location: arquivos_path, alert: @modelo.errors.full_messages.join(", ")

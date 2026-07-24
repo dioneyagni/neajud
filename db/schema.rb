@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000608) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_24_141841) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -184,6 +184,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000608) do
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
   end
 
+  create_table "modelo_pecas", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "modelo_id", null: false
+    t.boolean "needs_cut", default: true, null: false
+    t.integer "peca_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["modelo_id", "peca_id"], name: "index_modelo_pecas_on_modelo_id_and_peca_id", unique: true
+    t.index ["modelo_id"], name: "index_modelo_pecas_on_modelo_id"
+    t.index ["peca_id"], name: "index_modelo_pecas_on_peca_id"
+  end
+
   create_table "modelos", force: :cascade do |t|
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
@@ -276,6 +287,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000608) do
   add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"
+  add_foreign_key "modelo_pecas", "modelos"
+  add_foreign_key "modelo_pecas", "pecas"
   add_foreign_key "modelos", "clients"
   add_foreign_key "modelos", "moldes"
   add_foreign_key "molde_pecas", "moldes"

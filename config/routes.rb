@@ -59,6 +59,9 @@ Rails.application.routes.draw do
       get :search
       get :for_client
     end
+    member do
+      patch :update_peca_config
+    end
   end
 
   resources :materiais, only: %i[index new create] do

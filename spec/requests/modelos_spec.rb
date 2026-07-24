@@ -23,6 +23,64 @@ RSpec.describe "Modelos", type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Air Max")
     end
+
+    it "renders modelo_pecas with corte status when molde has pecas" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde)
+      peca1 = create(:peca, nome: "Frente")
+      peca2 = create(:peca, nome: "Costa")
+      MoldePeca.create!(molde: molde, peca: peca1)
+      MoldePeca.create!(molde: molde, peca: peca2)
+
+      modelo = create(:modelo, nome: "Camisa", client: client, molde: molde)
+      modelo.sync_modelo_pecas!
+
+      corte = create(:arquivo, :corte, filename: "frente.dxf", client: client, modelo: modelo,
+                     molde: molde, peca: peca1, organized: true)
+
+      get modelo_path(modelo)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Frente")
+      expect(response.body).to include("Costa")
+      expect(response.body).to include("frente.dxf")
+      expect(response.body).to include("Corte ausente")
+    end
+
+    it "auto-syncs modelo_pecas when molde assigned but no records exist" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde)
+      peca = create(:peca, nome: "Manga")
+      MoldePeca.create!(molde: molde, peca: peca)
+
+      modelo = create(:modelo, nome: "Regata", client: client, molde: molde)
+      expect(modelo.modelo_pecas.count).to eq(0)
+
+      get modelo_path(modelo)
+
+      expect(response).to have_http_status(:success)
+      expect(modelo.reload.modelo_pecas.count).to eq(1)
+    end
+  end
+
+  describe "PATCH /modelos/:id/update_peca_config" do
+    it "toggles needs_cut for a modelo_peca" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde)
+      peca = create(:peca, nome: "Frente")
+      MoldePeca.create!(molde: molde, peca: peca)
+
+      modelo = create(:modelo, nome: "Camisa", client: client, molde: molde)
+      modelo.sync_modelo_pecas!
+      mp = modelo.modelo_pecas.first
+
+      expect(mp.needs_cut).to be true
+
+      patch update_peca_config_modelo_path(modelo), params: { modelo_peca_id: mp.id, needs_cut: "false" }
+
+      expect(response).to redirect_to(modelo_path(modelo))
+      expect(mp.reload.needs_cut).to be false
+    end
   end
 
   describe "POST /modelos" do
