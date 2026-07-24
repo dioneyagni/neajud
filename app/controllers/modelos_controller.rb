@@ -21,9 +21,10 @@ class ModelosController < ApplicationController
       @grouped_by_peca = @organized_arquivos.group_by(&:peca)
 
       @modelo_pecas = @modelo.modelo_pecas.includes(:peca).order("pecas.nome")
+      organized = @organized_arquivos
       @modelo_pecas.each do |mp|
         mp.define_singleton_method(:corte_arquivo) do
-          @organized_arquivos.find { |a| a.peca_id == mp.peca_id }
+          organized.find { |a| a.peca_id == mp.peca_id }
         end
       end
     else
