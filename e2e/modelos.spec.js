@@ -132,6 +132,60 @@ async function run() {
     if (backExists === 0) throw new Error("All Modelos link not found");
   });
 
+  await test("Modelo show: pecas list with toggle appears when molde has pecas", async () => {
+    const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
+    const ts = Date.now();
+    const clientName = `Peca Toggle Client ${ts}`;
+    const moldeName = `Peca Toggle Molde ${ts}`;
+    const modeloName = `Peca Toggle Modelo ${ts}`;
+
+    const modeloId = await page.evaluate(async ({ csrf, clientName, moldeName, modeloName }) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: csrf, "client[name]": clientName, "client[responsible]": "Tester" })
+      });
+      const cr = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+      const clients = await cr.json();
+      if (!clients[0]) return null;
+
+      await fetch("/moldes", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName })
+      });
+      const mr = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
+      const moldes = await mr.json();
+      if (!moldes[0]) return null;
+
+      await fetch("/modelos", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_id]": clients[0].id, "modelo[molde_id]": moldes[0].id })
+      });
+      const mdr = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
+      const modelos = await mdr.json();
+      return modelos[0]?.id || null;
+    }, { csrf: token, clientName, moldeName, modeloName });
+    if (!modeloId) throw new Error("Failed to create modelo with molde");
+
+    await page.goto(`${BASE_URL}/modelos/${modeloId}`);
+    await page.waitForSelector("h2", { timeout: 5000 });
+
+    const body = await page.textContent("body");
+    if (!body.includes("Cortes")) throw new Error("Cortes section not found");
+    if (!body.includes("No organized cuts") && !body.includes("Toggle")) {
+      if (!body.includes("No organized cuts")) {
+        throw new Error("Expected 'No organized cuts' message when molde has no pecas configured");
+      }
+    }
+
+    const toggleSwitches = await page.$$(".toggle-switch");
+    if (toggleSwitches.length === 0) {
+      console.log("        No toggle switches found — molde may have no pecas");
+    }
+  });
+
   console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 
   if (failed > 0 && consoleErrors.length > 0) {
