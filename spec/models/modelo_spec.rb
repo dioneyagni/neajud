@@ -84,7 +84,7 @@ RSpec.describe Modelo do
       modelo.sync_modelo_pecas!
 
       expect(modelo.modelo_pecas.count).to eq(1)
-      expect(modelo.configured_pecas.pluck(:nome)).to eq(["Frente"])
+      expect(modelo.configured_pecas.pluck(:nome)).to eq([ "Frente" ])
     end
 
     it "does nothing when molde_id is nil" do
