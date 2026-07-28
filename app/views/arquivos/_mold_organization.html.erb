@@ -12,25 +12,41 @@
     </div>
   <% end %>
 
-  <div class="mold-organization-fields">
+  <%
+    linked_molde_id = arquivo.molde_id || arquivo.modelos.find { |m| m.molde_id.present? }&.molde_id
+    initial_pecas = if linked_molde_id
+                      Molde.find_by(id: linked_molde_id)&.pecas&.order(:nome)&.to_a || []
+                    else
+                      Peca.order(:nome).to_a
+                    end
+  %>
+
+  <div class="mold-organization-fields"
+       data-controller="mold-org-cascade"
+       data-mold-org-cascade-molde-id-value="<%= linked_molde_id %>">
     <div class="mold-field">
       <label for="molde_id">Mold</label>
       <% if arquivo.organized? %>
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.molde&.nome || arquivo.molde_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="molde_id" id="molde_id" data-original-value="<%= arquivo.molde_id %>">
+          <select name="molde_id" id="molde_id"
+                  data-mold-org-cascade-target="moldeSelect"
+                  data-action="change->mold-org-cascade#onMoldeChange"
+                  data-original-value="<%= arquivo.molde_id %>">
             <option value="">Select a mold...</option>
             <% Molde.order(:nome).each do |m| %>
-              <option value="<%= m.id %>" <%= "selected" if arquivo.molde_id == m.id %>><%= m.nome %></option>
+              <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
         </span>
       <% else %>
-        <select name="molde_id" id="molde_id">
+        <select name="molde_id" id="molde_id"
+                data-mold-org-cascade-target="moldeSelect"
+                data-action="change->mold-org-cascade#onMoldeChange">
           <option value="">Select a mold...</option>
           <% Molde.order(:nome).each do |m| %>
-            <option value="<%= m.id %>" <%= "selected" if arquivo.molde_id == m.id %>><%= m.nome %></option>
+            <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
@@ -41,18 +57,21 @@
       <% if arquivo.organized? %>
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.peca&.nome || arquivo.peca_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="peca_id" id="peca_id" data-original-value="<%= arquivo.peca_id %>">
+          <select name="peca_id" id="peca_id"
+                  data-mold-org-cascade-target="pecaSelect"
+                  data-original-value="<%= arquivo.peca_id %>">
             <option value="">Select a piece...</option>
-            <% Peca.order(:nome).each do |p| %>
+            <% initial_pecas.each do |p| %>
               <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
         </span>
       <% else %>
-        <select name="peca_id" id="peca_id">
+        <select name="peca_id" id="peca_id"
+                data-mold-org-cascade-target="pecaSelect">
           <option value="">Select a piece...</option>
-          <% Peca.order(:nome).each do |p| %>
+          <% initial_pecas.each do |p| %>
             <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
           <% end %>
         </select>
