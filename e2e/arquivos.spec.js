@@ -998,15 +998,21 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       return meta?.content || "";
     });
     await page.evaluate(async (token) => {
-      await fetch("/moldes", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis" })
-      });
+      // Create peca first to get its ID
       await fetch("/pecas", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Cabedal" })
+      });
+      const pecaRes = await fetch("/pecas/search?q=Cabedal");
+      const pecas = await pecaRes.json();
+      const pecaId = pecas[0]?.id;
+
+      // Create molde with peca linked
+      await fetch("/moldes", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis", "molde[peca_ids][]": pecaId || "" })
       });
     }, csrf);
 
@@ -2803,15 +2809,19 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
       // Create molde + peca via API
       await page.evaluate(async (token) => {
-        await fetch("/moldes", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold" })
-        });
         await fetch("/pecas", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "AutoDetectPiece" })
+        });
+        const pecaRes = await fetch("/pecas/search?q=AutoDetectPiece");
+        const pecas = await pecaRes.json();
+        const pecaId = pecas[0]?.id;
+
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold", "molde[peca_ids][]": pecaId || "" })
         });
       }, csrf);
 
@@ -3026,15 +3036,19 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       );
 
       await page.evaluate(async (token) => {
-        await fetch("/moldes", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold" })
-        });
         await fetch("/pecas", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "CorteCompPiece" })
+        });
+        const pecaRes = await fetch("/pecas/search?q=CorteCompPiece");
+        const pecas = await pecaRes.json();
+        const pecaId = pecas[0]?.id;
+
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold", "molde[peca_ids][]": pecaId || "" })
         });
       }, csrf);
 
