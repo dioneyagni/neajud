@@ -798,61 +798,62 @@ async function run() {
     const { execSync } = require("child_process");
     execSync(`convert -size 50x50 xc:blue 'TIFF:${uniqueArquivoPath}'`);
 
-    await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(uniqueArquivoPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(3000);
-    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(uniqueArquivoPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(3000);
+      await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
-    await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
+      await arquivoLink.waitFor({ timeout: 10000 });
+      await arquivoLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // Upload a second version
-    const multiPath = path.join(__dirname, "multi-frame-test.tif");
-    const versionForm = page.locator(".version-upload-form");
-    await versionForm.waitFor({ timeout: 5000 });
-    await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
-    await versionForm.locator('input[type="submit"]').click();
-    await page.waitForURL("**/arquivos/**", { timeout: 15000 });
-    await page.waitForTimeout(3000);
+      // Upload a second version
+      const multiPath = path.join(__dirname, "multi-frame-test.tif");
+      const versionForm = page.locator(".version-upload-form");
+      await versionForm.waitFor({ timeout: 5000 });
+      await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
+      await versionForm.locator('input[type="submit"]').click();
+      await page.waitForURL("**/arquivos/**", { timeout: 15000 });
+      await page.waitForTimeout(3000);
 
-    // Wait for version cards to render
-    await page.waitForSelector(".version-card", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      // Wait for version cards to render
+      await page.waitForSelector(".version-card", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // Now v2 is auto-approved. Find v1 and click Approve
-    await page.waitForSelector(".version-card", { timeout: 10000 });
-    await page.waitForTimeout(1000);
+      // Now v2 is auto-approved. Find v1 and click Approve
+      await page.waitForSelector(".version-card", { timeout: 10000 });
+      await page.waitForTimeout(1000);
 
-    const approveBtn = page.locator('button:has-text("Approve")');
-    if (await approveBtn.count() === 0) {
-      const allCards = await page.locator(".version-card").allTextContents();
-      throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
+      const approveBtn = page.locator('button:has-text("Approve")');
+      if (await approveBtn.count() === 0) {
+        const allCards = await page.locator(".version-card").allTextContents();
+        throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
+      }
+      await approveBtn.first().click();
+
+      await page.waitForURL("**/arquivos/**", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const body = await page.textContent("body");
+      if (!body.includes("approved")) throw new Error("Approve notice not shown");
+
+      // Now v1 should have Approved badge
+      const v1Card = page.locator('.version-card:has(strong:text("v1"))').first();
+      const v1After = await v1Card.textContent();
+      if (!v1After.includes("Approved")) throw new Error("v1 should show Approved after approving");
+
+      // v2 should no longer have Approved
+      const v2Card = page.locator('.version-card:has(strong:text("v2"))').first();
+      const v2After = await v2Card.textContent();
+      if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
+    } finally {
+      if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
     }
-    await approveBtn.first().click();
-
-    await page.waitForURL("**/arquivos/**", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes("approved")) throw new Error("Approve notice not shown");
-
-    // Now v1 should have Approved badge
-    const v1Card = page.locator('.version-card:has(strong:text("v1"))').first();
-    const v1After = await v1Card.textContent();
-    if (!v1After.includes("Approved")) throw new Error("v1 should show Approved after approving");
-
-    // v2 should no longer have Approved
-    const v2Card = page.locator('.version-card:has(strong:text("v2"))').first();
-    const v2After = await v2Card.textContent();
-    if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
-
-    // Clean up
-    if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
   });
 
   // ── Download link ──
@@ -965,7 +966,7 @@ async function run() {
     await arquivoLink.waitFor({ timeout: 10000 });
     await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await page.waitForSelector(".tamanho-row", { timeout: 15000 });
 
     const body = await page.textContent("body");
     if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
@@ -998,15 +999,21 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       return meta?.content || "";
     });
     await page.evaluate(async (token) => {
-      await fetch("/moldes", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis" })
-      });
+      // Create peca first to get its ID
       await fetch("/pecas", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Cabedal" })
+      });
+      const pecaRes = await fetch("/pecas/search?q=Cabedal");
+      const pecas = await pecaRes.json();
+      const pecaId = pecas[0]?.id;
+
+      // Create molde with peca linked
+      await fetch("/moldes", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis", "molde[peca_ids][]": pecaId || "" })
       });
     }, csrf);
 
@@ -1078,29 +1085,30 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     ];
     fs.writeFileSync(overlapPath, dxfLines.join("\n"));
 
-    await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(overlapPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(500);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(overlapPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(500);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Check for the stacked cuts icon on the card
-    const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
-    const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
-    await errIcon.waitFor({ timeout: 5000 });
+      // Check for the stacked cuts icon on the card
+      const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
+      const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
+      await errIcon.waitFor({ timeout: 5000 });
 
-    // Go to show page and verify error message
-    const arquivoLink = card.locator("a").first();
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      // Go to show page and verify error message
+      const arquivoLink = card.locator("a").first();
+      await arquivoLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    const body = await page.textContent("body");
-    if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
-
-    // Clean up
-    if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+      const body = await page.textContent("body");
+      if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
+    } finally {
+      if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+    }
   });
 
   // ── DXF multiple tamanhos ──
@@ -1120,7 +1128,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await arquivoLink.waitFor({ timeout: 10000 });
     await arquivoLink.click();
     await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await page.waitForSelector(".tamanho-row", { timeout: 15000 });
 
     const body = await page.textContent("body");
     if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
@@ -2803,15 +2811,19 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
       // Create molde + peca via API
       await page.evaluate(async (token) => {
-        await fetch("/moldes", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold" })
-        });
         await fetch("/pecas", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "AutoDetectPiece" })
+        });
+        const pecaRes = await fetch("/pecas/search?q=AutoDetectPiece");
+        const pecas = await pecaRes.json();
+        const pecaId = pecas[0]?.id;
+
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold", "molde[peca_ids][]": pecaId || "" })
         });
       }, csrf);
 
@@ -3014,6 +3026,12 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
       const arteBaseName = path.basename(artePath, ".tif");
 
+      // The upload controller sends files sequentially (DXF first, then arte).
+      // Wait for BOTH cards to appear before navigating away, otherwise the
+      // page navigation aborts the in-flight arte upload fetch.
+      const arteCard = page.locator(".stamp-card").filter({ hasText: arteBaseName }).first();
+      await arteCard.waitFor({ timeout: 30000 });
+
       // Organize the 29-30 DXF
       const dxfCard = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
       await dxfCard.locator("a").first().click();
@@ -3026,15 +3044,19 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       );
 
       await page.evaluate(async (token) => {
-        await fetch("/moldes", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold" })
-        });
         await fetch("/pecas", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "CorteCompPiece" })
+        });
+        const pecaRes = await fetch("/pecas/search?q=CorteCompPiece");
+        const pecas = await pecaRes.json();
+        const pecaId = pecas[0]?.id;
+
+        await fetch("/moldes", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold", "molde[peca_ids][]": pecaId || "" })
         });
       }, csrf);
 
@@ -3079,7 +3101,6 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       // Navigate to the arte
       await page.goto(BASE_URL);
       await page.waitForSelector(".stamp-card", { timeout: 10000 });
-      const arteCard = page.locator(".stamp-card").filter({ hasText: arteBaseName }).first();
       await arteCard.waitFor({ timeout: 10000 });
       await arteCard.locator("a").first().click();
       await page.waitForSelector("h2", { timeout: 10000 });
@@ -3184,6 +3205,386 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
       }, { dxfUuid, arteUuid }).catch(() => {});
       if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
+    }
+  });
+
+  await test("Unique Corte: rejects duplicate peca for same modelo", async () => {
+    const prefix = "UniqCorte";
+    const clientName = `${prefix}Client`;
+    const moldeName = `${prefix}Molde`;
+    const pecaName = `${prefix}Peca`;
+    const modeloName = `${prefix}Modelo`;
+    const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
+    const dxf2Path = path.join(__dirname, `${prefix}-two.dxf`);
+    let moldeId, pecaId, modeloId, uuid1, uuid2;
+
+    const assignClient = (uuid, token) => page.evaluate(async ({ token, uuid, clientName }) => {
+      const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+      const clients = await r.json();
+      const c = clients.find(x => x.name === clientName);
+      if (!c) return "client_not_found";
+      const res = await fetch(`/arquivos/${uuid}/update_client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+      });
+      return res.ok || res.status === 302 ? "ok" : "update_failed";
+    }, { token, uuid, clientName });
+
+    const organize = (uuid, token) => page.evaluate(async ({ token, uuid, moldeId, pecaId }) => {
+      const body = new URLSearchParams();
+      body.append("authenticity_token", token);
+      body.append("_method", "patch");
+      body.append("molde_id", moldeId);
+      body.append("peca_id", pecaId);
+      const res = await fetch(`/arquivos/${uuid}/organize`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body
+      });
+      return res.status;
+    }, { token, uuid, moldeId, pecaId });
+
+    const uploadAndOpen = async (filePath) => {
+      await page.goto(BASE_URL);
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+      const fi = await page.$('input[type="file"]');
+      await fi.setInputFiles(filePath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(500);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+      const displayName = path.basename(filePath).replace(/\.[^.]+$/, "");
+      const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
+      await card.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+      return page.evaluate(() => window.location.pathname.split("/").pop());
+    };
+
+    try {
+      // Create test DXF files (distinct names so cards are unambiguous)
+      fs.writeFileSync(dxf1Path, "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF\n");
+      fs.writeFileSync(dxf2Path, "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF\n");
+
+      // ── Get CSRF token ──
+      await page.goto(BASE_URL);
+      await page.waitForSelector("h1", { timeout: 5000 });
+      const csrfToken = await page.evaluate(() => {
+        const meta = document.querySelector("meta[name='csrf-token']");
+        return meta?.content || "";
+      });
+
+      // ── Create setup: client, molde, peca, modelo ──
+      const setup = await page.evaluate(async ({ token, prefix }) => {
+        // Create client
+        const cBody = new URLSearchParams({ authenticity_token: token, "client[name]": `${prefix}Client`, "client[responsible]": "T" });
+        await fetch("/clients", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: cBody });
+        await new Promise(r => setTimeout(r, 200));
+        const cr = await fetch(`/clients/search?q=${encodeURIComponent(`${prefix}Client`)}`);
+        const clients = await cr.json();
+        const client = clients.find(x => x.name === `${prefix}Client`);
+        if (!client) return "client_not_found";
+
+        // Create peca
+        const pBody = new URLSearchParams({ authenticity_token: token, "peca[nome]": `${prefix}Peca` });
+        await fetch("/pecas", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: pBody });
+        await new Promise(r => setTimeout(r, 200));
+        const pr = await fetch(`/pecas/search?q=${encodeURIComponent(`${prefix}Peca`)}`);
+        const pecas = await pr.json();
+        const peca = pecas.find(x => x.nome === `${prefix}Peca`);
+        if (!peca) return "peca_not_found";
+
+        // Create molde with peca linked
+        const mBody = new URLSearchParams();
+        mBody.append("authenticity_token", token);
+        mBody.append("molde[nome]", `${prefix}Molde`);
+        mBody.append("molde[peca_ids][]", peca.id);
+        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
+        await new Promise(r => setTimeout(r, 200));
+        const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
+        const moldes = await mr.json();
+        const molde = moldes.find(x => x.nome === `${prefix}Molde`);
+        if (!molde) return "molde_not_found";
+
+        // Create modelo linked to client + molde
+        const modBody = new URLSearchParams({
+          authenticity_token: token,
+          "modelo[nome]": `${prefix}Modelo`,
+          "modelo[client_id]": client.id,
+          "modelo[molde_id]": molde.id
+        });
+        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
+
+        return { moldeId: molde.id, pecaId: peca.id, clientId: client.id };
+      }, { token: csrfToken, prefix });
+
+      if (typeof setup === "string") throw new Error(`Setup failed at: ${setup}`);
+      if (!setup) throw new Error("Setup returned null");
+      moldeId = setup.moldeId;
+      pecaId = setup.pecaId;
+
+      // Get modelo id
+      modeloId = await page.evaluate(async ({ prefix }) => {
+        const r = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
+        const modelos = await r.json();
+        const m = modelos.find(x => x.nome === `${prefix}Modelo`);
+        return m ? m.id : null;
+      }, { prefix });
+      if (!modeloId) throw new Error("Modelo not found");
+
+      // ── First DXF: organize + link modelo ──
+      uuid1 = await uploadAndOpen(dxf1Path);
+      const csrf1 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
+      if (await assignClient(uuid1, csrf1) !== "ok") throw new Error("Failed to assign client to corte1");
+      const orgStatus1 = await organize(uuid1, csrf1);
+      if (orgStatus1 !== 200) throw new Error(`Failed to organize corte1, got ${orgStatus1}`);
+      const added1 = await page.evaluate(async ({ token, uuid, modeloId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+        });
+        return r.status;
+      }, { token: csrf1, uuid: uuid1, modeloId });
+      if (added1 !== 200) throw new Error(`Failed to link modelo to corte1, got ${added1}`);
+
+      // ── Second DXF: organize then try to link same modelo ──
+      uuid2 = await uploadAndOpen(dxf2Path);
+      const csrf2 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
+      if (await assignClient(uuid2, csrf2) !== "ok") throw new Error("Failed to assign client to corte2");
+      const orgStatus2 = await organize(uuid2, csrf2);
+      if (orgStatus2 !== 200) throw new Error(`Failed to organize corte2, got ${orgStatus2}`);
+
+      // Confirm corte2 actually got the peca assigned
+      const pecaSet = await page.evaluate(async ({ token, uuid, pecaId }) => {
+        const r = await fetch(`/arquivos/${uuid}`);
+        const html = await r.text();
+        return html.includes(`data-original-value="${pecaId}"`) || html.includes(`>${pecaId}<`);
+      }, { token: csrf2, uuid: uuid2, pecaId });
+      if (!pecaSet) throw new Error("corte2 peca_id not set after organize");
+
+      // Try to link same modelo — should FAIL with alert via turbo_stream
+      const modelAdded2 = await page.evaluate(async ({ token, uuid, modeloId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+        });
+        const text = await r.text();
+        return { status: r.status, body: text };
+      }, { token: csrf2, uuid: uuid2, modeloId });
+
+      if (modelAdded2.status !== 200) {
+        throw new Error(`Expected turbo_stream 200 from add_modelo on conflict, got ${modelAdded2.status}`);
+      }
+      if (!modelAdded2.body.includes("já possui corte organizado")) {
+        throw new Error(`Expected alert in turbo_stream response, got: ${modelAdded2.body.slice(0, 200)}`);
+      }
+
+      passed++;
+      console.log("  ✓ Unique Corte: duplicate peca+modelo correctly rejected");
+    } finally {
+      // Cleanup
+      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid2); } catch (_) {}
+      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid1); } catch (_) {}
+      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
+      try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
+      try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
+      try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
+      if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);
+      if (fs.existsSync(dxf2Path)) fs.unlinkSync(dxf2Path);
+    }
+  });
+
+  await test("Unique Corte: organize form shows alert via turbo_stream on conflict", async () => {
+    const prefix = "UniqCorteOrg";
+    const clientName = `${prefix}Client`;
+    const pecaName = `${prefix}Peca`;
+    const moldeName = `${prefix}Molde`;
+    const modeloName = `${prefix}Modelo`;
+    const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
+    const dxf2Path = path.join(__dirname, `${prefix}-two.dxf`);
+    let moldeId, pecaId, modeloId, uuid1, uuid2;
+
+    const uploadAndOpen = async (filePath) => {
+      await page.goto(BASE_URL);
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+      const fi = await page.$('input[type="file"]');
+      await fi.setInputFiles(filePath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(500);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+      const displayName = path.basename(filePath).replace(/\.[^.]+$/, "");
+      const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
+      await card.locator("a").first().click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+      return page.evaluate(() => window.location.pathname.split("/").pop());
+    };
+
+    try {
+      fs.writeFileSync(dxf1Path, "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF\n");
+      fs.writeFileSync(dxf2Path, "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF\n");
+
+      await page.goto(BASE_URL);
+      await page.waitForSelector("h1", { timeout: 5000 });
+      const csrfToken = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
+
+      const setup = await page.evaluate(async ({ token, prefix }) => {
+        const cBody = new URLSearchParams({ authenticity_token: token, "client[name]": `${prefix}Client`, "client[responsible]": "T" });
+        await fetch("/clients", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: cBody });
+        await new Promise(r => setTimeout(r, 200));
+        const cr = await fetch(`/clients/search?q=${encodeURIComponent(`${prefix}Client`)}`);
+        const clients = await cr.json();
+        const client = clients.find(x => x.name === `${prefix}Client`);
+        if (!client) return "client_not_found";
+
+        const pBody = new URLSearchParams({ authenticity_token: token, "peca[nome]": `${prefix}Peca` });
+        await fetch("/pecas", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: pBody });
+        await new Promise(r => setTimeout(r, 200));
+        const pr = await fetch(`/pecas/search?q=${encodeURIComponent(`${prefix}Peca`)}`);
+        const pecas = await pr.json();
+        const peca = pecas.find(x => x.nome === `${prefix}Peca`);
+        if (!peca) return "peca_not_found";
+
+        const mBody = new URLSearchParams();
+        mBody.append("authenticity_token", token);
+        mBody.append("molde[nome]", `${prefix}Molde`);
+        mBody.append("molde[peca_ids][]", peca.id);
+        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
+        await new Promise(r => setTimeout(r, 200));
+        const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
+        const moldes = await mr.json();
+        const molde = moldes.find(x => x.nome === `${prefix}Molde`);
+        if (!molde) return "molde_not_found";
+
+        const modBody = new URLSearchParams({
+          authenticity_token: token,
+          "modelo[nome]": `${prefix}Modelo`,
+          "modelo[client_id]": client.id,
+          "modelo[molde_id]": molde.id
+        });
+        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
+        await new Promise(r => setTimeout(r, 200));
+
+        return { moldeId: molde.id, pecaId: peca.id, clientId: client.id };
+      }, { token: csrfToken, prefix });
+
+      if (typeof setup === "string") throw new Error(`Setup failed at: ${setup}`);
+      moldeId = setup.moldeId;
+      pecaId = setup.pecaId;
+      modeloId = await page.evaluate(async ({ prefix }) => {
+        const r = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
+        const modelos = await r.json();
+        const m = modelos.find(x => x.nome === `${prefix}Modelo`);
+        return m ? m.id : null;
+      }, { prefix });
+      if (!modeloId) throw new Error("Modelo not found");
+
+      // ── corte1: organize + link modelo via UI form ──
+      uuid1 = await uploadAndOpen(dxf1Path);
+      const csrf1 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
+
+      // Assign client
+      const clientAssigned = await page.evaluate(async ({ token, uuid, clientName }) => {
+        const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+        const clients = await r.json();
+        const c = clients.find(x => x.name === clientName);
+        if (!c) return "client_not_found";
+        const res = await fetch(`/arquivos/${uuid}/update_client`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+        });
+        return res.ok || res.status === 302 ? "ok" : "failed";
+      }, { token: csrf1, uuid: uuid1, clientName });
+      if (clientAssigned !== "ok") throw new Error("Failed to assign client to corte1");
+
+      // Pick molde + peca via UI form, submit organize
+      await page.selectOption('select[name="molde_id"]', String(moldeId));
+      await page.waitForTimeout(300);
+      await page.selectOption('select[name="peca_id"]', String(pecaId));
+      await page.waitForTimeout(300);
+      await page.click('.mold-organization-form button[type="submit"]');
+      await page.waitForTimeout(1000);
+
+      // Link modelo via add_modelo (no conflict expected — same peca+modelo)
+      const added1 = await page.evaluate(async ({ token, uuid, modeloId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+        });
+        return r.status;
+      }, { token: csrf1, uuid: uuid1, modeloId });
+      if (added1 !== 200) throw new Error(`add_modelo corte1 failed: ${added1}`);
+
+      // ── corte2: link modelo FIRST, then try organize via UI form ──
+      uuid2 = await uploadAndOpen(dxf2Path);
+      const csrf2 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
+
+      const clientAssigned2 = await page.evaluate(async ({ token, uuid, clientName }) => {
+        const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+        const clients = await r.json();
+        const c = clients.find(x => x.name === clientName);
+        if (!c) return "client_not_found";
+        const res = await fetch(`/arquivos/${uuid}/update_client`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+        });
+        return res.ok || res.status === 302 ? "ok" : "failed";
+      }, { token: csrf2, uuid: uuid2, clientName });
+      if (clientAssigned2 !== "ok") throw new Error("Failed to assign client to corte2");
+
+      // Link modelo first (no peca yet → no conflict at add_modelo)
+      const added2 = await page.evaluate(async ({ token, uuid, modeloId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+        });
+        return r.status;
+      }, { token: csrf2, uuid: uuid2, modeloId });
+      if (added2 !== 200) throw new Error(`add_modelo corte2 failed: ${added2}`);
+
+      // Reload to reflect linked modelo, then submit organize with conflicting peca
+      await page.reload();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
+      await page.selectOption('select[name="molde_id"]', String(moldeId));
+      await page.waitForTimeout(300);
+      await page.selectOption('select[name="peca_id"]', String(pecaId));
+      await page.waitForTimeout(300);
+      await page.click('.mold-organization-form button[type="submit"]');
+
+      // Wait for turbo_stream to render the alert inside #organize-flash
+      await page.waitForFunction(() => {
+        const el = document.getElementById("organize-flash");
+        return el && el.textContent.includes("já possui um corte");
+      }, { timeout: 5000 });
+
+      // corte2 must NOT be organized
+      const corte2Organized = await page.evaluate(async ({ uuid }) => {
+        const r = await fetch(`/arquivos/${uuid}`);
+        const html = await r.text();
+        return /This DXF file is not organized yet/.test(html) === false
+          && /mold-organization-alert/.test(html) === false;
+      }, { uuid: uuid2 });
+      if (corte2Organized) throw new Error("corte2 should NOT be organized after conflict");
+
+      passed++;
+      console.log("  ✓ Unique Corte: organize form shows alert on peca+modelo conflict");
+    } finally {
+      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid2); } catch (_) {}
+      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid1); } catch (_) {}
+      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
+      try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
+      try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
+      try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
+      if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);
+      if (fs.existsSync(dxf2Path)) fs.unlinkSync(dxf2Path);
     }
   });
 

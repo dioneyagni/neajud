@@ -458,6 +458,132 @@ RSpec.describe "Arquivos", type: :request do
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("<turbo-stream")
     end
+
+    it "allows organize when peca taken but arquivo has no linked modelos" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      create(:molde_peca, molde: molde, peca: peca)
+
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte)
+
+      patch organize_arquivo_path(corte2), params: {
+        molde_id: molde.id,
+        peca_id: peca.id
+      }
+      expect(response).to redirect_to(arquivo_path(corte2))
+      corte2.reload
+      expect(corte2.peca_id).to eq(peca.id)
+      expect(corte2.organized).to be true
+    end
+
+    it "rejects organize when peca already used and arquivo already has the modelo linked" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      create(:molde_peca, molde: molde, peca: peca)
+
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte)
+      corte2.modelos << modelo
+
+      patch organize_arquivo_path(corte2), params: {
+        molde_id: molde.id,
+        peca_id: peca.id
+      }
+      expect(response).to redirect_to(arquivo_path(corte2))
+      follow_redirect!
+      expect(response.body).to include("já possui um corte")
+      corte2.reload
+      expect(corte2.organized).to be false
+    end
+
+    it "rejects organize via turbo_stream when peca already used" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      create(:molde_peca, molde: molde, peca: peca)
+
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte)
+      corte2.modelos << modelo
+
+      patch organize_arquivo_path(corte2), params: {
+        molde_id: molde.id,
+        peca_id: peca.id
+      }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("já possui um corte")
+      expect(response.body).to include('id="organize-flash"')
+      corte2.reload
+      expect(corte2.organized).to be false
+    end
+  end
+
+  describe "POST /arquivos/:id/add_modelo" do
+    it "rejects when peca already taken for the modelo" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      create(:molde_peca, molde: molde, peca: peca)
+
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+
+      post add_modelo_arquivo_path(corte2), params: { modelo_id: modelo.id }
+      expect(response).to redirect_to(arquivo_path(corte2))
+      follow_redirect!
+      expect(response.body).to include("já possui corte organizado")
+    end
+
+    it "adds modelo when no conflict" do
+      modelo = create(:modelo)
+      corte = create(:arquivo, :corte)
+
+      post add_modelo_arquivo_path(corte), params: { modelo_id: modelo.id }
+      expect(response).to redirect_to(arquivo_path(corte))
+      expect(corte.reload.modelos).to include(modelo)
+    end
+
+    it "rejects via turbo_stream when peca already taken for the modelo" do
+      modelo = create(:modelo)
+      molde = create(:molde)
+      peca = create(:peca)
+      create(:molde_peca, molde: molde, peca: peca)
+
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+
+      post add_modelo_arquivo_path(corte2), params: { modelo_id: modelo.id }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include("já possui corte organizado")
+      expect(response.body).to include('id="modelo-flash"')
+      expect(corte2.reload.modelos).not_to include(modelo)
+    end
+
+    it "adds modelo via turbo_stream when no conflict" do
+      modelo = create(:modelo)
+      corte = create(:arquivo, :corte)
+
+      post add_modelo_arquivo_path(corte), params: { modelo_id: modelo.id }, as: :turbo_stream
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to include("text/vnd.turbo-stream.html")
+      expect(response.body).to include('id="modelo-field-section"')
+      expect(corte.reload.modelos).to include(modelo)
+    end
   end
 
   describe "DELETE /arquivos/:id" do
