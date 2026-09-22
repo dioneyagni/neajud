@@ -798,61 +798,62 @@ async function run() {
     const { execSync } = require("child_process");
     execSync(`convert -size 50x50 xc:blue 'TIFF:${uniqueArquivoPath}'`);
 
-    await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(uniqueArquivoPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(3000);
-    await page.waitForSelector(".stamp-card", { timeout: 10000 });
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(uniqueArquivoPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(3000);
+      await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
-    await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
+      await arquivoLink.waitFor({ timeout: 10000 });
+      await arquivoLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // Upload a second version
-    const multiPath = path.join(__dirname, "multi-frame-test.tif");
-    const versionForm = page.locator(".version-upload-form");
-    await versionForm.waitFor({ timeout: 5000 });
-    await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
-    await versionForm.locator('input[type="submit"]').click();
-    await page.waitForURL("**/arquivos/**", { timeout: 15000 });
-    await page.waitForTimeout(3000);
+      // Upload a second version
+      const multiPath = path.join(__dirname, "multi-frame-test.tif");
+      const versionForm = page.locator(".version-upload-form");
+      await versionForm.waitFor({ timeout: 5000 });
+      await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
+      await versionForm.locator('input[type="submit"]').click();
+      await page.waitForURL("**/arquivos/**", { timeout: 15000 });
+      await page.waitForTimeout(3000);
 
-    // Wait for version cards to render
-    await page.waitForSelector(".version-card", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      // Wait for version cards to render
+      await page.waitForSelector(".version-card", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    // Now v2 is auto-approved. Find v1 and click Approve
-    await page.waitForSelector(".version-card", { timeout: 10000 });
-    await page.waitForTimeout(1000);
+      // Now v2 is auto-approved. Find v1 and click Approve
+      await page.waitForSelector(".version-card", { timeout: 10000 });
+      await page.waitForTimeout(1000);
 
-    const approveBtn = page.locator('button:has-text("Approve")');
-    if (await approveBtn.count() === 0) {
-      const allCards = await page.locator(".version-card").allTextContents();
-      throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
+      const approveBtn = page.locator('button:has-text("Approve")');
+      if (await approveBtn.count() === 0) {
+        const allCards = await page.locator(".version-card").allTextContents();
+        throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
+      }
+      await approveBtn.first().click();
+
+      await page.waitForURL("**/arquivos/**", { timeout: 10000 });
+      await page.waitForTimeout(500);
+
+      const body = await page.textContent("body");
+      if (!body.includes("approved")) throw new Error("Approve notice not shown");
+
+      // Now v1 should have Approved badge
+      const v1Card = page.locator('.version-card:has(strong:text("v1"))').first();
+      const v1After = await v1Card.textContent();
+      if (!v1After.includes("Approved")) throw new Error("v1 should show Approved after approving");
+
+      // v2 should no longer have Approved
+      const v2Card = page.locator('.version-card:has(strong:text("v2"))').first();
+      const v2After = await v2Card.textContent();
+      if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
+    } finally {
+      if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
     }
-    await approveBtn.first().click();
-
-    await page.waitForURL("**/arquivos/**", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes("approved")) throw new Error("Approve notice not shown");
-
-    // Now v1 should have Approved badge
-    const v1Card = page.locator('.version-card:has(strong:text("v1"))').first();
-    const v1After = await v1Card.textContent();
-    if (!v1After.includes("Approved")) throw new Error("v1 should show Approved after approving");
-
-    // v2 should no longer have Approved
-    const v2Card = page.locator('.version-card:has(strong:text("v2"))').first();
-    const v2After = await v2Card.textContent();
-    if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
-
-    // Clean up
-    if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
   });
 
   // ── Download link ──
@@ -1084,29 +1085,30 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     ];
     fs.writeFileSync(overlapPath, dxfLines.join("\n"));
 
-    await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(overlapPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(500);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+    try {
+      await page.goto(BASE_URL);
+      const fileInput = await page.$('input[type="file"]');
+      await fileInput.setInputFiles(overlapPath);
+      await page.click('input[type="submit"]');
+      await page.waitForTimeout(500);
+      await page.waitForSelector(".stamp-card", { timeout: 20000 });
 
-    // Check for the stacked cuts icon on the card
-    const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
-    const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
-    await errIcon.waitFor({ timeout: 5000 });
+      // Check for the stacked cuts icon on the card
+      const card = page.locator(".stamp-card").filter({ hasText: "e2e-overlap" }).first();
+      const errIcon = card.locator('.stamp-card-status-icon[alt="Stacked Cuts"]');
+      await errIcon.waitFor({ timeout: 5000 });
 
-    // Go to show page and verify error message
-    const arquivoLink = card.locator("a").first();
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+      // Go to show page and verify error message
+      const arquivoLink = card.locator("a").first();
+      await arquivoLink.click();
+      await page.waitForSelector("h2", { timeout: 10000 });
+      await page.waitForTimeout(500);
 
-    const body = await page.textContent("body");
-    if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
-
-    // Clean up
-    if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+      const body = await page.textContent("body");
+      if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
+    } finally {
+      if (fs.existsSync(overlapPath)) fs.unlinkSync(overlapPath);
+    }
   });
 
   // ── DXF multiple tamanhos ──

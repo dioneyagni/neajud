@@ -111,11 +111,40 @@ RSpec.describe Arquivo, type: :model do
     end
 
     it "does not block when arquivo has no linked modelos" do
+      # Intentional, not a gap: the constraint is scoped per modelo (peca X
+      # can't be organized-corte twice for the SAME modelo). An arquivo with
+      # no modelo linked yet has no modelo to conflict on — the check runs
+      # again once a modelo is actually attached, see
+      # "POST /arquivos/:id/add_modelo" in spec/requests/arquivos_spec.rb.
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
       corte1.modelos << modelo
 
       corte2 = build(:arquivo, :corte, organized: true, peca: peca, molde: molde)
       expect(corte2).to be_valid
+    end
+
+    context "with peca_occupied_for_modelos? called with an explicit peca_id" do
+      it "checks the given peca_id instead of self.peca_id" do
+        peca2 = create(:peca)
+        corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+        corte1.modelos << modelo
+
+        corte2 = create(:arquivo, :corte, peca: peca2, molde: molde)
+        corte2.modelos << modelo
+
+        expect(corte2.peca_occupied_for_modelos?(peca_id: peca.id)).to be true
+        expect(corte2.peca_occupied_for_modelos?(peca_id: peca2.id)).to be false
+      end
+
+      it "returns false for a non-corte arquivo regardless of peca_id" do
+        corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+        corte1.modelos << modelo
+
+        arte = create(:arquivo, category: "artes")
+        arte.modelos << modelo
+
+        expect(arte.peca_occupied_for_modelos?(peca_id: peca.id)).to be false
+      end
     end
 
     context "with conflicting_corte class method" do

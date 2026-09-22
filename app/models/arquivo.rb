@@ -91,21 +91,26 @@ class Arquivo < ApplicationRecord
     approved_version&.original_path
   end
 
-  def self.conflicting_corte(peca_id:, modelo:)
-    return nil unless peca_id.present? && modelo.present?
+  # Organized cortes already claiming `peca_id` for any of `modelo_ids` — the
+  # shared query behind conflicting_corte and peca_occupied_for_modelos?, so
+  # both stay in sync with what "already taken" means (AGENTS.md: no
+  # duplication).
+  def self.organized_corte_claiming(peca_id:, modelo_ids:)
     Arquivo.where(category: "corte", organized: true, peca_id: peca_id)
            .joins(:arquivo_modelos)
-           .where(arquivo_modelos: { modelo_id: modelo.id })
-           .first
+           .where(arquivo_modelos: { modelo_id: modelo_ids })
+  end
+
+  def self.conflicting_corte(peca_id:, modelo:)
+    return nil unless peca_id.present? && modelo.present?
+    organized_corte_claiming(peca_id: peca_id, modelo_ids: modelo.id).first
   end
 
   def peca_occupied_for_modelos?(peca_id: self.peca_id)
     return false unless corte? && peca_id.present?
     modelo_ids = modelos.pluck(:id)
     return false if modelo_ids.empty?
-    Arquivo.where(category: "corte", organized: true, peca_id: peca_id)
-           .joins(:arquivo_modelos)
-           .where(arquivo_modelos: { modelo_id: modelo_ids })
+    Arquivo.organized_corte_claiming(peca_id: peca_id, modelo_ids: modelo_ids)
            .where.not(id: id)
            .exists?
   end
