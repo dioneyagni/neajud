@@ -52,6 +52,17 @@ RSpec.describe "bin/check-residues" do
     let(:fake_uuid) { "check-residues-spec-fake-uuid" }
     let(:orphan_dir) { Rails.root.join("storage", "stamps", fake_uuid) }
 
+    # check 4 shells out to `bin/rails runner ... development`, so this check
+    # is only exercisable when storage/development.sqlite3 exists with the
+    # current schema. CI never prepares it (only `db:test:prepare` runs) —
+    # bin/check-residues itself handles that gracefully (see AGENTS.md: "DB
+    # checks are skipped gracefully when a database is not prepared"), so
+    # prepare it here rather than let the check silently no-op mid-assertion.
+    # Locally this is a no-op against the real, already-migrated dev DB.
+    before(:all) do
+      system({ "RAILS_ENV" => "development" }, "bin/rails", "db:prepare", chdir: Rails.root.to_s, out: File::NULL, err: File::NULL)
+    end
+
     after { FileUtils.rm_rf(orphan_dir) }
 
     it "flags a storage/stamps folder with no matching development Arquivo" do
