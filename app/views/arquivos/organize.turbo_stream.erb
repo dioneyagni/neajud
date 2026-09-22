@@ -4,3 +4,8 @@
     <%= render "mold_organization", arquivo: @arquivo %>
   </div>
 <% end %>
+<% if alert %>
+  <%= turbo_stream.update "organize-flash" do %>
+    <p class="alert flash-notice" data-controller="flash"><%= alert %></p>
+  <% end %>
+<% end %>

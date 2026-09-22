@@ -95,11 +95,27 @@ test must validate **pixel content**, not just file existence.
 bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
 bin/brakeman --exit-on-warn   # security scan
+bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
 bash bin/e2e                  # Playwright E2E (headless)
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
-Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
+Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager && bin/check-residues`
+
+`bin/check-residues` exits 1 when any of these leaked into the repo:
+
+1. Debug statements in `app/`/`lib/` (`binding.pry`, `byebug`, `debugger`, `console.log`/`console.debug`)
+2. Orphan debug scripts under `tmp/` (`tmp/debug_*`, `tmp/*debug*/`)
+3. Records named `Debug*` in the test + development databases
+4. Orphan upload folders in `storage/stamps/` with no matching `Arquivo.uuid` in either DB
+5. Untracked files in `e2e/` (temp DXF/TIF that a failed or aborted spec did not delete)
+
+`bin/check-residues --list` prints findings and exits 0 (for local inspection).
+The DB checks are skipped gracefully when a database is not prepared (CI).
+
+`bin/e2e` wipes `storage/stamps/*` on every run so E2E uploads never accumulate. It also
+removes untracked spec-generated files in `e2e/` (prefixes `e2e-`, `auto-detect-`, `UniqCorte`)
+before and after the run; tracked fixtures are never touched.
 
 ## Workflow: feature branches + CI guard
 

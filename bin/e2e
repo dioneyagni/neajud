@@ -18,6 +18,16 @@ export CABLE_ADAPTER=async
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Specs write temp files (DXF/TIF) into e2e/ and delete them at the end of each
+# test; an aborted or failed run leaves them behind. Only untracked files with
+# the generated-name prefixes are removed, so tracked fixtures
+# (e.g. e2e/e2e-size-test.dxf) and unrelated new files are never touched.
+clean_e2e_artifacts() {
+  git ls-files --others --exclude-standard -z e2e/ \
+    | grep -zE '^e2e/(e2e-|auto-detect-|UniqCorte)' \
+    | xargs -0 -r rm -f
+}
+
 # Step 1: Kill any existing Rails/Puma server
 echo "[1/5] Killing existing server processes..."
 pkill -f "puma" 2>/dev/null || true
@@ -35,6 +45,9 @@ echo "       Done."
 # Step 2: Prepare test database
 echo "[2/5] Preparing test database..."
 bin/rails db:test:prepare 2>&1 | tail -1
+# Wipe upload folders so E2E runs never accumulate orphan stamps
+rm -rf storage/stamps/* 2>/dev/null || true
+clean_e2e_artifacts
 # Truncate all tables to ensure clean state for E2E
 bin/rails runner '
 conn = ActiveRecord::Base.connection
@@ -94,6 +107,7 @@ echo "       Exit code: $EXIT_CODE"
 
 # Step 5: Kill server
 echo "[5/5] Stopping server (PID $SERVER_PID)..."
+clean_e2e_artifacts
 kill $SERVER_PID 2>/dev/null || true
 sleep 1
 if lsof -i :3000 >/dev/null 2>&1; then

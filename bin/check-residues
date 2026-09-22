@@ -1,0 +1,123 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# bin/check-residues — guard against test/debug residue leaking into the codebase.
+#
+# Usage:
+#   bin/check-residues          # exit 1 when residue found
+#   bin/check-residues --list   # print offending files/records and exit 0
+#
+# Checks:
+#   1. Debug statements in production code (binding.pry, byebug, debugger, console.log)
+#   2. Orphan debug scripts under tmp/ (tmp/debug_*)
+#   3. Records named "Debug*" in the database (test + development)
+#   4. Orphan upload folders in storage/stamps/ (no matching Arquivo.uuid)
+#   5. Untracked files in e2e/ (temp DXF/TIF left by an aborted E2E run;
+#      bin/e2e removes the known generated ones on the next run)
+
+require_relative "../config/boot"
+require "open3"
+
+RAILS_ROOT = File.expand_path("..", __dir__)
+
+def run_ruby(code, env_name = "test")
+  env = { "RAILS_ENV" => env_name }
+  stdout, stderr, status = Open3.capture3(env, File.join(RAILS_ROOT, "bin/rails"), "runner", code)
+  [ status.success?, stdout, stderr ]
+end
+
+def scan_code(patterns, paths)
+  findings = []
+  paths.each do |path|
+    next unless File.exist?(path)
+
+    dirs = Dir["#{path}/*"]
+    dirs.select { |d| File.directory?(d) }.each do |dir|
+      base = File.basename(dir)
+      next if %w[node_modules vendor].include?(base)
+
+      Dir["#{dir}/**/*.{rb,js,erb,ts}"].each do |file|
+        content = File.read(file)
+        patterns.each do |pattern|
+          next unless content.match?(pattern)
+
+          content.split("\n").each_with_index do |line, i|
+            findings << "#{file}:#{i + 1}: #{line.strip}" if line.match?(pattern)
+          end
+        end
+      end
+    end
+  end
+  findings.uniq
+end
+
+# Untracked files in e2e/ are specs' leftovers, or a new fixture not yet `git add`ed.
+def untracked_e2e_files
+  stdout, = Open3.capture2("git", "ls-files", "--others", "--exclude-standard", "e2e/", chdir: RAILS_ROOT)
+  stdout.split("\n")
+end
+
+list_mode = ARGV.delete("--list")
+findings = []
+
+# 1. Debug statements in production code.
+debug_patterns = [ /binding\.pry/, /\bbyebug\b/, /\bdebugger\b/, /console\.(log|debug)\(/ ]
+code_paths = [ File.join(RAILS_ROOT, "app"), File.join(RAILS_ROOT, "lib") ]
+code_findings = scan_code(debug_patterns, code_paths)
+
+# 2. Orphan debug scripts under tmp/.
+tmp_debug_findings = Dir[File.join(RAILS_ROOT, "tmp/debug_*")].reject { |f| File.directory?(f) }
+tmp_debug_findings += Dir[File.join(RAILS_ROOT, "tmp/*debug*")].select { |f| File.directory?(f) }
+tmp_debug_findings.map! { |f| f.delete_prefix("#{RAILS_ROOT}/") }
+
+# 3. Debug-named records in the DB (test + development).
+db_record_findings = []
+query = <<~RUBY
+  findings = []
+  %w[Client Molde Peca Modelo].each do |klass|
+    klass.constantize.all.each do |r|
+      name = r.respond_to?(:name) ? r.name : r.nome
+      next unless name.to_s.match?(/^Debug/)
+      findings << "\#{klass} id=\#{r.id} name=\#{name.inspect}"
+    end
+  end
+  puts findings.join("\\n")
+RUBY
+ok, output, = run_ruby(query)
+db_record_findings = output.split("\n").reject(&:empty?) if ok
+
+# 4. Orphan upload folders in storage/stamps/.
+storage_orphan_findings = []
+known_uuids = []
+%w[test development].each do |env|
+  ok, output, = run_ruby('puts Arquivo.pluck(:uuid).join("\\n")', env)
+  known_uuids.concat(output.split("\n")) if ok
+end
+known_uuids.uniq!
+Dir[File.join(RAILS_ROOT, "storage/stamps/*")].each do |dir|
+  uuid = File.basename(dir)
+  storage_orphan_findings << "storage/stamps/#{uuid}" unless known_uuids.include?(uuid)
+end
+
+# 5. Untracked files in e2e/.
+e2e_leftover_findings = untracked_e2e_files
+
+findings.concat(code_findings)
+findings.concat(tmp_debug_findings)
+findings.concat(db_record_findings)
+findings.concat(storage_orphan_findings)
+findings.concat(e2e_leftover_findings)
+
+if findings.empty?
+  puts "clean: no debug or test residue found"
+  exit 0
+end
+
+if list_mode
+  puts findings.sort
+  exit 0
+end
+
+puts "Residue found:"
+findings.sort.each { |f| puts "  #{f}" }
+exit 1

@@ -120,6 +120,17 @@ class ArquivosController < ApplicationController
 
   def add_modelo
     modelo = Modelo.find(params[:modelo_id])
+    if @arquivo.corte? && @arquivo.organized? && @arquivo.peca_id.present?
+      conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, modelo: modelo)
+      if conflict && conflict.id != @arquivo.id
+        flash.now[:alert] = "Peça \"#{@arquivo.peca.nome}\" já possui corte organizado para este modelo."
+        respond_to do |format|
+          format.turbo_stream
+          format.html { redirect_to @arquivo, alert: flash.now[:alert] }
+        end
+        return
+      end
+    end
     unless @arquivo.modelos.include?(modelo)
       @arquivo.modelos << modelo
     end
@@ -260,7 +271,32 @@ class ArquivosController < ApplicationController
     update_attrs[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
     update_attrs[:molde_nome] = params[:molde_nome].presence if params[:molde_nome].present?
     update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
-    @arquivo.update!(update_attrs)
+
+    peca_id = params[:peca_id].presence
+    if peca_id && @arquivo.corte?
+      conflicting = @arquivo.modelos.any? { |m|
+        c = Arquivo.conflicting_corte(peca_id: peca_id, modelo: m)
+        c && c.id != @arquivo.id
+      }
+      if conflicting
+        flash.now[:alert] = "Esta peça já possui um corte organizado para este modelo."
+        respond_to do |format|
+          format.turbo_stream
+          format.html { redirect_to @arquivo, alert: flash.now[:alert] }
+        end
+        return
+      end
+    end
+
+    unless @arquivo.update(update_attrs)
+      flash.now[:alert] = @arquivo.errors.full_messages.join(", ")
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @arquivo, alert: flash.now[:alert] }
+      end
+      return
+    end
+
     if params[:tamanhos].respond_to?(:values)
       old_previews = @arquivo.tamanhos.each_with_object({}) { |t, h| h[t.position] = t.preview_file }
       tamanho_ids = @arquivo.tamanhos.pluck(:id)

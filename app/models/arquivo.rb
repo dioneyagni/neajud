@@ -24,6 +24,7 @@ class Arquivo < ApplicationRecord
   validates :mime_type, presence: true
   validates :category, inclusion: { in: FileCategory.keys }, allow_nil: true
   validates :tipo_corte, inclusion: { in: %w[apenas_corte corte_estampa] }, if: :corte?
+  validate :peca_modelo_uniqueness_for_organized_corte
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
@@ -90,7 +91,32 @@ class Arquivo < ApplicationRecord
     approved_version&.original_path
   end
 
+  def self.conflicting_corte(peca_id:, modelo:)
+    return nil unless peca_id.present? && modelo.present?
+    Arquivo.where(category: "corte", organized: true, peca_id: peca_id)
+           .joins(:arquivo_modelos)
+           .where(arquivo_modelos: { modelo_id: modelo.id })
+           .first
+  end
+
+  def peca_occupied_for_modelos?(peca_id: self.peca_id)
+    return false unless corte? && peca_id.present?
+    modelo_ids = modelos.pluck(:id)
+    return false if modelo_ids.empty?
+    Arquivo.where(category: "corte", organized: true, peca_id: peca_id)
+           .joins(:arquivo_modelos)
+           .where(arquivo_modelos: { modelo_id: modelo_ids })
+           .where.not(id: id)
+           .exists?
+  end
+
   private
+
+  def peca_modelo_uniqueness_for_organized_corte
+    return unless corte? && organized? && peca_id.present?
+    return unless peca_occupied_for_modelos?
+    errors.add(:peca_id, "já está em uso por outro corte para este modelo")
+  end
 
   def set_default_tipo_corte
     self.tipo_corte ||= "corte_estampa" if corte?

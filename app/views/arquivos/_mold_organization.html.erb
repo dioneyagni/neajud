@@ -1,4 +1,5 @@
 <div data-controller="dialog" data-create-title="Register New Mold" data-create-label="Register" data-create-url="<%= moldes_path %>">
+  <div id="organize-flash"></div>
 <%= form_with url: organize_arquivo_path(arquivo), method: :patch, class: "mold-organization-form",
       data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
   <% if !arquivo.organized? %>
@@ -19,6 +20,18 @@
                     else
                       Peca.order(:nome).to_a
                     end
+
+    modelo_ids = arquivo.modelos.pluck(:id)
+    occupied_peca_ids = if arquivo.corte? && modelo_ids.any?
+                          Arquivo.where(category: "corte", organized: true)
+                                 .joins(:arquivo_modelos)
+                                 .where(arquivo_modelos: { modelo_id: modelo_ids })
+                                 .where.not(id: arquivo.id)
+                                 .pluck(:peca_id)
+                                 .to_set
+                        else
+                          Set.new
+                        end
   %>
 
   <div class="mold-organization-fields"
@@ -62,19 +75,19 @@
                   data-original-value="<%= arquivo.peca_id %>">
             <option value="">Select a piece...</option>
             <% initial_pecas.each do |p| %>
-              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
+              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
         </span>
       <% else %>
-        <select name="peca_id" id="peca_id"
-                data-mold-org-cascade-target="pecaSelect">
-          <option value="">Select a piece...</option>
-          <% initial_pecas.each do |p| %>
-            <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %></option>
-          <% end %>
-        </select>
+          <select name="peca_id" id="peca_id"
+                  data-mold-org-cascade-target="pecaSelect">
+            <option value="">Select a piece...</option>
+            <% initial_pecas.each do |p| %>
+              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
+            <% end %>
+          </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
       <% end %>
     </div>

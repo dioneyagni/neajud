@@ -55,4 +55,92 @@ RSpec.describe Arquivo, type: :model do
       expect(Arquivo::SUPPORTED_EXTENSIONS).not_to include("jpg", "jpeg")
     end
   end
+
+  describe "peca_modelo_uniqueness_for_organized_corte" do
+    let(:modelo) { create(:modelo) }
+    let(:peca) { create(:peca) }
+    let(:molde) { create(:molde) }
+
+    before do
+      create(:molde_peca, molde: molde, peca: peca)
+    end
+
+    it "allows first organized corte with a peca for a modelo" do
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+      expect(corte1).to be_valid
+    end
+
+    it "rejects second organized corte with same peca for same modelo" do
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte2.modelos << modelo
+      expect(corte2).not_to be_valid
+      expect(corte2.errors[:peca_id]).to include(a_string_matching(/já está em uso/))
+    end
+
+    it "allows same peca for different modelos" do
+      modelo2 = create(:modelo)
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte2.modelos << modelo2
+      expect(corte2).to be_valid
+    end
+
+    it "does not block different pecas for same modelo" do
+      peca2 = create(:peca)
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca2, molde: molde)
+      corte2.modelos << modelo
+      expect(corte2).to be_valid
+    end
+
+    it "ignores validation when not corte category" do
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      arte = create(:arquivo, category: "artes", organized: true, peca: peca)
+      arte.modelos << modelo
+      expect(arte).to be_valid
+    end
+
+    it "does not block when arquivo has no linked modelos" do
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte1.modelos << modelo
+
+      corte2 = build(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      expect(corte2).to be_valid
+    end
+
+    context "with conflicting_corte class method" do
+      it "returns the conflicting arquivo" do
+        corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+        corte1.modelos << modelo
+
+        result = described_class.conflicting_corte(peca_id: peca.id, modelo: modelo)
+        expect(result).to eq(corte1)
+      end
+
+      it "returns nil when no conflict exists" do
+        result = described_class.conflicting_corte(peca_id: peca.id, modelo: modelo)
+        expect(result).to be_nil
+      end
+
+      it "returns nil when peca_id is blank" do
+        result = described_class.conflicting_corte(peca_id: nil, modelo: modelo)
+        expect(result).to be_nil
+      end
+
+      it "returns nil when modelo is nil" do
+        result = described_class.conflicting_corte(peca_id: peca.id, modelo: nil)
+        expect(result).to be_nil
+      end
+    end
+  end
 end
