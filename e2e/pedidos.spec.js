@@ -134,6 +134,9 @@ async function run() {
     });
   }
 
+  // GrupoMaterial/CorMaterial have no seed data (see AGENTS.md) — find_or_create
+  // each via the app's own "Register new" endpoints instead of assuming a
+  // fixed id, then create the movimento with the ids that actually exist.
   async function ensureMaterialExists(page) {
     const res = await page.evaluate(async () => {
       const r = await fetch("/materiais/search?q=Oxford", {
@@ -148,11 +151,36 @@ async function run() {
       const token = await getCsrfToken(page);
 
       await page.evaluate(async (csrf) => {
+        async function findOrCreate(kind, nome) {
+          const searchUrl = kind === "grupo" ? `/materiais/grupos?q=${encodeURIComponent(nome)}` : "/materiais/cores";
+          const found = await (await fetch(searchUrl, { headers: { Accept: "application/json" } })).json();
+          const existing = found.find((r) => r.nome === nome);
+          if (existing) return existing.id;
+
+          const form = new FormData();
+          form.append(`${kind === "grupo" ? "grupo_material" : "cor_material"}[nome]`, nome);
+          await fetch(`/materiais/create_${kind}`, { method: "POST", headers: { "X-CSRF-Token": csrf }, body: form, redirect: "manual" });
+          const created = await (await fetch(searchUrl, { headers: { Accept: "application/json" } })).json();
+          return created.find((r) => r.nome === nome)?.id;
+        }
+
+        const grupoId = await findOrCreate("grupo", "Oxford");
+        const corId = await findOrCreate("cor", "Branco");
+
+        const clientName = "E2E Pedidos Material Setup";
+        await fetch("/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+          body: new URLSearchParams({ "client[name]": clientName, "client[responsible]": "Tester" })
+        });
+        const clients = await (await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`)).json();
+        const clientId = clients.find((c) => c.name === clientName)?.id;
+
         const form = new FormData();
-        form.append("movimento_estoque[client_id]", "1");
+        form.append("movimento_estoque[client_id]", clientId);
         form.append("movimento_estoque[tipo]", "entrada");
-        form.append("movimento_estoque[grupo_material_id]", "1");
-        form.append("movimento_estoque[cor_material_id]", "1");
+        form.append("movimento_estoque[grupo_material_id]", grupoId);
+        form.append("movimento_estoque[cor_material_id]", corId);
         form.append("movimento_estoque[largura]", "1.40");
         form.append("movimento_estoque[gramatura]", "100g");
         form.append("movimento_estoque[quantidade]", "50");

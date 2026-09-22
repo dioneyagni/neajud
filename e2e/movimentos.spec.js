@@ -43,6 +43,52 @@ async function run() {
 
   const UNIQ = `E${Date.now()}`;
 
+  // GrupoMaterial/CorMaterial/Client have no seed data (see AGENTS.md) —
+  // each test below provisions whatever it needs through the app's own
+  // "Register new" endpoints, rather than assuming shared cross-file state.
+  async function csrfToken() {
+    return page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
+  }
+
+  async function ensureGrupo(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch(`/materiais/grupos?q=${encodeURIComponent(nome)}`)).json();
+      if (found.find((g) => g.nome === nome)) return;
+      await fetch("/materiais/create_grupo", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "grupo_material[nome]": nome })
+      });
+    }, { csrf, nome });
+  }
+
+  async function ensureCor(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch("/materiais/cores")).json();
+      if (found.find((c) => c.nome === nome)) return;
+      await fetch("/materiais/create_cor", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "cor_material[nome]": nome })
+      });
+    }, { csrf, nome });
+  }
+
+  async function ensureClient(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch(`/clients/search?q=${encodeURIComponent(nome)}`)).json();
+      if (found.find((c) => c.name === nome)) return;
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "client[name]": nome, "client[responsible]": "Tester" })
+      });
+    }, { csrf, nome });
+  }
+
   console.log("\nMovimentos E2E Tests\n");
 
   await test("Materials page has Register Movement link to /movimentos/new", async () => {
@@ -78,6 +124,12 @@ async function run() {
   });
 
   await test("Register entrada movement and verify it appears in history", async () => {
+    const entradaClientName = `Entrada Client ${UNIQ}`;
+    await page.goto(`${BASE_URL}/materiais`);
+    await ensureGrupo("Viscose");
+    await ensureCor("Azul");
+    await ensureClient(entradaClientName);
+
     await page.goto(`${BASE_URL}/movimentos/new`);
 
     await page.locator('input[placeholder="Search group..."]').click();
@@ -87,9 +139,9 @@ async function run() {
     await grupoOption.click();
 
     await page.locator('input[placeholder="Search client..."]').click();
-    await page.locator('input[placeholder="Search client..."]').fill("Fag");
+    await page.locator('input[placeholder="Search client..."]').fill(entradaClientName.slice(0, 6));
     await page.waitForTimeout(300);
-    const clientOption = page.locator(".combobox-option[data-name='Fagner']");
+    const clientOption = page.locator(`.combobox-option[data-name='${entradaClientName}']`);
     await clientOption.click();
 
     await page.click('.color-swatch[title="Azul"]');
@@ -108,10 +160,16 @@ async function run() {
 
     if (!body.includes("Viscose")) throw new Error("Movement material (Viscose) not found in history");
     if (!body.includes("42")) throw new Error("Movement quantity (42) not found in history");
-    if (!body.includes("Fagner")) throw new Error("Movement client (Fagner) not found in history");
+    if (!body.includes(entradaClientName)) throw new Error(`Movement client (${entradaClientName}) not found in history`);
   });
 
   await test("Register saida movement and verify it appears in history", async () => {
+    const saidaClientName = `Saida Client ${UNIQ}`;
+    await page.goto(`${BASE_URL}/materiais`);
+    await ensureGrupo("Viscose");
+    await ensureCor("Azul");
+    await ensureClient(saidaClientName);
+
     await page.goto(`${BASE_URL}/movimentos/new`);
 
     await page.locator('input[placeholder="Search group..."]').click();
@@ -120,9 +178,9 @@ async function run() {
     await page.locator(".combobox-option[data-name='Viscose']").click();
 
     await page.locator('input[placeholder="Search client..."]').click();
-    await page.locator('input[placeholder="Search client..."]').fill("Lip");
+    await page.locator('input[placeholder="Search client..."]').fill(saidaClientName.slice(0, 6));
     await page.waitForTimeout(300);
-    await page.locator(".combobox-option[data-name='Lipe']").click();
+    await page.locator(`.combobox-option[data-name='${saidaClientName}']`).click();
 
     await page.locator(".tipo-radio--saida").click();
     await page.click('.color-swatch[title="Azul"]');
@@ -137,7 +195,7 @@ async function run() {
     if (!body.includes("Movement registered")) throw new Error("Flash notice not found");
     if (!body.includes("Out")) throw new Error("Saida type not shown as 'Out'");
     if (!body.includes("7")) throw new Error("Quantity 7 not found in history");
-    if (!body.includes("Lipe")) throw new Error("Client Lipe not found in history");
+    if (!body.includes(saidaClientName)) throw new Error(`Client ${saidaClientName} not found in history`);
   });
 
   await test("Range slider: click display to edit width value", async () => {
@@ -200,6 +258,52 @@ async function run() {
     // Display should update
     const newText = await displaySpan.textContent();
     if (!newText.includes("0,80")) throw new Error(`Expected "0,80" in display after blur, got "${newText}"`);
+  });
+
+  // ── Register New Color dialog (CorMaterial has no seed data — see AGENTS.md) ──
+
+  await test("Register New Color dialog: Cancel closes without creating a color", async () => {
+    await page.goto(`${BASE_URL}/movimentos/new`);
+
+    const newSwatch = page.locator(".color-swatch--new");
+    await newSwatch.waitFor({ timeout: 5000 });
+    await newSwatch.click();
+
+    const dialog = page.locator('dialog[data-color-picker-target="dialog"]');
+    const isOpen = await dialog.evaluate((el) => el.open);
+    if (!isOpen) throw new Error("Dialog did not open");
+
+    // Centered in viewport
+    const box = await dialog.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: window.innerWidth - r.right, top: r.top, bottom: window.innerHeight - r.bottom };
+    });
+    if (Math.abs(box.left - box.right) > 5) throw new Error(`Dialog not horizontally centered: ${JSON.stringify(box)}`);
+
+    await page.click('button[data-action="click->color-picker#closeNew"]');
+    await page.waitForTimeout(200);
+    const stillOpen = await dialog.evaluate((el) => el.open);
+    if (stillOpen) throw new Error("Dialog did not close after Cancel");
+  });
+
+  await test("Register New Color dialog: register a new color and select it", async () => {
+    const colorName = "Roxo";
+    await page.goto(`${BASE_URL}/movimentos/new`);
+
+    const before = await page.locator(`.color-swatch[title="${colorName}"]`).count();
+    if (before > 0) throw new Error(`"${colorName}" swatch already present before registering — test fixture polluted`);
+
+    await page.locator(".color-swatch--new").click();
+    await page.locator('dialog[data-color-picker-target="dialog"] select[name="cor_material[nome]"]').selectOption(colorName);
+    await page.click('button[data-action="click->color-picker#submitNew"]');
+    await page.waitForURL("**/movimentos/new", { timeout: 10000 });
+    await page.waitForSelector(".color-swatch-grid", { timeout: 10000 });
+
+    const swatch = page.locator(`.color-swatch[title="${colorName}"]`);
+    await swatch.waitFor({ timeout: 5000 });
+    await swatch.click();
+    const nameLabel = await page.locator('[data-color-picker-target="name"]').textContent();
+    if (nameLabel.trim() !== colorName) throw new Error(`Expected selected color name "${colorName}", got "${nameLabel.trim()}"`);
   });
 
   console.log(`\nResults: ${passed} passed, ${failed} failed\n`);

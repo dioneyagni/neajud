@@ -1367,6 +1367,17 @@ section {
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px #202124;
 }
 
+.color-swatch--new {
+  background: #f1f3f4;
+  color: #5f6368;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+}
+
 .color-swatch-name {
   display: block;
   font-size: 0.85rem;

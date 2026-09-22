@@ -63,9 +63,31 @@
                     data-id="<%= cor.id %>">
             </button>
           <% end %>
+          <% if @available_cor_names.present? %>
+            <button type="button" class="color-swatch color-swatch--new" title="Register new color"
+                    data-action="click->color-picker#openNew">+</button>
+          <% end %>
         </div>
         <span class="color-swatch-name" data-color-picker-target="name"><%= @selected_cor_id.present? ? @cores.find { |c| c.id == @selected_cor_id.to_i }&.nome : '' %></span>
         <input type="hidden" name="movimento_estoque[cor_material_id]" data-color-picker-target="input" value="<%= @selected_cor_id %>">
+
+        <dialog data-color-picker-target="dialog" class="client-dialog" data-action="click->color-picker#backdropClose">
+          <div class="client-form" data-form-action="<%= create_cor_materiais_path %>">
+            <h4>Register New Color</h4>
+            <div class="client-field">
+              <label for="cor_nome_dialog">Name</label>
+              <select name="cor_material[nome]" id="cor_nome_dialog" required>
+                <% @available_cor_names.each do |nome| %>
+                  <option value="<%= nome %>"><%= nome %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="client-dialog-actions">
+              <button type="button" data-action="click->color-picker#closeNew" class="btn btn-secondary">Cancel</button>
+              <button type="button" data-action="click->color-picker#submitNew" class="btn btn-primary">Register</button>
+            </div>
+          </div>
+        </dialog>
       </div>
 
       <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value=" m" data-range-slider-decimal-value="true">
