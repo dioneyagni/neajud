@@ -10,8 +10,7 @@ class MateriaisController < ApplicationController
   end
 
   def new
-    @grupos = GrupoMaterial.order(:nome)
-    @cores = CorMaterial.order(:nome)
+    load_form_data
     @movimento = MovimentoEstoque.new(client_id: params[:client_id])
     @selected_client_nome = Client.find_by(id: params[:client_id])&.name
   end
@@ -27,22 +26,15 @@ class MateriaisController < ApplicationController
   end
 
   def create_grupo
-    existing = GrupoMaterial.where("LOWER(nome) = ?", params[:grupo_material][:nome].downcase).first
-    if existing
-      redirect_to materiais_path, alert: "Group \"#{existing.nome}\" already exists."
-      return
-    end
-
-    grupo = GrupoMaterial.new(params.require(:grupo_material).permit(:nome))
-    if grupo.save
-      redirect_to materiais_path, notice: "Group created."
-    else
-      redirect_to materiais_path, alert: grupo.errors.full_messages.join(", ")
-    end
+    create_reference_record(GrupoMaterial, "Group", params.require(:grupo_material).permit(:nome))
   end
 
   def cores
     render json: CorMaterial.order(:nome).map { |c| { id: c.id, nome: c.nome } }
+  end
+
+  def create_cor
+    create_reference_record(CorMaterial, "Color", params.require(:cor_material).permit(:nome))
   end
 
   def search
@@ -67,9 +59,27 @@ class MateriaisController < ApplicationController
 
   private
 
+  # Shared by create_grupo/create_cor: both are single-field ("nome")
+  # reference tables with the same "already exists?" + save + flash shape.
+  def create_reference_record(klass, label, permitted)
+    existing = klass.where("LOWER(nome) = ?", permitted[:nome].to_s.downcase).first
+    if existing
+      redirect_to materiais_path, alert: "#{label} \"#{existing.nome}\" already exists."
+      return
+    end
+
+    record = klass.new(permitted)
+    if record.save
+      redirect_to materiais_path, notice: "#{label} created."
+    else
+      redirect_to materiais_path, alert: record.errors.full_messages.join(", ")
+    end
+  end
+
   def load_form_data
     @grupos = GrupoMaterial.order(:nome)
     @cores = CorMaterial.order(:nome)
+    @available_cor_names = CorMaterial::COLOR_HEX.keys - @cores.pluck(:nome)
   end
 
   def compute_saldos

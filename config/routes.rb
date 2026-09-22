@@ -70,6 +70,7 @@ Rails.application.routes.draw do
       get :cores
       get :search
       post :create_grupo
+      post :create_cor
     end
   end
 

@@ -64,17 +64,30 @@ async function run() {
   });
 
   await test("Create a new modelo via dialog", async () => {
+    // Client has no seed data (see AGENTS.md) — provision one so the
+    // dropdown has something to select.
+    const modeloClientName = `Modelo Dialog Client ${UNIQ}`;
+    await page.goto(BASE_URL);
+    const setupCsrf = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
+    await page.evaluate(async ({ csrf, name }) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "client[name]": name, "client[responsible]": "Tester" })
+      });
+    }, { csrf: setupCsrf, name: modeloClientName });
+
     await page.goto(`${BASE_URL}/modelos`);
     await page.click('button:has-text("New Modelo")');
     await page.waitForTimeout(300);
 
     await page.fill('input[name="modelo[nome]"]', `E2E Modelo ${UNIQ}`);
 
-    // Select a client from the dropdown
+    // Select the client just provisioned above
     const clientSelect = page.locator('select[name="modelo[client_id]"]');
     const options = await clientSelect.locator("option").allTextContents();
-    const clientOption = options.find((o) => o.includes("Fagner"));
-    if (!clientOption) throw new Error("Fagner client not found in dropdown");
+    const clientOption = options.find((o) => o.includes(modeloClientName));
+    if (!clientOption) throw new Error(`Client "${modeloClientName}" not found in dropdown`);
     await clientSelect.selectOption({ label: clientOption });
 
     await page.click('button[data-dialog-target="submitBtn"]:has-text("Register")');

@@ -195,4 +195,40 @@ RSpec.describe "Materiais", type: :request do
       expect(response.body).to include("already exists")
     end
   end
+
+  describe "POST /materiais/create_cor" do
+    it "creates a new color" do
+      expect {
+        post create_cor_materiais_path, params: { cor_material: { nome: "Azul" } }
+      }.to change(CorMaterial, :count).by(1)
+    end
+
+    it "redirects with alert when color already exists" do
+      cor
+      post create_cor_materiais_path, params: { cor_material: { nome: "Vermelho" } }
+      expect(response).to redirect_to(materiais_path)
+      follow_redirect!
+      expect(response.body).to include("already exists")
+    end
+
+    it "redirects with alert when nome is blank" do
+      post create_cor_materiais_path, params: { cor_material: { nome: "" } }
+      expect(response).to redirect_to(materiais_path)
+      follow_redirect!
+      expect(response.body).to include("can&#39;t be blank")
+    end
+  end
+
+  describe "GET /materiais/new" do
+    it "excludes already-registered colors from available_cor_names" do
+      cor
+      get new_material_path
+      expect(response.body).not_to match(/id="cor_nome_dialog".*?<option[^>]*>Vermelho<\/option>/m)
+    end
+
+    it "includes not-yet-registered colors from available_cor_names" do
+      get new_material_path
+      expect(response.body).to include(">Vermelho<")
+    end
+  end
 end

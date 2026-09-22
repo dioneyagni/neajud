@@ -6,7 +6,7 @@ class MovimentosController < ApplicationController
   end
 
   def new
-    @cores = CorMaterial.order(:nome)
+    load_form_data
     @movimento = MovimentoEstoque.new
   end
 
@@ -19,5 +19,6 @@ class MovimentosController < ApplicationController
 
   def load_form_data
     @cores = CorMaterial.order(:nome)
+    @available_cor_names = CorMaterial::COLOR_HEX.keys - @cores.pluck(:nome)
   end
 end

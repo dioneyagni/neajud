@@ -377,6 +377,24 @@ O script tem guard clause no início que aborta se `RAILS_ENV != "test"`.
 ⚠️ Nunca rode `bin/e2e` com `RAILS_ENV=development`. O script já força
 test, mas um `export RAILS_ENV=development` antes no shell pode sobrescrever.
 
+## db/seeds.rb is empty on purpose
+
+There is no seed data. `GrupoMaterial`, `CorMaterial` and `Client` are all
+managed through the app itself — Materiais page "+ Register new" dialogs
+(`create_grupo`/`create_cor`) and `/clients` — so nothing needs to pre-exist
+before the app can be used. `CorMaterial` names are capped to
+`CorMaterial::COLOR_HEX`'s known set via the "Register New Color" dialog
+(so every color always has a real swatch, never the `#CCCCCC` fallback);
+`GrupoMaterial` and `Client` names are freeform.
+
+Historical note (Sep 2026): db/seeds.rb used to create demo Clients
+("Fagner", "Lipe") plus a fixed list of GrupoMaterial/CorMaterial names.
+E2E specs hardcoded those names — removing the seed meant giving
+`e2e/{clients,modelos,materiais,movimentos,pedidos}.spec.js` their own
+`ensureGrupo`/`ensureCor`/`ensureClient`-style setup instead, so each test
+provisions what it needs through the app's own endpoints rather than
+assuming global fixtures.
+
 ## Key constraints
 
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`

@@ -45,6 +45,61 @@ async function run() {
 
   const UNIQ = `MAT${Date.now()}`;
 
+  // GrupoMaterial/CorMaterial/Client have no seed data (see AGENTS.md) —
+  // each test below provisions whatever it needs through the app's own
+  // "Register new" endpoints, rather than assuming shared cross-file state.
+  async function csrfToken() {
+    return page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
+  }
+
+  async function ensureGrupo(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch(`/materiais/grupos?q=${encodeURIComponent(nome)}`)).json();
+      const existing = found.find((g) => g.nome === nome);
+      if (existing) return existing.id;
+      await fetch("/materiais/create_grupo", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "grupo_material[nome]": nome })
+      });
+      const created = await (await fetch(`/materiais/grupos?q=${encodeURIComponent(nome)}`)).json();
+      return created.find((g) => g.nome === nome)?.id;
+    }, { csrf, nome });
+  }
+
+  async function ensureCor(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch("/materiais/cores")).json();
+      const existing = found.find((c) => c.nome === nome);
+      if (existing) return existing.id;
+      await fetch("/materiais/create_cor", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "cor_material[nome]": nome })
+      });
+      const created = await (await fetch("/materiais/cores")).json();
+      return created.find((c) => c.nome === nome)?.id;
+    }, { csrf, nome });
+  }
+
+  async function ensureClient(nome) {
+    const csrf = await csrfToken();
+    return page.evaluate(async ({ csrf, nome }) => {
+      const found = await (await fetch(`/clients/search?q=${encodeURIComponent(nome)}`)).json();
+      const existing = found.find((c) => c.name === nome);
+      if (existing) return existing.id;
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "client[name]": nome, "client[responsible]": "Tester" })
+      });
+      const created = await (await fetch(`/clients/search?q=${encodeURIComponent(nome)}`)).json();
+      return created.find((c) => c.name === nome)?.id;
+    }, { csrf, nome });
+  }
+
   console.log("\nMateriais E2E Tests\n");
 
   await test("Materials page loads with heading", async () => {
@@ -95,6 +150,9 @@ async function run() {
   });
 
   await test("Grupos endpoint returns JSON list", async () => {
+    await page.goto(`${BASE_URL}/materiais`);
+    await ensureGrupo(`GrupoListCheck${UNIQ}`);
+
     const result = await page.evaluate(async () => {
       const res = await fetch("/materiais/grupos", {
         headers: { Accept: "application/json" },
@@ -108,6 +166,9 @@ async function run() {
   });
 
   await test("Cores endpoint returns JSON list", async () => {
+    await page.goto(`${BASE_URL}/materiais`);
+    await ensureCor("Branco");
+
     const result = await page.evaluate(async () => {
       const res = await fetch("/materiais/cores", {
         headers: { Accept: "application/json" },
@@ -121,6 +182,12 @@ async function run() {
   });
 
   await test("Register entrada movement via form and verify in history", async () => {
+    const movClientName = `Movement Client ${UNIQ}`;
+    await page.goto(`${BASE_URL}/materiais`);
+    await ensureGrupo("Oxford");
+    await ensureCor("Azul");
+    await ensureClient(movClientName);
+
     await page.goto(`${BASE_URL}/movimentos/new`);
 
     // Select grupo
@@ -132,9 +199,9 @@ async function run() {
 
     // Select client
     await page.locator('input[placeholder="Search client..."]').click();
-    await page.locator('input[placeholder="Search client..."]').fill("Fag");
+    await page.locator('input[placeholder="Search client..."]').fill(movClientName.slice(0, 6));
     await page.waitForTimeout(500);
-    const clientOption = page.locator(".combobox-option[data-name='Fagner']");
+    const clientOption = page.locator(`.combobox-option[data-name='${movClientName}']`);
     await clientOption.click();
 
     // Select color

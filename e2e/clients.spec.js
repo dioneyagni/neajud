@@ -47,12 +47,25 @@ async function run() {
 
   console.log("\nClients E2E Tests\n");
 
-  await test("Clients page loads with existing seed clients", async () => {
+  // Client has no seed data (see AGENTS.md) — provision one via the API so
+  // this test still exercises "the page loads and lists a real client",
+  // not just the empty state covered elsewhere.
+  await test("Clients page loads and lists a registered client", async () => {
+    const listName = `List Check ${UNIQ}`;
+    await page.goto(BASE_URL);
+    const csrf = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
+    await page.evaluate(async ({ csrf, listName }) => {
+      await fetch("/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
+        body: new URLSearchParams({ "client[name]": listName, "client[responsible]": "Tester" })
+      });
+    }, { csrf, listName });
+
     await page.goto(`${BASE_URL}/clients`);
     const body = await page.textContent("body");
     if (!body.includes("Clients")) throw new Error("Page heading not found");
-    if (!body.includes("Fagner")) throw new Error("Seed client Fagner not found");
-    if (!body.includes("Lipe")) throw new Error("Seed client Lipe not found");
+    if (!body.includes(listName)) throw new Error(`Registered client "${listName}" not found`);
   });
 
   await test("Clients page shows table with Name and Responsible columns", async () => {
