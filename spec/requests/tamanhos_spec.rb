@@ -46,7 +46,7 @@ RSpec.describe "Tamanhos", type: :request do
       expect(response.headers["Content-Disposition"]).to include("36.dxf")
       expect(response.headers["Content-Type"]).to include("application/dxf")
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       arquivo.destroy!
     end
   end
@@ -116,7 +116,7 @@ RSpec.describe "Tamanhos", type: :request do
         expect(result).to be true
       end
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       FileUtils.rm_rf(Rails.root.join("tmp", "tamanho_extracts", arquivo.uuid))
       arquivo.destroy!
     end

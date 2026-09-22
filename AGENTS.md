@@ -107,15 +107,52 @@ Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager && bin/check-re
 1. Debug statements in `app/`/`lib/` (`binding.pry`, `byebug`, `debugger`, `console.log`/`console.debug`)
 2. Orphan debug scripts under `tmp/` (`tmp/debug_*`, `tmp/*debug*/`)
 3. Records named `Debug*` in the test + development databases
-4. Orphan upload folders in `storage/stamps/` with no matching `Arquivo.uuid` in either DB
+4. Orphan upload folders in `storage/stamps/` with no matching `Arquivo.uuid` in the development DB (`storage/test_stamps/` is RSpec/E2E-only and always disposable — not checked)
 5. Untracked files in `e2e/` (temp DXF/TIF that a failed or aborted spec did not delete)
 
 `bin/check-residues --list` prints findings and exits 0 (for local inspection).
 The DB checks are skipped gracefully when a database is not prepared (CI).
 
-`bin/e2e` wipes `storage/stamps/*` on every run so E2E uploads never accumulate. It also
+`bin/e2e` wipes `storage/test_stamps/*` on every run so E2E uploads never accumulate. It also
 removes untracked spec-generated files in `e2e/` (prefixes `e2e-`, `auto-detect-`, `UniqCorte`)
 before and after the run; tracked fixtures are never touched.
+
+### storage/stamps vs storage/test_stamps
+
+`storage/stamps/` holds real development/production uploads.
+`storage/test_stamps/` holds only RSpec/E2E throwaway uploads — `bin/e2e` and
+`spec/rails_helper.rb`'s `after(:suite)` both wipe it unconditionally, and it's
+always safe to lose. `ArquivoVersion::STORAGE_BASE` picks the directory via
+`Rails.env.test?`.
+
+**Historical note (Sep 2026):** these used to be the same directory. `bin/e2e`'s
+`rm -rf storage/stamps/*` — needed so E2E runs never accumulate test uploads —
+also silently destroyed real development uploads on every run. The `Arquivo`
+rows survived (only the *test* database gets truncated), so the DB kept
+saying `status: processed` while the files backing those previews were
+gone — the bug looked like "previews aren't rendering," not "files got
+deleted." Splitting the directories by environment fixes this by
+construction; it can't recur.
+
+### Development backups
+
+`storage/development.sqlite3` and `storage/stamps/` are real, unversioned data
+(`.gitignore`'d — no other backup exists). Snapshot before anything risky: a
+new destructive script, a bulk delete you're not sure about, testing a
+migration by hand.
+
+```bash
+bin/dev-backup              # snapshot now (storage/backups/<timestamp>/)
+bin/dev-backup my-label     # snapshot tagged "<timestamp>-my-label"
+bin/dev-restore --list      # see available snapshots
+bin/dev-restore --latest    # restore the most recent one (asks to confirm)
+bin/dev-restore <name>      # restore a specific one
+```
+
+`bin/dev-restore` refuses to run while `bin/rails server` is listening on
+:3000 (stop it first) and asks for confirmation before overwriting. Keeps
+the last 10 snapshots; older ones are pruned automatically on each
+`bin/dev-backup`.
 
 ## Workflow: feature branches + CI guard
 

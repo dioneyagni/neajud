@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -e
+
+# bin/dev-restore — restore a storage/development.sqlite3 + storage/stamps/
+# snapshot made by bin/dev-backup. Overwrites current development data —
+# stop `bin/rails server` first so nothing writes mid-restore.
+#
+# Usage:
+#   bin/dev-restore --list       # show available snapshots, newest first
+#   bin/dev-restore --latest     # restore the most recent snapshot
+#   bin/dev-restore <name>       # restore storage/backups/<name>
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+list_snapshots() {
+  ls -1dt storage/backups/*/ 2>/dev/null | sed -e 's#storage/backups/##' -e 's#/$##'
+}
+
+if [ "${1:-}" = "--list" ] || [ -z "${1:-}" ]; then
+  echo "Available snapshots (newest first):"
+  snapshots="$(list_snapshots)"
+  if [ -z "$snapshots" ]; then
+    echo "  (none — run bin/dev-backup first)"
+  else
+    echo "$snapshots" | sed 's/^/  /'
+  fi
+  exit 0
+fi
+
+if [ "$1" = "--latest" ]; then
+  NAME="$(list_snapshots | head -1)"
+  if [ -z "$NAME" ]; then
+    echo "ERROR: no snapshots found. Run bin/dev-backup first." >&2
+    exit 1
+  fi
+else
+  NAME="$1"
+fi
+
+SRC="storage/backups/$NAME"
+if [ ! -d "$SRC" ]; then
+  echo "ERROR: snapshot '$NAME' not found. Run bin/dev-restore --list to see available ones." >&2
+  exit 1
+fi
+
+if lsof -i :3000 >/dev/null 2>&1; then
+  echo "ERROR: something is listening on :3000 — stop bin/rails server first, then retry." >&2
+  exit 1
+fi
+
+echo "This overwrites storage/development.sqlite3 and storage/stamps/ with snapshot '$NAME'."
+read -r -p "Continue? [y/N] " REPLY
+case "$REPLY" in
+  [Yy]*) ;;
+  *) echo "Aborted."; exit 1 ;;
+esac
+
+if [ -f "$SRC/development.sqlite3" ]; then
+  cp "$SRC/development.sqlite3" storage/development.sqlite3
+fi
+rm -f storage/development.sqlite3-wal storage/development.sqlite3-shm
+[ -f "$SRC/development.sqlite3-wal" ] && cp "$SRC/development.sqlite3-wal" storage/
+[ -f "$SRC/development.sqlite3-shm" ] && cp "$SRC/development.sqlite3-shm" storage/
+
+rm -rf storage/stamps
+cp -a "$SRC/stamps" storage/stamps
+
+echo "Restored '$NAME'."

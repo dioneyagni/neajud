@@ -11,7 +11,9 @@
 #   1. Debug statements in production code (binding.pry, byebug, debugger, console.log)
 #   2. Orphan debug scripts under tmp/ (tmp/debug_*)
 #   3. Records named "Debug*" in the database (test + development)
-#   4. Orphan upload folders in storage/stamps/ (no matching Arquivo.uuid)
+#   4. Orphan upload folders in storage/stamps/ (real dev/prod uploads only —
+#      no matching Arquivo.uuid in the development DB; storage/test_stamps/
+#      is RSpec/E2E-only and always disposable, so it isn't checked here)
 #   5. Untracked files in e2e/ (temp DXF/TIF left by an aborted E2E run;
 #      bin/e2e removes the known generated ones on the next run)
 
@@ -86,17 +88,17 @@ RUBY
 ok, output, = run_ruby(query)
 db_record_findings = output.split("\n").reject(&:empty?) if ok
 
-# 4. Orphan upload folders in storage/stamps/.
+# 4. Orphan upload folders in storage/stamps/ (development DB only — see
+# comment at top; a failed read skips this check instead of reporting every
+# real upload as an orphan).
 storage_orphan_findings = []
-known_uuids = []
-%w[test development].each do |env|
-  ok, output, = run_ruby('puts Arquivo.pluck(:uuid).join("\\n")', env)
-  known_uuids.concat(output.split("\n")) if ok
-end
-known_uuids.uniq!
-Dir[File.join(RAILS_ROOT, "storage/stamps/*")].each do |dir|
-  uuid = File.basename(dir)
-  storage_orphan_findings << "storage/stamps/#{uuid}" unless known_uuids.include?(uuid)
+ok, output, = run_ruby('puts Arquivo.pluck(:uuid).join("\\n")', "development")
+if ok
+  known_uuids = output.split("\n")
+  Dir[File.join(RAILS_ROOT, "storage/stamps/*")].each do |dir|
+    uuid = File.basename(dir)
+    storage_orphan_findings << "storage/stamps/#{uuid}" unless known_uuids.include?(uuid)
+  end
 end
 
 # 5. Untracked files in e2e/.
