@@ -172,4 +172,46 @@ RSpec.describe Arquivo, type: :model do
       end
     end
   end
+
+  # Regression: arquivos.tamanho_id has a real DB foreign key (db/schema.rb),
+  # so destroying a corte whose Tamanho is still referenced by an arte's
+  # tamanho_id used to raise an unhandled SQLite3::ConstraintException (an
+  # unlogged 500) instead of a normal validation failure.
+  describe "destroy guard for arquivos linked via tamanho_id" do
+    it "blocks destroy and adds a base error when an arte still references a tamanho" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      arte = create(:arquivo, tamanho: tamanho)
+
+      expect(corte.destroy).to be false
+      expect(corte.errors[:base].first).to include("1 arquivo", arte.filename)
+      expect(Arquivo.exists?(corte.id)).to be true
+      expect(Arquivo.exists?(arte.id)).to be true
+    end
+
+    it "does not raise (no unhandled exception reaches the caller)" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      create(:arquivo, tamanho: tamanho)
+
+      expect { corte.destroy }.not_to raise_error
+    end
+
+    it "allows destroy when no other arquivo references its tamanhos" do
+      corte = create(:arquivo, :corte)
+      create(:tamanho, arquivo: corte)
+
+      expect(corte.destroy).to be_truthy
+      expect(Arquivo.exists?(corte.id)).to be false
+    end
+
+    it "allows destroy once the linking arte no longer references the tamanho" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      arte = create(:arquivo, tamanho: tamanho)
+      arte.update!(tamanho: nil)
+
+      expect(corte.destroy).to be_truthy
+    end
+  end
 end

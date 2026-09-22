@@ -597,6 +597,42 @@ RSpec.describe "Arquivos", type: :request do
       delete arquivo_path(arquivo)
       expect(response).to redirect_to(arquivos_path)
     end
+
+    it "removes the storage folder on success" do
+      arquivo = create(:arquivo)
+      folder = ArquivosController::STORAGE_BASE.join(arquivo.uuid)
+      FileUtils.mkdir_p(folder)
+
+      delete arquivo_path(arquivo)
+
+      expect(File).not_to exist(folder)
+    end
+
+    # Regression: a corte whose Tamanho is still referenced by an arte's
+    # tamanho_id used to raise an unhandled 500 (real DB foreign key
+    # violation) instead of a normal redirect + flash.
+    it "redirects with an alert instead of a 500 when the corte's tamanho is still linked" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      create(:arquivo, tamanho: tamanho)
+
+      expect { delete arquivo_path(corte) }.not_to change(Arquivo, :count)
+      expect(response).to redirect_to(arquivo_path(corte))
+      follow_redirect!
+      expect(response.body).to include("vinculado")
+    end
+
+    it "keeps the storage folder when the destroy is blocked" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      create(:arquivo, tamanho: tamanho)
+      folder = ArquivosController::STORAGE_BASE.join(corte.uuid)
+      FileUtils.mkdir_p(folder)
+
+      delete arquivo_path(corte)
+
+      expect(File).to exist(folder)
+    end
   end
 
   describe "DELETE /arquivos/batch_destroy" do
@@ -653,6 +689,41 @@ RSpec.describe "Arquivos", type: :request do
       body = response.parsed_body
       expect(body["destroyed"]).to eq(1)
       expect(body["errors"]).to eq([])
+    end
+
+    # Regression: batch_destroy never called FileUtils.rm_rf, unlike the
+    # singular destroy action — every batch delete leaked its upload folders.
+    it "removes each destroyed arquivo's storage folder" do
+      a1 = create(:arquivo)
+      a2 = create(:arquivo)
+      folder1 = ArquivosController::STORAGE_BASE.join(a1.uuid)
+      folder2 = ArquivosController::STORAGE_BASE.join(a2.uuid)
+      FileUtils.mkdir_p(folder1)
+      FileUtils.mkdir_p(folder2)
+
+      delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, a2.uuid ] }, as: :json
+
+      expect(File).not_to exist(folder1)
+      expect(File).not_to exist(folder2)
+    end
+
+    # Regression: a blocked item used to raise inside one shared transaction,
+    # which rolled back EVERY item in the batch while still reporting the
+    # already-rolled-back ones as destroyed.
+    it "destroys the deletable items and reports the blocked one, without misreporting" do
+      corte = create(:arquivo, :corte)
+      tamanho = create(:tamanho, arquivo: corte)
+      create(:arquivo, tamanho: tamanho)
+      plain = create(:arquivo)
+
+      delete batch_destroy_arquivos_path, params: { ids: [ corte.uuid, plain.uuid ] }, as: :json
+
+      expect(response).to have_http_status(:success)
+      body = response.parsed_body
+      expect(body["destroyed"]).to eq(1)
+      expect(body["errors"]).to match([ { "uuid" => corte.uuid, "error" => a_string_including("vinculado") } ])
+      expect(Arquivo.exists?(corte.id)).to be true
+      expect(Arquivo.exists?(plain.id)).to be false
     end
 
     it "renders the batch toolbar data attributes on index page" do
