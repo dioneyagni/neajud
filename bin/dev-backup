@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -e
+
+# bin/dev-backup — snapshot storage/development.sqlite3 + storage/stamps/ so
+# a risky manual test (a script mistake, a bulk delete you're not sure
+# about, testing a migration by hand) can be undone with bin/dev-restore.
+# Both are real, unversioned data (.gitignore'd, no other backup exists —
+# see the Sep 2026 storage/stamps incident in AGENTS.md).
+#
+# Usage:
+#   bin/dev-backup             # snapshot now, tagged only with a timestamp
+#   bin/dev-backup my-label    # snapshot tagged "<timestamp>-my-label"
+#
+# Keeps the last 10 snapshots in storage/backups/; older ones are pruned.
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+LABEL="${1:-}"
+STAMP="$(date +%Y%m%d-%H%M%S)${LABEL:+-$LABEL}"
+DEST="storage/backups/$STAMP"
+mkdir -p "$DEST"
+
+if [ -f storage/development.sqlite3 ]; then
+  cp storage/development.sqlite3 "$DEST/development.sqlite3"
+  # WAL-mode sidecar files, if present, must travel with the main file.
+  [ -f storage/development.sqlite3-wal ] && cp storage/development.sqlite3-wal "$DEST/"
+  [ -f storage/development.sqlite3-shm ] && cp storage/development.sqlite3-shm "$DEST/"
+else
+  echo "WARNING: storage/development.sqlite3 not found, skipping DB." >&2
+fi
+
+if [ -d storage/stamps ]; then
+  cp -a storage/stamps "$DEST/stamps"
+else
+  mkdir -p "$DEST/stamps"
+fi
+
+echo "Backed up to $DEST"
+
+# Prune: keep only the 10 most recent snapshots.
+ls -1dt storage/backups/*/ 2>/dev/null | tail -n +11 | xargs -r rm -rf

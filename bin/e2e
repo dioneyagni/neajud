@@ -45,8 +45,10 @@ echo "       Done."
 # Step 2: Prepare test database
 echo "[2/5] Preparing test database..."
 bin/rails db:test:prepare 2>&1 | tail -1
-# Wipe upload folders so E2E runs never accumulate orphan stamps
-rm -rf storage/stamps/* 2>/dev/null || true
+# Wipe upload folders so E2E runs never accumulate orphan stamps. Only
+# storage/test_stamps/ — never storage/stamps/, which holds real
+# development/production uploads (see ArquivoVersion::STORAGE_BASE).
+rm -rf storage/test_stamps/* 2>/dev/null || true
 clean_e2e_artifacts
 # Truncate all tables to ensure clean state for E2E
 bin/rails runner '

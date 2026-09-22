@@ -55,7 +55,7 @@ RSpec.describe ArquivoVersion, type: :model do
   describe "#storage_dir" do
     it "returns the correct storage directory path" do
       version.save!
-      expected = Rails.root.join("storage", "stamps", version.arquivo.uuid, "v#{version.version_number}").to_s
+      expected = ArquivoVersion::STORAGE_BASE.join(version.arquivo.uuid, "v#{version.version_number}").to_s
       expect(version.storage_dir).to eq(expected)
     end
   end
@@ -82,6 +82,15 @@ RSpec.describe ArquivoVersion, type: :model do
     it "returns nil when preview_file is empty string" do
       version.preview_file = ""
       expect(version.preview_path).to be_nil
+    end
+  end
+
+  # Regression: storage/stamps/ and storage/test_stamps/ used to be the same
+  # directory, so bin/e2e's `rm -rf storage/stamps/*` (needed so E2E runs
+  # never accumulate test uploads) also destroyed real development uploads.
+  describe "STORAGE_BASE" do
+    it "resolves under storage/test_stamps/, never storage/stamps/, in the test env" do
+      expect(described_class::STORAGE_BASE.to_s).to end_with("/storage/test_stamps")
     end
   end
 end

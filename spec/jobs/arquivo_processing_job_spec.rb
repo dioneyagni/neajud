@@ -48,7 +48,7 @@ RSpec.describe ArquivoProcessingJob do
   end
 
   def version_storage_dir(v)
-    File.join(Rails.root, "storage", "stamps", v.arquivo.uuid, "v#{v.version_number}")
+    File.join(ArquivoVersion::STORAGE_BASE, v.arquivo.uuid, "v#{v.version_number}")
   end
 
   def copy_to_version(v, filename)

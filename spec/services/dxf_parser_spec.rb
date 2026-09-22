@@ -70,7 +70,7 @@ RSpec.describe ArquivoProcessingJob do
     arquivo = create(:arquivo, extension: "dxf", category: "corte")
     version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf")
 
-    dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+    dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
     FileUtils.mkdir_p(dir)
     src = Rails.root.join("spec/fixtures/files/REFORÇO - 35 AO 43.dxf").to_s
     dest = File.join(dir, "REFORÇO - 35 AO 43.dxf")
@@ -102,7 +102,7 @@ RSpec.describe ArquivoProcessingJob do
     expect(green.width_mm).to be_within(0.1).of(2245.2)
     expect(green.height_mm).to be_within(0.1).of(223.1)
 
-    FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+    FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
     File.delete(svg_out) if File.exist?(svg_out)
     arquivo.destroy!
     end
@@ -120,7 +120,7 @@ RSpec.describe ArquivoProcessingJob do
       arquivo = create(:arquivo, extension: "dxf", category: "corte", filename: "CABEDAL - 35 AO 43")
       version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf")
 
-      dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+      dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
       FileUtils.mkdir_p(dir)
       src = Rails.root.join("spec/fixtures/files/CABEDAL - 35 AO 43.dxf").to_s
       dest = File.join(dir, "CABEDAL - 35 AO 43.dxf")
@@ -139,7 +139,7 @@ RSpec.describe ArquivoProcessingJob do
       expect(arquivo.tamanhos.first.perimeter_mm).to be_present
       expect(arquivo.tamanhos.first.total_line_mm).to be_present
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       arquivo.destroy!
     end
 
@@ -147,7 +147,7 @@ RSpec.describe ArquivoProcessingJob do
       arquivo = create(:arquivo, extension: "dxf", category: "corte", filename: "29-30")
       version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf")
 
-      dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+      dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
       FileUtils.mkdir_p(dir)
       src = Rails.root.join("spec/fixtures/files/29-30.dxf").to_s
       dest = File.join(dir, "29-30.dxf")
@@ -164,7 +164,7 @@ RSpec.describe ArquivoProcessingJob do
       expect(arquivo.tamanhos.first.perimeter_mm).to be_present
       expect(arquivo.tamanhos.first.total_line_mm).to be_present
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       arquivo.destroy!
     end
 
@@ -172,7 +172,7 @@ RSpec.describe ArquivoProcessingJob do
       arquivo = create(:arquivo, extension: "dxf", category: "corte", filename: "REFORÇO - 35 AO 43")
       version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf")
 
-      dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+      dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
       FileUtils.mkdir_p(dir)
       src = Rails.root.join("spec/fixtures/files/REFORÇO - 35 AO 43.dxf").to_s
       dest = File.join(dir, "REFORÇO - 35 AO 43.dxf")
@@ -187,7 +187,7 @@ RSpec.describe ArquivoProcessingJob do
       expect(arquivo.tamanhos.first.nome).to eq("35")
       expect(arquivo.tamanhos.last.nome).to eq("43")
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       arquivo.destroy!
     end
 
@@ -256,7 +256,7 @@ RSpec.describe ArquivoProcessingJob do
       arquivo = create(:arquivo, extension: "dxf", category: "corte", filename: "overlap")
       version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf",
         original_file: "overlap.dxf")
-      dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+      dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
       FileUtils.mkdir_p(dir)
       FileUtils.cp(tmp, File.join(dir, "overlap.dxf"))
       arquivo.update!(approved_version_id: version.id)
@@ -267,7 +267,7 @@ RSpec.describe ArquivoProcessingJob do
       expect(arquivo.organize_error).to eq(DxfOrganizationService::OVERLAP_ERROR)
       expect(arquivo.tamanhos.count).to eq(2)
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       File.delete(tmp) if File.exist?(tmp)
       arquivo.destroy!
     end
@@ -279,7 +279,7 @@ RSpec.describe ArquivoProcessingJob do
       arquivo = create(:arquivo, extension: "dxf", category: "corte", filename: "overlap-hole")
       version = create(:arquivo_version, arquivo: arquivo, version_number: 1, extension: "dxf",
         original_file: "overlap-hole.dxf")
-      dir = File.join(Rails.root, "storage", "stamps", arquivo.uuid, "v1", "original")
+      dir = File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid, "v1", "original")
       FileUtils.mkdir_p(dir)
       FileUtils.cp(tmp, File.join(dir, "overlap-hole.dxf"))
       arquivo.update!(approved_version_id: version.id)
@@ -301,7 +301,7 @@ RSpec.describe ArquivoProcessingJob do
       expect(arquivo.organize_error).to be_nil
       expect(arquivo.tamanhos.count).to eq(1)
 
-      FileUtils.rm_rf(File.join(Rails.root, "storage", "stamps", arquivo.uuid))
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       File.delete(tmp) if File.exist?(tmp)
       File.delete(svg_out) if File.exist?(svg_out)
       arquivo.destroy!

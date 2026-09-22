@@ -33,7 +33,15 @@ class ArquivoVersion < ApplicationRecord
     preview_file
   end
 
-  STORAGE_BASE = Rails.root.join("storage", "stamps")
+  # Separate physical directories per environment: storage/stamps holds real
+  # development/production uploads; storage/test_stamps holds only
+  # RSpec/E2E throwaway uploads, freely wiped by bin/e2e. Sharing a single
+  # directory used to mean bin/e2e's `rm -rf storage/stamps/*` (needed so
+  # E2E runs never accumulate test uploads) also destroyed real development
+  # uploads on every run — the Arquivo rows survived (only the *test*
+  # database gets truncated) but their files didn't, so previews silently
+  # stopped rendering for anything uploaded before the next `bin/e2e` run.
+  STORAGE_BASE = Rails.root.join("storage", Rails.env.test? ? "test_stamps" : "stamps")
 
   private
 

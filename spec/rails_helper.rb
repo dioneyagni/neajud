@@ -10,7 +10,6 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 require 'rspec/rails'
 require 'shoulda/matchers'
 # Add additional requires below this line. Rails is not loaded until this point!
-require_relative "support/orphan_upload_cleanup"
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
@@ -51,18 +50,13 @@ RSpec.configure do |config|
     Rails.application.load_seed
   end
 
-  # Request specs upload real files into storage/stamps/:uuid/. DB rows roll
-  # back but the folders persist, leaving orphan residue the guard flags.
-  # Remove folders not referenced by any Arquivo in test OR development DBs.
-  # Fail-safe: if the development DB can't be read nothing is deleted, so real
-  # dev uploads are never wiped (see spec/support/orphan_upload_cleanup.rb).
+  # Request specs upload real files into storage/test_stamps/:uuid/ (DB rows
+  # roll back but the folders persist). That directory is RSpec/E2E-only —
+  # never storage/stamps/, which holds real development/production uploads
+  # (see ArquivoVersion::STORAGE_BASE) — so wiping it wholesale after the
+  # suite is always safe, no uuid bookkeeping needed.
   config.after(:suite) do
-    dev_config = ActiveRecord::Base.configurations.configs_for(env_name: "development", name: "primary")
-    dev_db_path = dev_config && Rails.root.join(dev_config.database)
-    OrphanUploadCleanup.new(
-      stamps_dir: Rails.root.join("storage", "stamps"),
-      uuid_sources: [ -> { Arquivo.pluck(:uuid) }, DevelopmentArquivoUuids.new(db_path: dev_db_path) ]
-    ).call
+    FileUtils.rm_rf(Rails.root.join("storage", "test_stamps"))
   end
 
   config.include FactoryBot::Syntax::Methods
