@@ -1756,7 +1756,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     } finally {
       await page.evaluate(async ({ clientId, arteUuid }) => {
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
       }, { clientId, arteUuid }).catch(() => {});
       if (fs.existsSync(arteSizePath)) fs.unlinkSync(arteSizePath);
     }
@@ -2023,8 +2023,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
         // Delete molde after peca (no hard dep via models since we already removed modelo)
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (orgUuid) await fetch(`/arquivos/${orgUuid}`, { method: "DELETE" }); } catch (_) {}
-        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (orgUuid) await fetch(`/arquivos/${orgUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
       }, { pecaId, moldeId, clientName, arteUuid, orgUuid }).catch(() => {});
       // Cleanup local files
@@ -2990,8 +2990,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE" }); } catch (_) {}
-        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
       }, { dxfUuid, arteUuid }).catch(() => {});
       if (fs.existsSync(dxfPath)) fs.unlinkSync(dxfPath);
@@ -3200,8 +3200,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         // Delete in reverse dependency order
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE" }); } catch (_) {}
-        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE" }); } catch (_) {}
+        try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
+        try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
       }, { dxfUuid, arteUuid }).catch(() => {});
       if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
@@ -3386,8 +3386,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       console.log("  ✓ Unique Corte: duplicate peca+modelo correctly rejected");
     } finally {
       // Cleanup
-      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid2); } catch (_) {}
-      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid1); } catch (_) {}
+      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
+      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
       try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
@@ -3577,8 +3577,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       passed++;
       console.log("  ✓ Unique Corte: organize form shows alert on peca+modelo conflict");
     } finally {
-      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid2); } catch (_) {}
-      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE" }).catch(() => {}), uuid1); } catch (_) {}
+      try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
+      try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
       try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}

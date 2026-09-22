@@ -333,8 +333,16 @@ class ArquivosController < ApplicationController
   end
 
   def destroy
+    # destroy (not destroy!) so a blocked deletion (e.g. an arte still linked
+    # to this corte's tamanho, see Arquivo#prevent_destroy_with_linked_arquivos)
+    # comes back as a normal flash instead of an unhandled 500. Removing the
+    # upload folder only after a successful destroy avoids deleting real
+    # files for a row that turned out not to be destroyable.
+    unless @arquivo.destroy
+      redirect_to @arquivo, alert: @arquivo.errors[:base].to_sentence
+      return
+    end
     FileUtils.rm_rf(File.join(STORAGE_BASE, @arquivo.uuid))
-    @arquivo.destroy!
     redirect_to arquivos_path, notice: "Arquivo deleted."
   end
 
@@ -344,36 +352,40 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed = 0
-    errors = []
+    destroyed_uuids, errors = destroy_arquivos_batch(ids)
+    destroyed_uuids.each { |uuid| FileUtils.rm_rf(File.join(STORAGE_BASE, uuid)) }
 
-    ActiveRecord::Base.connection.execute("PRAGMA defer_foreign_keys = ON")
-
-    ActiveRecord::Base.transaction do
-      ids.each do |uuid|
-        arquivo = Arquivo.find_by(uuid: uuid)
-        unless arquivo
-          errors << uuid
-          next
-        end
-
-        begin
-          arquivo.destroy!
-          destroyed += 1
-        rescue => e
-          errors << { uuid: uuid, error: e.message }
-          raise ActiveRecord::Rollback
-        end
-      end
-    end
-
-    render json: { destroyed: destroyed, errors: errors }
+    render json: { destroyed: destroyed_uuids.size, errors: errors }
   end
 
   private
 
   def set_arquivo
     @arquivo = Arquivo.find_by!(uuid: params[:id])
+  end
+
+  # Bug fix: this used to wrap every id in ONE transaction and roll the
+  # whole thing back on the first failure, yet still reported the
+  # already-rolled-back items as destroyed (destroyed/errors were plain Ruby
+  # counters, unaffected by the DB rollback). Destroying each arquivo in its
+  # own (implicit) transaction makes one bad id fail on its own without
+  # undoing the others, and the returned uuids are only ever ones that
+  # actually committed. Also never removed storage/stamps/:uuid — callers
+  # now do that themselves for each returned uuid.
+  def destroy_arquivos_batch(ids)
+    destroyed_uuids = []
+    errors = []
+    ids.each do |uuid|
+      arquivo = Arquivo.find_by(uuid: uuid)
+      next errors << uuid unless arquivo
+
+      if arquivo.destroy
+        destroyed_uuids << uuid
+      else
+        errors << { uuid: uuid, error: arquivo.errors[:base].to_sentence.presence || "could not be deleted" }
+      end
+    end
+    [ destroyed_uuids, errors ]
   end
 
   def create_and_save_version!(arquivo, upload)

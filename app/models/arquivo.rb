@@ -16,6 +16,7 @@ class Arquivo < ApplicationRecord
   before_validation :set_uuid, on: :create
   before_validation :set_default_tipo_corte
   after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
+  before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
   validates :uuid, presence: true, uniqueness: true
@@ -116,6 +117,26 @@ class Arquivo < ApplicationRecord
   end
 
   private
+
+  # Bug (found while verifying feat/mold-org-cascade-filter, PR #70):
+  # destroying a corte cascades to destroy its Tamanhos (has_many :tamanhos,
+  # dependent: :destroy above), but arquivos.tamanho_id has a real DB-level
+  # foreign key (db/schema.rb: add_foreign_key "arquivos", "tamanhos") — an
+  # arte still linked to one of those Tamanhos via tamanho_id makes SQLite
+  # reject the DELETE. Unguarded, that raised an unhandled
+  # SQLite3::ConstraintException -> unlogged 500 (config/environments/*.rb
+  # sets show_exceptions: :rescuable, which doesn't log unrescuable errors).
+  # This turns it into a normal validation-style rejection instead.
+  def prevent_destroy_with_linked_arquivos
+    linked = linked_arquivos_via_tamanhos
+    return if linked.none?
+    errors.add(:base, "não pode ser excluído: #{linked.count} arquivo(s) ainda vinculado(s) a um tamanho deste corte (#{linked.pluck(:filename).to_sentence})")
+    throw :abort
+  end
+
+  def linked_arquivos_via_tamanhos
+    Arquivo.where(tamanho_id: tamanhos.pluck(:id)).where.not(id: id)
+  end
 
   def peca_modelo_uniqueness_for_organized_corte
     return unless corte? && organized? && peca_id.present?
