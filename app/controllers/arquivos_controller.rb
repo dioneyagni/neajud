@@ -90,27 +90,7 @@ class ArquivosController < ApplicationController
       return head :bad_request
     end
 
-    existing = version.cut_layers.index_by(&:color)
-    version.cut_layers.destroy_all
-    permitted = annotations.values.map { |v|
-      v.is_a?(ActionController::Parameters) ? v.permit(:layer_name, :color, :annotation) : v.to_unsafe_h
-    }
-    permitted.each_with_index do |layer, idx|
-      prev = existing[layer["color"]]
-      version.cut_layers.create!(
-        layer_name: layer["layer_name"],
-        color: layer["color"],
-        annotation: layer["annotation"] || "cut",
-        position: idx,
-        width_mm: prev&.width_mm,
-        height_mm: prev&.height_mm,
-        perimeter_mm: prev&.perimeter_mm,
-        area_mm2: prev&.area_mm2
-      )
-    end
-    if @arquivo.extension.downcase == "dxf" && @arquivo.organize_error.present?
-      DxfOrganizationService.call(@arquivo)
-    end
+    CutLayerConfigurationService.call(version, annotations)
     redirect_to @arquivo, notice: "Layer configuration saved."
   end
 
