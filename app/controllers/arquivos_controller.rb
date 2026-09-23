@@ -62,11 +62,7 @@ class ArquivosController < ApplicationController
       return redirect_to @arquivo, alert: "Invalid file type."
     end
 
-    FileUtils.mkdir_p(version.storage_dir)
-    dest_dir = File.join(version.storage_dir, "original")
-    FileUtils.mkdir_p(dest_dir)
-    dest_path = File.join(dest_dir, upload.original_filename)
-    File.open(dest_path, "wb") { |f| f.write(upload.read) }
+    version.store_original!(upload)
     version.original_file = upload.original_filename
 
     version.save!
@@ -94,27 +90,7 @@ class ArquivosController < ApplicationController
       return head :bad_request
     end
 
-    existing = version.cut_layers.index_by(&:color)
-    version.cut_layers.destroy_all
-    permitted = annotations.values.map { |v|
-      v.is_a?(ActionController::Parameters) ? v.permit(:layer_name, :color, :annotation) : v.to_unsafe_h
-    }
-    permitted.each_with_index do |layer, idx|
-      prev = existing[layer["color"]]
-      version.cut_layers.create!(
-        layer_name: layer["layer_name"],
-        color: layer["color"],
-        annotation: layer["annotation"] || "cut",
-        position: idx,
-        width_mm: prev&.width_mm,
-        height_mm: prev&.height_mm,
-        perimeter_mm: prev&.perimeter_mm,
-        area_mm2: prev&.area_mm2
-      )
-    end
-    if @arquivo.extension.downcase == "dxf" && @arquivo.organize_error.present?
-      DxfOrganizationService.call(@arquivo)
-    end
+    CutLayerConfigurationService.call(version, annotations)
     redirect_to @arquivo, notice: "Layer configuration saved."
   end
 
@@ -167,21 +143,7 @@ class ArquivosController < ApplicationController
 
     if @arquivo.update(updates)
       @arquivo.reload
-      unless @arquivo.tamanho_id
-        matched_tamanho = MoldMatchService.call(@arquivo)
-        if matched_tamanho
-          @arquivo.update(tamanho_id: matched_tamanho.id)
-          corte = matched_tamanho.arquivo
-          if corte && corte.molde_id != @arquivo.molde_id
-            @arquivo.update_column(:molde_id, corte.molde_id)
-            @arquivo.reload
-          end
-        else
-          corte = @arquivo.corte_via_modelo
-          primeiro_tamanho = corte&.tamanhos&.first
-          @arquivo.update(tamanho_id: primeiro_tamanho.id) if primeiro_tamanho
-        end
-      end
+      TamanhoAutoAssignService.call(@arquivo)
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @arquivo, notice: "Modelo updated." }
@@ -297,28 +259,7 @@ class ArquivosController < ApplicationController
       return
     end
 
-    if params[:tamanhos].respond_to?(:values)
-      old_previews = @arquivo.tamanhos.each_with_object({}) { |t, h| h[t.position] = t.preview_file }
-      tamanho_ids = @arquivo.tamanhos.pluck(:id)
-      Arquivo.where(tamanho_id: tamanho_ids).update_all(tamanho_id: nil)
-      @arquivo.tamanhos.destroy_all
-      raw = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
-      tamanhos = raw.transform_values { |v|
-        v.is_a?(Hash) ? v.slice("nome", "position", "width_mm", "height_mm", "area_mm2") : v
-      }
-      tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
-        pos = idx + 1
-        preview = old_previews[pos]
-        @arquivo.tamanhos.create!(
-          nome: t["nome"].presence || "Size #{idx + 1}",
-          position: pos,
-          width_mm: t["width_mm"],
-          height_mm: t["height_mm"],
-          area_mm2: t["area_mm2"],
-          preview_file: preview
-        )
-      end
-    end
+    TamanhoReplacementService.call(@arquivo, params[:tamanhos]) if params[:tamanhos].respond_to?(:values)
 
     if @arquivo.organize_error.present?
       DxfOrganizationService.call(@arquivo)
@@ -352,8 +293,7 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed_uuids, errors = destroy_arquivos_batch(ids)
-    destroyed_uuids.each { |uuid| FileUtils.rm_rf(File.join(STORAGE_BASE, uuid)) }
+    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids)
 
     render json: { destroyed: destroyed_uuids.size, errors: errors }
   end
@@ -362,30 +302,6 @@ class ArquivosController < ApplicationController
 
   def set_arquivo
     @arquivo = Arquivo.find_by!(uuid: params[:id])
-  end
-
-  # Bug fix: this used to wrap every id in ONE transaction and roll the
-  # whole thing back on the first failure, yet still reported the
-  # already-rolled-back items as destroyed (destroyed/errors were plain Ruby
-  # counters, unaffected by the DB rollback). Destroying each arquivo in its
-  # own (implicit) transaction makes one bad id fail on its own without
-  # undoing the others, and the returned uuids are only ever ones that
-  # actually committed. Also never removed storage/stamps/:uuid — callers
-  # now do that themselves for each returned uuid.
-  def destroy_arquivos_batch(ids)
-    destroyed_uuids = []
-    errors = []
-    ids.each do |uuid|
-      arquivo = Arquivo.find_by(uuid: uuid)
-      next errors << uuid unless arquivo
-
-      if arquivo.destroy
-        destroyed_uuids << uuid
-      else
-        errors << { uuid: uuid, error: arquivo.errors[:base].to_sentence.presence || "could not be deleted" }
-      end
-    end
-    [ destroyed_uuids, errors ]
   end
 
   def create_and_save_version!(arquivo, upload)
@@ -402,11 +318,7 @@ class ArquivosController < ApplicationController
       category_notes: arquivo.category_notes
     )
     arquivo.update!(approved_version_id: version.id)
-
-    dest_dir = File.join(version.storage_dir, "original")
-    FileUtils.mkdir_p(dest_dir)
-    dest_path = File.join(dest_dir, upload.original_filename)
-    File.open(dest_path, "wb") { |f| f.write(upload.read) }
+    version.store_original!(upload)
 
     arquivo.update!(
       filename: File.basename(upload.original_filename, ".*"),
@@ -487,16 +399,10 @@ class ArquivosController < ApplicationController
   end
 
   def estimate_time!(arquivo)
-    batch_started_at = Time.parse(params[:arquivo][:batch_started_at])
-    batch_size = params[:arquivo][:batch_size].to_i
-    last_arquivo_time = Arquivo.where("created_at < ?", batch_started_at).maximum(:created_at)
-
-    if last_arquivo_time
-      interval = (batch_started_at - last_arquivo_time).to_i
-      arquivo.estimated_seconds = [ interval / batch_size, 0 ].max
-    else
-      arquivo.estimated_seconds = 0
-    end
+    arquivo.estimated_seconds = UploadTimeEstimator.call(
+      batch_started_at: Time.parse(params[:arquivo][:batch_started_at]),
+      batch_size: params[:arquivo][:batch_size].to_i
+    )
   end
 
   def arquivo_params

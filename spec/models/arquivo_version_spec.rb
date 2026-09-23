@@ -68,6 +68,25 @@ RSpec.describe ArquivoVersion, type: :model do
     end
   end
 
+  describe "#store_original!" do
+    let(:version) { create(:arquivo_version, version_number: 1) }
+    let(:upload) { Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/02-no_spot.tif"), "image/tiff") }
+
+    after { FileUtils.rm_rf(File.dirname(version.storage_dir)) }
+
+    it "writes the upload byte-for-byte to original/<filename>" do
+      version.store_original!(upload)
+      stored = File.join(version.storage_dir, "original", "02-no_spot.tif")
+      expect(File.binread(stored)).to eq(File.binread(Rails.root.join("spec/fixtures/files/02-no_spot.tif")))
+    end
+
+    it "works on an unsaved version (storage_dir needs only arquivo + version_number)" do
+      unsaved = build(:arquivo_version, arquivo: version.arquivo, version_number: 2)
+      unsaved.store_original!(upload)
+      expect(File.exist?(File.join(unsaved.storage_dir, "original", "02-no_spot.tif"))).to be true
+    end
+  end
+
   describe "#preview_path" do
     it "returns preview_file when present" do
       version.preview_file = "/some/path/preview.png"
