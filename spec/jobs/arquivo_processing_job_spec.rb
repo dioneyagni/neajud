@@ -47,6 +47,26 @@ RSpec.describe ArquivoProcessingJob do
     status.success?
   end
 
+  # Strict parse so a truncated or malformed SVG raises instead of passing.
+  def svg_view_box(path)
+    doc = Nokogiri::XML(File.read(path)) { |config| config.strict }
+    raise "Expected <svg> root in #{path}, got <#{doc.root&.name}>" unless doc.root&.name == "svg"
+    doc.root["viewBox"].split.map(&:to_f)
+  end
+
+  # Rasterize so "visible content" means drawn pixels, not just <path> tags.
+  def rasterize_svg(svg_path, png_path)
+    system("convert", "-background", "none", "-density", "150", svg_path,
+           "-define", "png:color-type=6", png_path, err: File::NULL)
+  end
+
+  # DXF strokes are often pure black (layer color 7) on a transparent
+  # background, which png_has_visible_pixels? rejects (it requires RGB > 0).
+  # Any opaque pixel counts as drawn content here.
+  def png_max_alpha(path)
+    `identify -format '%[fx:maxima.a]' #{Shellwords.escape(path)} 2>/dev/null`.to_f
+  end
+
   def version_storage_dir(v)
     File.join(ArquivoVersion::STORAGE_BASE, v.arquivo.uuid, "v#{v.version_number}")
   end
@@ -238,6 +258,49 @@ RSpec.describe ArquivoProcessingJob do
     end
   end
 
+  describe "#generate_preview_dxf" do
+    # Expected sizes come from outside the dxf library: CABEDAL from its
+    # $EXTMAX - $EXTMIN header; 29-30's header extents are unset (±1e20), so
+    # its sole piece as measured by DxfOrganizationService (see e2e fixture).
+    shared_examples "DXF preview" do |label, input_file, expected_w, expected_h|
+      context "with #{label}" do
+        let(:input) { original_path.join(input_file).to_s }
+        let(:output) { Rails.root.join("tmp", "test-dxf-#{label.parameterize}.svg").to_s }
+        let(:raster) { output.sub(/\.svg\z/, ".png") }
+
+        after { [ output, raster ].each { |f| File.delete(f) if File.exist?(f) } }
+
+        it "produces a well-formed SVG" do
+          job.send(:generate_preview_dxf, input, output)
+          expect { svg_view_box(output) }.not_to raise_error
+        end
+
+        it "has a viewBox matching the source drawing size" do
+          job.send(:generate_preview_dxf, input, output)
+          _x, _y, width, height = svg_view_box(output)
+          expect(width).to be_within(expected_w * 0.005).of(expected_w)
+          expect(height).to be_within(expected_h * 0.005).of(expected_h)
+        end
+
+        it "renders visible strokes when rasterized" do
+          job.send(:generate_preview_dxf, input, output)
+          expect(rasterize_svg(output, raster)).to be true
+          expect(png_max_alpha(raster)).to be > 0
+        end
+      end
+    end
+
+    include_examples "DXF preview", "single piece 29-30", "29-30.dxf", 218.69, 225.48
+    include_examples "DXF preview", "multi-size CABEDAL", "CABEDAL - 35 AO 43.dxf", 2294.4947, 361.2683
+
+    it "raises when the input file does not exist" do
+      output = Rails.root.join("tmp", "test-dxf-missing.svg").to_s
+      expect { job.send(:generate_preview_dxf, "/nonexistent/missing.dxf", output) }
+        .to raise_error(RuntimeError, "DXF preview failed")
+      expect(File.exist?(output)).to be false
+    end
+  end
+
   describe "routing in #process_image" do
     before do
       copy_to_version(version, "02-no_spot.tif")
@@ -245,6 +308,14 @@ RSpec.describe ArquivoProcessingJob do
 
     after do
       FileUtils.rm_rf(version_storage_dir(version))
+    end
+
+    it "routes DXF to generate_preview_dxf and stores an SVG preview" do
+      copy_to_version(version, "29-30.dxf")
+      version.update!(extension: "dxf")
+      expect(job).to receive(:generate_preview_dxf).and_call_original
+      job.send(:process_image, version)
+      expect(version.reload.preview_file).to end_with("preview/preview.svg")
     end
 
     it "routes RGB no-spot to generate_preview_rgb" do
