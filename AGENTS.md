@@ -120,7 +120,7 @@ bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
 bin/brakeman --exit-on-warn   # security scan
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
-bash bin/e2e                  # Playwright E2E (headless)
+bash bin/e2e                  # Playwright E2E (headless) — kills the dev server, see "bin/e2e kills the dev server"
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
@@ -432,6 +432,28 @@ has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 
 ⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
 test, but an earlier `export RAILS_ENV=development` in the shell can override it.
+
+## bin/e2e kills the dev server (and possibly your shell)
+
+Step 1 of `bin/e2e` runs `pkill -f "puma"` and `pkill -f "rails server"`, then
+`fuser -k 3000/tcp`. `pkill -f` matches the **full command line of every
+process**, so it kills:
+
+- the development server on :3000 — restart it after the E2E run;
+- **any shell whose command line contains `puma` or `rails server`**, including
+  the one that launched `bin/e2e`. `bash bin/e2e; bin/rails server …` in one
+  command, or a loop with `pkill -f "puma.*3000"` in it, kills itself midway
+  (exit code 144, no output).
+
+Rules:
+
+- Restart the dev server in a **separate** command after `bin/e2e` finishes:
+  `nohup bin/rails server -p 3000 &>/dev/null &`, then poll `curl -s localhost:3000/up`.
+- Never put `puma` or `rails server` in the same command line as `bin/e2e`.
+- If a run is interrupted (killed shell, Ctrl-C), check for orphans before the
+  next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
+  server, creating and deleting records mid-run and producing dozens of unrelated
+  failures: `ps -eo pid,args | grep -E "node e2e|chrom|puma" | grep -v grep`.
 
 ## db/seeds.rb is empty on purpose
 
