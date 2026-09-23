@@ -259,28 +259,7 @@ class ArquivosController < ApplicationController
       return
     end
 
-    if params[:tamanhos].respond_to?(:values)
-      old_previews = @arquivo.tamanhos.each_with_object({}) { |t, h| h[t.position] = t.preview_file }
-      tamanho_ids = @arquivo.tamanhos.pluck(:id)
-      Arquivo.where(tamanho_id: tamanho_ids).update_all(tamanho_id: nil)
-      @arquivo.tamanhos.destroy_all
-      raw = params[:tamanhos].is_a?(ActionController::Parameters) ? params[:tamanhos].to_unsafe_h : params[:tamanhos]
-      tamanhos = raw.transform_values { |v|
-        v.is_a?(Hash) ? v.slice("nome", "position", "width_mm", "height_mm", "area_mm2") : v
-      }
-      tamanhos.sort_by { |k, _| k.to_i }.each_with_index do |(_, t), idx|
-        pos = idx + 1
-        preview = old_previews[pos]
-        @arquivo.tamanhos.create!(
-          nome: t["nome"].presence || "Size #{idx + 1}",
-          position: pos,
-          width_mm: t["width_mm"],
-          height_mm: t["height_mm"],
-          area_mm2: t["area_mm2"],
-          preview_file: preview
-        )
-      end
-    end
+    TamanhoReplacementService.call(@arquivo, params[:tamanhos]) if params[:tamanhos].respond_to?(:values)
 
     if @arquivo.organize_error.present?
       DxfOrganizationService.call(@arquivo)
