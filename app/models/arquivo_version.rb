@@ -28,6 +28,15 @@ class ArquivoVersion < ApplicationRecord
     File.join(storage_dir, "original", original_file)
   end
 
+  # Writes an uploaded file to original/ under this version's storage dir.
+  # Works before save: storage_dir only needs arquivo.uuid + version_number.
+  # Usage: version.store_original!(params[:original_file])
+  def store_original!(upload)
+    dir = File.join(storage_dir, "original")
+    FileUtils.mkdir_p(dir)
+    File.binwrite(File.join(dir, upload.original_filename), upload.read)
+  end
+
   def preview_path
     return nil if preview_file.blank?
     preview_file

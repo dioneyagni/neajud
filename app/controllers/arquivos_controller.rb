@@ -62,11 +62,7 @@ class ArquivosController < ApplicationController
       return redirect_to @arquivo, alert: "Invalid file type."
     end
 
-    FileUtils.mkdir_p(version.storage_dir)
-    dest_dir = File.join(version.storage_dir, "original")
-    FileUtils.mkdir_p(dest_dir)
-    dest_path = File.join(dest_dir, upload.original_filename)
-    File.open(dest_path, "wb") { |f| f.write(upload.read) }
+    version.store_original!(upload)
     version.original_file = upload.original_filename
 
     version.save!
@@ -402,11 +398,7 @@ class ArquivosController < ApplicationController
       category_notes: arquivo.category_notes
     )
     arquivo.update!(approved_version_id: version.id)
-
-    dest_dir = File.join(version.storage_dir, "original")
-    FileUtils.mkdir_p(dest_dir)
-    dest_path = File.join(dest_dir, upload.original_filename)
-    File.open(dest_path, "wb") { |f| f.write(upload.read) }
+    version.store_original!(upload)
 
     arquivo.update!(
       filename: File.basename(upload.original_filename, ".*"),
