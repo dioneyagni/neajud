@@ -39,6 +39,29 @@ RSpec.describe "Arquivos", type: :request do
       expect(response.body).to include('drop->upload#drop')
       expect(response.body).to include('click->upload#click')
     end
+
+    # Regression: 019535b only rendered Size Selection when the corte had an
+    # organize_error, so selecting client + modelo never showed the size.
+    it "renders Size Selection with the linked tamanho dimensions for an arte with client + modelo" do
+      tamanho = create(:tamanho, nome: "M", width_mm: 150.0, height_mm: 250.0)
+      arquivo = create(:arquivo, client: create(:client), modelo: create(:modelo), tamanho: tamanho)
+      get arquivo_path(arquivo)
+      expect(response.body).to include('id="size-selection-section"')
+      expect(response.body).to include("→ M")
+      expect(response.body).to include("150.0×250.0 mm")
+    end
+
+    it "keeps the Size Selection placeholder hidden for an arte without modelo" do
+      arquivo = create(:arquivo, client: create(:client))
+      get arquivo_path(arquivo)
+      expect(response.body).to match(/id="size-selection-section"[^>]*style="display:none"/m)
+    end
+
+    it "does not render Size Selection for corte arquivos" do
+      arquivo = create(:arquivo, :corte)
+      get arquivo_path(arquivo)
+      expect(response.body).not_to include('id="size-selection-section"')
+    end
   end
 
   describe "GET /arquivos (gallery pagination and view toggle)" do

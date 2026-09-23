@@ -1679,7 +1679,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
   // ── Size Selection (Arte arquivos) ──
 
-  await test("Size Selection: hidden by default, only shown when corte has organize_error", async () => {
+  await test("Size Selection: in DOM but hidden when arte has client and no modelo", async () => {
     const arteSizePath = path.join(__dirname, `e2e-size-arte-${Date.now()}.tif`);
     if (!fs.existsSync(arteSizePath)) {
       const { execSync } = require("child_process");
@@ -1748,11 +1748,12 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
+      // Must exist so update_modelo's turbo stream has a target to replace
       const sectionInDOM = await page.evaluate(() => !!document.querySelector("#size-selection-section"));
-      if (sectionInDOM) throw new Error("Size Selection section should not be in DOM for normal arte files");
+      if (!sectionInDOM) throw new Error("Size Selection section should be in DOM (turbo stream target) for arte files");
 
-      const body = await page.textContent("body");
-      if (body.includes("Size Selection")) throw new Error("Size Selection text should not appear for normal arte files");
+      const visible = await page.locator("#size-selection-section").isVisible();
+      if (visible) throw new Error("Size Selection should stay hidden until a modelo is selected");
     } finally {
       await page.evaluate(async ({ clientId, arteUuid }) => {
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
@@ -1766,7 +1767,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
 
 
-  await test("Size Selection: hidden for normal artes — comparison table shows linked tamanho instead", async () => {
+  await test("Size Selection: appears after picking modelo and shows the linked tamanho in mm", async () => {
     const artePath = path.join(__dirname, "e2e-comp-arte.tif");
     if (!fs.existsSync(artePath)) {
       const { execSync } = require("child_process");
@@ -1893,6 +1894,10 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await modelOption.click();
       await page.waitForTimeout(1500);
 
+      // Regression (019535b): turbo stream must reveal the section without reload
+      const sizeSectionAfterModelo = page.locator("#size-selection-section");
+      await sizeSectionAfterModelo.waitFor({ state: "visible", timeout: 5000 });
+
       // ── Create organized arquivo and organize it ──
       await page.goto(BASE_URL);
       await page.waitForSelector('input[type="file"]', { timeout: 5000 });
@@ -1987,9 +1992,26 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Verify Size Selection is NOT in the DOM
-      const sizeSelInDOM = await page.evaluate(() => !!document.querySelector("#size-selection-section"));
-      if (sizeSelInDOM) throw new Error("Size Selection section should not be in DOM for normal arte files");
+      // Verify Size Selection shows the linked tamanho with its dimensions
+      const sizeSection = page.locator("#size-selection-section");
+      await sizeSection.waitFor({ state: "visible", timeout: 5000 });
+      const sizeText = await sizeSection.textContent();
+      if (!sizeText.includes("99")) throw new Error(`Size Selection should show tamanho '99', got: "${sizeText.trim()}"`);
+      if (!sizeText.includes("150.0×250.0 mm")) throw new Error(`Size Selection should show '150.0×250.0 mm', got: "${sizeText.trim()}"`);
+
+      // Edit → cascade Piece → Size lists the tamanho with dimensions
+      await sizeSection.locator(".btn-edit").click();
+      await page.locator("#cascade_peca option", { hasText: "Comp Peca" }).waitFor({ state: "attached", timeout: 5000 });
+      await page.selectOption("#cascade_peca", { label: "Comp Peca" });
+      const sizeOption = page.locator("#cascade_tamanho option", { hasText: "99 (150.0×250.0 mm)" });
+      await sizeOption.waitFor({ state: "attached", timeout: 5000 }).catch(async () => {
+        const got = await page.locator("#cascade_tamanho option").allTextContents();
+        throw new Error(`Expected size option "99 (150.0×250.0 mm)", got: ${JSON.stringify(got)}`);
+      });
+      await page.selectOption("#cascade_tamanho", { label: "99 (150.0×250.0 mm)" });
+      const saveDisabled = await sizeSection.locator("button[type='submit']").isDisabled();
+      if (saveDisabled) throw new Error("Save button should be enabled after choosing a size");
+      await sizeSection.locator(".btn-cancel").click();
 
       // Verify Comparison with Corte shows the correct tamanho
       const body = await page.textContent("body");
@@ -1999,8 +2021,6 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const badge = await page.$(".badge-selected");
       if (!badge) throw new Error("Selected size badge not found in comparison table");
 
-      // Verify Size Selection text is absent
-      if (body.includes("Size Selection")) throw new Error("Size Selection text should not appear for normal arte files");
 
     } finally {
       // Cleanup DB records
