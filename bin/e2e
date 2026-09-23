@@ -31,7 +31,16 @@ clean_e2e_artifacts() {
 # Single source of truth for which specs run — CI calls this script too, so
 # a spec missing here runs nowhere (moldes.spec.js was silently skipped).
 # Explicit list (not a glob) keeps the historical run order.
-E2E_SPECS=(arquivos movimentos pedidos clients modelos materiais moldes)
+E2E_SPECS=(
+  # Former arquivos.spec.js, split by area — keep this order: later files reuse
+  # data created by earlier ones (arquivos-client-field opens the 29-30 card
+  # that arquivos-previews / arquivos-dxf-organization uploaded).
+  arquivos-upload arquivos-previews arquivos-versions arquivos-dxf-organization
+  arquivos-client-field arquivos-size-selection
+  pages-clients-moldes-pecas pages-modelos-materials
+  arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte
+  movimentos pedidos clients modelos materiais moldes
+)
 for file in e2e/*.spec.js; do
   name="$(basename "$file" .spec.js)"
   if [[ ! " ${E2E_SPECS[*]} " == *" $name "* ]]; then
