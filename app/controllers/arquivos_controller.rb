@@ -143,21 +143,7 @@ class ArquivosController < ApplicationController
 
     if @arquivo.update(updates)
       @arquivo.reload
-      unless @arquivo.tamanho_id
-        matched_tamanho = MoldMatchService.call(@arquivo)
-        if matched_tamanho
-          @arquivo.update(tamanho_id: matched_tamanho.id)
-          corte = matched_tamanho.arquivo
-          if corte && corte.molde_id != @arquivo.molde_id
-            @arquivo.update_column(:molde_id, corte.molde_id)
-            @arquivo.reload
-          end
-        else
-          corte = @arquivo.corte_via_modelo
-          primeiro_tamanho = corte&.tamanhos&.first
-          @arquivo.update(tamanho_id: primeiro_tamanho.id) if primeiro_tamanho
-        end
-      end
+      TamanhoAutoAssignService.call(@arquivo)
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @arquivo, notice: "Modelo updated." }
