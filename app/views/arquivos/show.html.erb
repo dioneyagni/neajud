@@ -40,9 +40,11 @@
       <% end %>
 
       <% if @arquivo.category == "artes" %>
-        <% if @arquivo.tamanho&.arquivo&.organize_error.present? %>
-          <%= render "size_selection", arquivo: @arquivo %>
-        <% end %>
+        <%# Always rendered: update_client/update_modelo turbo streams replace
+            #size-selection-section, so it must exist in the DOM. The partial
+            hides itself until client + modelo are set. Regression of 019535b,
+            which gated it on organize_error and made the size vanish. %>
+        <%= render "size_selection", arquivo: @arquivo %>
         <div id="corte-comparison-section">
           <%= render "corte_comparison", arquivo: @arquivo %>
         </div>
