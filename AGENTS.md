@@ -45,8 +45,11 @@
 
 - `spec/jobs/arquivo_processing_job_spec.rb` tests each conversion method
   (`generate_preview_rgb`, `generate_preview_cmyk`, `generate_preview_utif`,
-  `detect_spots`, `process_image` routing). `generate_preview_dxf` has no
-  direct spec yet (DXF previews are only covered by E2E).
+  `generate_preview_dxf`, `detect_spots`, `process_image` routing).
+- `generate_preview_dxf` outputs SVG, so its tests check: (1) strict-parsed
+  `<svg>` root, (2) `viewBox` size within 0.5% of the source drawing,
+  (3) rasterized output has opaque pixels (`png_max_alpha`, not
+  `png_has_visible_pixels?` — DXF strokes are often pure black).
 - Each conversion test **must** verify: (1) a valid PNG is produced,
   (2) dimensions match the source, (3) the PNG contains visible pixels
   (decompress IDAT and check non-zero alpha + RGB).
