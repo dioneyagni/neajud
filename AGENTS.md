@@ -23,8 +23,10 @@
 
 ## Tests
 
-- Tests run with a single command: `<project-specific>`.
-- Every new function gets a test and test e2e. Bug fixes get a regression test.
+- Full suite: `bin/rspec && bash bin/e2e` (must pass 100% before merge).
+- Every public method gets an RSpec test; every user-visible flow gets an E2E
+  test. Private helpers are covered through the public method that uses them.
+  Bug fixes get a regression test that fails without the fix.
 - Mock external I/O (API, DB, filesystem) with named fake classes,
   not inline stubs.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
@@ -33,12 +35,18 @@
   shut down and restart the server and all related processes. When there are
   no errors in the console, test e2e, then e2e --headed and check if
   everything goes through. Correct what is necessary and test again.
+- An intermittent failure is never "noise". Before calling it unrelated to
+  your change: run the suite N times on your branch and N times on `main`,
+  compare failure rates, and check request ordering in `log/test.log`
+  (e.g. a `Started GET` arriving before the previous POST's `Completed`).
+  Fix the root cause or report it; don't retry until green.
 
 ### Job & image processing tests
 
-- `spec/jobs/stamp_processing_job_spec.rb` tests each conversion method
+- `spec/jobs/arquivo_processing_job_spec.rb` tests each conversion method
   (`generate_preview_rgb`, `generate_preview_cmyk`, `generate_preview_utif`,
-  `detect_spots`, `process_image` routing).
+  `detect_spots`, `process_image` routing). `generate_preview_dxf` has no
+  direct spec yet (DXF previews are only covered by E2E).
 - Each conversion test **must** verify: (1) a valid PNG is produced,
   (2) dimensions match the source, (3) the PNG contains visible pixels
   (decompress IDAT and check non-zero alpha + RGB).
@@ -49,16 +57,17 @@
 
 ### E2E tests
 
-- `e2e/stamps.spec.js` covers all 4 preview strategies: RGB no-spot,
+- `e2e/arquivos.spec.js` covers all 4 raster preview strategies: RGB no-spot,
   RGB spot, CMYK no-spot, CMYK spot.
 - Each preview test **must** verify: (1) status is `processed`,
   (2) colorspace label matches expected, (3) preview image loads (200 OK,
   `image/*` content-type), (4) preview has visible pixels (load into canvas,
   check first 100x100 region for non-zero alpha + RGB).
 - CMYK spot is exempt from pixel validation (UTIF.js limitation).
-- Stamp card selectors must match by **filename without extension** using
+- Arquivo card selectors (CSS class is still `.stamp-card`) must match by
+  **filename without extension** using
   `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
-  flaky clicks on wrong cards when multiple stamps exist.
+  flaky clicks on wrong cards when multiple arquivos exist.
 - Run 3 times in succession to verify stability.
 
 ### Preventing false positives
@@ -159,64 +168,71 @@ the last 10 snapshots; older ones are pruned automatically on each
 ```bash
 git checkout main
 git pull
-git checkout -b fix/o-que-foi-feito   # ex: fix/per-color-measurements, add/png-export
+git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-export
 ```
 
-1. **Alterações** — faz as mudanças no código
-2. **Teste no servidor** — sobe o Rails server, testa a funcionalidade no navegador, observa o `log/development.log` em busca de erros. Corrigir e conferir novamente até o log limpo
-3. **Console do navegador** — abre DevTools, interage com a UI nova, verifica se há erros no console. Corrigir e conferir novamente
-4. **Testes unitários** — escrever testes para novas funções, adicionar testes de regressão para bugs corrigidos. Rodar `bin/rspec` e corrigir código até passar.
-5. **Testes E2E** — escrever testes no Playwright cobrindo todos os novos casos de uso e interações com a interface nova (botões, campos, drag-and-drop, etc). Não quebrar testes existentes.
-6. **Verificação final** — volta ao Rails server, testa de novo, confere o `log/development.log` e console do navegador mais uma vez. Corrigir se necessário.
-7. **Alterações finais** — ajusta o que apareceu na verificação
-8. **Commit** — `git add -A && git commit -m "mensagem descritiva (WHAT + WHY)"`
-9. **Push** — `git push -u origin fix/o-que-foi-feito`
-10. **PR no GitHub** — abrir Pull Request
-11. **CI** — roda automaticamente (RSpec + RuboCop + Brakeman + E2E)
-12. **Merge** — pelo GitHub UI se CI estiver verde
-13. **Limpeza** — deletar branch remoto
+1. **Changes** — make the code changes.
+2. **Server check** — start the Rails server, exercise the feature in the browser, watch `log/development.log` for errors. Fix and re-check until the log is clean.
+3. **Browser console** — open DevTools, interact with the new UI, check for console errors. Fix and re-check.
+4. **Unit tests** — write tests for new public methods, add regression tests for fixed bugs. Run `bin/rspec` and fix the code until it passes.
+5. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
+6. **Final check** — back to the Rails server: test again, re-check `log/development.log` and the browser console. Fix if needed.
+7. **Final adjustments** — address whatever the final check surfaced.
+8. **Commit** — `git add -A && git commit -m "descriptive message (WHAT + WHY)"`
+9. **Push** — `git push -u origin fix/what-was-done`
+10. **GitHub PR** — open a Pull Request.
+11. **CI** — runs automatically (see "CI coverage" under Key constraints for what it actually runs).
+12. **Merge** — through the GitHub UI, only if CI is green.
+13. **Cleanup** — delete the remote branch.
 
-⚠️ **Branch protection não está ativa** (GitHub Free + repo privado). A
-disciplina é manual: nunca fazer merge com CI vermelho.
+**What an agent may do on its own:** create branches, commit, push, and open
+or update PRs (steps 1–10). **Merging (step 12) is always done by a human.**
+Never merge, force-push to `main`, or delete branches you didn't create.
 
-Pre-commit antes de todo push: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
+⚠️ **Branch protection is not enabled** (GitHub Free + private repo). The
+discipline is manual: never merge with red CI.
 
-### Checklist: nova ação no controller
+Pre-commit before every push: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
 
-Quando criar uma nova action em `StampsController` (ou qualquer controller com `before_action`):
+### Checklist: new controller action
 
-1. **Adicione a action na lista `only:` do `before_action`** (esquecer isso = `NoMethodError` em `nil`)
-2. **Crie um E2E test** que navega até a página e executa a ação (não só testa que a rota responde)
-3. **Rode `bin/rails routes`** pra confirmar que a rota existe antes de testar
-4. **Execute o pre-commit** antes de push
+When adding a new action to `ArquivosController` (or any controller with a `before_action`):
 
-### Toda nova funcionalidade precisa de teste
+1. **Add the action to the `before_action`'s `only:` list** (forgetting it = `NoMethodError` on `nil`)
+2. **Write an E2E test** that navigates to the page and performs the action (not just one that checks the route responds)
+3. **Run `bin/rails routes`** to confirm the route exists before testing
+4. **Run the pre-commit checks** before pushing
 
-- **E2E test** para cada fluxo do usuário (abrir página, interagir, ver resultado)
-- **RSpec test** para lógica de negócio, serviços, modelos
-- **Regressão**: bug fix sempre acompanhado de teste que reproduz o bug
-- **Endpoint JSON**: testar com `page.evaluate(fetch(...))` no E2E
-- **Stimulus controller**: testar interação real (clique, input, submit) no E2E
-- **Controller action**: testar que responde e persiste o estado esperado
-- **Modal/dialog**: testar abrir, preencher, submit, **fechar (Cancel)**, e verificar resultado pós-redirect. Verificar também posicionamento (centrado no viewport) via `getBoundingClientRect()`
+### Every new feature needs tests
+
+- **E2E test** for every user flow (open page, interact, see result)
+- **RSpec test** for business logic, services, models
+- **Regression**: every bug fix comes with a test that reproduces the bug
+- **JSON endpoint**: test with `page.evaluate(fetch(...))` in E2E
+- **Stimulus controller**: test real interaction (click, input, submit) in E2E
+- **Controller action**: test that it responds and persists the expected state
+- **Modal/dialog**: test open, fill, submit, **close (Cancel)**, and check the post-redirect result. Also check positioning (centered in the viewport) via `getBoundingClientRect()`
 - **Range slider (click-to-edit)**: E2E test must verify: (1) click display → editor appears (hidden class removed), (2) edit value + Enter/blur → display and hidden input updated, (3) editor hidden again after commit
 - **Tipo corte**: E2E tests must cover both positive (section appears on corte files with both radio buttons, default `corte_estampa`) and negative (section absent on arte files)
-- **Cobertura mínima**: antes de merge, `bin/rspec && bash bin/e2e` deve passar 100%
+- **Minimum coverage**: before merge, `bin/rspec && bash bin/e2e` must pass 100%
 
 ## Architecture
 
 Monolithic Rails 8.1, SQLite3, Hotwire, SolidQueue, ImageMagick.
 
 ```
-storage/stamps/:uuid/original/
-storage/stamps/:uuid/preview/
+storage/stamps/:uuid/v<N>/original/   # test env: storage/test_stamps/…
+storage/stamps/:uuid/v<N>/preview/
 ```
 
+(`ArquivoVersion#storage_dir`; `Stamp` was renamed to `Arquivo` in `312d326`,
+but the storage directory and the `.stamp-card` CSS class kept the old name.)
+
 Key files:
-- `app/controllers/stamps_controller.rb` — upload, preview, CRUD
+- `app/controllers/arquivos_controller.rb` — upload, preview, versions, DXF organization, CRUD
 - `app/services/file_validator.rb` — format/colorspace detection via `identify -ping`
-- `app/jobs/stamp_processing_job.rb` — preview generation, spot channel detection
-- `app/models/stamp.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
+- `app/jobs/arquivo_processing_job.rb` — preview generation, spot channel detection, DXF layers
+- `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
 - `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
 
 ## ImageMagick gotchas (multi-frame TIFFs)
@@ -240,10 +256,11 @@ Always use `2>/dev/null` (not `2>&1`) — ImageMagick stderr is noisy.
 
 ## Preview generation
 
-StampProcessingJob selects strategy based on extension, spots + colorspace:
+`ArquivoProcessingJob#process_image` selects the strategy based on extension, spots + colorspace (checked in this order):
 
 | Case | Method | Tool |
 |------|--------|------|
+| DXF | `generate_preview_dxf` | `bin/generate-dxf-preview.js` (outputs `preview.svg`, not PNG) |
 | TIFF, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
 | CMYK | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
 | RGB (or PSD/EPS spot) | `generate_preview_rgb` | ImageMagick convert (resize + `-define png:color-type=6`) |
@@ -299,42 +316,42 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
 
-## Nested forms gotcha (<form> dentro de <dialog> quebra o form pai)
+## Nested forms gotcha (<form> inside <dialog> breaks the parent form)
 
-Todo `<form>` aninhado dentro de outro `<form>` **fecha o form externo automaticamente**
-no DOM renderizado, mesmo que o HTML fonte pareça correto. Isso deixa submits e campos
-órfãos — o clique no botão "não faz nada".
+A `<form>` nested inside another `<form>` **automatically closes the outer form**
+in the rendered DOM, even when the HTML source looks right. Submit buttons and
+fields end up orphaned — clicking the button "does nothing".
 
 ```html
-<!-- ERRADO — <form> dentro de <dialog> dentro de <form> quebra o form externo -->
+<!-- WRONG — <form> inside <dialog> inside <form> breaks the outer form -->
 <form action="/movimentos">
   <div data-controller="client-select">
     <input name="client_id">
     <dialog>
-      <form action="/clients">…</form>   <!-- ← fecha o form /movimentos aqui -->
+      <form action="/clients">…</form>   <!-- ← closes the /movimentos form here -->
     </dialog>
   </div>
-  <input type="submit">  <!-- ← fica fora de qualquer form -->
+  <input type="submit">  <!-- ← ends up outside any form -->
 </form>
 
-<!-- CERTO — dialog fora do form principal, controller envolve ambos -->
+<!-- RIGHT — dialog outside the main form, controller wraps both -->
 <div data-controller="client-select">
   <form action="/movimentos">
     <input name="client_id">
   </form>
   <dialog>
-    <!-- sem <form> — usa fetch via Stimulus -->
+    <!-- no <form> — uses fetch via Stimulus -->
     <div data-form-action="/clients">…</div>
   </dialog>
-  <input type="submit">  <!-- ← dentro do form /movimentos -->
+  <input type="submit">  <!-- ← inside the /movimentos form -->
 </div>
 ```
 
-**Como detectar:**
-- RSpec request specs (`post /materiais, params: {...}`) **não pegam** — mandam HTTP direto, sem DOM.
-- `form.submit()` via JS também passa direto.
-- Só E2E com clique real (`page.click('input[type="submit"]')`) descobre.
-- Verifique com `page.evaluate(() => document.querySelector('input[type="submit"]').form)` — se for `null`, o form está quebrado.
+**How to detect it:**
+- RSpec request specs (`post /materiais, params: {...}`) **don't catch it** — they send HTTP directly, no DOM.
+- `form.submit()` via JS also bypasses it.
+- Only E2E with a real click (`page.click('input[type="submit"]')`) finds it.
+- Check with `page.evaluate(() => document.querySelector('input[type="submit"]').form)` — if it's `null`, the form is broken.
 
 ## Stimulus gotchas (data-action event target)
 
@@ -368,14 +385,14 @@ close() {
 }
 ```
 
-## Guard: nunca rodar bin/e2e com RAILS_ENV errado
+## Guard: never run bin/e2e with the wrong RAILS_ENV
 
-O `bin/e2e` truncateia o banco de dados para garantir estado limpo. Se
-rodar com `RAILS_ENV=development`, destrói todos os dados de desenvolvimento.
-O script tem guard clause no início que aborta se `RAILS_ENV != "test"`.
+`bin/e2e` truncates the database to guarantee a clean state. Run with
+`RAILS_ENV=development`, it would destroy all development data. The script
+has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 
-⚠️ Nunca rode `bin/e2e` com `RAILS_ENV=development`. O script já força
-test, mas um `export RAILS_ENV=development` antes no shell pode sobrescrever.
+⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
+test, but an earlier `export RAILS_ENV=development` in the shell can override it.
 
 ## db/seeds.rb is empty on purpose
 
@@ -398,7 +415,12 @@ assuming global fixtures.
 ## Key constraints
 
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
-- Stamp routes use `uuid` (`Stamp.find_by!(uuid:)`), not integer id
-- Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Stamp::SUPPORTED_EXTENSIONS`
-- CI runs brakeman → bundler-audit → importmap audit → rubocop → rspec → e2e
+- Arquivo routes use `uuid` (`Arquivo.find_by!(uuid:)`), not integer id
+- Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
+- CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
+  bundler-audit, importmap audit, `bin/check-residues`, rubocop, rspec, and e2e.
+  ⚠️ **The CI e2e job runs only `e2e/arquivos.spec.js`**, and
+  `e2e/moldes.spec.js` is run by neither CI nor `bin/e2e`. Green CI does not
+  mean the clients/modelos/materiais/movimentos/pedidos specs passed — run
+  `bash bin/e2e` locally before asking for a merge.
 - System dependencies: `imagemagick`, `exiftool` packages required
