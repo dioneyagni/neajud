@@ -60,7 +60,7 @@
 
 ### E2E tests
 
-- `e2e/arquivos.spec.js` covers all 4 raster preview strategies: RGB no-spot,
+- `e2e/arquivos-previews.spec.js` covers all 4 raster preview strategies: RGB no-spot,
   RGB spot, CMYK no-spot, CMYK spot.
 - Each preview test **must** verify: (1) status is `processed`,
   (2) colorspace label matches expected, (3) preview image loads (200 OK,
@@ -485,4 +485,9 @@ assuming global fixtures.
   `e2e/*.spec.js` must be added there; the script aborts if any spec file is
   unlisted (before Sep 2026 CI ran only `arquivos.spec.js` and
   `moldes.spec.js` ran nowhere).
+- The former `e2e/arquivos.spec.js` is split into `arquivos-*.spec.js` and
+  `pages-*.spec.js` (contiguous chunks, original order). They share one test
+  DB, truncated once per `bin/e2e` run, and some reuse earlier files' data —
+  keep their order in `E2E_SPECS`. Shared harness: `e2e/support/runner.js`
+  (`runSpec`), fixture paths: `e2e/support/fixtures.js`.
 - System dependencies: `imagemagick`, `exiftool` packages required
