@@ -5,6 +5,8 @@ const fs = require("fs");
 const BASE_URL = "http://localhost:3000";
 const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
 
+const { uploadFileAndWait } = require("./support/upload");
+
 async function run() {
   const launchOpts = { slowMo: HEADED ? 300 : 0 };
   if (HEADED) {
@@ -59,12 +61,7 @@ async function run() {
       execSync(`convert -size 50x50 xc:blue 'TIFF:${artePath}'`);
 
       await page.goto(BASE_URL);
-      const fileInput = await page.$('input[type="file"]');
-      if (!fileInput) throw new Error("File input not found");
-      await fileInput.setInputFiles(artePath);
-      await page.click('input[type="submit"]');
-      await page.waitForTimeout(3000);
-      await page.waitForSelector(".stamp-card", { timeout: 20000 });
+      await uploadFileAndWait(page, artePath);
 
       const body = await page.textContent("body");
       const match = body.match(new RegExp(`e2e-arte-${UNIQ}`, "i"));
