@@ -69,6 +69,18 @@
   `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
   flaky clicks on wrong cards when multiple arquivos exist.
 - Run 3 times in succession to verify stability.
+- **Uploads**: always use `uploadFileAndWait(page, pathOrPaths)` or
+  `submitUploadAndWait(page, n)` from `e2e/support/upload.js`. They wait for
+  `upload_controller.js` to report `Upload complete (N ok, 0 failed)`.
+- **Wait for proof, not time**: never `waitForTimeout` after an action, and
+  never `waitForSelector` on something that already existed before the action
+  (e.g. `.stamp-card` from the pre-upload gallery). Wait for a signal the
+  action produces: a status text, `page.waitForResponse`, a count that grew.
+  This is what made "DXF Mold Organization" flaky (fixed in #76).
+- **Asserting absence**: a test that checks something is *not* shown must say
+  why in a comment (the business rule). Otherwise it can lock in a regression
+  as expected behavior — "Size Selection: hidden by default…" did exactly
+  that until #75.
 
 ### Preventing false positives
 
@@ -109,7 +121,8 @@ bash bin/e2e                  # Playwright E2E (headless)
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
-Pre-commit: `bin/rspec && bin/rubocop && bin/brakeman --no-pager && bin/check-residues`
+**Pre-commit** (the one command to run before every push; CI runs the same checks):
+`bin/rspec && bin/rubocop && bin/brakeman --no-pager && bin/check-residues`
 
 `bin/check-residues` exits 1 when any of these leaked into the repo:
 
@@ -192,7 +205,7 @@ Never merge, force-push to `main`, or delete branches you didn't create.
 ⚠️ **Branch protection is not enabled** (GitHub Free + private repo). The
 discipline is manual: never merge with red CI.
 
-Pre-commit before every push: `bin/rspec && bin/rubocop && bin/brakeman --no-pager`
+Before every push, run the **Pre-commit** command from the Commands section.
 
 ### Checklist: new controller action
 
@@ -310,7 +323,7 @@ copy the first 3 raw samples as RGB and set alpha=255, ignoring extra
 channels. This affects RGB+spot TIFFs (e.g. 02.tif has 5 samples:
 R,G,B,alpha,Spot_1 → we use R,G,B only).
 
-## Dependencies
+## System dependencies
 
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
@@ -352,6 +365,29 @@ fields end up orphaned — clicking the button "does nothing".
 - `form.submit()` via JS also bypasses it.
 - Only E2E with a real click (`page.click('input[type="submit"]')`) finds it.
 - Check with `page.evaluate(() => document.querySelector('input[type="submit"]').form)` — if it's `null`, the form is broken.
+
+## Turbo Stream gotcha (targets must always be in the DOM)
+
+If an element is the target of `turbo_stream.replace` / `update` / `append`,
+render its container (with the `id`) **unconditionally** and hide it with CSS
+or an inner condition. Wrapping the container in `<% if %>` makes the stream
+a silent no-op whenever the condition was false at page load: no error in the
+log or the console, the UI just never updates.
+
+```erb
+<%# WRONG — #size-selection-section missing → update_modelo's stream does nothing %>
+<% if @arquivo.tamanho&.arquivo&.organize_error.present? %>
+  <%= render "size_selection", arquivo: @arquivo %>
+<% end %>
+
+<%# RIGHT — always rendered; the partial hides itself until client + modelo exist %>
+<%= render "size_selection", arquivo: @arquivo %>
+```
+
+Regression history: `019535b` gated Size Selection like the WRONG example, so
+picking a client + modelo on an arte stopped showing the size (fixed in #75).
+Test it with E2E: trigger the action, then assert the target became visible
+*without* a reload.
 
 ## Stimulus gotchas (data-action event target)
 
