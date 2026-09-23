@@ -293,8 +293,7 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed_uuids, errors = destroy_arquivos_batch(ids)
-    destroyed_uuids.each { |uuid| FileUtils.rm_rf(File.join(STORAGE_BASE, uuid)) }
+    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids)
 
     render json: { destroyed: destroyed_uuids.size, errors: errors }
   end
@@ -303,30 +302,6 @@ class ArquivosController < ApplicationController
 
   def set_arquivo
     @arquivo = Arquivo.find_by!(uuid: params[:id])
-  end
-
-  # Bug fix: this used to wrap every id in ONE transaction and roll the
-  # whole thing back on the first failure, yet still reported the
-  # already-rolled-back items as destroyed (destroyed/errors were plain Ruby
-  # counters, unaffected by the DB rollback). Destroying each arquivo in its
-  # own (implicit) transaction makes one bad id fail on its own without
-  # undoing the others, and the returned uuids are only ever ones that
-  # actually committed. Also never removed storage/stamps/:uuid — callers
-  # now do that themselves for each returned uuid.
-  def destroy_arquivos_batch(ids)
-    destroyed_uuids = []
-    errors = []
-    ids.each do |uuid|
-      arquivo = Arquivo.find_by(uuid: uuid)
-      next errors << uuid unless arquivo
-
-      if arquivo.destroy
-        destroyed_uuids << uuid
-      else
-        errors << { uuid: uuid, error: arquivo.errors[:base].to_sentence.presence || "could not be deleted" }
-      end
-    end
-    [ destroyed_uuids, errors ]
   end
 
   def create_and_save_version!(arquivo, upload)
