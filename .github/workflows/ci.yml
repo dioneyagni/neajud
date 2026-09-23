@@ -137,27 +137,12 @@ jobs:
           npm ci
           npx playwright install chromium
 
-      - name: Prepare database
-        env:
-          RAILS_ENV: test
-        run: bin/rails db:test:prepare
-
+      # bin/e2e prepares the DB, starts the server and runs every spec listed in
+      # E2E_SPECS — the same entry point as local runs, so CI can't drift.
       - name: Run E2E tests
         env:
           RAILS_ENV: test
-        run: |
-          bin/rails server -p 3000 -b 0.0.0.0 -e test &>/tmp/neajud_server.log &
-          SERVER_PID=$!
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:3000/up >/dev/null 2>&1; then
-              break
-            fi
-            sleep 1
-          done
-          node e2e/arquivos.spec.js
-          EXIT_CODE=$?
-          kill $SERVER_PID 2>/dev/null || true
-          exit $EXIT_CODE
+        run: bash bin/e2e
 
       - name: Upload server logs on failure
         uses: actions/upload-artifact@v7

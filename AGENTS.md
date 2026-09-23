@@ -181,7 +181,7 @@ git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-e
 8. **Commit** — `git add -A && git commit -m "descriptive message (WHAT + WHY)"`
 9. **Push** — `git push -u origin fix/what-was-done`
 10. **GitHub PR** — open a Pull Request.
-11. **CI** — runs automatically (see "CI coverage" under Key constraints for what it actually runs).
+11. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
 12. **Merge** — through the GitHub UI, only if CI is green.
 13. **Cleanup** — delete the remote branch.
 
@@ -419,8 +419,9 @@ assuming global fixtures.
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
 - CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
   bundler-audit, importmap audit, `bin/check-residues`, rubocop, rspec, and e2e.
-  ⚠️ **The CI e2e job runs only `e2e/arquivos.spec.js`**, and
-  `e2e/moldes.spec.js` is run by neither CI nor `bin/e2e`. Green CI does not
-  mean the clients/modelos/materiais/movimentos/pedidos specs passed — run
-  `bash bin/e2e` locally before asking for a merge.
+  The e2e job runs `bash bin/e2e` — the same entry point as local runs.
+- `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs. A new
+  `e2e/*.spec.js` must be added there; the script aborts if any spec file is
+  unlisted (before Sep 2026 CI ran only `arquivos.spec.js` and
+  `moldes.spec.js` ran nowhere).
 - System dependencies: `imagemagick`, `exiftool` packages required
