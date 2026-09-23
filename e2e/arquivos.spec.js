@@ -13,6 +13,25 @@ async function uploadFile(page, filePath) {
   await page.click('input[type="submit"]');
 }
 
+// Waits until upload_controller.js reports the POST finished (the server runs
+// ArquivoProcessingJob inline before responding), then reloads the gallery.
+// Waiting for ".stamp-card" alone is not enough: the pre-upload gallery already
+// matches, so the next test could navigate while the job was still creating
+// tamanhos — "DXF Mold Organization: shows …" then saw a 29-30 with no rows.
+async function uploadFileAndWait(page, filePath, timeout = UPLOAD_TIMEOUT) {
+  await uploadFile(page, filePath);
+  await page.waitForFunction(
+    () => document.querySelector('input[type="submit"]')?.value.startsWith("Upload complete"),
+    null,
+    { timeout }
+  );
+  const status = await page.inputValue('input[type="submit"]');
+  if (!status.includes("0 failed")) {
+    throw new Error(`Upload of ${path.basename(filePath)} failed: got "${status}", expected "Upload complete (1 ok, 0 failed)"`);
+  }
+  await page.goto(BASE_URL);
+}
+
 async function waitForCard(page, filename, timeout = UPLOAD_TIMEOUT) {
   const displayName = filename.replace(/\.[^.]+$/, "");
   const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
@@ -641,12 +660,7 @@ async function run() {
     if (!fs.existsSync(reforcoPath)) throw new Error(`DXF not found: ${reforcoPath}`);
 
     await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(reforcoPath);
-    await page.click('input[type="submit"]');
-
-    await page.waitForTimeout(500);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+    await uploadFileAndWait(page, reforcoPath);
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "REFORÇO" }).locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
@@ -947,13 +961,16 @@ async function run() {
     if (!fs.existsSync(dxfPath)) throw new Error("DXF not found");
 
     await page.goto(BASE_URL);
-    const fileInput = await page.$('input[type="file"]');
-    await fileInput.setInputFiles(dxfPath);
-    await page.click('input[type="submit"]');
-    await page.waitForTimeout(500);
-    await page.waitForSelector(".stamp-card", { timeout: 20000 });
+    const dxfCards = page.locator(".stamp-card").filter({ hasText: "29-30" });
+    const countBefore = await dxfCards.count();
+    await uploadFileAndWait(page, dxfPath);
 
-    const card = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
+    const countAfter = await dxfCards.count();
+    if (countAfter !== countBefore + 1) {
+      throw new Error(`Expected ${countBefore + 1} "29-30" cards after upload, got ${countAfter}`);
+    }
+
+    const card = dxfCards.first();
     const icon = card.locator('.stamp-card-status-icon[alt="Not Organized"]');
     await icon.waitFor({ timeout: 5000 });
   });
