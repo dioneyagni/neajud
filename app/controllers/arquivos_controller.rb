@@ -399,16 +399,10 @@ class ArquivosController < ApplicationController
   end
 
   def estimate_time!(arquivo)
-    batch_started_at = Time.parse(params[:arquivo][:batch_started_at])
-    batch_size = params[:arquivo][:batch_size].to_i
-    last_arquivo_time = Arquivo.where("created_at < ?", batch_started_at).maximum(:created_at)
-
-    if last_arquivo_time
-      interval = (batch_started_at - last_arquivo_time).to_i
-      arquivo.estimated_seconds = [ interval / batch_size, 0 ].max
-    else
-      arquivo.estimated_seconds = 0
-    end
+    arquivo.estimated_seconds = UploadTimeEstimator.call(
+      batch_started_at: Time.parse(params[:arquivo][:batch_started_at]),
+      batch_size: params[:arquivo][:batch_size].to_i
+    )
   end
 
   def arquivo_params
