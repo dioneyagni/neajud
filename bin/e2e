@@ -15,6 +15,13 @@ fi
 export RAILS_ENV=test
 export CABLE_ADAPTER=async
 
+# The E2E server gets its own port so the development server on :3000 keeps
+# running untouched. They used to share :3000: every run replaced the dev
+# server with the test one for minutes, and localhost:3000 silently showed
+# test data (Sep 2026). Specs read E2E_BASE_URL (e2e/support/runner.js).
+E2E_PORT="${E2E_PORT:-3001}"
+export E2E_BASE_URL="http://localhost:$E2E_PORT"
+
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
@@ -88,40 +95,52 @@ save_requests_log() {
   tail -c +"$((RAILS_TEST_LOG_OFFSET + 1))" "$RAILS_TEST_LOG" > "$REQUESTS_LOG" 2>/dev/null || true
 }
 
-# PIDs listening on TCP :3000 (lsof, falling back to fuser). Always exits 0:
-# a free port is not an error, and `set -e` would abort on grep's exit 1.
-port_3000_pids() {
-  lsof -t -iTCP:3000 -sTCP:LISTEN 2>/dev/null \
-    || fuser 3000/tcp 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' \
+# PIDs listening on the E2E port (lsof, falling back to fuser). Always exits
+# 0: a free port is not an error, and `set -e` would abort on grep's exit 1.
+e2e_port_pids() {
+  lsof -t -iTCP:"$E2E_PORT" -sTCP:LISTEN 2>/dev/null \
+    || fuser "$E2E_PORT"/tcp 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' \
     || true
 }
 
-# Stops only what listens on :3000. This used to be `pkill -f "puma"` /
-# `pkill -f "rails server"`, which match every process's full command line:
-# they also killed any shell whose command contained those words — including
-# the one that launched bin/e2e (silent exit 144). TERM first, KILL only if
-# the port is still busy after 5s.
-stop_port_3000() {
-  local pids
-  pids="$(port_3000_pids)"
+# Only a leftover *test* server may be stopped. Anything else on the E2E port
+# (a dev server, another app) is refused, never killed.
+is_test_server() {
+  tr '\0' '\n' < "/proc/$1/environ" 2>/dev/null | grep -qx 'RAILS_ENV=test'
+}
+
+# Stops a leftover test server on the E2E port. Selected by port + RAILS_ENV,
+# never by `pkill -f` pattern: that used to match any shell whose command
+# contained "puma"/"rails server", including the one running bin/e2e (silent
+# exit 144). TERM first, KILL only if the port is still busy after 5s.
+stop_e2e_port() {
+  local pids pid
+  pids="$(e2e_port_pids)"
   [ -z "$pids" ] && return 0
-  echo "       Stopping :3000 listener: $(ps -o pid=,args= -p "$(echo $pids | tr ' ' ',')" | cut -c1-100)"
+  for pid in $pids; do
+    if ! is_test_server "$pid"; then
+      echo "ERROR: port $E2E_PORT is used by a non-test process, refusing to stop it: $(ps -o pid=,args= -p "$pid" | cut -c1-100)" >&2
+      echo "       Stop it yourself or run with another port: E2E_PORT=3002 bash bin/e2e" >&2
+      exit 1
+    fi
+  done
+  echo "       Stopping leftover test server on :$E2E_PORT: $(ps -o pid=,args= -p "$(echo $pids | tr ' ' ',')" | cut -c1-100)"
   kill $pids 2>/dev/null || true
   for _ in $(seq 1 10); do
-    [ -z "$(port_3000_pids)" ] && return 0
+    [ -z "$(e2e_port_pids)" ] && return 0
     sleep 0.5
   done
-  kill -9 $(port_3000_pids) 2>/dev/null || true
+  kill -9 $(e2e_port_pids) 2>/dev/null || true
   sleep 0.5
-  if [ -n "$(port_3000_pids)" ]; then
-    echo "ERROR: port 3000 still in use after SIGKILL (PIDs: $(port_3000_pids | tr '\n' ' '))" >&2
+  if [ -n "$(e2e_port_pids)" ]; then
+    echo "ERROR: port $E2E_PORT still in use after SIGKILL (PIDs: $(e2e_port_pids | tr '\n' ' '))" >&2
     exit 1
   fi
 }
 
-# Step 1: Stop whatever listens on :3000 (usually the dev server)
-echo "[1/5] Freeing port 3000..."
-stop_port_3000
+# Step 1: Free the E2E port (a leftover test server from an aborted run)
+echo "[1/5] Freeing port $E2E_PORT (only a leftover test server is ever stopped)..."
+stop_e2e_port
 echo "       Done."
 
 # Step 2: Prepare test database
@@ -144,19 +163,19 @@ Rails.application.load_seed
 echo "       Done."
 
 # Step 3: Start Rails server in background
-echo "[3/5] Starting Rails server (port 3000)..."
+echo "[3/5] Starting Rails test server (port $E2E_PORT)..."
 prepare_run_log
 echo "       Logs: $RUN_LOG_DIR/ (requests.log, server.log)"
 # Append mode (>>) so the spec markers written below interleave instead of
 # being overwritten at the server's own file offset.
-bin/rails server -p 3000 -b 0.0.0.0 -e test >>"$SERVER_LOG" 2>&1 &
+bin/rails server -p "$E2E_PORT" -b 0.0.0.0 -e test -P "tmp/pids/e2e-server.pid" >>"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 echo "       PID: $SERVER_PID"
 
 # Wait for server to be ready
 echo "       Waiting for server..."
 for i in $(seq 1 30); do
-  if curl -s http://localhost:3000/up >/dev/null 2>&1; then
+  if curl -s "$E2E_BASE_URL/up" >/dev/null 2>&1; then
     echo "       Server is ready."
     break
   fi
@@ -191,7 +210,7 @@ echo "       Exit code: $EXIT_CODE"
 echo "[5/5] Stopping server (PID $SERVER_PID)..."
 clean_e2e_artifacts
 kill $SERVER_PID 2>/dev/null || true
-stop_port_3000
+stop_e2e_port
 echo "       Done."
 
 echo ""
