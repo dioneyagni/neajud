@@ -27,11 +27,7 @@
        data-controller="grade-editor"
        data-grade-editor-item-uuid-value="<%= item.uuid %>"
        data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(@pedido, id: item.uuid) %>">
-    <div class="pedido-item-preview">
-      <% if item.arquivo.preview_file.present? %>
-        <img src="<%= preview_arquivo_path(item.arquivo) %>" alt="<%= item.arquivo.filename %>">
-      <% end %>
-    </div>
+    <%= render "item_pecas", item: item, pedido: @pedido %>
 
     <div class="pedido-item-info">
       <div class="pedido-item-header">

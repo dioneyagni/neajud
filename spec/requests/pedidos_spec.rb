@@ -251,4 +251,82 @@ RSpec.describe "Pedidos", type: :request do
       expect(response).to have_http_status(:success)
     end
   end
+
+  describe "PATCH /pedidos/:uuid/alternar_peca" do
+    let(:pedido) { create(:pedido) }
+    let(:item) { create(:item_pedido, pedido: pedido) }
+    let!(:peca_row) { create(:item_pedido_peca, item_pedido: item) }
+
+    def alternar(incluida, row: peca_row, target: pedido)
+      patch alternar_peca_pedido_path(target), params: { id: row.item_pedido.uuid, peca_id: row.id, incluida: incluida }, as: :json
+    end
+
+    it "unchecks and re-checks a piece" do
+      alternar("false")
+      expect(response.parsed_body).to eq("ok" => true, "estado" => "excluida")
+      expect(peca_row.reload.estado).to eq(:excluida)
+      alternar("true")
+      expect(peca_row.reload.estado).to eq(:incluida)
+    end
+
+    it "refuses changes once the pedido is no longer a draft" do
+      pedido.update!(status: "confirmado")
+      alternar("false")
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to include("confirmado")
+      expect(peca_row.reload.estado).to eq(:incluida)
+    end
+
+    it "refuses a pending piece (no arte)" do
+      pending_row = create(:item_pedido_peca, item_pedido: item, arquivo: nil)
+      alternar("false", row: pending_row)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(pending_row.reload.incluida).to be true
+    end
+
+    it "refuses a value other than true/false, naming it" do
+      alternar("maybe")
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to include('"maybe"')
+    end
+
+    it "returns 404 for a piece of another pedido's item" do
+      other_row = create(:item_pedido_peca)
+      alternar("false", row: other_row)
+      expect(response).to have_http_status(:not_found)
+      expect(other_row.reload.incluida).to be true
+    end
+  end
+
+  describe "GET /pedidos/:uuid pieces frame" do
+    let(:pedido) { create(:pedido) }
+    let(:item) { create(:item_pedido, pedido: pedido) }
+
+    it "shows each piece with its state and a checkbox for pieces with arte" do
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), position: 0)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), incluida: false, position: 1)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Calcanhar"), arquivo: nil, position: 2)
+      get pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      cards = html.css(".pedido-peca")
+      expect(cards.map { |c| c[:class].split.last }).to eq(%w[pedido-peca--incluida pedido-peca--excluida pedido-peca--pendente])
+      expect(cards.map { |c| c.css(".pedido-peca-nome").text }).to eq(%w[Lateral Língua Calcanhar])
+      expect(cards.map { |c| c.css("input.pedido-peca-check").size }).to eq([ 1, 1, 0 ])
+      expect(cards[2].text).to include("sem arte", "Pendente")
+    end
+
+    it "shows no checkboxes on a confirmed pedido" do
+      2.times { |n| create(:item_pedido_peca, item_pedido: item, position: n) }
+      pedido.update!(status: "confirmado")
+      get pedido_path(pedido)
+      expect(Nokogiri::HTML(response.body).css("input.pedido-peca-check")).to be_empty
+    end
+
+    it "shows no checkbox for a single-piece item" do
+      create(:item_pedido_peca, item_pedido: item)
+      get pedido_path(pedido)
+      expect(Nokogiri::HTML(response.body).css(".pedido-peca").size).to eq(1)
+      expect(Nokogiri::HTML(response.body).css("input.pedido-peca-check")).to be_empty
+    end
+  end
 end
