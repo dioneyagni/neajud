@@ -150,6 +150,18 @@ RSpec.describe "Pedidos", type: :request do
         .to eq([ [ "Lateral", arte, :incluida ], [ "Língua", nil, :pendente ] ])
     end
 
+    it "stores the pieces left unchecked in the modal as excluded" do
+      lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
+      modelo = create(:modelo, molde: create(:molde).tap { |m| m.pecas << [ lateral, lingua ] })
+      arte_lateral = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
+      arte_lingua = create(:arquivo, category: "artes", modelo: modelo, peca: lingua)
+
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ] }
+
+      expect(ItemPedido.last.item_pedido_pecas.map { |r| [ r.peca.nome, r.estado ] })
+        .to eq([ [ "Lateral", :incluida ], [ "Língua", :excluida ] ])
+    end
+
     it "returns 422 for non-existent arquivo" do
       post adicionar_item_pedidos_path, params: { arquivo_uuid: "nonexistent-uuid" }
       expect(response).to have_http_status(:unprocessable_content)

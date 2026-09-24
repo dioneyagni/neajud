@@ -81,6 +81,11 @@
   (e.g. `.stamp-card` from the pre-upload gallery). Wait for a signal the
   action produces: a status text, `page.waitForResponse`, a count that grew.
   This is what made "DXF Mold Organization" flaky (fixed in #76).
+- **Running one spec by hand** (`node e2e/<name>.spec.js` against
+  `bin/rails s -e test`): the test server does **not** reload edited JS/CSS
+  (Propshaft caches assets outside development). Restart it after changing
+  `app/javascript` or stylesheets — otherwise you are testing the old code
+  (a mutation check "passed" this way). `bin/e2e` restarts it on every run.
 - **Asserting absence**: a test that checks something is *not* shown must say
   why in a comment (the business rule). Otherwise it can lock in a regression
   as expected behavior — "Size Selection: hidden by default…" did exactly

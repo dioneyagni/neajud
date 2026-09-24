@@ -768,4 +768,34 @@ RSpec.describe "Arquivos", type: :request do
       expect(response.body).to include('data-batch-select-target="deleteButton"')
     end
   end
+
+  describe "GET /arquivos/:id/composicao" do
+    let(:lateral) { create(:peca, nome: "Lateral") }
+    let(:lingua) { create(:peca, nome: "Língua") }
+    let(:modelo) { create(:modelo, molde: create(:molde).tap { |m| m.pecas << [ lateral, lingua ] }) }
+
+    it "lists every piece of the arte's modelo, pending ones without arte" do
+      arte = create(:arquivo, modelo: modelo, peca: lateral, filename: "lateral-azul")
+      get composicao_arquivo_path(arte)
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body["pecas"]).to eq([
+        { "peca_nome" => "Lateral", "arquivo_uuid" => arte.uuid, "filename" => "lateral-azul",
+          "preview_url" => nil, "pendente" => false, "adicionada" => true },
+        { "peca_nome" => "Língua", "arquivo_uuid" => nil, "filename" => nil,
+          "preview_url" => nil, "pendente" => true, "adicionada" => false }
+      ])
+    end
+
+    it "links the preview of pieces that have one" do
+      arte = create(:arquivo, modelo: modelo, peca: lateral)
+      create(:arquivo_version, arquivo: arte, preview_file: "/tmp/p.png").tap { |v| arte.update!(approved_version: v) }
+      get composicao_arquivo_path(arte)
+      expect(response.parsed_body["pecas"].first["preview_url"]).to eq(preview_arquivo_path(arte))
+    end
+
+    it "returns 404 for an unknown arte" do
+      get composicao_arquivo_path("nope")
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

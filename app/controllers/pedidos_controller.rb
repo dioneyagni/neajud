@@ -50,6 +50,7 @@ class PedidosController < ApplicationController
     ItemPedido.transaction do
       item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
       item.compor_pecas!(ModeloComposicaoService.call(arquivo))
+      item.excluir_pecas!(params[:excluir_arquivos])
 
       grade_params = params[:grade]
       if grade_params.respond_to?(:each)

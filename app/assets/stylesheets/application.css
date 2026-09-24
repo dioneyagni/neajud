@@ -2131,6 +2131,82 @@ section {
   min-height: 60px;
 }
 
+/* Pieces of the arte's modelo in the "Adicionar ao Pedido" modal. */
+.add-to-order-pecas > label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.add-to-order-pecas-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.add-to-order-peca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 110px;
+  padding: 0.4rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: opacity 0.15s, filter 0.15s;
+}
+
+/* Unchecked: the pedido goes to production without this piece. */
+.add-to-order-peca--excluida {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+/* No arte yet: must be completed before the pedido can be confirmed. */
+.add-to-order-peca--pendente {
+  border-style: dashed;
+  border-color: #d97706;
+}
+
+.add-to-order-peca-thumb {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.add-to-order-peca-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #888;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.add-to-order-peca-nome {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.add-to-order-peca-toggle {
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.add-to-order-peca-pendente {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.add-to-order-pecas-message {
+  font-size: 0.85rem;
+  color: #888;
+}
+
 .add-to-order-info {
   display: flex;
   flex-direction: column;

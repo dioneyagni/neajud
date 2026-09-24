@@ -18,6 +18,10 @@
         <span style="font-size:0.85rem; color:var(--text-muted);" data-add-to-order-target="client"></span>
       </div>
 
+      <%# Filled from GET /arquivos/:uuid/composicao when the modal opens;
+          stays hidden for single-piece artes. %>
+      <div class="add-to-order-pecas" data-add-to-order-target="pecasContainer" hidden></div>
+
       <div class="add-to-order-material"
            data-controller="combobox"
            data-combobox-search-url-value="/materiais/search"
