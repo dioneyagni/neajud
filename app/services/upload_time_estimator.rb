@@ -10,7 +10,10 @@ class UploadTimeEstimator
 
   def initialize(batch_started_at, batch_size)
     @batch_started_at = batch_started_at
-    @batch_size = batch_size
+    # A batch always contains at least the file being uploaded; a missing or
+    # malformed batch_size param (to_i → 0) used to raise ZeroDivisionError
+    # and turn the upload into a 500.
+    @batch_size = [ batch_size, 1 ].max
   end
 
   def call

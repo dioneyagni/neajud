@@ -170,6 +170,16 @@ RSpec.describe "Arquivos", type: :request do
       expect { post arquivos_path, params: file_params }.to change(Arquivo, :count).by(1)
     end
 
+    # Regression: a batch upload without batch_size used to raise
+    # ZeroDivisionError in UploadTimeEstimator and return 500.
+    it "creates the arquivo when batch_started_at is sent without batch_size" do
+      create(:arquivo, created_at: 10.minutes.ago)
+      params = file_params.deep_merge(arquivo: { batch_started_at: Time.current.iso8601 })
+      expect { post arquivos_path, params: params }.to change(Arquivo, :count).by(1)
+      expect(response).to redirect_to(arquivos_path)
+      expect(Arquivo.order(:created_at).last.estimated_seconds).to be_between(599, 601)
+    end
+
     it "redirects to gallery" do
       post arquivos_path, params: file_params
       expect(response).to redirect_to(arquivos_path)
