@@ -17,8 +17,6 @@ class ArquivosController < ApplicationController
     @vinculo_logs = @arquivo.vinculo_logs.includes(:peca, :pedido)
   end
 
-  MAX_FILE_SIZE = 1.gigabyte
-
   def create
     @arquivo = Arquivo.new(arquivo_params)
 
@@ -28,13 +26,10 @@ class ArquivosController < ApplicationController
       return render :index, status: :unprocessable_content
     end
 
-    extract_file_metadata!(@arquivo)
     estimate_time!(@arquivo) if params.dig(:arquivo, :batch_started_at).present?
+    ArquivoUploadService.call(params[:arquivo][:original_file], remote_ip: request.remote_ip, arquivo: @arquivo)
 
-    if validate_file_size! && validate_file_type! && @arquivo.save
-      upload = params[:arquivo][:original_file]
-      version = create_and_save_version!(@arquivo, upload)
-      ArquivoProcessingJob.perform_now(version.id)
+    if @arquivo.persisted?
       redirect_to arquivos_path, notice: "Arquivo uploaded successfully. Processing started."
     else
       load_gallery
@@ -59,7 +54,7 @@ class ArquivosController < ApplicationController
       category: @arquivo.category
     )
 
-    unless validate_file_type!(version, upload)
+    if ArquivoUploadService.erro_de_tipo(version.extension, upload)
       return redirect_to @arquivo, alert: "Invalid file type."
     end
 
@@ -325,87 +320,11 @@ class ArquivosController < ApplicationController
     @arquivo = Arquivo.find_by!(uuid: params[:id])
   end
 
-  def create_and_save_version!(arquivo, upload)
-    version = arquivo.arquivo_versions.create!(
-      version_number: 1,
-      uuid: SecureRandom.uuid,
-      filename: arquivo.filename,
-      extension: arquivo.extension,
-      mime_type: arquivo.mime_type,
-      original_file: upload.original_filename,
-      status: :pending,
-      approved: true,
-      category: arquivo.category,
-      category_notes: arquivo.category_notes
-    )
-    arquivo.update!(approved_version_id: version.id)
-    version.store_original!(upload)
-
-    arquivo.update!(
-      filename: File.basename(upload.original_filename, ".*"),
-      extension: File.extname(upload.original_filename).delete(".").downcase,
-      mime_type: upload.content_type
-    )
-
-    version
-  end
-
   STORAGE_BASE = ArquivoVersion::STORAGE_BASE
 
   def file_uploaded?
     upload = params[:arquivo][:original_file]
     upload.respond_to?(:tempfile) || upload.respond_to?(:original_filename)
-  end
-
-  def extract_file_metadata!(arquivo)
-    upload = params[:arquivo][:original_file]
-    return unless upload.respond_to?(:original_filename)
-
-    arquivo.filename = File.basename(upload.original_filename, ".*") if arquivo.filename.blank?
-    arquivo.extension = File.extname(upload.original_filename).delete(".").downcase if arquivo.extension.blank?
-    arquivo.mime_type = upload.content_type if arquivo.mime_type.blank?
-
-    arquivo.category = FileCategory.for_extension(arquivo.extension) if arquivo.category.blank?
-    arquivo.category_notes = FileCategory.notes(arquivo.extension, arquivo.category) if arquivo.category_notes.blank?
-  end
-
-  def validate_file_size!
-    upload = params[:arquivo][:original_file]
-    return true unless upload.respond_to?(:tempfile)
-
-    real_size = upload.tempfile.size
-    if real_size > MAX_FILE_SIZE
-      @arquivo.errors.add(:original_file, "exceeds maximum size of 1GB")
-      AbuseDetectionJob.perform_later(ip_address: request.remote_ip, file_size: real_size)
-      return false
-    end
-    true
-  end
-
-  def validate_file_type!(record = nil, upload = nil)
-    record ||= @arquivo
-    upload ||= params[:arquivo][:original_file]
-    return true unless upload.respond_to?(:tempfile)
-
-    ext = record.extension.to_s.strip
-    return true if ext.blank?
-
-    return true if FileValidator::UNVERIFIABLE_EXTENSIONS.include?(ext)
-
-    validator = FileValidator.new(upload.tempfile.path)
-    real_fmt = validator.real_format
-
-    unless real_fmt
-      @arquivo&.errors&.add(:original_file, "unable to identify file format")
-      return false
-    end
-
-    unless validator.valid_extension?(ext)
-      @arquivo&.errors&.add(:extension, "declared '#{ext.upcase}' but file is '#{real_fmt}'")
-      return false
-    end
-
-    true
   end
 
   def parse_hmm(value)

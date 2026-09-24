@@ -798,4 +798,30 @@ RSpec.describe "Arquivos", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  # Characterization of upload validation (moved to ArquivoUploadService):
+  # these pass unchanged against the pre-extraction controller.
+  describe "upload validation" do
+    let(:fake_tif) do
+      path = Rails.root.join("tmp/upload-req-fake.tif").to_s
+      system("convert", "-size", "10x10", "xc:red", "PNG:#{path}", exception: true)
+      Rack::Test::UploadedFile.new(path, "image/tiff")
+    end
+
+    after { FileUtils.rm_f(Rails.root.join("tmp/upload-req-fake.tif")) }
+
+    it "POST /arquivos rejects an extension that doesn't match the real format with 422" do
+      expect { post arquivos_path, params: { arquivo: { original_file: fake_tif } } }.not_to change(Arquivo, :count)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("declared &#39;TIF&#39; but file is &#39;PNG&#39;")
+    end
+
+    it "POST upload_version rejects an invalid file type without creating a version" do
+      arquivo = create(:arquivo)
+      create(:arquivo_version, arquivo: arquivo, version_number: 1)
+      expect { post upload_version_arquivo_path(arquivo), params: { original_file: fake_tif } }.not_to change(ArquivoVersion, :count)
+      expect(response).to redirect_to(arquivo_path(arquivo))
+      expect(flash[:alert]).to eq("Invalid file type.")
+    end
+  end
 end
