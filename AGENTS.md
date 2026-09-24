@@ -120,7 +120,7 @@ bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
 bin/brakeman --exit-on-warn   # security scan
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
-bash bin/e2e                  # Playwright E2E (headless) — kills the dev server, see "bin/e2e kills the dev server"
+bash bin/e2e                  # Playwright E2E (headless) — stops the dev server on :3000, see "bin/e2e stops the dev server"
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
@@ -433,27 +433,27 @@ has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 ⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
 test, but an earlier `export RAILS_ENV=development` in the shell can override it.
 
-## bin/e2e kills the dev server (and possibly your shell)
+## bin/e2e stops the dev server
 
-Step 1 of `bin/e2e` runs `pkill -f "puma"` and `pkill -f "rails server"`, then
-`fuser -k 3000/tcp`. `pkill -f` matches the **full command line of every
-process**, so it kills:
+The E2E server needs port 3000, so step 1 of `bin/e2e` stops **whatever is
+listening on :3000** — normally your development server — with SIGTERM, then
+SIGKILL if the port is still busy after 5s. It prints the PID and command it
+stopped. Nothing else is touched.
 
-- the development server on :3000 — restart it after the E2E run;
-- **any shell whose command line contains `puma` or `rails server`**, including
-  the one that launched `bin/e2e`. `bash bin/e2e; bin/rails server …` in one
-  command, or a loop with `pkill -f "puma.*3000"` in it, kills itself midway
-  (exit code 144, no output).
+Restart the dev server after the run, in a **separate** command:
+`nohup bin/rails server -p 3000 &>/dev/null &`, then poll `curl -s localhost:3000/up`.
 
-Rules:
+**Historical note (Sep 2026):** step 1 used to be `pkill -f "puma"` /
+`pkill -f "rails server"`. `pkill -f` matches the full command line of every
+process, so it also killed any shell whose command contained those words —
+including the one that launched `bin/e2e` (silent exit 144). The same applies
+to any `pkill -f` you run yourself: never put its pattern in the same command
+line. Prefer stopping by port (`lsof -t -iTCP:3000 -sTCP:LISTEN`).
 
-- Restart the dev server in a **separate** command after `bin/e2e` finishes:
-  `nohup bin/rails server -p 3000 &>/dev/null &`, then poll `curl -s localhost:3000/up`.
-- Never put `puma` or `rails server` in the same command line as `bin/e2e`.
-- If a run is interrupted (killed shell, Ctrl-C), check for orphans before the
-  next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
-  server, creating and deleting records mid-run and producing dozens of unrelated
-  failures: `ps -eo pid,args | grep -E "node e2e|chrom|puma" | grep -v grep`.
+If a run is interrupted (killed shell, Ctrl-C), check for orphans before the
+next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
+server, creating and deleting records mid-run and producing dozens of unrelated
+failures: `ps -eo pid,args | grep -E "node e2e|chrom|puma" | grep -v grep`.
 
 ## db/seeds.rb is empty on purpose
 
