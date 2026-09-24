@@ -6,7 +6,7 @@ import { Controller } from "@hotwired/stimulus"
 // reason shown.
 export default class extends Controller {
   static targets = ["error"]
-  static values = { url: String }
+  static values = { url: String, producaoUrl: String }
 
   toggle(event) {
     const input = event.currentTarget
@@ -15,6 +15,7 @@ export default class extends Controller {
     this._hideError()
     input.disabled = true
     this._save(card.dataset.pecaId, input.checked)
+      .then(() => this._reloadProducao())
       .catch(err => {
         input.checked = !input.checked
         this._paint(card, input.checked)
@@ -30,6 +31,15 @@ export default class extends Controller {
     return fetch(this.urlValue, { method: "PATCH", headers: this._headers(), body })
       .then(r => r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` })))
       .then(data => { if (!data.ok) throw new Error(data.error || "Não foi possível salvar a peça") })
+  }
+
+  // Refreshes the "Produção" Turbo Frame so an unchecked piece leaves the
+  // production table right away.
+  _reloadProducao() {
+    const frame = document.getElementById("pedido-producao")
+    if (!frame || !this.hasProducaoUrlValue) return
+    if (frame.getAttribute("src") === this.producaoUrlValue) frame.reload()
+    else frame.src = this.producaoUrlValue
   }
 
   _headers() {

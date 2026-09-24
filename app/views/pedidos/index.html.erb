@@ -29,11 +29,18 @@
           <td><%= l p.created_at, format: :short %></td>
           <td>
             <% if p.status == "rascunho" %>
+              <% pendentes = @pendentes_por_pedido[p.id].to_i %>
               <div class="pedido-actions">
                 <%= link_to "Resumo", resumo_pedido_path(p), class: "btn btn-sm btn-outline" %>
-                <%= link_to "Confirmar", confirmar_pedido_path(p),
-                      data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },
-                      class: "btn btn-sm btn-primary" %>
+                <% if pendentes.positive? %>
+                  <%= link_to "#{pendentes} pendente(s)", resumo_pedido_path(p),
+                        class: "btn btn-sm pedido-pendentes-badge",
+                        title: "Peças sem arte — complete antes de confirmar" %>
+                <% else %>
+                  <%= link_to "Confirmar", confirmar_pedido_path(p),
+                        data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },
+                        class: "btn btn-sm btn-primary" %>
+                <% end %>
                 <%= link_to "Excluir", p,
                       data: { turbo_method: :delete, turbo_confirm: "Delete this pedido?" },
                       class: "btn btn-sm btn-danger" %>

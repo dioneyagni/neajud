@@ -10,9 +10,22 @@
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
 <% if @pedido.status == "rascunho" %>
+  <% pendentes = @pedido.pecas_pendentes.to_a %>
+  <% if pendentes.any? %>
+    <div class="pedido-pendencias" role="alert">
+      <strong>Peças pendentes — complete antes de confirmar:</strong>
+      <ul>
+        <% pendentes.each do |p| %>
+          <li><%= p.peca&.nome || "Sem peça" %> <span class="pedido-pendencias-item">(item <%= p.item_pedido.arquivo.filename %>)</span></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
   <div style="margin: 1rem 0; display:flex; gap:0.5rem;">
     <%= button_to "Confirmar Pedido", confirmar_pedido_path(@pedido), method: :post,
           class: "btn btn-primary",
+          disabled: pendentes.any?,
+          title: (pendentes.any? ? "Há peças pendentes (sem arte)" : nil),
           data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
     <%= button_to "Excluir Rascunho", @pedido, method: :delete,
           class: "btn btn-secondary",
@@ -74,6 +87,10 @@
       <% end %>
     </div>
   </div>
+<% end %>
+
+<% if @pedido.itens_pedido.any? %>
+  <%= render "producao", pedido: @pedido %>
 <% end %>
 
 <% if @pedido.itens_pedido.empty? %>

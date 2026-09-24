@@ -138,6 +138,10 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     }
   }
 
+  function producaoRow(nome) {
+    return page.locator("turbo-frame#pedido-producao tbody tr").filter({ hasText: nome });
+  }
+
   let modelo;
   let pedidoUuid;
   const lateralFile = makeArte("lateral", "red");
@@ -230,6 +234,49 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await waitForOpacity(pedidoPeca(1, names.lateral), "dimmed");
       await page.reload();
       await expectPedidoPeca(pedidoPeca(1, names.lateral), "excluida", false);
+    });
+
+    // State here: item 0 = Lateral checked + Língua pending; item 1 = Lateral
+    // unchecked + Língua checked. Each item was added with quantity 1.
+    await test("Produção lists only checked pieces, summed per peça", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const rows = await page.locator("turbo-frame#pedido-producao tbody tr").evaluateAll((trs) => trs.map((tr) => tr.dataset.peca));
+      if (JSON.stringify(rows) !== JSON.stringify([ names.lateral, names.lingua ])) throw new Error(`Rows ${JSON.stringify(rows)}`);
+      const lateralTotal = (await producaoRow(names.lateral).locator("td strong").innerText()).trim();
+      if (lateralTotal !== "1") throw new Error(`Lateral total should be 1 (only item 0 has it checked), got ${lateralTotal}`);
+    });
+
+    await test("Unchecking a piece removes it from Produção without reloading, re-checking brings it back", async () => {
+      await togglePedidoPeca(pedidoPeca(1, names.lingua), false);
+      await producaoRow(names.lingua).waitFor({ state: "detached", timeout: 5000 })
+        .catch(() => { throw new Error("Língua row still in Produção after unchecking"); });
+      await togglePedidoPeca(pedidoPeca(1, names.lingua), true);
+      await producaoRow(names.lingua).waitFor({ timeout: 5000 })
+        .catch(() => { throw new Error("Língua row did not come back after re-checking"); });
+    });
+
+    await test("A pending piece is listed and Confirmar is disabled on the pedido page", async () => {
+      const box = page.locator(".pedido-pendencias");
+      if (!(await box.innerText()).includes(names.lingua)) throw new Error("Pending Língua not listed");
+      const confirmar = page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`);
+      if (!(await confirmar.isDisabled())) throw new Error("Confirmar should be disabled while a piece is pending");
+    });
+
+    await test("The pedidos list shows a pending badge instead of Confirmar", async () => {
+      await page.goto(`${BASE_URL}/pedidos`);
+      const row = page.locator("tr").filter({ has: page.locator(`a[href="/pedidos/${pedidoUuid}"]`) });
+      if (!(await row.locator(".pedido-pendentes-badge").innerText()).includes("1 pendente")) throw new Error("Pending badge missing");
+      if (await row.locator(`a[href="/pedidos/${pedidoUuid}/confirmar"]`).count()) throw new Error("Confirmar link should be hidden");
+    });
+
+    await test("The server refuses to confirm while a piece is pending", async () => {
+      const token = await csrf();
+      await page.evaluate(async ({ uuid, token }) => {
+        await fetch(`/pedidos/${uuid}/confirmar`, { method: "POST", headers: { "X-CSRF-Token": token } });
+      }, { uuid: pedidoUuid, token });
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const status = (await page.locator("h2 .badge").innerText()).trim();
+      if (status !== "rascunho") throw new Error(`Pedido should stay rascunho, got ${status}`);
     });
 
     await test("Re-checking a piece restores it", async () => {
