@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_24_141841) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_020051) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -149,6 +149,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_141841) do
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
   end
 
+  create_table "item_pedido_pecas", force: :cascade do |t|
+    t.integer "arquivo_id"
+    t.datetime "created_at", null: false
+    t.boolean "incluida", default: true, null: false
+    t.integer "item_pedido_id", null: false
+    t.integer "peca_id"
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["arquivo_id"], name: "index_item_pedido_pecas_on_arquivo_id"
+    t.index ["item_pedido_id", "peca_id"], name: "index_item_pedido_pecas_on_item_pedido_id_and_peca_id", unique: true
+    t.index ["item_pedido_id"], name: "index_item_pedido_pecas_on_item_pedido_id"
+    t.index ["peca_id"], name: "index_item_pedido_pecas_on_peca_id"
+  end
+
   create_table "itens_pedido", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.datetime "created_at", null: false
@@ -281,6 +295,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_141841) do
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "item_pedido_pecas", "arquivos"
+  add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"
+  add_foreign_key "item_pedido_pecas", "pecas"
   add_foreign_key "itens_pedido", "arquivos"
   add_foreign_key "itens_pedido", "materia_primas"
   add_foreign_key "itens_pedido", "pedidos"

@@ -47,13 +47,16 @@ class PedidosController < ApplicationController
 
     materia_prima = MateriaPrima.find_by(id: params[:materia_prima_id]) if params[:materia_prima_id].present?
 
-    item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
+    ItemPedido.transaction do
+      item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
+      item.compor_pecas!(ModeloComposicaoService.call(arquivo))
 
-    grade_params = params[:grade]
-    if grade_params.respond_to?(:each)
-      grade_params.each do |tamanho_nome, quantidade|
-        qtd = quantidade.to_i
-        item.grades.create!(tamanho_nome: tamanho_nome, quantidade: qtd) if qtd > 0
+      grade_params = params[:grade]
+      if grade_params.respond_to?(:each)
+        grade_params.each do |tamanho_nome, quantidade|
+          qtd = quantidade.to_i
+          item.grades.create!(tamanho_nome: tamanho_nome, quantidade: qtd) if qtd > 0
+        end
       end
     end
 
@@ -94,6 +97,7 @@ class PedidosController < ApplicationController
         item.grades.each do |g|
           novo_item.grades.create!(tamanho_nome: g.tamanho_nome, quantidade: g.quantidade)
         end
+        novo_item.copiar_pecas_de!(item)
       end
     end
 

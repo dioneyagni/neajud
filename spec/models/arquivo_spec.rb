@@ -214,4 +214,28 @@ RSpec.describe Arquivo, type: :model do
       expect(corte.destroy).to be_truthy
     end
   end
+
+  describe "#resolved_peca" do
+    let(:peca_do_corte) { create(:peca, nome: "Lateral") }
+    let(:corte) { create(:arquivo, :corte, peca: peca_do_corte) }
+
+    it "is the peça of the corte its tamanho belongs to" do
+      arte = create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
+      expect(arte.resolved_peca).to eq(peca_do_corte)
+    end
+
+    it "prefers the corte's peça over the arte's own peca_id" do
+      arte = create(:arquivo, tamanho: create(:tamanho, arquivo: corte), peca: create(:peca, nome: "Outra"))
+      expect(arte.resolved_peca).to eq(peca_do_corte)
+    end
+
+    it "falls back to the arte's own peca_id without tamanho" do
+      lingua = create(:peca, nome: "Língua")
+      expect(create(:arquivo, peca: lingua).resolved_peca).to eq(lingua)
+    end
+
+    it "is nil when neither is set" do
+      expect(create(:arquivo).resolved_peca).to be_nil
+    end
+  end
 end
