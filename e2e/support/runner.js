@@ -4,7 +4,10 @@
 
 const { chromium } = require("playwright");
 
-const BASE_URL = "http://localhost:3000";
+// Set by bin/e2e (E2E_PORT, default 3001) so the dev server on :3000 is never
+// involved. Running one spec by hand: start `bin/rails s -e test -p 3001
+// -P tmp/pids/e2e-server.pid` and call node without the variable.
+const BASE_URL = process.env.E2E_BASE_URL || "http://localhost:3001";
 const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
 
 async function openPage() {

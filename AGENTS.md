@@ -32,7 +32,7 @@
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
   self-validating, timely.
 - Test the Rails server, observe any errors in the console and correct them,
-  shut down and restart the server and all related processes. When there are
+  restart the dev server (:3000) when needed. When there are
   no errors in the console, test e2e, then e2e --headed and check if
   everything goes through. Correct what is necessary and test again.
 - An intermittent failure is never "noise". Before calling it unrelated to
@@ -82,7 +82,8 @@
   action produces: a status text, `page.waitForResponse`, a count that grew.
   This is what made "DXF Mold Organization" flaky (fixed in #76).
 - **Running one spec by hand** (`node e2e/<name>.spec.js` against
-  `bin/rails s -e test`): the test server does **not** reload edited JS/CSS
+  `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, see "Dev server
+  and E2E server run side by side"): the test server does **not** reload edited JS/CSS
   (Propshaft caches assets outside development). Restart it after changing
   `app/javascript` or stylesheets — otherwise you are testing the old code
   (a mutation check "passed" this way). `bin/e2e` restarts it on every run.
@@ -126,7 +127,7 @@ bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
 bin/brakeman --exit-on-warn   # security scan
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
-bash bin/e2e                  # Playwright E2E (headless) — stops the dev server on :3000, see "bin/e2e stops the dev server"
+bash bin/e2e                  # Playwright E2E (headless) on its own port :3001 — the dev server on :3000 keeps running
 bash bin/e2e --headed         # Playwright E2E (visible browser)
 ```
 
@@ -452,22 +453,35 @@ has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 ⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
 test, but an earlier `export RAILS_ENV=development` in the shell can override it.
 
-## bin/e2e stops the dev server
+## Dev server and E2E server run side by side
 
-The E2E server needs port 3000, so step 1 of `bin/e2e` stops **whatever is
-listening on :3000** — normally your development server — with SIGTERM, then
-SIGKILL if the port is still busy after 5s. It prints the PID and command it
-stopped. Nothing else is touched.
+- **Development server: port 3000**, development database. Keep it running.
+- **E2E test server: port 3001** (`E2E_PORT`, default 3001), test database,
+  started and stopped by `bin/e2e`. Specs read the URL from `E2E_BASE_URL`
+  (`e2e/support/runner.js`). It writes its PID to `tmp/pids/e2e-server.pid`,
+  not the default `tmp/pids/server.pid` the dev server uses — sharing it made
+  the second server refuse to boot.
+- `bin/e2e` only ever stops a **leftover test server** on the E2E port
+  (checked via `RAILS_ENV=test` in `/proc/<pid>/environ`). Anything else on
+  that port — a dev server, another app — is refused with a message, never
+  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`.
+- Running one spec by hand:
+  `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
+  `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).
+- Before trusting what `localhost:<port>` shows, check which environment is
+  behind it: `tr '\0' '\n' < /proc/$(lsof -t -iTCP:3000 -sTCP:LISTEN)/environ | grep RAILS_ENV`
+  (empty = development).
 
-Restart the dev server after the run, in a **separate** command:
-`nohup bin/rails server -p 3000 &>/dev/null &`, then poll `curl -s localhost:3000/up`.
-
-**Historical note (Sep 2026):** step 1 used to be `pkill -f "puma"` /
-`pkill -f "rails server"`. `pkill -f` matches the full command line of every
-process, so it also killed any shell whose command contained those words —
-including the one that launched `bin/e2e` (silent exit 144). The same applies
-to any `pkill -f` you run yourself: never put its pattern in the same command
-line. Prefer stopping by port (`lsof -t -iTCP:3000 -sTCP:LISTEN`).
+**Historical note (Sep 2026):** both servers used to share port 3000.
+`bin/e2e` stopped the dev server and put the test server in its place for
+the whole run (minutes per run, several runs in a row), so `localhost:3000`
+silently showed test data. No data was lost — only what was being served
+changed. Step 1 was also `pkill -f "puma"` / `pkill -f "rails server"`,
+which matched every process's full command line and killed any shell whose
+command contained those words, including the one that launched `bin/e2e`
+(silent exit 144). The same applies to any `pkill -f`/`pgrep -f` you run
+yourself: never put its pattern in the same command line. Select processes
+by port (`lsof -t -iTCP:<port> -sTCP:LISTEN`) instead.
 
 If a run is interrupted (killed shell, Ctrl-C), check for orphans before the
 next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
