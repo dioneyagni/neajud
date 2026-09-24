@@ -18,6 +18,9 @@
       <span class="pedido-peca-nome"><%= peca_row.peca&.nome || "Sem peça" %></span>
       <% if peca_row.estado == :pendente %>
         <span class="pedido-peca-pendente" title="Sem arte: precisa ser completada antes de confirmar o pedido">Pendente</span>
+        <% if pedido.status == "rascunho" && peca_row.peca %>
+          <%= link_to "Escolher arte", escolher_arte_pedido_peca_path(pedido, peca_row), class: "btn btn-sm btn-outline pedido-peca-escolher" %>
+        <% end %>
       <% elsif editavel %>
         <label class="pedido-peca-toggle">
           <input type="checkbox" class="pedido-peca-check"

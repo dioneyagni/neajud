@@ -6,6 +6,8 @@ class Modelo < ApplicationRecord
   has_many :vinculated_arquivos, through: :arquivo_modelos, source: :arquivo
   has_many :modelo_pecas, dependent: :destroy
   has_many :configured_pecas, through: :modelo_pecas, source: :peca
+  has_many :vinculo_logs_saida, class_name: "ArquivoVinculoLog", foreign_key: :from_modelo_id, dependent: :nullify
+  has_many :vinculo_logs_entrada, class_name: "ArquivoVinculoLog", foreign_key: :to_modelo_id, dependent: :nullify
 
   validates :nome, presence: true
   validates :nome, uniqueness: { scope: :client_id, case_sensitive: false }

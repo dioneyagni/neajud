@@ -14,6 +14,7 @@ class ArquivosController < ApplicationController
     @time_logs = @arquivo.arquivo_time_logs.order(created_at: :desc)
     @versions = @arquivo.arquivo_versions.order(version_number: :desc)
     @arquivo_version = ArquivoVersion.new
+    @vinculo_logs = @arquivo.vinculo_logs.includes(:peca, :pedido)
   end
 
   MAX_FILE_SIZE = 1.gigabyte

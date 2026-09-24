@@ -1,6 +1,7 @@
 class Pedido < ApplicationRecord
   belongs_to :client, optional: true
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy
+  has_many :arquivo_vinculo_logs, dependent: :nullify
 
   validates :uuid, uniqueness: true
   validates :status, presence: true, inclusion: { in: %w[rascunho confirmado cancelado] }

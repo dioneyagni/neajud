@@ -6,6 +6,7 @@ class Arquivo < ApplicationRecord
   has_many :modelos, through: :arquivo_modelos
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :restrict_with_error
   has_many :item_pedido_pecas, dependent: :restrict_with_error
+  has_many :vinculo_logs, -> { order(created_at: :desc) }, class_name: "ArquivoVinculoLog", dependent: :destroy
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
   belongs_to :molde, optional: true
@@ -33,6 +34,14 @@ class Arquivo < ApplicationRecord
   def corte?
     category == "corte"
   end
+
+  # SQL mirror of #resolved_peca being nil: no peca_id and no corte peça.
+  # Usage: Arquivo.where(category: "artes").sem_peca_resolvida
+  scope :sem_peca_resolvida, -> {
+    joins("LEFT JOIN tamanhos resolved_t ON resolved_t.id = arquivos.tamanho_id")
+      .joins("LEFT JOIN arquivos resolved_corte ON resolved_corte.id = resolved_t.arquivo_id")
+      .where(arquivos: { peca_id: nil }).where("resolved_corte.peca_id IS NULL")
+  }
 
   # The piece this arte is printed on: the peça of the corte its tamanho
   # belongs to, else the arte's own peca_id (set when an arte is linked to a

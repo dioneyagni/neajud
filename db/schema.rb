@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_020051) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -67,6 +67,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_020051) do
     t.index ["arquivo_id", "version_number"], name: "index_arquivo_versions_on_arquivo_id_and_version_number", unique: true
     t.index ["arquivo_id"], name: "index_arquivo_versions_on_arquivo_id"
     t.index ["uuid"], name: "index_arquivo_versions_on_uuid", unique: true
+  end
+
+  create_table "arquivo_vinculo_logs", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.string "changed_by"
+    t.datetime "created_at", null: false
+    t.integer "from_modelo_id"
+    t.string "from_modelo_nome"
+    t.integer "peca_id"
+    t.integer "pedido_id"
+    t.integer "to_modelo_id"
+    t.string "to_modelo_nome", null: false
+    t.datetime "updated_at", null: false
+    t.index ["arquivo_id"], name: "index_arquivo_vinculo_logs_on_arquivo_id"
+    t.index ["from_modelo_id"], name: "index_arquivo_vinculo_logs_on_from_modelo_id"
+    t.index ["peca_id"], name: "index_arquivo_vinculo_logs_on_peca_id"
+    t.index ["pedido_id"], name: "index_arquivo_vinculo_logs_on_pedido_id"
+    t.index ["to_modelo_id"], name: "index_arquivo_vinculo_logs_on_to_modelo_id"
   end
 
   create_table "arquivos", force: :cascade do |t|
@@ -288,6 +306,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_020051) do
   add_foreign_key "arquivo_modelos", "modelos"
   add_foreign_key "arquivo_time_logs", "arquivos"
   add_foreign_key "arquivo_versions", "arquivos"
+  add_foreign_key "arquivo_vinculo_logs", "arquivos"
+  add_foreign_key "arquivo_vinculo_logs", "modelos", column: "from_modelo_id"
+  add_foreign_key "arquivo_vinculo_logs", "modelos", column: "to_modelo_id"
+  add_foreign_key "arquivo_vinculo_logs", "pecas"
+  add_foreign_key "arquivo_vinculo_logs", "pedidos"
   add_foreign_key "arquivos", "arquivo_versions", column: "approved_version_id"
   add_foreign_key "arquivos", "clients"
   add_foreign_key "arquivos", "modelos"
