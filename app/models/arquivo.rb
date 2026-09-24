@@ -5,6 +5,7 @@ class Arquivo < ApplicationRecord
   has_many :arquivo_modelos, dependent: :destroy
   has_many :modelos, through: :arquivo_modelos
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :restrict_with_error
+  has_many :item_pedido_pecas, dependent: :restrict_with_error
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
   belongs_to :molde, optional: true
@@ -31,6 +32,14 @@ class Arquivo < ApplicationRecord
 
   def corte?
     category == "corte"
+  end
+
+  # The piece this arte is printed on: the peça of the corte its tamanho
+  # belongs to, else the arte's own peca_id (set when an arte is linked to a
+  # piece before it has a tamanho). Mirrored in CreateItemPedidoPecas::BACKFILL_SQL.
+  # Usage: arte.resolved_peca&.nome # => "Lateral"
+  def resolved_peca
+    corte&.peca || peca
   end
 
   def corte_via_modelo

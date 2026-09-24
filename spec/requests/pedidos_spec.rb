@@ -137,6 +137,19 @@ RSpec.describe "Pedidos", type: :request do
       expect(item.grades.find_by(tamanho_nome: "M").quantidade).to eq(2)
     end
 
+    it "stores every piece of the arte's modelo, marking the ones without arte as pending" do
+      lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
+      molde = create(:molde).tap { |m| m.pecas << [ lateral, lingua ] }
+      modelo = create(:modelo, molde: molde).tap(&:sync_modelo_pecas!)
+      arte = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
+
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid }
+
+      rows = ItemPedido.last.item_pedido_pecas
+      expect(rows.map { |r| [ r.peca.nome, r.arquivo, r.estado ] })
+        .to eq([ [ "Lateral", arte, :incluida ], [ "Língua", nil, :pendente ] ])
+    end
+
     it "returns 422 for non-existent arquivo" do
       post adicionar_item_pedidos_path, params: { arquivo_uuid: "nonexistent-uuid" }
       expect(response).to have_http_status(:unprocessable_content)
@@ -179,6 +192,20 @@ RSpec.describe "Pedidos", type: :request do
       novos = Pedido.where(status: "confirmado")
       expect(novos.count).to eq(2)
       expect(novos.pluck(:client_id)).to contain_exactly(client_a.id, client_b.id)
+    end
+
+    it "copies each item's pieces and their state into the split pedidos" do
+      arte_a = create(:arquivo, category: "artes", client: create(:client))
+      arte_b = create(:arquivo, category: "artes", client: create(:client))
+      pedido = create(:pedido)
+      item_a = create(:item_pedido, pedido: pedido, arquivo: arte_a)
+      create(:item_pedido_peca, item_pedido: item_a, arquivo: arte_a, incluida: false)
+      create(:item_pedido, pedido: pedido, arquivo: arte_b)
+
+      post confirmar_pedido_path(pedido)
+
+      copied = ItemPedido.joins(:pedido).where(pedidos: { status: "confirmado" }, arquivo: arte_a).sole
+      expect(copied.item_pedido_pecas.map { |r| [ r.arquivo, r.estado ] }).to eq([ [ arte_a, :excluida ] ])
     end
 
     it "confirms single-client pedido in-place without duplication" do

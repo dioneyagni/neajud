@@ -47,4 +47,30 @@ RSpec.describe ItemPedido, type: :model do
       expect(item.quantidade_total).to eq(0)
     end
   end
+
+  describe "#compor_pecas!" do
+    it "stores one row per slot, in order, all checked" do
+      item = create(:item_pedido)
+      lateral, lingua = create(:peca), create(:peca)
+      slots = [
+        ModeloComposicaoService::Slot.new(peca: lateral, arquivo: item.arquivo),
+        ModeloComposicaoService::Slot.new(peca: lingua, arquivo: nil)
+      ]
+      item.compor_pecas!(slots)
+      rows = item.item_pedido_pecas.reload
+      expect(rows.map { |r| [ r.peca, r.arquivo, r.position, r.estado ] })
+        .to eq([ [ lateral, item.arquivo, 0, :incluida ], [ lingua, nil, 1, :pendente ] ])
+    end
+  end
+
+  describe "#copiar_pecas_de!" do
+    it "copies pieces with their checked/unchecked state" do
+      source = create(:item_pedido)
+      create(:item_pedido_peca, item_pedido: source, incluida: false, position: 0)
+      create(:item_pedido_peca, item_pedido: source, arquivo: nil, position: 1)
+      copy = create(:item_pedido)
+      copy.copiar_pecas_de!(source)
+      expect(copy.item_pedido_pecas.reload.map(&:estado)).to eq([ :excluida, :pendente ])
+    end
+  end
 end
