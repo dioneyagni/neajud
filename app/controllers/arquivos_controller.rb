@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   PER_PAGE_GRID = 12
@@ -206,6 +206,14 @@ class ArquivosController < ApplicationController
     head :not_found
   end
 
+  # Pieces of this arte's modelo (see ModeloComposicaoService), for the
+  # "Adicionar ao Pedido" modal to list before the item is created.
+  # Usage: GET /arquivos/:uuid/composicao → { pecas: [{ peca_nome:, arquivo_uuid:, … }] }
+  def composicao
+    slots = ModeloComposicaoService.call(@arquivo)
+    render json: { pecas: slots.map { |slot| composicao_slot_json(slot) } }
+  end
+
   def version_preview
     version = @arquivo.arquivo_versions.find(params[:version_id])
     raise ActionController::MissingFile if version.preview_file.blank?
@@ -299,6 +307,18 @@ class ArquivosController < ApplicationController
   end
 
   private
+
+  def composicao_slot_json(slot)
+    arte = slot.arquivo
+    {
+      peca_nome: slot.peca&.nome,
+      arquivo_uuid: arte&.uuid,
+      filename: arte&.filename,
+      preview_url: arte&.preview_file.present? ? preview_arquivo_path(arte) : nil,
+      pendente: arte.nil?,
+      adicionada: arte == @arquivo
+    }
+  end
 
   def set_arquivo
     @arquivo = Arquivo.find_by!(uuid: params[:id])

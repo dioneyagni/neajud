@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["modal", "preview", "filename", "client",
                     "materialHidden", "gradeContainer",
-                    "submitBtn", "errorContainer"]
+                    "submitBtn", "errorContainer", "pecasContainer"]
 
   static values = {
     arteUuid: String,
@@ -34,6 +34,7 @@ export default class extends Controller {
 
     this._updateComboboxUrl()
     this._populateModal()
+    this._loadPecas()
     this.modalTarget.showModal()
     this.modalTarget.addEventListener("click", this.boundClose)
   }
@@ -83,6 +84,8 @@ export default class extends Controller {
         formData.append(`grade[${input.dataset.tamanhoNome}]`, val)
       }
     })
+
+    this._uncheckedPecaUuids().forEach(uuid => formData.append("excluir_arquivos[]", uuid))
 
     const qtdTotal = this.gradeContainerTarget.querySelector(".add-to-order-qtd-total")
     if (qtdTotal) {
@@ -165,6 +168,95 @@ export default class extends Controller {
     }
   }
 
+  // Pieces of the arte's modelo. A response for an arte other than the one
+  // currently open (modal reopened before it arrived) is dropped.
+  _loadPecas() {
+    if (!this.hasPecasContainerTarget) return
+    const uuid = this.arteUuidValue
+    this._showPecasMessage("Carregando peças…")
+    fetch(`/arquivos/${encodeURIComponent(uuid)}/composicao`, { headers: { "Accept": "application/json" } })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(data => { if (uuid === this.arteUuidValue) this._renderPecas(data.pecas || []) })
+      .catch(() => { if (uuid === this.arteUuidValue) this._showPecasMessage("Não foi possível carregar as peças do modelo.") })
+  }
+
+  // A single-piece arte needs no piece picker.
+  _renderPecas(pecas) {
+    const container = this.pecasContainerTarget
+    container.replaceChildren()
+    container.hidden = pecas.length < 2
+    if (container.hidden) return
+    const title = document.createElement("label")
+    title.textContent = "Peças do modelo:"
+    const grid = document.createElement("div")
+    grid.className = "add-to-order-pecas-grid"
+    pecas.forEach(peca => grid.appendChild(this._pecaCard(peca)))
+    container.append(title, grid)
+  }
+
+  _pecaCard(peca) {
+    const card = document.createElement("div")
+    card.className = "add-to-order-peca" + (peca.pendente ? " add-to-order-peca--pendente" : "")
+    card.appendChild(this._pecaThumb(peca))
+    const name = document.createElement("span")
+    name.className = "add-to-order-peca-nome"
+    name.textContent = peca.peca_nome || "Sem peça"
+    card.appendChild(name)
+    card.appendChild(peca.pendente ? this._pendingBadge() : this._pecaCheckbox(peca, card))
+    return card
+  }
+
+  _pecaThumb(peca) {
+    if (!peca.preview_url) {
+      const empty = document.createElement("div")
+      empty.className = "add-to-order-peca-thumb add-to-order-peca-thumb--empty"
+      empty.textContent = peca.pendente ? "sem arte" : "sem preview"
+      return empty
+    }
+    const img = document.createElement("img")
+    img.className = "add-to-order-peca-thumb"
+    img.src = peca.preview_url
+    img.alt = peca.filename || ""
+    return img
+  }
+
+  _pendingBadge() {
+    const badge = document.createElement("span")
+    badge.className = "add-to-order-peca-pendente"
+    badge.textContent = "Pendente"
+    badge.title = "Sem arte: precisa ser completada antes de confirmar o pedido"
+    return badge
+  }
+
+  // Unchecked = the pedido goes to production without this piece.
+  _pecaCheckbox(peca, card) {
+    const label = document.createElement("label")
+    label.className = "add-to-order-peca-toggle"
+    const input = document.createElement("input")
+    input.type = "checkbox"
+    input.checked = true
+    input.className = "add-to-order-peca-check"
+    input.dataset.arquivoUuid = peca.arquivo_uuid
+    input.addEventListener("change", () => card.classList.toggle("add-to-order-peca--excluida", !input.checked))
+    label.append(input, " incluir")
+    return label
+  }
+
+  _uncheckedPecaUuids() {
+    if (!this.hasPecasContainerTarget) return []
+    return Array.from(this.pecasContainerTarget.querySelectorAll(".add-to-order-peca-check:not(:checked)"))
+      .map(input => input.dataset.arquivoUuid)
+  }
+
+  _showPecasMessage(text) {
+    const container = this.pecasContainerTarget
+    const message = document.createElement("span")
+    message.className = "add-to-order-pecas-message"
+    message.textContent = text
+    container.replaceChildren(message)
+    container.hidden = false
+  }
+
   _showError(msg) {
     this.errorContainerTarget.textContent = msg
     this.errorContainerTarget.classList.remove("add-to-order-error--hidden")
@@ -178,6 +270,10 @@ export default class extends Controller {
     if (comboboxInput) comboboxInput.value = ""
     this.errorContainerTarget.classList.add("add-to-order-error--hidden")
     this.submitBtnTarget.disabled = false
+    if (this.hasPecasContainerTarget) {
+      this.pecasContainerTarget.replaceChildren()
+      this.pecasContainerTarget.hidden = true
+    }
   }
 
 }

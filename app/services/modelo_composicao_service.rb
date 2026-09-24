@@ -41,7 +41,16 @@ class ModeloComposicaoService
   end
 
   def artes_by_peca_id
-    @artes_by_peca_id ||= modelo_artes.select(&:resolved_peca).index_by { |arte| arte.resolved_peca.id }
+    @artes_by_peca_id ||= modelo_artes.select(&:resolved_peca)
+                                      .index_by { |arte| arte.resolved_peca.id }
+                                      .merge(added_arte_by_peca_id)
+  end
+
+  # The added arte always wins its own peça. Real data had two línguas on one
+  # modelo (a misfiled arte); without this, adding one of them showed the other.
+  def added_arte_by_peca_id
+    peca = @arte.resolved_peca
+    peca && @arte.modelo_id == @modelo.id ? { peca.id => @arte } : {}
   end
 
   # Artes whose peça isn't on the modelo (e.g. its molde changed later), plus

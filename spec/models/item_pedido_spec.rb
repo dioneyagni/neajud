@@ -73,4 +73,22 @@ RSpec.describe ItemPedido, type: :model do
       expect(copy.item_pedido_pecas.reload.map(&:estado)).to eq([ :excluida, :pendente ])
     end
   end
+
+  describe "#excluir_pecas!" do
+    it "unchecks only the pieces whose arte uuid was given, ignoring unknown uuids" do
+      item = create(:item_pedido)
+      kept = create(:item_pedido_peca, item_pedido: item, position: 0)
+      dropped = create(:item_pedido_peca, item_pedido: item, position: 1)
+      pending = create(:item_pedido_peca, item_pedido: item, arquivo: nil, position: 2)
+      item.excluir_pecas!([ dropped.arquivo.uuid, "unknown" ])
+      expect([ kept, dropped, pending ].map { |r| r.reload.estado }).to eq([ :incluida, :excluida, :pendente ])
+    end
+
+    it "does nothing when no uuids are given" do
+      item = create(:item_pedido)
+      row = create(:item_pedido_peca, item_pedido: item)
+      item.excluir_pecas!(nil)
+      expect(row.reload.estado).to eq(:incluida)
+    end
+  end
 end

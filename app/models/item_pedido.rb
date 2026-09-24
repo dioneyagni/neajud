@@ -23,6 +23,14 @@ class ItemPedido < ApplicationRecord
     end
   end
 
+  # Unchecks the pieces whose arte was left unchecked in the modal; the pedido
+  # goes to production without them. Unknown uuids are ignored.
+  # Usage: item.excluir_pecas!(params[:excluir_arquivos])
+  def excluir_pecas!(arquivo_uuids)
+    arquivo_ids = Arquivo.where(uuid: Array(arquivo_uuids)).select(:id)
+    item_pedido_pecas.where(arquivo_id: arquivo_ids).update_all(incluida: false)
+  end
+
   # Copies pieces, including their checked/unchecked state, when confirmar
   # splits a pedido by client. Usage: novo_item.copiar_pecas_de!(item)
   def copiar_pecas_de!(source)

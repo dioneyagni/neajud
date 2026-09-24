@@ -64,6 +64,17 @@ RSpec.describe ModeloComposicaoService do
     expect(described_class.call(arte_lateral).map(&:arquivo)).to eq([ arte_lateral, nil ])
   end
 
+  # Regression: dev data had two línguas on one modelo; adding the second one
+  # showed the first and dropped the added arte.
+  it "puts the added arte in its peça even when another arte of the modelo claims it too" do
+    arte_lateral = arte_for(lateral)
+    arte_for(lingua)
+    added = arte_for(lingua)
+    first_lingua = modelo.arquivos.where.not(id: [ arte_lateral.id, added.id ]).sole
+    expect(described_class.call(added).map(&:arquivo)).to eq([ arte_lateral, added ])
+    expect(described_class.call(first_lingua).map(&:arquivo)).to eq([ arte_lateral, first_lingua ])
+  end
+
   it "is a single slot for an arte without modelo" do
     lone = create(:arquivo, peca: lateral)
     expect(pieces(described_class.call(lone))).to eq([ [ "Lateral", lone ] ])

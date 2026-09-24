@@ -39,7 +39,7 @@ E2E_SPECS=(
   arquivos-client-field arquivos-size-selection
   pages-clients-moldes-pecas pages-modelos-materials
   arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte
-  movimentos pedidos clients modelos materiais moldes
+  movimentos pedidos pedidos-pecas clients modelos materiais moldes
 )
 for file in e2e/*.spec.js; do
   name="$(basename "$file" .spec.js)"

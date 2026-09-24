@@ -20,6 +20,7 @@ Rails.application.routes.draw do
       post :add_modelo
       delete :remove_modelo
       get :preview
+      get :composicao
       get :download
       post :upload_version
       patch :approve_version

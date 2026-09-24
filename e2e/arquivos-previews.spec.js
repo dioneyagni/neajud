@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { imageHasVisiblePixels } = require("./support/pixels");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { UPLOAD_TIMEOUT, uploadFileAndWait } = require("./support/upload");
 const { testImagesDir } = require("./support/fixtures");
@@ -44,31 +45,7 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
       if (!src || !src.includes("/preview")) throw new Error("Preview src missing");
 
       if (checkPixels) {
-        const hasVisiblePixels = await page.evaluate(async (url) => {
-          return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-              try {
-                const c = document.createElement("canvas");
-                c.width = img.width;
-                c.height = img.height;
-                const ctx = c.getContext("2d");
-                ctx.drawImage(img, 0, 0);
-                const data = ctx.getImageData(0, 0, Math.min(100, img.width), Math.min(100, img.height)).data;
-                for (let i = 0; i < data.length; i += 4) {
-                  if (data[i + 3] > 0 && (data[i] > 0 || data[i + 1] > 0 || data[i + 2] > 0)) {
-                    resolve(true);
-                    return;
-                  }
-                }
-                resolve(false);
-              } catch { resolve(false); }
-            };
-            img.onerror = () => resolve(false);
-            img.src = url;
-          });
-        }, src);
+        const hasVisiblePixels = await imageHasVisiblePixels(page, src);
         if (!hasVisiblePixels) throw new Error("Preview image has no visible pixels");
       }
     });
