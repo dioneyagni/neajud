@@ -65,7 +65,7 @@ RSpec.describe "Pedidos", type: :request do
   describe "POST /pedidos/adicionar_item" do
     it "adds item, auto-creating draft when none exists" do
       expect {
-        post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid }
+        post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "_total" => "1" } }
       }.to change(Pedido, :count).by(1)
        .and change(ItemPedido, :count).by(1)
 
@@ -75,11 +75,11 @@ RSpec.describe "Pedidos", type: :request do
     end
 
     it "reuses existing draft from session across requests" do
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "_total" => "1" } }
       pedido = Pedido.last
 
       arte2 = create(:arquivo, filename: "outra", extension: "tif", mime_type: "image/tiff", category: "artes")
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte2.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte2.uuid, grade: { "_total" => "1" } }
 
       expect(response).to have_http_status(:success)
       expect(pedido.itens_pedido.count).to eq(2)
@@ -89,7 +89,7 @@ RSpec.describe "Pedidos", type: :request do
       client = create(:client)
       arte_com_cliente = create(:arquivo, category: "artes", client: client)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_com_cliente.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_com_cliente.uuid, grade: { "_total" => "1" } }
 
       expect(response).to have_http_status(:success)
       pedido = Pedido.last
@@ -102,11 +102,11 @@ RSpec.describe "Pedidos", type: :request do
       arte_a = create(:arquivo, category: "artes", client: client_a)
       arte_b = create(:arquivo, category: "artes", client: client_b)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_a.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_a.uuid, grade: { "_total" => "1" } }
       pedido_a = Pedido.find_by!(client_id: client_a.id)
       expect(pedido_a.status).to eq("rascunho")
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_b.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_b.uuid, grade: { "_total" => "1" } }
       pedido_b = Pedido.find_by!(client_id: client_b.id)
       expect(pedido_b.status).to eq("rascunho")
 
@@ -116,7 +116,8 @@ RSpec.describe "Pedidos", type: :request do
     it "includes material when specified" do
       post adicionar_item_pedidos_path, params: {
         arquivo_uuid: arquivo.uuid,
-        materia_prima_id: materia_prima.id
+        materia_prima_id: materia_prima.id,
+        grade: { "_total" => "1" }
       }
 
       expect(response).to have_http_status(:success)
@@ -143,7 +144,7 @@ RSpec.describe "Pedidos", type: :request do
       modelo = create(:modelo, molde: molde).tap(&:sync_modelo_pecas!)
       arte = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "_total" => "1" } }
 
       rows = ItemPedido.last.item_pedido_pecas
       expect(rows.map { |r| [ r.peca.nome, r.arquivo, r.estado ] })
@@ -156,14 +157,14 @@ RSpec.describe "Pedidos", type: :request do
       arte_lateral = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
       arte_lingua = create(:arquivo, category: "artes", modelo: modelo, peca: lingua)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ] }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "_total" => "1" } }
 
       expect(ItemPedido.last.item_pedido_pecas.map { |r| [ r.peca.nome, r.estado ] })
         .to eq([ [ "Lateral", :incluida ], [ "Língua", :excluida ] ])
     end
 
     it "returns 422 for non-existent arquivo" do
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: "nonexistent-uuid" }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: "nonexistent-uuid", grade: { "_total" => "1" } }
       expect(response).to have_http_status(:unprocessable_content)
       json = response.parsed_body
       expect(json["ok"]).to be false
@@ -191,8 +192,8 @@ RSpec.describe "Pedidos", type: :request do
       arte_b = create(:arquivo, filename: "arte_b", extension: "tif", mime_type: "image/tiff", category: "artes", client: client_b)
 
       pedido = create(:pedido)
-      create(:item_pedido, pedido: pedido, arquivo: arte_a)
-      create(:item_pedido, pedido: pedido, arquivo: arte_b)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_a)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_b)
 
       expect {
         post confirmar_pedido_path(pedido)
@@ -210,9 +211,9 @@ RSpec.describe "Pedidos", type: :request do
       arte_a = create(:arquivo, category: "artes", client: create(:client))
       arte_b = create(:arquivo, category: "artes", client: create(:client))
       pedido = create(:pedido)
-      item_a = create(:item_pedido, pedido: pedido, arquivo: arte_a)
+      item_a = create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_a)
       create(:item_pedido_peca, item_pedido: item_a, arquivo: arte_a, incluida: false)
-      create(:item_pedido, pedido: pedido, arquivo: arte_b)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_b)
 
       post confirmar_pedido_path(pedido)
 
@@ -222,7 +223,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "refuses to confirm while a piece has no arte, naming it" do
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, filename: "tenis-baixo"))
+      item = create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: create(:arquivo, filename: "tenis-baixo"))
       create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), arquivo: nil)
 
       expect { post confirmar_pedido_path(pedido) }.not_to change(Pedido, :count)
@@ -234,7 +235,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "confirms when pieces are only unchecked (the pedido goes without them)" do
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
+      item = create(:item_pedido, :com_quantidade, pedido: pedido)
       create(:item_pedido_peca, item_pedido: item, incluida: false)
       post confirmar_pedido_path(pedido)
       expect(pedido.reload.status).to eq("confirmado")
@@ -244,7 +245,7 @@ RSpec.describe "Pedidos", type: :request do
       client = create(:client)
       arte = create(:arquivo, category: "artes", client: client)
       pedido = create(:pedido)
-      create(:item_pedido, pedido: pedido, arquivo: arte)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte)
 
       expect {
         post confirmar_pedido_path(pedido)
@@ -371,7 +372,7 @@ RSpec.describe "Pedidos", type: :request do
     let(:pedido) { create(:pedido) }
 
     before do
-      item = create(:item_pedido, pedido: pedido)
+      item = create(:item_pedido, :com_quantidade, pedido: pedido)
       create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), arquivo: nil)
     end
 
@@ -387,6 +388,62 @@ RSpec.describe "Pedidos", type: :request do
       html = Nokogiri::HTML(response.body)
       expect(html.at_css(".pedido-pendentes-badge").text).to include("1 pendente")
       expect(html.css("a[href='#{confirmar_pedido_path(pedido)}']")).to be_empty
+    end
+  end
+
+  describe "no zero quantities, no missing corte" do
+    it "refuses adicionar_item with total 0 without creating a pedido or item" do
+      expect {
+        post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "35" => "0", "36" => "0" } }
+      }.not_to change { [ Pedido.count, ItemPedido.count ] }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to include("quantidade total 0")
+    end
+
+    it "refuses adicionar_item with no grade at all" do
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid }
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "refuses atualizar_item that would leave the item at 0, keeping the old grade" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido)
+      item.grades.create!(tamanho_nome: "35", quantidade: 2)
+      patch atualizar_item_pedido_path(pedido, id: item.uuid), params: { grade: { "35" => "0" } }, as: :json
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to include("use Remover")
+      expect(item.grades.reload.map { |g| [ g.tamanho_nome, g.quantidade ] }).to eq([ [ "35", 2 ] ])
+    end
+
+    it "accepts atualizar_item zeroing one size while another keeps quantity" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido)
+      item.grades.create!(tamanho_nome: "35", quantidade: 2)
+      item.grades.create!(tamanho_nome: "36", quantidade: 1)
+      patch atualizar_item_pedido_path(pedido, id: item.uuid), params: { grade: { "35" => "0" } }, as: :json
+      expect(response.parsed_body["ok"]).to be true
+      expect(item.quantidade_total).to eq(1)
+    end
+
+    it "refuses to confirm a pedido with an item at 0" do
+      pedido = create(:pedido)
+      create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, filename: "zerado"))
+      post confirmar_pedido_path(pedido)
+      expect(pedido.reload.status).to eq("rascunho")
+      expect(flash[:alert]).to include("Item zerado com quantidade total 0")
+    end
+
+    it "refuses to confirm while a checked piece has no corte, listing it on the page" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, :com_quantidade, pedido: pedido)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), arquivo: create(:arquivo, filename: "28-GATO ROSA"))
+      post confirmar_pedido_path(pedido)
+      expect(pedido.reload.status).to eq("rascunho")
+      expect(flash[:alert]).to include("Lateral sem arquivo de corte (arte 28-GATO ROSA)")
+      get pedido_path(pedido)
+      li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_corte")
+      expect(li.text).to include("28-GATO ROSA")
+      expect(li.at_css("a")["href"]).to eq(arquivo_path(Arquivo.find_by!(filename: "28-GATO ROSA")))
     end
   end
 end

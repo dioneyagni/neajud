@@ -27,6 +27,41 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     }
   });
 
+  // Confirming requires every checked piece to have a corte (see
+  // PedidoBloqueiosService): organize a copy of 29-30.dxf and pick its
+  // tamanho for the arte, the same way the arte page's Size Selection does.
+  await test("Setup: give the arte a corte (organized DXF tamanho)", async () => {
+    const dxfPath = path.join(__dirname, `e2e-corte-${UNIQ}.dxf`);
+    fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "29-30.dxf"), dxfPath);
+    try {
+      await page.goto(BASE_URL);
+      await uploadFileAndWait(page, dxfPath);
+      const uuidOf = async (name) => (await page.locator(".stamp-card").filter({ hasText: name }).first()
+        .locator("a").first().getAttribute("href")).split("/").pop();
+      const corteUuid = await uuidOf(`e2e-corte-${UNIQ}`);
+      const arteUuid = await uuidOf(`e2e-arte-${UNIQ}`);
+      const token = await getCsrfToken(page);
+      const ok = await page.evaluate(async ({ token, corteUuid, arteUuid, uniq }) => {
+        const form = (fields) => new URLSearchParams({ authenticity_token: token, ...fields });
+        const post = (url, fields) => fetch(url, { method: "POST", body: form(fields), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+        await post("/pecas", { "peca[nome]": `Peca ${uniq}` });
+        const peca = (await (await fetch(`/pecas/search?q=${encodeURIComponent(`Peca ${uniq}`)}`)).json())[0];
+        await post("/moldes", { "molde[nome]": `Molde ${uniq}`, "molde[peca_ids][]": peca.id });
+        const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Molde ${uniq}`)}`)).json())[0];
+        const organized = await post(`/arquivos/${corteUuid}/organize`, {
+          _method: "patch", molde_id: molde.id, peca_id: peca.id,
+          "tamanhos[0][nome]": "34", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
+        });
+        const tamanho = (await (await fetch(`/tamanhos/for_cascade?molde_id=${molde.id}&peca_id=${peca.id}`)).json()).find((t) => t.nome === "34");
+        if (!organized.ok || !tamanho) return false;
+        return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_id: tamanho.id })).ok;
+      }, { token, corteUuid, arteUuid, uniq: UNIQ });
+      if (!ok) throw new Error("Could not organize the DXF and link its tamanho to the arte");
+    } finally {
+      if (fs.existsSync(dxfPath)) fs.unlinkSync(dxfPath);
+    }
+  });
+
   await test("Homepage shows Pedidos link in header", async () => {
     await page.goto(BASE_URL);
     const body = await page.textContent("body");
@@ -148,6 +183,21 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     }
   }
 
+  // Regression: pedido d7b86d8a got an item with total 0 and was confirmed.
+  await test("Adding with quantity 0 is refused in the modal", async () => {
+    await page.goto(BASE_URL);
+    await clickAddToOrder(page);
+    const inputs = page.locator(".add-to-order-qtd-total, .add-to-order-grade-input");
+    await inputs.first().waitFor({ timeout: 5000 });
+    for (const input of await inputs.all()) await input.fill("0");
+    await page.locator("[data-add-to-order-target='submitBtn']").click();
+    const error = page.locator("[data-add-to-order-target='errorContainer']:not(.add-to-order-error--hidden)");
+    await error.waitFor({ timeout: 5000 });
+    if (!(await error.innerText()).includes("quantidade total 0")) throw new Error(`Unexpected error: ${await error.innerText()}`);
+    if (!(await page.locator(".add-to-order-dialog").evaluate((el) => el.open))) throw new Error("Modal should stay open");
+    await page.locator(".add-to-order-footer .btn-secondary").click();
+  });
+
   await test("Add item to pedido and verify it appears in resumo", async () => {
     await page.goto(BASE_URL);
     await ensureMaterialExists(page);
@@ -193,32 +243,22 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     if (!pedidosBody.includes("rascunho")) throw new Error("Draft pedido not found on pedidos page");
   });
 
-  await test("Confirm pedido splits by client", async () => {
+  // Used to look for input[value="Confirmar Pedido"] — button_to renders a
+  // <button> — and "skip" when missing, so it passed without ever confirming.
+  await test("Confirm pedido: a valid draft (quantity > 0, piece with corte) is confirmed", async () => {
     await page.goto(`${BASE_URL}/pedidos`);
-    await page.waitForTimeout(500);
-
-    const rascunhoLink = page.locator("a").filter({ hasText: "Resumo" }).first();
-    const exists = await rascunhoLink.count();
-    if (exists === 0) {
-      console.log("        No rascunho found to confirm — skipping");
-      return;
+    const resumo = page.locator("a").filter({ hasText: "Resumo" }).first();
+    await resumo.waitFor({ timeout: 5000 });
+    await resumo.click();
+    const confirmBtn = page.locator('form[action$="/confirmar"] button');
+    await confirmBtn.waitFor({ timeout: 5000 });
+    if (await confirmBtn.isDisabled()) {
+      const pendencias = await page.locator(".pedido-pendencias").innerText().catch(() => "");
+      throw new Error(`Confirmar is disabled; pendências: ${pendencias}`);
     }
-    await rascunhoLink.click();
-    await page.waitForTimeout(500);
-
-    const confirmBtn = page.locator('input[value="Confirmar Pedido"]').first();
-    const confirmExists = await confirmBtn.count();
-    if (confirmExists === 0) {
-      console.log("        Confirm button not found — skipping");
-      return;
-    }
-    await confirmBtn.click();
-    await page.waitForURL("**/pedidos", { timeout: 10000 });
-
+    await Promise.all([ page.waitForURL("**/pedidos", { timeout: 10000 }), confirmBtn.click() ]);
     const body = await page.textContent("body");
-    if (!body.includes("confirmado")) {
-      throw new Error(`Pedido not confirmed. Body preview: ${body.slice(0, 300)}`);
-    }
+    if (!body.includes("Pedido confirmed")) throw new Error(`Pedido not confirmed. Body preview: ${body.slice(0, 300)}`);
   });
 
   await test("Create new draft pedido from pedidos page", async () => {

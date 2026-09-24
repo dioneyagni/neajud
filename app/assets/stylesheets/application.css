@@ -1274,6 +1274,13 @@ section {
   background: #fffbeb;
 }
 
+.grade-save-error {
+  margin: 0;
+  max-width: 160px;
+  font-size: 0.8rem;
+  color: #c62828;
+}
+
 /* What goes to production: peça × tamanho (pedidos/_producao). */
 .pedido-producao {
   margin-top: 1.5rem;

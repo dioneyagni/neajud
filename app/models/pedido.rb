@@ -26,11 +26,11 @@ class Pedido < ApplicationRecord
     ProducaoPedidoService.call(self)
   end
 
-  # Pieces without arte; while any exist the pedido cannot be confirmed.
-  # Usage: pedido.pecas_pendentes.map { |p| p.peca&.nome } # => ["Língua"]
-  def pecas_pendentes
-    ItemPedidoPeca.pendentes.joins(:item_pedido).where(itens_pedido: { pedido_id: id })
-                  .includes(:peca, item_pedido: :arquivo).order("itens_pedido.id", :position)
+  # What keeps this draft from being confirmed: pieces without arte, items
+  # with total 0, checked pieces without corte. Empty = can confirm.
+  # Usage: pedido.bloqueios_confirmacao.map(&:descricao)
+  def bloqueios_confirmacao
+    PedidoBloqueiosService.call(self)
   end
 
   private

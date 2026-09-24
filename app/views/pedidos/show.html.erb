@@ -10,13 +10,18 @@
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
 <% if @pedido.status == "rascunho" %>
-  <% pendentes = @pedido.pecas_pendentes.to_a %>
-  <% if pendentes.any? %>
+  <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
+      without arte, items with total 0, checked pieces without corte. %>
+  <% bloqueios = @pedido.bloqueios_confirmacao %>
+  <% if bloqueios.any? %>
     <div class="pedido-pendencias" role="alert">
-      <strong>Peças pendentes — complete antes de confirmar:</strong>
+      <strong>Pendências — resolva antes de confirmar:</strong>
       <ul>
-        <% pendentes.each do |p| %>
-          <li><%= p.peca&.nome || "Sem peça" %> <span class="pedido-pendencias-item">(item <%= p.item_pedido.arquivo.filename %>)</span></li>
+        <% bloqueios.each do |bloqueio| %>
+          <li class="pedido-pendencia pedido-pendencia--<%= bloqueio.tipo %>">
+            <%= bloqueio.descricao %>
+            <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
+          </li>
         <% end %>
       </ul>
     </div>
@@ -24,8 +29,8 @@
   <div style="margin: 1rem 0; display:flex; gap:0.5rem;">
     <%= button_to "Confirmar Pedido", confirmar_pedido_path(@pedido), method: :post,
           class: "btn btn-primary",
-          disabled: pendentes.any?,
-          title: (pendentes.any? ? "Há peças pendentes (sem arte)" : nil),
+          disabled: bloqueios.any?,
+          title: (bloqueios.any? ? "Há pendências — veja a lista acima" : nil),
           data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
     <%= button_to "Excluir Rascunho", @pedido, method: :delete,
           class: "btn btn-secondary",
