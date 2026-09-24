@@ -94,6 +94,7 @@ Rails.application.routes.draw do
       member do
         get :escolher_arte
         post :vincular_arte
+        post :enviar_arte
       end
     end
   end
