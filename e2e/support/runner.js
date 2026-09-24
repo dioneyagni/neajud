@@ -56,6 +56,8 @@ function printSummary(counts, consoleErrors) {
   console.log("");
 }
 
+// consoleErrors is the live array the summary prints; a spec may inspect or
+// clear it (movimentos asserts a page loads with none).
 // Usage: runSpec("Arquivos E2E: upload", async ({ page, test }) => { await test("…", async () => {…}); });
 function runSpec(title, body) {
   (async () => {
@@ -63,7 +65,7 @@ function runSpec(title, body) {
     const consoleErrors = watchConsole(page);
     const counts = { passed: 0, failed: 0 };
     console.log(`\n${title}\n`);
-    await body({ page, test: makeTest(counts) });
+    await body({ page, test: makeTest(counts), consoleErrors });
     printSummary(counts, consoleErrors);
     await browser.close();
     process.exit(counts.failed > 0 ? 1 : 0);
