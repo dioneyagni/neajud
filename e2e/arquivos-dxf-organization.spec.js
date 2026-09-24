@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { waitForText } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { testImagesDir } = require("./support/fixtures");
@@ -342,8 +343,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const saveBtn = await form.$('button[type="submit"]');
       if (!saveBtn) throw new Error("Layer config save button not found");
       await saveBtn.click();
-      await page.waitForURL("**/arquivos/**", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await waitForText(page, "Layer configuration saved");
 
       body = await page.textContent("body");
       if (!body.includes("Layer configuration saved")) throw new Error("Layer config not saved");

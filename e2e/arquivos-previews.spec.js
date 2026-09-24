@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { waitForText } = require("./support/wait");
 const { imageHasVisiblePixels } = require("./support/pixels");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { UPLOAD_TIMEOUT, uploadFileAndWait } = require("./support/upload");
@@ -196,9 +197,7 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
     if (!saveBtn) throw new Error("Save button not found");
     await saveBtn.click();
 
-    // Wait for redirect back to show page after PATCH
-    await page.waitForURL("**/arquivos/**", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await waitForText(page, "Layer configuration saved");
 
     // Check for success notice
     const body = await page.textContent("body");

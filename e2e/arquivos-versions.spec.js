@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { waitForText } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { testImagePath, testImagesDir, ensureTestImage } = require("./support/fixtures");
@@ -38,16 +39,9 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
     const uploadBtn = versionForm.locator('input[type="submit"]');
     await uploadBtn.click();
 
-    // Wait for redirect after processing (native form submit)
-    await page.waitForURL("**/arquivos/**", { timeout: 30000 });
-
-    // Wait for flash notice to appear, or for the v2 version card
-    try {
-      await page.waitForSelector(".version-card", { timeout: 15000 });
-    } catch {
-      // fallback: wait a bit more and check body
-      await page.waitForTimeout(2000);
-    }
+    // The v1 card already exists before submit; only a v2 card proves the
+    // upload + processing finished.
+    await page.locator(".version-card").filter({ hasText: "v2" }).first().waitFor({ timeout: 30000 });
 
     const body = await page.textContent("body");
     const hasNotice = body.includes("uploaded and processing");
@@ -87,12 +81,7 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
       await versionForm.waitFor({ timeout: 5000 });
       await versionForm.locator('input[type="file"]').setInputFiles(multiPath);
       await versionForm.locator('input[type="submit"]').click();
-      await page.waitForURL("**/arquivos/**", { timeout: 15000 });
-      await page.waitForTimeout(3000);
-
-      // Wait for version cards to render
-      await page.waitForSelector(".version-card", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await page.locator(".version-card").filter({ hasText: "v2" }).first().waitFor({ timeout: 30000 });
 
       // Now v2 is auto-approved. Find v1 and click Approve
       await page.waitForSelector(".version-card", { timeout: 10000 });
@@ -104,9 +93,8 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
         throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
       }
       await approveBtn.first().click();
-
-      await page.waitForURL("**/arquivos/**", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      // Exact flash text: a bare "approved" would match the v2 card's existing "Approved" badge.
+      await waitForText(page, /Version \d+ approved\./);
 
       const body = await page.textContent("body");
       if (!body.includes("approved")) throw new Error("Approve notice not shown");
