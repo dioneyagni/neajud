@@ -138,6 +138,8 @@
         <% end %>
       </div>
 
+      <%= render "vinculo_history", logs: @vinculo_logs %>
+
       <div class="stamp-detail-section">
         <h3>Download</h3>
         <%= link_to "Download Original", download_arquivo_path(@arquivo), class: "btn btn-primary" %>

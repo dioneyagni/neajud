@@ -62,7 +62,7 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     if (!pecaIds.lateral || !pecaIds.lingua || !moldeId || !modeloId) {
       throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, moldeId, clientId, modeloId })}`);
     }
-    return { pecaIds, modeloId };
+    return { pecaIds, modeloId, moldeId, clientId };
   }
 
   function cardFor(file) {
@@ -76,7 +76,9 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     const href = await cardFor(file).locator("a").first().getAttribute("href");
     const uuid = href.split("/").pop();
     if (modeloId) {
-      const status = await postForm(`/arquivos/${uuid}/update_modelo`, [[ "_method", "patch" ], [ "modelo_id", modeloId ], [ "peca_id", pecaId ]]);
+      const fields = [[ "_method", "patch" ], [ "modelo_id", modeloId ]];
+      if (pecaId) fields.push([ "peca_id", pecaId ]);
+      const status = await postForm(`/arquivos/${uuid}/update_modelo`, fields);
       if (status >= 400) throw new Error(`update_modelo failed for ${uuid}: HTTP ${status}`);
     }
     return uuid;
@@ -144,9 +146,12 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
 
   let modelo;
   let pedidoUuid;
+  let outroModeloNome;
+  let outroUuid;
   const lateralFile = makeArte("lateral", "red");
   const linguaFile = makeArte("lingua", "blue");
   const loneFile = makeArte("lone", "green");
+  const outroFile = makeArte("outro", "orange");
   let linguaUuid;
 
   try {
@@ -277,6 +282,53 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       const status = (await page.locator("h2 .badge").innerText()).trim();
       if (status !== "rascunho") throw new Error(`Pedido should stay rascunho, got ${status}`);
+    });
+
+    await test("Setup: another modelo of the same client with an arte without peça", async () => {
+      outroModeloNome = `Outro ${UNIQ}`;
+      await page.goto(BASE_URL);
+      await postForm("/modelos", [[ "modelo[nome]", outroModeloNome ], [ "modelo[client_id]", modelo.clientId ], [ "modelo[molde_id]", modelo.moldeId ]]);
+      const outroId = await findId(`/modelos/search?q=${encodeURIComponent(outroModeloNome)}`, "nome", outroModeloNome);
+      if (!outroId) throw new Error("Could not create the second modelo");
+      outroUuid = await uploadArte(outroFile, outroId, null);
+      // Group 1 is "the client's artes": give it the same client.
+      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_id", modelo.clientId ]]);
+      if (status >= 400) throw new Error(`update_client failed: HTTP ${status}`);
+    });
+
+    await test("'Escolher arte' opens the picker with the three groups; the other modelo's arte is in group 1", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await pedidoPeca(0, names.lingua).locator("a.pedido-peca-escolher").click();
+      await page.locator(".escolher-arte-grupo").first().waitFor({ timeout: 5000 });
+      const grupos = await page.locator(".escolher-arte-grupo").evaluateAll((els) => els.map((e) => e.dataset.grupo));
+      if (JSON.stringify(grupos) !== JSON.stringify([ "cliente_sem_peca", "cliente_sem_modelo", "sem_cliente" ])) throw new Error(`Groups ${grupos}`);
+      const card = page.locator(`.escolher-arte-grupo[data-grupo="cliente_sem_peca"] .escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
+      if (!(await card.innerText()).includes(outroModeloNome)) throw new Error("Group 1 should list the other modelo's arte with its modelo");
+      const src = await card.locator("img").getAttribute("src");
+      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Candidate preview has no visible pixels");
+    });
+
+    await test("Moving it asks for confirmation, then completes the pending piece and unblocks Confirmar", async () => {
+      let prompt = "";
+      page.once("dialog", (d) => { prompt = d.message(); });
+      const card = page.locator(`.escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
+      await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`), card.locator("button").click() ]);
+      if (!prompt.includes(outroModeloNome) || !prompt.includes("Mover para")) throw new Error(`Unexpected confirm prompt: "${prompt}"`);
+      await expectPedidoPeca(pedidoPeca(0, names.lingua), "incluida", true);
+      if (await page.locator(".pedido-pendencias").count()) throw new Error("Pending box should be gone");
+      if (await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled()) throw new Error("Confirmar should be enabled");
+      const linguaTotal = (await producaoRow(names.lingua).locator("td strong").innerText()).trim();
+      if (linguaTotal !== "2") throw new Error(`Língua total should now be 2 (both items), got ${linguaTotal}`);
+    });
+
+    await test("The arte page records the move in its link history", async () => {
+      await page.goto(`${BASE_URL}/arquivos/${outroUuid}`);
+      const row = page.locator("#vinculo-history-section tbody tr").first();
+      const cells = (await row.locator("td").allInnerTexts()).map((t) => t.trim());
+      if (cells[0] !== outroModeloNome || cells[1] !== `Modelo ${UNIQ}` || cells[2] !== names.lingua) {
+        throw new Error(`History row ${JSON.stringify(cells)}`);
+      }
+      if (!(await row.getAttribute("class")).includes("vinculo-history-mudanca")) throw new Error("Move should be highlighted");
     });
 
     await test("Re-checking a piece restores it", async () => {
