@@ -1165,6 +1165,51 @@ section {
   align-items: flex-start;
 }
 
+/* Pending pieces block confirming the pedido (pedidos/show). */
+.pedido-pendencias {
+  margin: 1rem 0 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed #d97706;
+  border-radius: 6px;
+  background: #fffbeb;
+  font-size: 0.9rem;
+}
+
+.pedido-pendencias ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.pedido-pendencias-item {
+  color: #888;
+}
+
+.pedido-pendentes-badge {
+  color: #b45309;
+  border: 1px solid #d97706;
+  background: #fffbeb;
+}
+
+/* What goes to production: peça × tamanho (pedidos/_producao). */
+.pedido-producao {
+  margin-top: 1.5rem;
+}
+
+.pedido-producao-tabela td,
+.pedido-producao-tabela th {
+  text-align: center;
+}
+
+.pedido-producao-tabela td:first-child,
+.pedido-producao-tabela th:first-child {
+  text-align: left;
+}
+
+.pedido-producao-vazia {
+  color: #888;
+  font-size: 0.9rem;
+}
+
 /* Pieces of the ordered modelo, side by side (pedidos/_item_pecas). */
 .pedido-item-pecas {
   display: flex;

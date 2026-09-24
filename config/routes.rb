@@ -85,6 +85,7 @@ Rails.application.routes.draw do
       delete :remover_item
       patch :atualizar_item
       patch :alternar_peca
+      get :producao
       post :confirmar
       get :resumo
     end

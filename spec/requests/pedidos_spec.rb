@@ -220,6 +220,26 @@ RSpec.describe "Pedidos", type: :request do
       expect(copied.item_pedido_pecas.map { |r| [ r.arquivo, r.estado ] }).to eq([ [ arte_a, :excluida ] ])
     end
 
+    it "refuses to confirm while a piece has no arte, naming it" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, filename: "tenis-baixo"))
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), arquivo: nil)
+
+      expect { post confirmar_pedido_path(pedido) }.not_to change(Pedido, :count)
+
+      expect(response).to redirect_to(resumo_pedido_path(pedido))
+      expect(flash[:alert]).to include("Língua", "tenis-baixo")
+      expect(pedido.reload.status).to eq("rascunho")
+    end
+
+    it "confirms when pieces are only unchecked (the pedido goes without them)" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido)
+      create(:item_pedido_peca, item_pedido: item, incluida: false)
+      post confirmar_pedido_path(pedido)
+      expect(pedido.reload.status).to eq("confirmado")
+    end
+
     it "confirms single-client pedido in-place without duplication" do
       client = create(:client)
       arte = create(:arquivo, category: "artes", client: client)
@@ -327,6 +347,46 @@ RSpec.describe "Pedidos", type: :request do
       get pedido_path(pedido)
       expect(Nokogiri::HTML(response.body).css(".pedido-peca").size).to eq(1)
       expect(Nokogiri::HTML(response.body).css("input.pedido-peca-check")).to be_empty
+    end
+  end
+
+  describe "GET /pedidos/:uuid/producao" do
+    it "renders the Produção frame with checked pieces only" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido)
+      item.grades.create!(tamanho_nome: "35", quantidade: 3)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), position: 0)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), incluida: false, position: 1)
+
+      get producao_pedido_path(pedido)
+
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css("turbo-frame#pedido-producao")).to be_present
+      expect(html.css("tbody tr").map { |tr| tr["data-peca"] }).to eq([ "Lateral" ])
+      expect(html.css("tbody tr td").map(&:text).map(&:strip).first(3)).to eq([ "Lateral", "3", "3" ])
+    end
+  end
+
+  describe "pending pieces on the pedido pages" do
+    let(:pedido) { create(:pedido) }
+
+    before do
+      item = create(:item_pedido, pedido: pedido)
+      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), arquivo: nil)
+    end
+
+    it "lists them and disables Confirmar on the pedido page" do
+      get pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css(".pedido-pendencias").text).to include("Língua")
+      expect(html.at_css("form[action='#{confirmar_pedido_path(pedido)}'] button[disabled]")).to be_present
+    end
+
+    it "shows a pending badge instead of Confirmar in the list" do
+      get pedidos_path
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css(".pedido-pendentes-badge").text).to include("1 pendente")
+      expect(html.css("a[href='#{confirmar_pedido_path(pedido)}']")).to be_empty
     end
   end
 end

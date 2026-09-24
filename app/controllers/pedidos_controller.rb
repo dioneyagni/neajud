@@ -1,5 +1,5 @@
 class PedidosController < ApplicationController
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca producao]
 
   def index
     @pedidos = Pedido.left_joins(:itens_pedido)
@@ -7,6 +7,7 @@ class PedidosController < ApplicationController
                       .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
                       .group(:id)
                       .order(created_at: :desc)
+    @pendentes_por_pedido = ItemPedidoPeca.pendentes.joins(:item_pedido).group("itens_pedido.pedido_id").count
   end
 
   def show
@@ -82,6 +83,11 @@ class PedidosController < ApplicationController
       return redirect_to pedidos_path, alert: "Pedido already confirmed."
     end
 
+    pendentes = @pedido.pecas_pendentes.to_a
+    if pendentes.any?
+      return redirect_to resumo_pedido_path(@pedido), alert: pendentes_alert(pendentes)
+    end
+
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
 
     if items_by_client.size == 1
@@ -151,11 +157,23 @@ class PedidosController < ApplicationController
     render json: { ok: false, error: "Item #{params[:id].inspect} or piece #{params[:peca_id].inspect} not found in pedido #{@pedido.uuid}" }, status: :not_found
   end
 
+  # The "Produção" section alone, reloaded (Turbo Frame) when a piece is
+  # checked/unchecked on the pedido page.
+  def producao
+    render partial: "producao", locals: { pedido: @pedido }
+  end
+
   def resumo
     render :show
   end
 
   private
+
+  # Names each pending piece and the arte of its item, so the user knows what to complete.
+  def pendentes_alert(pendentes)
+    lista = pendentes.map { |p| "#{p.peca&.nome || "Sem peça"} (item #{p.item_pedido.arquivo.filename})" }
+    "Cannot confirm: #{pendentes.size} piece(s) without arte — #{lista.join(", ")}. Complete them first."
+  end
 
   def alternar_peca_error
     return "Pedido is #{@pedido.status}; pieces can only change while it is rascunho" unless @pedido.status == "rascunho"
