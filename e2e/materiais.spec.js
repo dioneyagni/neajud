@@ -1,48 +1,6 @@
-const { chromium } = require("playwright");
+const { BASE_URL, runSpec } = require("./support/runner");
 
-const BASE_URL = "http://localhost:3000";
-const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
-
-async function run() {
-  const launchOpts = { slowMo: HEADED ? 300 : 0 };
-  if (HEADED) {
-    launchOpts.headless = false;
-    launchOpts.args = ["--start-maximized"];
-  }
-  const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext(HEADED ? { viewport: null } : {});
-  const page = await context.newPage();
-  const consoleErrors = [];
-
-  page.on("console", (msg) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
-  });
-
-  page.on("pageerror", (err) => {
-    consoleErrors.push(`PAGE ERROR: ${err.message}`);
-  });
-
-  page.on("dialog", async (dialog) => {
-    await dialog.accept();
-  });
-
-  let passed = 0;
-  let failed = 0;
-
-  async function test(name, fn) {
-    try {
-      await fn();
-      console.log(`  PASS  ${name}`);
-      passed++;
-    } catch (err) {
-      console.log(`  FAIL  ${name}`);
-      console.error(`        ${err.message}`);
-      failed++;
-    }
-  }
-
+runSpec("Materiais E2E Tests", async ({ page, test }) => {
   const UNIQ = `MAT${Date.now()}`;
 
   // GrupoMaterial/CorMaterial/Client have no seed data (see AGENTS.md) —
@@ -100,7 +58,6 @@ async function run() {
     }, { csrf, nome });
   }
 
-  console.log("\nMateriais E2E Tests\n");
 
   await test("Materials page loads with heading", async () => {
     await page.goto(`${BASE_URL}/materiais`);
@@ -224,19 +181,4 @@ async function run() {
     if (!body.includes("Movement registered")) throw new Error("Flash notice not found");
     if (!body.includes("Oxford")) throw new Error("Material not shown in inventory");
   });
-
-  console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
-
-  if (failed > 0 && consoleErrors.length > 0) {
-    console.log("Console errors during run:");
-    consoleErrors.forEach((e) => console.log(`  ${e}`));
-  }
-
-  await browser.close();
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-run().catch((err) => {
-  console.error("Fatal:", err.message);
-  process.exit(1);
 });

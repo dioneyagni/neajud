@@ -1,51 +1,8 @@
-const { chromium } = require("playwright");
+const { BASE_URL, runSpec } = require("./support/runner");
 
-const BASE_URL = "http://localhost:3000";
-const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
-
-async function run() {
-  const launchOpts = { slowMo: HEADED ? 300 : 0 };
-  if (HEADED) {
-    launchOpts.headless = false;
-    launchOpts.args = ["--start-maximized"];
-  }
-  const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext(HEADED ? { viewport: null } : {});
-  const page = await context.newPage();
-  const consoleErrors = [];
-
-  page.on("console", (msg) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
-  });
-
-  page.on("pageerror", (err) => {
-    consoleErrors.push(`PAGE ERROR: ${err.message}`);
-  });
-
-  page.on("dialog", async (dialog) => {
-    await dialog.accept();
-  });
-
-  let passed = 0;
-  let failed = 0;
-
-  async function test(name, fn) {
-    try {
-      await fn();
-      console.log(`  PASS  ${name}`);
-      passed++;
-    } catch (err) {
-      console.log(`  FAIL  ${name}`);
-      console.error(`        ${err.message}`);
-      failed++;
-    }
-  }
-
+runSpec("Clients E2E Tests", async ({ page, test }) => {
   const UNIQ = `C${Date.now()}`;
 
-  console.log("\nClients E2E Tests\n");
 
   // Client has no seed data (see AGENTS.md) — provision one via the API so
   // this test still exercises "the page loads and lists a real client",
@@ -214,19 +171,4 @@ async function run() {
     const body = await page.textContent("body");
     if (!body.includes("Clients")) throw new Error("Did not navigate back to clients page");
   });
-
-  console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
-
-  if (failed > 0 && consoleErrors.length > 0) {
-    console.log("Console errors during run:");
-    consoleErrors.forEach((e) => console.log(`  ${e}`));
-  }
-
-  await browser.close();
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-run().catch((err) => {
-  console.error("Fatal:", err.message);
-  process.exit(1);
 });

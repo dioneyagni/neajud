@@ -1,58 +1,14 @@
-const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
-
-const BASE_URL = "http://localhost:3000";
-const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
-
 const { uploadFileAndWait } = require("./support/upload");
+const { BASE_URL, runSpec } = require("./support/runner");
 
-async function run() {
-  const launchOpts = { slowMo: HEADED ? 300 : 0 };
-  if (HEADED) {
-    launchOpts.headless = false;
-    launchOpts.args = ["--start-maximized"];
-  }
-  const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext(HEADED ? { viewport: null } : {});
-  const page = await context.newPage();
-  const consoleErrors = [];
-
-  page.on("console", (msg) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
-  });
-
-  page.on("pageerror", (err) => {
-    consoleErrors.push(`PAGE ERROR: ${err.message}`);
-  });
-
-  page.on("dialog", async (dialog) => {
-    await dialog.accept();
-  });
-
-  let passed = 0;
-  let failed = 0;
-
-  async function test(name, fn) {
-    try {
-      await fn();
-      console.log(`  PASS  ${name}`);
-      passed++;
-    } catch (err) {
-      console.log(`  FAIL  ${name}`);
-      console.error(`        ${err.message}`);
-      failed++;
-    }
-  }
-
+runSpec("Pedidos E2E Tests", async ({ page, test }) => {
   let createdUuid = null;
   let createdPedidoUuid = null;
 
   const UNIQ = `P${Date.now()}`;
 
-  console.log("\nPedidos E2E Tests\n");
 
   await test("Upload an artes file via UI", async () => {
     const artePath = path.join(__dirname, `e2e-arte-${UNIQ}.tif`);
@@ -277,19 +233,4 @@ async function run() {
     const body = await page.textContent("body");
     if (!body.includes("rascunho")) throw new Error("New draft pedido page did not show rascunho status");
   });
-
-  console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
-
-  if (failed > 0 && consoleErrors.length > 0) {
-    console.log("Console errors during run:");
-    consoleErrors.forEach((e) => console.log(`  ${e}`));
-  }
-
-  await browser.close();
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-run().catch((err) => {
-  console.error("Fatal:", err.message);
-  process.exit(1);
 });

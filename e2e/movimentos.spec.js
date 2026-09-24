@@ -1,46 +1,8 @@
-const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
+const { BASE_URL, runSpec } = require("./support/runner");
 
-const BASE_URL = "http://localhost:3000";
-const HEADED = process.argv.includes("--headed") || process.argv.includes("-h");
-
-async function run() {
-  const launchOpts = { slowMo: HEADED ? 300 : 0 };
-  if (HEADED) {
-    launchOpts.headless = false;
-    launchOpts.args = ["--start-maximized"];
-  }
-  const browser = await chromium.launch(launchOpts);
-  const context = await browser.newContext(HEADED ? { viewport: null } : {});
-  const page = await context.newPage();
-  const consoleErrors = [];
-
-  page.on("console", (msg) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
-  });
-
-  page.on("pageerror", (err) => {
-    consoleErrors.push(`PAGE ERROR: ${err.message}`);
-  });
-
-  let passed = 0;
-  let failed = 0;
-
-  async function test(name, fn) {
-    try {
-      await fn();
-      console.log(`  PASS  ${name}`);
-      passed++;
-    } catch (err) {
-      console.log(`  FAIL  ${name}`);
-      console.error(`        ${err.message}`);
-      failed++;
-    }
-  }
-
+runSpec("Movimentos E2E Tests", async ({ page, test, consoleErrors }) => {
   const UNIQ = `E${Date.now()}`;
 
   // GrupoMaterial/CorMaterial/Client have no seed data (see AGENTS.md) —
@@ -89,7 +51,6 @@ async function run() {
     }, { csrf, nome });
   }
 
-  console.log("\nMovimentos E2E Tests\n");
 
   await test("Materials page has Register Movement link to /movimentos/new", async () => {
     await page.goto(`${BASE_URL}/materiais`);
@@ -305,19 +266,4 @@ async function run() {
     const nameLabel = await page.locator('[data-color-picker-target="name"]').textContent();
     if (nameLabel.trim() !== colorName) throw new Error(`Expected selected color name "${colorName}", got "${nameLabel.trim()}"`);
   });
-
-  console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
-
-  if (failed > 0 && consoleErrors.length > 0) {
-    console.log("Console errors during run:");
-    consoleErrors.forEach((e) => console.log(`  ${e}`));
-  }
-
-  await browser.close();
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-run().catch((err) => {
-  console.error("Fatal:", err.message);
-  process.exit(1);
 });
