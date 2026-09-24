@@ -37,8 +37,9 @@
   everything goes through. Correct what is necessary and test again.
 - An intermittent failure is never "noise". Before calling it unrelated to
   your change: run the suite N times on your branch and N times on `main`,
-  compare failure rates, and check request ordering in `log/test.log`
-  (e.g. a `Started GET` arriving before the previous POST's `Completed`).
+  compare failure rates, and check request ordering in the failing run's
+  `log/e2e/<run>/requests.log` (e.g. a `Started GET` arriving before the
+  previous POST's `Completed`).
   Fix the root cause or report it; don't retry until green.
 
 ### Job & image processing tests
@@ -141,6 +142,19 @@ The DB checks are skipped gracefully when a database is not prepared (CI).
 `bin/e2e` wipes `storage/test_stamps/*` on every run so E2E uploads never accumulate. It also
 removes untracked spec-generated files in `e2e/` (prefixes `e2e-`, `auto-detect-`, `UniqCorte`)
 before and after the run; tracked fixtures are never touched.
+
+Each `bin/e2e` run keeps its logs in `log/e2e/<YYYYmmdd-HHMMSS>-<pid>/`
+(`log/e2e/latest` → newest; the last 10 runs are kept):
+
+- `requests.log` — this run's slice of `log/test.log`, i.e. the Rails request
+  log (`Started …` / `Completed …`). This is the one to read: in the test env
+  requests are **not** written to the server's stdout.
+- `server.log` — the server process's stdout/stderr (boot, Puma, crashes).
+
+Before each spec the script appends a `=== [HH:MM:SS] spec: <name> ===` marker
+to both, so a request can be traced to the spec that made it. The folder is
+printed at the end of the run and next to the failed-spec list. In CI it is
+uploaded as the `server-log` artifact on failure.
 
 ### storage/stamps vs storage/test_stamps
 

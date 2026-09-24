@@ -149,5 +149,8 @@ jobs:
         if: failure()
         with:
           name: server-log
-          path: /tmp/neajud_server.log
+          # bin/e2e writes log/e2e/<run>/{requests,server}.log; latest is a symlink.
+          path: |
+            log/e2e/
+            !log/e2e/latest
           if-no-files-found: ignore
