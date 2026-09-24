@@ -1,5 +1,5 @@
 class PedidosController < ApplicationController
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca]
 
   def index
     @pedidos = Pedido.left_joins(:itens_pedido)
@@ -10,7 +10,11 @@ class PedidosController < ApplicationController
   end
 
   def show
-    @pedido = Pedido.includes(itens_pedido: { arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { modelo: :molde }, approved_version: :image_metadata ], materia_prima: :grupo_material }).find_by!(uuid: params[:uuid])
+    @pedido = Pedido.includes(itens_pedido: {
+      arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { modelo: :molde }, approved_version: :image_metadata ],
+      materia_prima: :grupo_material,
+      item_pedido_pecas: [ :peca, { arquivo: :approved_version } ]
+    }).find_by!(uuid: params[:uuid])
   end
 
   def create
@@ -131,11 +135,34 @@ class PedidosController < ApplicationController
     render json: { ok: false, error: e.message }, status: :unprocessable_entity
   end
 
+  # Checks/unchecks one piece of an item. Only while the pedido is a draft:
+  # once confirmed, its pieces are what goes to production.
+  # Usage: PATCH /pedidos/:uuid/alternar_peca?id=<item uuid>&peca_id=<row id>&incluida=false
+  def alternar_peca
+    error = alternar_peca_error
+    return render json: { ok: false, error: error }, status: :unprocessable_content if error
+
+    peca_row = @pedido.itens_pedido.find_by!(uuid: params[:id]).item_pedido_pecas.find(params[:peca_id])
+    return render json: { ok: false, error: "Piece #{peca_row.id} has no arte (pending); it cannot be checked or unchecked" }, status: :unprocessable_content unless peca_row.arquivo
+
+    peca_row.update!(incluida: params[:incluida] == "true")
+    render json: { ok: true, estado: peca_row.estado }
+  rescue ActiveRecord::RecordNotFound
+    render json: { ok: false, error: "Item #{params[:id].inspect} or piece #{params[:peca_id].inspect} not found in pedido #{@pedido.uuid}" }, status: :not_found
+  end
+
   def resumo
     render :show
   end
 
   private
+
+  def alternar_peca_error
+    return "Pedido is #{@pedido.status}; pieces can only change while it is rascunho" unless @pedido.status == "rascunho"
+    return "incluida must be \"true\" or \"false\", got #{params[:incluida].inspect}" unless %w[true false].include?(params[:incluida])
+
+    nil
+  end
 
   def set_pedido
     @pedido = Pedido.find_by!(uuid: params[:uuid])

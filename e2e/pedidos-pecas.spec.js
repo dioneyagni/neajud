@@ -8,7 +8,7 @@ const { imageHasVisiblePixels } = require("./support/pixels");
 // "Adicionar ao Pedido" lists every piece of the arte's modelo: checked
 // pieces go to production, unchecked ones are excluded, and pieces without
 // arte are pending (no checkbox).
-runSpec("Pedidos E2E: pieces of the modelo in the add-to-order modal", async ({ page, test }) => {
+runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", async ({ page, test }) => {
   const UNIQ = `PP${Date.now()}`;
   const names = { lateral: `Lateral ${UNIQ}`, lingua: `Lingua ${UNIQ}` };
   const tempFiles = [];
@@ -94,8 +94,9 @@ runSpec("Pedidos E2E: pieces of the modelo in the add-to-order modal", async ({ 
 
   // Waits out the CSS opacity transition instead of reading a mid-fade value.
   // state: "dimmed" (opacity < 0.5, unchecked) or "visible" (opacity 1).
-  async function waitForOpacity(nome, state) {
-    const handle = await pecaCard(nome).elementHandle();
+  async function waitForOpacity(locator, state) {
+    const nome = (await locator.innerText()).replace(/\s+/g, " ").trim();
+    const handle = await locator.elementHandle();
     try {
       await page.waitForFunction(({ el, state }) => {
         const opacity = parseFloat(getComputedStyle(el).opacity);
@@ -107,7 +108,38 @@ runSpec("Pedidos E2E: pieces of the modelo in the add-to-order modal", async ({ 
     }
   }
 
+  // Submits the open modal and returns the pedido uuid from adicionar_item.
+  async function submitModal() {
+    const responsePromise = page.waitForResponse((r) => r.url().endsWith("/pedidos/adicionar_item"));
+    await page.locator("[data-add-to-order-target='submitBtn']").click();
+    const json = await (await responsePromise).json();
+    if (!json.ok) throw new Error(`adicionar_item failed: ${json.error}`);
+    return json.pedido_uuid;
+  }
+
+  // Piece card on the pedido page, inside the itemIndex-th item (creation order).
+  function pedidoPeca(itemIndex, nome) {
+    return page.locator(".pedido-item").nth(itemIndex).locator(".pedido-peca").filter({ hasText: nome });
+  }
+
+  // Clicks a piece checkbox on the pedido page and waits for the save.
+  async function togglePedidoPeca(card, checked) {
+    const saved = page.waitForResponse((r) => r.url().includes("/alternar_peca"));
+    await (checked ? card.locator(".pedido-peca-check").check() : card.locator(".pedido-peca-check").uncheck());
+    const json = await (await saved).json();
+    if (!json.ok) throw new Error(`alternar_peca failed: ${json.error}`);
+  }
+
+  async function expectPedidoPeca(card, estado, checked) {
+    const cls = await card.getAttribute("class");
+    if (!cls.includes(`pedido-peca--${estado}`)) throw new Error(`Expected ${estado}, got class "${cls}"`);
+    if (checked !== undefined && (await card.locator(".pedido-peca-check").isChecked()) !== checked) {
+      throw new Error(`Checkbox should be ${checked ? "checked" : "unchecked"} (${estado})`);
+    }
+  }
+
   let modelo;
+  let pedidoUuid;
   const lateralFile = makeArte("lateral", "red");
   const linguaFile = makeArte("lingua", "blue");
   const loneFile = makeArte("lone", "green");
@@ -147,13 +179,25 @@ runSpec("Pedidos E2E: pieces of the modelo in the add-to-order modal", async ({ 
       if (await page.locator(".add-to-order-peca").count()) throw new Error("Pieces not cleared after Cancel");
     });
 
+    await test("Adding while Língua has no arte stores it as pending on the pedido page", async () => {
+      await openModalFor(lateralFile);
+      await pecaCard(names.lingua).waitFor({ timeout: 5000 });
+      pedidoUuid = await submitModal();
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const lingua = pedidoPeca(0, names.lingua);
+      await expectPedidoPeca(lingua, "pendente");
+      if (await lingua.locator(".pedido-peca-check").count()) throw new Error("Pending piece must not have a checkbox");
+      if (!(await lingua.innerText()).includes("sem arte")) throw new Error("Pending piece should say 'sem arte'");
+      await expectPedidoPeca(pedidoPeca(0, names.lateral), "incluida", true);
+    });
+
     await test("Unchecking a piece dims it and is sent as excluded on submit", async () => {
       linguaUuid = await uploadArte(linguaFile, modelo.modeloId, modelo.pecaIds.lingua);
       await openModalFor(lateralFile);
       const lingua = pecaCard(names.lingua);
       await lingua.locator(".add-to-order-peca-check").waitFor({ timeout: 5000 });
       await lingua.locator(".add-to-order-peca-check").uncheck();
-      await waitForOpacity(names.lingua, "dimmed");
+      await waitForOpacity(pecaCard(names.lingua), "dimmed");
 
       const requestPromise = page.waitForRequest((r) => r.url().endsWith("/pedidos/adicionar_item") && r.method() === "POST");
       await page.locator("[data-add-to-order-target='submitBtn']").click();
@@ -163,13 +207,38 @@ runSpec("Pedidos E2E: pieces of the modelo in the add-to-order modal", async ({ 
       if (await page.locator(".add-to-order-dialog[open]").count()) throw new Error("Modal should close after adding");
     });
 
+    await test("Pedido page shows the pieces as chosen in the modal, previews with visible pixels", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await expectPedidoPeca(pedidoPeca(1, names.lateral), "incluida", true);
+      await expectPedidoPeca(pedidoPeca(1, names.lingua), "excluida", false);
+      await waitForOpacity(pedidoPeca(1, names.lingua), "dimmed");
+      for (const nome of [ names.lateral, names.lingua ]) {
+        const src = await pedidoPeca(1, nome).locator("img.pedido-peca-thumb").getAttribute("src");
+        if (!(await imageHasVisiblePixels(page, src))) throw new Error(`${nome} preview has no visible pixels`);
+      }
+    });
+
+    await test("Checking a piece on the pedido page saves it (survives reload)", async () => {
+      await togglePedidoPeca(pedidoPeca(1, names.lingua), true);
+      await waitForOpacity(pedidoPeca(1, names.lingua), "visible");
+      await page.reload();
+      await expectPedidoPeca(pedidoPeca(1, names.lingua), "incluida", true);
+    });
+
+    await test("Unchecking a piece on the pedido page saves it (survives reload)", async () => {
+      await togglePedidoPeca(pedidoPeca(1, names.lateral), false);
+      await waitForOpacity(pedidoPeca(1, names.lateral), "dimmed");
+      await page.reload();
+      await expectPedidoPeca(pedidoPeca(1, names.lateral), "excluida", false);
+    });
+
     await test("Re-checking a piece restores it", async () => {
       await openModalFor(lateralFile);
       const check = pecaCard(names.lingua).locator(".add-to-order-peca-check");
       await check.waitFor({ timeout: 5000 });
       await check.uncheck();
       await check.check();
-      await waitForOpacity(names.lingua, "visible");
+      await waitForOpacity(pecaCard(names.lingua), "visible");
       await page.locator(".add-to-order-footer .btn-secondary").click();
     });
 
