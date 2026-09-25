@@ -284,6 +284,12 @@ Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its modelo
 | `excluida` | has arte, unchecked | the pedido goes without it | allowed |
 | `pendente` | no arte yet | no | **blocked** (UI + server) |
 
+Confirming is also blocked by an item with total quantity 0 and by a
+checked piece whose arte has no corte (no tamanho chosen); adding or saving a
+grade at total 0 is refused outright. All blockers come from
+`PedidoBloqueiosService` (`Pedido#bloqueios_confirmacao`), which feeds the
+server guard, the pending box on the pedido page and the list badge.
+
 - `ModeloComposicaoService` builds the pieces (modelo_pecas, else the molde's
   pieces, read-only); the added arte always wins its own peça.
 - `Pedido#pecas_para_produzir` (`ProducaoPedidoService`) is the **only** place

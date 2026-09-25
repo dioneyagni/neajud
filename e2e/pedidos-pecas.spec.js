@@ -364,7 +364,8 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await expectPedidoPeca(lingua, "incluida", true);
       const src = await lingua.locator("img.pedido-peca-thumb").getAttribute("src");
       if (!(await imageHasVisiblePixels(page, src))) throw new Error("Uploaded arte preview has no visible pixels");
-      if (await page.locator(".pedido-pendencias").count()) throw new Error("No piece should be pending anymore");
+      // No piece is without arte anymore; pieces without corte still block (PedidoBloqueiosService).
+      if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
     });
 
     await test("Re-checking a piece restores it", async () => {
