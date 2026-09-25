@@ -271,6 +271,32 @@ Key files:
 - `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
 - `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
 
+## Pedido items are made of the modelo's pieces
+
+Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its modelo
+(e.g. lateral + língua of a tênis). The arte → peça link is
+`Arquivo#resolved_peca`: the corte's peça (via tamanho), else the arte's own
+`peca_id` (SQL mirror: `Arquivo.sem_peca_resolvida`).
+
+| Estado | Meaning | Production | Confirmar |
+|---|---|---|---|
+| `incluida` | has arte, checked | yes | allowed |
+| `excluida` | has arte, unchecked | the pedido goes without it | allowed |
+| `pendente` | no arte yet | no | **blocked** (UI + server) |
+
+- `ModeloComposicaoService` builds the pieces (modelo_pecas, else the molde's
+  pieces, read-only); the added arte always wins its own peça.
+- `Pedido#pecas_para_produzir` (`ProducaoPedidoService`) is the **only** place
+  production reads from — peça × tamanho over checked pieces.
+- A pending piece is completed by choosing an existing arte
+  (`ArteCandidatasService`: client's artes without peça → without modelo →
+  without client) or uploading one (`ArquivoUploadService`); both link via
+  `VincularArteService`, which logs to `arquivo_vinculo_logs` ("Histórico de
+  vínculos" on the arte page) and fills the same pending peça in every draft
+  pedido of the modelo. Moving an arte out of another modelo requires an
+  explicit confirmation, enforced server-side.
+- E2E coverage: `e2e/pedidos-pecas.spec.js`.
+
 ## ImageMagick gotchas (multi-frame TIFFs)
 
 Every `identify -format` string **must** end with `\n` or multi-frame files concatenate output:

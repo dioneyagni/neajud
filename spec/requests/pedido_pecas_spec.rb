@@ -83,4 +83,57 @@ RSpec.describe "PedidoPecas", type: :request do
       expect(Nokogiri::HTML(response.body).at_css("#vinculo-history-section")).to be_nil
     end
   end
+
+  describe "POST enviar_arte" do
+    let(:tif) { Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/02-no_spot.tif"), "image/tiff") }
+
+    after { Arquivo.where(filename: "02-no_spot").find_each { |a| FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, a.uuid)) } }
+
+    it "creates the arte with the modelo's client, links it to the piece and returns to the pedido" do
+      expect { post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: tif } }.to change(Arquivo, :count).by(1)
+      arte = Arquivo.find_by!(filename: "02-no_spot")
+      expect([ arte.client, arte.modelo, arte.peca, arte.category ]).to eq([ client, modelo, lingua, "artes" ])
+      expect(pending_row.reload.arquivo).to eq(arte)
+      expect(arte.vinculo_logs.sole.to_modelo_nome).to eq("Tênis baixo")
+      expect(response).to redirect_to(resumo_pedido_path(pedido))
+      expect(flash[:notice]).to include("02-no_spot", "Língua")
+    end
+
+    it "fills the same pending piece in other draft pedidos too" do
+      other_item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, client: client, modelo: modelo))
+      other_row = create(:item_pedido_peca, item_pedido: other_item, peca: lingua, arquivo: nil)
+      post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: tif }
+      expect(other_row.reload.arquivo&.filename).to eq("02-no_spot")
+    end
+
+    it "refuses a non-arte file (e.g. a DXF corte) without creating anything" do
+      dxf = Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/29-30.dxf"), "image/vnd.dxf")
+      expect { post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: dxf } }.not_to change(Arquivo, :count)
+      expect(flash[:alert]).to include("29-30.dxf is not an arte file", "tif")
+      expect(pending_row.reload.arquivo).to be_nil
+    end
+
+    it "asks for a file when none was sent" do
+      post enviar_arte_pedido_peca_path(pedido, pending_row)
+      expect(flash[:alert]).to eq("Select a file to upload.")
+    end
+
+    it "reports upload validation errors without linking" do
+      path = Rails.root.join("tmp/enviar-fake.tif").to_s
+      system("convert", "-size", "10x10", "xc:red", "PNG:#{path}", exception: true)
+      post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: Rack::Test::UploadedFile.new(path, "image/tiff") }
+      expect(flash[:alert]).to include("Upload failed", "declared 'TIF' but file is 'PNG'")
+      expect(pending_row.reload.arquivo).to be_nil
+    ensure
+      FileUtils.rm_f(path)
+    end
+
+    it "offers the upload on a pending piece of a draft pedido" do
+      get pedido_path(pedido)
+      form = Nokogiri::HTML(response.body).at_css("form.pedido-peca-enviar")
+      expect(form["action"]).to eq(enviar_arte_pedido_peca_path(pedido, pending_row))
+      expect(form["enctype"]).to eq("multipart/form-data")
+      expect(form.at_css("input[type=file]")["accept"]).to include(".tif", ".psd")
+    end
+  end
 end

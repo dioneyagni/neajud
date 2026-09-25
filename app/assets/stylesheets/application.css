@@ -1227,6 +1227,22 @@ section {
   padding: 0.15rem 0.4rem;
 }
 
+/* Upload a new arte straight into a pending piece (auto-submits on pick). */
+.pedido-peca-enviar {
+  margin: 0;
+}
+
+.pedido-peca-enviar-label {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
+.pedido-peca-enviar-label--enviando {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* A move from another modelo in the arte's link history. */
 .vinculo-history-mudanca td:first-child {
   color: #b45309;

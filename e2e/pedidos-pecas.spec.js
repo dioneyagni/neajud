@@ -152,6 +152,8 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
   const linguaFile = makeArte("lingua", "blue");
   const loneFile = makeArte("lone", "green");
   const outroFile = makeArte("outro", "orange");
+  const terceiroFile = makeArte("terceiro", "purple");
+  const uploadFile = makeArte("upload", "teal");
   let linguaUuid;
 
   try {
@@ -329,6 +331,36 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
         throw new Error(`History row ${JSON.stringify(cells)}`);
       }
       if (!(await row.getAttribute("class")).includes("vinculo-history-mudanca")) throw new Error("Move should be highlighted");
+    });
+
+    await test("Setup: a third modelo whose Língua has no arte, added to the pedido", async () => {
+      const nome = `Terceiro ${UNIQ}`;
+      await page.goto(BASE_URL);
+      await postForm("/modelos", [[ "modelo[nome]", nome ], [ "modelo[client_id]", modelo.clientId ], [ "modelo[molde_id]", modelo.moldeId ]]);
+      const terceiroId = await findId(`/modelos/search?q=${encodeURIComponent(nome)}`, "nome", nome);
+      if (!terceiroId) throw new Error("Could not create the third modelo");
+      await uploadArte(terceiroFile, terceiroId, modelo.pecaIds.lateral);
+      await openModalFor(terceiroFile);
+      await pecaCard(names.lingua).waitFor({ timeout: 5000 });
+      const uuid = await submitModal();
+      if (uuid !== pedidoUuid) throw new Error(`Expected the same draft pedido, got ${uuid}`);
+    });
+
+    await test("'Enviar arquivo' on the pending piece uploads a new arte and completes it", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const pending = pedidoPeca(2, names.lingua);
+      await expectPedidoPeca(pending, "pendente");
+      await Promise.all([
+        page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`, { timeout: 30000 }),
+        pending.locator("form.pedido-peca-enviar input[type=file]").setInputFiles(uploadFile),
+      ]);
+      const notice = await page.textContent("body");
+      if (!notice.includes(path.basename(uploadFile, ".tif"))) throw new Error("Success notice with the uploaded file name missing");
+      const lingua = pedidoPeca(2, names.lingua);
+      await expectPedidoPeca(lingua, "incluida", true);
+      const src = await lingua.locator("img.pedido-peca-thumb").getAttribute("src");
+      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Uploaded arte preview has no visible pixels");
+      if (await page.locator(".pedido-pendencias").count()) throw new Error("No piece should be pending anymore");
     });
 
     await test("Re-checking a piece restores it", async () => {
