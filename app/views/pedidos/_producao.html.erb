@@ -1,4 +1,7 @@
-<%# What goes to production: peça × tamanho, summed over checked pieces only.
+<%# What goes to production: one row per peça + corte, quantity per tamanho,
+    summed over checked pieces only. Each quantity downloads that size's DXF
+    straight away (the factory floor uses this page to cut); a size the corte
+    doesn't have shows a warning instead (and blocks confirming).
     Reloaded as a Turbo Frame by item-pecas when a piece is (un)checked. %>
 <%= turbo_frame_tag "pedido-producao" do %>
   <section class="pedido-producao">
@@ -21,19 +24,33 @@
         </thead>
         <tbody>
           <% linhas.each do |linha| %>
-            <tr data-peca="<%= linha.peca&.nome || "Sem peça" %>">
+            <tr data-peca="<%= linha.peca&.nome || "Sem peça" %>" data-corte="<%= linha.corte&.filename %>">
               <td><%= linha.peca&.nome || "Sem peça" %></td>
               <% tamanhos.each do |t| %>
-                <td><%= linha.quantidades[t].positive? ? linha.quantidades[t] : "—" %></td>
+                <td data-tamanho="<%= t %>">
+                  <% qtd = linha.quantidades[t] %>
+                  <% if !qtd.positive? %>
+                    —
+                  <% elsif linha.corte.nil? %>
+                    <%= qtd %>
+                  <% elsif linha.downloads[t].empty? %>
+                    <span class="producao-sem-dxf" title="O corte <%= linha.corte.filename %> não tem este tamanho">
+                      <%= qtd %> ⚠ sem DXF
+                    </span>
+                  <% else %>
+                    <% linha.downloads[t].each do |tamanho| %>
+                      <%= link_to download_tamanho_path(tamanho),
+                            class: "producao-download", download: "#{linha.corte.filename} - #{tamanho.nome}.dxf",
+                            title: "Baixar DXF do tamanho #{tamanho.nome} (#{linha.corte.filename})",
+                            data: { turbo: false } do %>
+                        <%= qtd %> <span class="producao-download-icone" aria-hidden="true">⬇</span><span class="producao-download-tamanho"><%= tamanho.nome %></span>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                </td>
               <% end %>
               <td><strong><%= linha.total %></strong></td>
-              <td>
-                <% if linha.cortes.any? %>
-                  <%= safe_join(linha.cortes.map { |c| link_to(c.filename, arquivo_path(c), data: { turbo_frame: "_top" }) }, ", ") %>
-                <% else %>
-                  —
-                <% end %>
-              </td>
+              <td class="producao-corte"><%= linha.corte&.filename || "—" %></td>
             </tr>
           <% end %>
         </tbody>

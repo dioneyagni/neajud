@@ -42,12 +42,40 @@ RSpec.describe ProducaoPedidoService do
     expect(described_class.call(pedido).first.quantidades).to eq("_total" => 7)
   end
 
-  it "links each peça to the corte of its arte" do
-    corte = create(:arquivo, :corte, peca: lateral)
-    item = create(:item_pedido, pedido: pedido)
-    arte = create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
-    create(:item_pedido_peca, item_pedido: item, peca: lateral, arquivo: arte)
-    expect(described_class.call(pedido).first.cortes).to eq([ corte ])
+  describe "per corte, with the DXF to download for each size" do
+    let(:corte) { create(:arquivo, :corte, peca: lateral, filename: "24 AO 34") }
+    let!(:t34) { create(:tamanho, arquivo: corte, nome: "34") }
+    let!(:t35) { create(:tamanho, arquivo: corte, nome: "35") }
+
+    def item_on(corte_tamanho, grade)
+      item = create(:item_pedido, pedido: pedido)
+      grade.each { |nome, qtd| item.grades.create!(tamanho_nome: nome, quantidade: qtd) }
+      create(:item_pedido_peca, item_pedido: item, peca: lateral, arquivo: create(:arquivo, tamanho: corte_tamanho))
+    end
+
+    it "maps each size to the corte's tamanho of the same name" do
+      item_on(t34, { "34" => 2, "35" => 1 })
+      linha = described_class.call(pedido).sole
+      expect([ linha.corte, linha.downloads["34"], linha.downloads["35"], linha.tamanhos_faltando ]).to eq([ corte, [ t34 ], [ t35 ], [] ])
+    end
+
+    it "reports sizes the corte doesn't have" do
+      item_on(t34, { "36" => 1 })
+      expect(described_class.call(pedido).sole.tamanhos_faltando).to eq([ "36" ])
+    end
+
+    it "uses the arte's own tamanho for the single-total column" do
+      item_on(t35, { "_total" => 4 })
+      expect(described_class.call(pedido).sole.downloads["_total"]).to eq([ t35 ])
+    end
+
+    it "splits the same peça into one line per corte, so quantities don't mix" do
+      outro = create(:arquivo, :corte, peca: lateral, filename: "35 AO 43")
+      item_on(t34, { "34" => 2 })
+      item_on(create(:tamanho, arquivo: outro, nome: "34"), { "34" => 5 })
+      expect(described_class.call(pedido).map { |l| [ l.corte.filename, l.quantidades.to_h ] })
+        .to eq([ [ "24 AO 34", { "34" => 2 } ], [ "35 AO 43", { "34" => 5 } ] ])
+    end
   end
 
   it "puts pieces without peça last" do

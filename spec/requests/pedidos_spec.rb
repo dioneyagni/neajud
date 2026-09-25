@@ -368,6 +368,29 @@ RSpec.describe "Pedidos", type: :request do
     end
   end
 
+  describe "GET /pedidos/:uuid/producao downloads" do
+    it "turns each quantity into a download of that size's DXF, and warns on a size the corte lacks" do
+      lateral = create(:peca, nome: "Lateral")
+      corte = create(:arquivo, :corte, peca: lateral, filename: "24 AO 34 - CABEDAL")
+      t34 = create(:tamanho, arquivo: corte, nome: "34")
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido)
+      item.grades.create!(tamanho_nome: "34", quantidade: 2)
+      item.grades.create!(tamanho_nome: "35", quantidade: 1)
+      create(:item_pedido_peca, item_pedido: item, peca: lateral, arquivo: create(:arquivo, tamanho: t34))
+
+      get producao_pedido_path(pedido)
+
+      row = Nokogiri::HTML(response.body).at_css("tbody tr")
+      link = row.at_css("td[data-tamanho='34'] a.producao-download")
+      expect(link["href"]).to eq(download_tamanho_path(t34))
+      expect(link["download"]).to eq("24 AO 34 - CABEDAL - 34.dxf")
+      expect(link["data-turbo"]).to eq("false")
+      expect(row.at_css("td[data-tamanho='35'] .producao-sem-dxf").text).to include("1", "sem DXF")
+      expect(row.at_css("td.producao-corte").text.strip).to eq("24 AO 34 - CABEDAL")
+    end
+  end
+
   describe "pending pieces on the pedido pages" do
     let(:pedido) { create(:pedido) }
 
