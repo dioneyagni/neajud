@@ -26,6 +26,28 @@ RSpec.describe "Tamanhos", type: :request do
       expect(response.headers["Content-Disposition"]).to include("Piloto.dxf")
     end
 
+    # Regression: the extract path used tamanho.nome (free text), so a nome like
+    # "../../x" wrote and served a file outside tmp/tamanho_extracts.
+    it "keeps the extract inside tmp/tamanho_extracts whatever the tamanho nome is" do
+      arquivo = create(:arquivo, extension: "dxf", filename: "corte")
+      version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf", original_file: "36 ao 48.dxf")
+      arquivo.update!(approved_version_id: version.id)
+      FileUtils.mkdir_p(File.join(version.storage_dir, "original"))
+      FileUtils.cp(Rails.root.join("spec/fixtures/files/36 ao 48.dxf"), File.join(version.storage_dir, "original", "36 ao 48.dxf"))
+      evil = arquivo.tamanhos.create!(nome: "../../../evil", position: 1, width_mm: 1, height_mm: 1)
+      extracts = Rails.root.join("tmp", "tamanho_extracts")
+      outside = Rails.root.join("evil.dxf")
+
+      get download_tamanho_path(evil)
+
+      expect(response).to have_http_status(:success)
+      expect(File.exist?(outside)).to be false
+      expect(File.exist?(extracts.join(arquivo.uuid, "tamanho-#{evil.id}.dxf"))).to be true
+    ensure
+      FileUtils.rm_f(outside)
+      FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid)) if arquivo
+    end
+
     it "downloads DXF with INSERT entities (block references)" do
       arquivo = create(:arquivo, extension: "dxf", filename: "36 ao 48")
       version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf",
@@ -43,7 +65,7 @@ RSpec.describe "Tamanhos", type: :request do
 
       get download_tamanho_path(tamanho)
       expect(response).to have_http_status(:success)
-      expect(response.headers["Content-Disposition"]).to include("36.dxf")
+      expect(response.headers["Content-Disposition"]).to include("36 ao 48 - 36.dxf")
       expect(response.headers["Content-Type"]).to include("application/dxf")
 
       FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))

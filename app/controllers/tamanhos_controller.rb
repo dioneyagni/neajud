@@ -10,7 +10,9 @@ class TamanhosController < ApplicationController
 
     output_dir = Rails.root.join("tmp", "tamanho_extracts", arquivo.uuid)
     FileUtils.mkdir_p(output_dir)
-    output_path = output_dir.join("#{@tamanho.nome}.dxf")
+    # Named by id, never by nome: nome is free text from the organize form, and
+    # "../../x" as nome used to write and serve a file outside tamanho_extracts.
+    output_path = output_dir.join("tamanho-#{@tamanho.id}.dxf")
 
     unless File.exist?(output_path.to_s) && File.mtime(output_path) >= File.mtime(version.original_path)
       stdout, stderr, status = Open3.capture3(
@@ -26,7 +28,8 @@ class TamanhosController < ApplicationController
     send_file output_path.to_s,
       type: "application/dxf",
       disposition: "attachment",
-      filename: "#{@tamanho.nome}.dxf"
+      # Corte name + size: on the factory floor a bare "30.dxf" is ambiguous.
+      filename: "#{arquivo.filename} - #{@tamanho.nome}.dxf"
   rescue ActionController::MissingFile
     head :not_found
   end
