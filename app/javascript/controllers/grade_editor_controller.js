@@ -21,6 +21,7 @@ export default class extends Controller {
     }
 
     const btn = this.element.querySelector(".grade-save-btn")
+    this._showError("")
     if (btn) {
       btn.disabled = true
       btn.textContent = "Salvando..."
@@ -41,6 +42,7 @@ export default class extends Controller {
               btn.disabled = false
             }, 1500)
           } else {
+            this._showError(data.error)
             btn.textContent = "Erro!"
             setTimeout(() => {
               btn.textContent = "Salvar"
@@ -58,5 +60,17 @@ export default class extends Controller {
           }, 3000)
         }
       })
+  }
+
+  // Server's reason (e.g. "Quantidade total 0 — use Remover…") next to Salvar.
+  _showError(message) {
+    let box = this.element.querySelector(".grade-save-error")
+    if (!box) {
+      box = document.createElement("p")
+      box.className = "grade-save-error"
+      this.element.querySelector(".pedido-item-actions")?.appendChild(box)
+    }
+    box.textContent = message || ""
+    box.hidden = !message
   }
 }

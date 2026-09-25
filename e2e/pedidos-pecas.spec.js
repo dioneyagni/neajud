@@ -272,7 +272,8 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     await test("The pedidos list shows a pending badge instead of Confirmar", async () => {
       await page.goto(`${BASE_URL}/pedidos`);
       const row = page.locator("tr").filter({ has: page.locator(`a[href="/pedidos/${pedidoUuid}"]`) });
-      if (!(await row.locator(".pedido-pendentes-badge").innerText()).includes("1 pendente")) throw new Error("Pending badge missing");
+      // Counts every blocker: the pending Língua plus pieces whose arte has no corte in this scenario.
+      if (!/\d+ pendente/.test(await row.locator(".pedido-pendentes-badge").innerText())) throw new Error("Pending badge missing");
       if (await row.locator(`a[href="/pedidos/${pedidoUuid}/confirmar"]`).count()) throw new Error("Confirmar link should be hidden");
     });
 
@@ -310,15 +311,18 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       if (!(await imageHasVisiblePixels(page, src))) throw new Error("Candidate preview has no visible pixels");
     });
 
-    await test("Moving it asks for confirmation, then completes the pending piece and unblocks Confirmar", async () => {
+    await test("Moving it asks for confirmation and completes the pending piece; Confirmar stays blocked by missing cortes", async () => {
       let prompt = "";
       page.once("dialog", (d) => { prompt = d.message(); });
       const card = page.locator(`.escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
       await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`), card.locator("button").click() ]);
       if (!prompt.includes(outroModeloNome) || !prompt.includes("Mover para")) throw new Error(`Unexpected confirm prompt: "${prompt}"`);
       await expectPedidoPeca(pedidoPeca(0, names.lingua), "incluida", true);
-      if (await page.locator(".pedido-pendencias").count()) throw new Error("Pending box should be gone");
-      if (await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled()) throw new Error("Confirmar should be enabled");
+      if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
+      // These artes have no corte (no tamanho chosen), so the new rule still blocks Confirmar.
+      const semCorte = await page.locator(".pedido-pendencia--sem_corte").allInnerTexts();
+      if (!semCorte.some((t) => t.includes("sem arquivo de corte"))) throw new Error("Pieces without corte should be listed");
+      if (!(await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled())) throw new Error("Confirmar should stay disabled: pieces without corte");
       const linguaTotal = (await producaoRow(names.lingua).locator("td strong").innerText()).trim();
       if (linguaTotal !== "2") throw new Error(`Língua total should now be 2 (both items), got ${linguaTotal}`);
     });
@@ -360,7 +364,8 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await expectPedidoPeca(lingua, "incluida", true);
       const src = await lingua.locator("img.pedido-peca-thumb").getAttribute("src");
       if (!(await imageHasVisiblePixels(page, src))) throw new Error("Uploaded arte preview has no visible pixels");
-      if (await page.locator(".pedido-pendencias").count()) throw new Error("No piece should be pending anymore");
+      // No piece is without arte anymore; pieces without corte still block (PedidoBloqueiosService).
+      if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
     });
 
     await test("Re-checking a piece restores it", async () => {

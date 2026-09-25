@@ -68,15 +68,11 @@ RSpec.describe Pedido, type: :model do
     end
   end
 
-  describe "#pecas_pendentes" do
-    it "lists only this pedido's pieces without arte, in item/position order" do
+  describe "#bloqueios_confirmacao" do
+    it "delegates to PedidoBloqueiosService" do
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
-      create(:item_pedido_peca, item_pedido: item, position: 0)
-      second = create(:item_pedido_peca, item_pedido: item, arquivo: nil, position: 2)
-      first = create(:item_pedido_peca, item_pedido: item, arquivo: nil, position: 1)
-      create(:item_pedido_peca, arquivo: nil)
-      expect(pedido.pecas_pendentes).to eq([ first, second ])
+      expect(PedidoBloqueiosService).to receive(:call).with(pedido).and_return([])
+      expect(pedido.bloqueios_confirmacao).to eq([])
     end
   end
 

@@ -7,7 +7,8 @@ class PedidosController < ApplicationController
                       .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
                       .group(:id)
                       .order(created_at: :desc)
-    @pendentes_por_pedido = ItemPedidoPeca.pendentes.joins(:item_pedido).group("itens_pedido.pedido_id").count
+    # Only drafts can be confirmed; there are few at a time.
+    @bloqueios_por_pedido = @pedidos.select { |p| p.status == "rascunho" }.to_h { |p| [ p.id, p.bloqueios_confirmacao.size ] }
   end
 
   def show
@@ -39,6 +40,11 @@ class PedidosController < ApplicationController
   end
 
   def adicionar_item
+    # Checked before touching anything, so a zero add doesn't even create a draft.
+    if grade_param_total(params[:grade]).zero?
+      return render json: { ok: false, error: "Informe ao menos 1 unidade (quantidade total 0)." }, status: :unprocessable_content
+    end
+
     arquivo = Arquivo.find_by!(uuid: params[:arquivo_uuid])
 
     @pedido = if arquivo.client_id
@@ -83,9 +89,10 @@ class PedidosController < ApplicationController
       return redirect_to pedidos_path, alert: "Pedido already confirmed."
     end
 
-    pendentes = @pedido.pecas_pendentes.to_a
-    if pendentes.any?
-      return redirect_to resumo_pedido_path(@pedido), alert: pendentes_alert(pendentes)
+    bloqueios = @pedido.bloqueios_confirmacao
+    if bloqueios.any?
+      return redirect_to resumo_pedido_path(@pedido),
+                         alert: "Não é possível confirmar: #{bloqueios.map(&:descricao).join("; ")}."
     end
 
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
@@ -121,6 +128,9 @@ class PedidosController < ApplicationController
   def atualizar_item
     item = @pedido.itens_pedido.find_by!(uuid: params[:id])
     grade_params = params[:grade]
+    if grade_total_after_update(item, grade_params).zero?
+      return render json: { ok: false, error: "Quantidade total 0 — use Remover para tirar o item." }, status: :unprocessable_content
+    end
 
     if grade_params.respond_to?(:each)
       grade_params.each do |tamanho_nome, quantidade|
@@ -169,10 +179,19 @@ class PedidosController < ApplicationController
 
   private
 
-  # Names each pending piece and the arte of its item, so the user knows what to complete.
-  def pendentes_alert(pendentes)
-    lista = pendentes.map { |p| "#{p.peca&.nome || "Sem peça"} (item #{p.item_pedido.arquivo.filename})" }
-    "Cannot confirm: #{pendentes.size} piece(s) without arte — #{lista.join(", ")}. Complete them first."
+  # Sum of the positive quantities in a grade param ({"35"=>"2", "_total"=>"1"}).
+  def grade_param_total(grade_params)
+    return 0 unless grade_params.respond_to?(:each)
+
+    grade_params.to_unsafe_h.values.sum { |qtd| [ qtd.to_i, 0 ].max }
+  end
+
+  # Total the item would have after atualizar_item: sizes sent replace the
+  # stored ones, sizes not sent keep their quantity.
+  def grade_total_after_update(item, grade_params)
+    enviados = grade_params.respond_to?(:each) ? grade_params.to_unsafe_h.transform_values(&:to_i) : {}
+    mantidos = item.grades.reject { |g| enviados.key?(g.tamanho_nome) }.sum(&:quantidade)
+    mantidos + enviados.values.sum { |qtd| [ qtd, 0 ].max }
   end
 
   def alternar_peca_error
