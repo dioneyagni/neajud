@@ -91,7 +91,7 @@ class ArquivosController < ApplicationController
   end
 
   def add_modelo
-    modelo = Modelo.find(params[:modelo_id])
+    modelo = Modelo.ativos.find(params[:modelo_id])
     if @arquivo.corte? && @arquivo.organized? && @arquivo.peca_id.present?
       conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, modelo: modelo)
       if conflict && conflict.id != @arquivo.id
@@ -128,7 +128,7 @@ class ArquivosController < ApplicationController
         format.html { redirect_to @arquivo, notice: "Client updated." }
       end
     else
-      redirect_to @arquivo, alert: "Could not update client."
+      redirect_to @arquivo, alert: "Could not update client: #{@arquivo.errors.full_messages.to_sentence}"
     end
   end
 
@@ -145,7 +145,7 @@ class ArquivosController < ApplicationController
         format.html { redirect_to @arquivo, notice: "Modelo updated." }
       end
     else
-      redirect_to @arquivo, alert: "Could not update modelo."
+      redirect_to @arquivo, alert: "Could not update modelo: #{@arquivo.errors.full_messages.to_sentence}"
     end
   end
 
@@ -157,7 +157,7 @@ class ArquivosController < ApplicationController
         format.html { redirect_to @arquivo, notice: "Size updated." }
       end
     else
-      redirect_to @arquivo, alert: "Could not update size."
+      redirect_to @arquivo, alert: "Could not update size: #{@arquivo.errors.full_messages.to_sentence}"
     end
   end
 
@@ -290,18 +290,12 @@ class ArquivosController < ApplicationController
     end
   end
 
+  # Etapa 0.4: goes to the trash; the row, its versions and the files in
+  # storage/stamps/<uuid> stay, so pedidos that use it keep their previews
+  # and it can be restored from /lixeira.
   def destroy
-    # destroy (not destroy!) so a blocked deletion (e.g. an arte still linked
-    # to this corte's tamanho, see Arquivo#prevent_destroy_with_linked_arquivos)
-    # comes back as a normal flash instead of an unhandled 500. Removing the
-    # upload folder only after a successful destroy avoids deleting real
-    # files for a row that turned out not to be destroyable.
-    unless @arquivo.destroy
-      redirect_to @arquivo, alert: @arquivo.errors[:base].to_sentence
-      return
-    end
-    FileUtils.rm_rf(File.join(STORAGE_BASE, @arquivo.uuid))
-    redirect_to arquivos_path, notice: "Arquivo deleted."
+    @arquivo.excluir!(changed_by: request.remote_ip)
+    redirect_to arquivos_path, notice: "Arquivo moved to the trash."
   end
 
   def batch_destroy
@@ -310,7 +304,7 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids)
+    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids, changed_by: request.remote_ip)
 
     render json: { destroyed: destroyed_uuids.size, errors: errors }
   end
@@ -367,7 +361,7 @@ class ArquivosController < ApplicationController
     per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
     @page = [ params[:page].to_i, 1 ].max
 
-    base = Arquivo.includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
+    base = Arquivo.ativos.includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil
     @page = @page.clamp(1, [ @total_pages, 1 ].max)

@@ -1,6 +1,9 @@
 class ModeloPeca < ApplicationRecord
+  include ReferenciaAtiva
+
   belongs_to :modelo
   belongs_to :peca
+  recusa_excluido :peca
 
   validates :peca_id, uniqueness: { scope: :modelo_id }
 

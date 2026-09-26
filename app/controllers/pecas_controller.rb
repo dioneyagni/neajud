@@ -2,9 +2,9 @@ class PecasController < ApplicationController
   before_action :set_peca, only: %i[edit update destroy]
 
   def index
-    @pecas = Peca.left_joins(:arquivos)
+    @pecas = Peca.ativos.left_joins(:arquivos)
                   .includes(:moldes)
-                  .select("pecas.*, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                  .select(Peca.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
                   .group(:id)
                   .order(:nome)
   end
@@ -15,20 +15,23 @@ class PecasController < ApplicationController
   end
 
   def search
-    pecas = Peca.search(params[:q]).limit(10)
+    pecas = Peca.ativos.search(params[:q]).limit(10)
     render json: pecas.map { |p| { id: p.id, nome: p.nome } }
   end
 
   def for_cascade
-    scope = Arquivo.where(organized: true, molde_id: params[:molde_id])
+    scope = Arquivo.ativos.where(organized: true, molde_id: params[:molde_id])
     scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
     peca_ids = scope.distinct.pluck(:peca_id)
-    pecas = Peca.where(id: peca_ids).order(:nome)
+    pecas = Peca.ativos.where(id: peca_ids).order(:nome)
     render json: pecas.map { |p| { id: p.id, nome: p.nome } }
   end
 
   def create
     existing = Peca.where("LOWER(nome) = ?", peca_params[:nome].downcase).first
+    if existing&.excluido?
+      return redirect_to pecas_path, alert: existing.aviso_na_lixeira
+    end
     if existing
       assign_peca_to_arquivo(existing) if params[:arquivo_uuid].present?
       redirect_to pecas_path, alert: "Piece \"#{existing.nome}\" already exists."
@@ -39,7 +42,7 @@ class PecasController < ApplicationController
     if @peca.save
       assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
       if params[:molde_id].present?
-        Molde.find(params[:molde_id]).pecas << @peca
+        Molde.ativos.find(params[:molde_id]).pecas << @peca
         redirect_to edit_molde_path(params[:molde_id]), notice: "Peça added to molde."
       else
         redirect_to pecas_path, notice: "Piece registered."
@@ -62,8 +65,8 @@ class PecasController < ApplicationController
   end
 
   def destroy
-    @peca.destroy
-    redirect_to pecas_path, notice: "Peca deleted."
+    @peca.excluir!(changed_by: request.remote_ip)
+    redirect_to pecas_path, notice: "Peca moved to the trash."
   end
 
   private

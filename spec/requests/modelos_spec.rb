@@ -135,13 +135,18 @@ RSpec.describe "Modelos", type: :request do
   end
 
   describe "DELETE /modelos/:id" do
-    it "destroys a modelo" do
+    it "moves the modelo to the trash" do
       client = create(:client, name: "Test Client", responsible: "John")
       modelo = create(:modelo, nome: "Air Max", client: client)
 
-      expect {
-        delete modelo_path(modelo)
-      }.to change(Modelo, :count).by(-1)
+      expect { delete modelo_path(modelo) }.not_to change(Modelo, :count)
+      expect(modelo.reload).to be_excluido
+    end
+
+    it "hides trashed modelos from for_client" do
+      modelo = create(:modelo, deleted_at: 1.day.ago)
+      get for_client_modelos_path(client_id: modelo.client_id)
+      expect(response.parsed_body).to eq([])
     end
   end
 end

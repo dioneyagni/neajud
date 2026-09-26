@@ -1,9 +1,12 @@
 class ItemPedido < ApplicationRecord
+  include ReferenciaAtiva
+
   self.table_name = "itens_pedido"
 
   belongs_to :pedido
   belongs_to :arquivo
   belongs_to :materia_prima, optional: true
+  recusa_excluido :pedido, :arquivo
   has_many :grades, class_name: "ItemPedidoGrade", dependent: :destroy
   has_many :item_pedido_pecas, -> { order(:position) }, dependent: :destroy
 

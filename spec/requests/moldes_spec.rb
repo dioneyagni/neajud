@@ -42,6 +42,19 @@ RSpec.describe "Moldes", type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Edit Molde")
     end
+
+    # Leaving a trashed peça out of the checkboxes would unlink it on save.
+    it "lists active peças plus the trashed ones this molde already has" do
+      linked = create(:peca, nome: "Linked trashed")
+      create(:peca, nome: "Other trashed").excluir!(changed_by: "10.0.0.1")
+      molde = create(:molde).tap { |m| m.pecas << linked }
+      linked.excluir!(changed_by: "10.0.0.1")
+
+      get edit_molde_path(molde)
+
+      expect(response.body).to include("Linked trashed")
+      expect(response.body).not_to include("Other trashed")
+    end
   end
 
   describe "POST /moldes" do
@@ -107,12 +120,13 @@ RSpec.describe "Moldes", type: :request do
   end
 
   describe "DELETE /moldes/:id" do
-    it "destroys a molde" do
+    it "moves the molde to the trash, keeping its peças" do
       molde = create(:molde, nome: "Sapato")
+      molde.pecas << create(:peca)
 
-      expect {
-        delete molde_path(molde)
-      }.to change(Molde, :count).by(-1)
+      expect { delete molde_path(molde) }.not_to change(Molde, :count)
+      expect(molde.reload).to be_excluido
+      expect(molde.pecas.count).to eq(1)
     end
   end
 end

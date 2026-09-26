@@ -1,4 +1,6 @@
 class Client < ApplicationRecord
+  include Excluivel
+
   has_many :arquivos, dependent: :nullify
   has_many :modelos, dependent: :destroy
   has_many :movimento_estoques, dependent: :destroy
@@ -6,6 +8,10 @@ class Client < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :responsible, presence: true
+
+  def rotulo_lixeira
+    name
+  end
 
   scope :search, ->(q) {
     return all if q.blank?

@@ -1,8 +1,12 @@
 class Pedido < ApplicationRecord
+  include Excluivel
+  include ReferenciaAtiva
+
   belongs_to :client, optional: true
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy
   has_many :arquivo_vinculo_logs, dependent: :nullify
 
+  recusa_excluido :client
   validates :uuid, uniqueness: true
   validates :status, presence: true, inclusion: { in: %w[rascunho confirmado cancelado] }
 
@@ -13,6 +17,17 @@ class Pedido < ApplicationRecord
 
   def to_param
     uuid
+  end
+
+  def rotulo_lixeira
+    "Pedido #{uuid.first(8)}"
+  end
+
+  # A draft that is not in the trash: the only state whose items and pieces
+  # can still change.
+  # Usage: <% if @pedido.editavel? %> … <% end %>
+  def editavel?
+    status == "rascunho" && !excluido?
   end
 
   def total_itens

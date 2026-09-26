@@ -304,7 +304,7 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
     await page.waitForTimeout(2000);
 
     const body = await page.textContent("body");
-    if (!body.includes("Arquivo deleted")) throw new Error("Delete notice not shown");
+    if (!body.includes("Arquivo moved to the trash")) throw new Error("Delete notice not shown");
 
     const hrefsAfter = await page.$$eval(".stamp-card a", els => els.map(e => e.getAttribute("href")));
     if (hrefsAfter.includes(firstCardHref)) throw new Error("Deleted card link still visible in gallery");

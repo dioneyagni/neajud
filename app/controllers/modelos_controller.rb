@@ -2,9 +2,9 @@ class ModelosController < ApplicationController
   before_action :set_modelo, only: %i[show update destroy update_peca_config]
 
   def index
-    @modelos = Modelo.left_joins(:arquivos)
+    @modelos = Modelo.ativos.left_joins(:arquivos)
                       .includes(:client, :molde)
-                      .select("modelos.*, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+                      .select(Modelo.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
                       .group(:id)
                       .order(:nome)
   end
@@ -13,8 +13,8 @@ class ModelosController < ApplicationController
     if @modelo.molde_id.present?
       @modelo.sync_modelo_pecas! if @modelo.modelo_pecas.empty?
 
-      via_join_ids = @modelo.vinculated_arquivos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
-      @organized_arquivos = Arquivo.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
+      via_join_ids = @modelo.vinculated_arquivos.ativos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
+      @organized_arquivos = Arquivo.ativos.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
                                .or(Arquivo.where(id: via_join_ids))
                                .includes(:peca, :tamanhos, approved_version: :image_metadata)
                                .order(:peca_id)
@@ -42,17 +42,20 @@ class ModelosController < ApplicationController
   end
 
   def search
-    modelos = Modelo.search(params[:q]).limit(10)
+    modelos = Modelo.ativos.search(params[:q]).limit(10)
     render json: modelos.map { |m| { id: m.id, nome: m.nome, client_name: m.client.name } }
   end
 
   def for_client
-    modelos = Modelo.where(client_id: params[:client_id]).order(:nome)
+    modelos = Modelo.ativos.where(client_id: params[:client_id]).order(:nome)
     render json: modelos.map { |m| { id: m.id, nome: m.nome, molde_id: m.molde_id } }
   end
 
   def create
     existing = Modelo.where("LOWER(nome) = ? AND client_id = ?", modelo_params[:nome].downcase, modelo_params[:client_id]).first
+    if existing&.excluido?
+      return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
+    end
     if existing
       assign_modelo_to_arquivo(existing) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, alert: "Modelo \"#{existing.nome}\" already exists for this client."
@@ -81,8 +84,8 @@ class ModelosController < ApplicationController
   end
 
   def destroy
-    @modelo.destroy
-    redirect_back fallback_location: arquivos_path, notice: "Modelo deleted."
+    @modelo.excluir!(changed_by: request.remote_ip)
+    redirect_back fallback_location: arquivos_path, notice: "Modelo moved to the trash."
   end
 
   private

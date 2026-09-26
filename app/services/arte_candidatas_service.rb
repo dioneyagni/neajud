@@ -41,7 +41,7 @@ class ArteCandidatasService
   private
 
   def artes
-    Arquivo.where(category: "artes").includes(:modelo, :approved_version, :peca, tamanho: { arquivo: :peca })
+    Arquivo.ativos.where(category: "artes").includes(:modelo, :approved_version, :peca, tamanho: { arquivo: :peca })
   end
 
   def cliente_sem_peca

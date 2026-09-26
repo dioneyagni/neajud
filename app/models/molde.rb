@@ -1,4 +1,6 @@
 class Molde < ApplicationRecord
+  include Excluivel
+
   has_many :arquivos, dependent: :nullify
   has_many :modelos, dependent: :nullify
   has_many :molde_pecas, dependent: :delete_all

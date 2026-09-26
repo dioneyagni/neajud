@@ -2653,3 +2653,18 @@ section {
 .toggle-switch input:checked + .toggle-slider::before {
   transform: translateX(18px);
 }
+
+/* Etapa 0.4: records in the trash, shown where they are still used. */
+.badge-excluido {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: #fce8e6;
+  color: #c5221f;
+  vertical-align: middle;
+}
+
+.lixeira-grupo {
+  margin-top: 1.5rem;
+}

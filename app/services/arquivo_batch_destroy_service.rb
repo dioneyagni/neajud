@@ -1,41 +1,36 @@
-# Destroys a list of arquivos by uuid for the gallery's batch delete, then
-# removes each destroyed arquivo's storage folder. Returns
-# [destroyed_uuids, errors], where errors holds unknown uuids and
-# { uuid:, error: } for arquivos that refused to be destroyed.
+# Moves a list of arquivos (by uuid) to the trash for the gallery's batch
+# delete. Returns [trashed_uuids, errors], where errors holds unknown uuids.
+# Files in storage stay (Etapa 0.4: nothing is physically deleted; restore
+# from /lixeira).
 #
-# Usage: destroyed_uuids, errors = ArquivoBatchDestroyService.call(params[:ids])
+# Usage: trashed_uuids, errors = ArquivoBatchDestroyService.call(params[:ids], changed_by: request.remote_ip)
 class ArquivoBatchDestroyService
-  def self.call(uuids)
-    new(uuids).call
+  def self.call(uuids, changed_by:)
+    new(uuids, changed_by).call
   end
 
-  def initialize(uuids)
+  def initialize(uuids, changed_by)
     @uuids = uuids
-    @destroyed_uuids = []
+    @changed_by = changed_by
+    @trashed_uuids = []
     @errors = []
   end
 
-  # Bug fix: this used to wrap every id in ONE transaction and roll the
-  # whole thing back on the first failure, yet still reported the
-  # already-rolled-back items as destroyed (destroyed/errors were plain Ruby
-  # counters, unaffected by the DB rollback). Destroying each arquivo in its
-  # own (implicit) transaction makes one bad id fail on its own without
-  # undoing the others, and the returned uuids are only ever ones that
-  # actually committed. Also never removed storage/stamps/:uuid — this
-  # service now does that for each returned uuid.
+  # Bug fix (kept from the physical-delete version): each arquivo is handled
+  # on its own, so one bad id fails alone without undoing the others, and the
+  # returned uuids are only ever ones that actually committed.
   def call
-    @uuids.each { |uuid| destroy_one(uuid) }
-    @destroyed_uuids.each { |uuid| FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, uuid)) }
-    [ @destroyed_uuids, @errors ]
+    @uuids.each { |uuid| trash_one(uuid) }
+    [ @trashed_uuids, @errors ]
   end
 
   private
 
-  def destroy_one(uuid)
-    arquivo = Arquivo.find_by(uuid: uuid)
+  def trash_one(uuid)
+    arquivo = Arquivo.ativos.find_by(uuid: uuid)
     return @errors << uuid unless arquivo
-    return @destroyed_uuids << uuid if arquivo.destroy
 
-    @errors << { uuid: uuid, error: arquivo.errors[:base].to_sentence.presence || "could not be deleted" }
+    arquivo.excluir!(changed_by: @changed_by)
+    @trashed_uuids << uuid
   end
 end

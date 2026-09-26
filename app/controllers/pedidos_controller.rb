@@ -1,8 +1,9 @@
 class PedidosController < ApplicationController
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca producao]
+  before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
   def index
-    @pedidos = Pedido.left_joins(:itens_pedido)
+    @pedidos = Pedido.ativos.left_joins(:itens_pedido)
                       .includes(:client)
                       .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
                       .group(:id)
@@ -34,9 +35,9 @@ class PedidosController < ApplicationController
   end
 
   def destroy
-    @pedido.destroy!
+    @pedido.excluir!(changed_by: request.remote_ip)
     session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
-    redirect_to pedidos_path, notice: "Pedido removed."
+    redirect_to pedidos_path, notice: "Pedido moved to the trash."
   end
 
   def adicionar_item
@@ -45,13 +46,13 @@ class PedidosController < ApplicationController
       return render json: { ok: false, error: "Informe ao menos 1 unidade (quantidade total 0)." }, status: :unprocessable_content
     end
 
-    arquivo = Arquivo.find_by!(uuid: params[:arquivo_uuid])
+    arquivo = Arquivo.ativos.find_by!(uuid: params[:arquivo_uuid])
 
     @pedido = if arquivo.client_id
-      Pedido.find_by(client_id: arquivo.client_id, status: "rascunho") ||
+      Pedido.ativos.find_by(client_id: arquivo.client_id, status: "rascunho") ||
         Pedido.create!(status: "rascunho", client_id: arquivo.client_id)
     else
-      Pedido.find_by(uuid: session[:current_pedido_uuid]) ||
+      Pedido.ativos.find_by(uuid: session[:current_pedido_uuid]) ||
         Pedido.create!(status: "rascunho")
     end
     session[:current_pedido_uuid] = @pedido.uuid
@@ -203,6 +204,18 @@ class PedidosController < ApplicationController
 
   def set_pedido
     @pedido = Pedido.find_by!(uuid: params[:uuid])
+  end
+
+  # A trashed pedido stays readable (show, resumo, produção) but frozen until
+  # it is restored from /lixeira.
+  def recusar_pedido_excluido
+    return unless @pedido.excluido?
+
+    message = "#{@pedido.rotulo_lixeira} is in the trash; restore it from Lixeira before changing it"
+    respond_to do |format|
+      format.json { render json: { ok: false, error: message }, status: :unprocessable_content }
+      format.any { redirect_to resumo_pedido_path(@pedido), alert: message }
+    end
   end
 
   def pedido_params

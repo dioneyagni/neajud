@@ -5,42 +5,31 @@ RSpec.describe ArquivoBatchDestroyService do
     File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid)
   end
 
-  it "destroys every deletable arquivo and returns their uuids" do
+  it "moves every arquivo to the trash and returns their uuids" do
     a, b = create(:arquivo), create(:arquivo)
-    destroyed, errors = described_class.call([ a.uuid, b.uuid ])
-    expect(destroyed).to contain_exactly(a.uuid, b.uuid)
+    trashed, errors = described_class.call([ a.uuid, b.uuid ], changed_by: "10.0.0.1")
+    expect(trashed).to contain_exactly(a.uuid, b.uuid)
     expect(errors).to be_empty
-    expect(Arquivo.where(id: [ a.id, b.id ])).to be_empty
+    expect(Arquivo.excluidos.where(id: [ a.id, b.id ]).count).to eq(2)
+    expect(a.exclusao_logs.last.changed_by).to eq("10.0.0.1")
   end
 
-  it "reports unknown uuids as errors" do
-    _destroyed, errors = described_class.call([ "no-such-uuid" ])
-    expect(errors).to eq([ "no-such-uuid" ])
-  end
-
-  it "reports a blocked arquivo without undoing the others" do
-    corte = create(:arquivo, :corte)
-    create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
+  it "reports unknown and already-trashed uuids as errors without undoing the others" do
+    trashed = create(:arquivo, deleted_at: 1.day.ago)
     plain = create(:arquivo)
-
-    destroyed, errors = described_class.call([ corte.uuid, plain.uuid ])
-
-    expect(destroyed).to eq([ plain.uuid ])
-    expect(errors).to match([ { uuid: corte.uuid, error: a_string_including("vinculado") } ])
-    expect(Arquivo.exists?(corte.id)).to be true
+    done, errors = described_class.call([ "no-such-uuid", trashed.uuid, plain.uuid ], changed_by: "10.0.0.1")
+    expect(done).to eq([ plain.uuid ])
+    expect(errors).to eq([ "no-such-uuid", trashed.uuid ])
   end
 
-  it "removes storage folders only for destroyed arquivos" do
-    corte = create(:arquivo, :corte)
-    create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
+  it "keeps the storage folders (nothing is physically deleted)" do
     plain = create(:arquivo)
-    [ corte, plain ].each { |x| FileUtils.mkdir_p(storage_dir(x)) }
+    FileUtils.mkdir_p(storage_dir(plain))
 
-    described_class.call([ corte.uuid, plain.uuid ])
+    described_class.call([ plain.uuid ], changed_by: "10.0.0.1")
 
-    expect(Dir.exist?(storage_dir(plain))).to be false
-    expect(Dir.exist?(storage_dir(corte))).to be true
+    expect(Dir.exist?(storage_dir(plain))).to be true
   ensure
-    FileUtils.rm_rf(storage_dir(corte)) if corte
+    FileUtils.rm_rf(storage_dir(plain)) if plain
   end
 end

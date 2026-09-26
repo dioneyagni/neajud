@@ -24,7 +24,7 @@
             <%= link_to "Edit", edit_peca_path(peca), class: "btn btn-secondary btn-sm" %>
             <%= button_to "Delete", peca_path(peca), method: :delete,
                   form: { style: "display: inline-block;" },
-                  data: { turbo_confirm: "Delete peca \"#{peca.nome}\"?" },
+                  data: { turbo_confirm: "Move peca to the trash: \"#{peca.nome}\"?" },
                   class: "btn btn-danger btn-sm" %>
           </td>
         </tr>

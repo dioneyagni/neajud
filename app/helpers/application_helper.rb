@@ -1,6 +1,6 @@
 module ApplicationHelper
   def current_pedido_count
-    pedido = Pedido.find_by(uuid: session[:current_pedido_uuid])
+    pedido = Pedido.ativos.find_by(uuid: session[:current_pedido_uuid])
     pedido ? pedido.total_itens : 0
   end
 

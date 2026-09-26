@@ -1,4 +1,4 @@
-<h2><%= @client.name %></h2>
+<h2><%= @client.name %> <%= selo_excluido(@client) %></h2>
 
 <div class="stamp-detail">
   <div class="stamp-detail-info">
@@ -42,7 +42,7 @@
               <label for="modelo_molde_id_dialog_client">Mold</label>
               <select name="modelo[molde_id]" id="modelo_molde_id_dialog_client">
                 <option value="">Select a mold...</option>
-                <% Molde.order(:nome).each do |m| %>
+                <% Molde.ativos.order(:nome).each do |m| %>
                   <option value="<%= m.id %>"><%= m.nome %></option>
                 <% end %>
               </select>
@@ -83,7 +83,7 @@
                             data-submit-label="Update">Edit</button>
                     <%= button_to "Delete", modelo_path(modelo), method: :delete,
                           form: { style: "display: inline-block;" },
-                          data: { turbo_confirm: "Delete modelo \"#{modelo.nome}\"?" },
+                          data: { turbo_confirm: "Move modelo to the trash: \"#{modelo.nome}\"?" },
                           class: "btn btn-danger btn-sm" %>
                   </td>
                 </tr>

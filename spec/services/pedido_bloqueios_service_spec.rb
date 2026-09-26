@@ -56,4 +56,23 @@ RSpec.describe PedidoBloqueiosService do
     create(:item_pedido_peca, item_pedido: pedido_item, peca: lateral, arquivo: arte)
     expect(bloqueios).to eq([ [ :tamanho_sem_corte, "Lateral 35: tamanho não existe no corte 24 AO 34 - CABEDAL" ] ])
   end
+
+  describe "arquivos in the trash (Etapa 0.4)" do
+    it "blocks when a checked piece's arte or corte, or the item's arte, is trashed" do
+      arte = arte_com_corte(filename: "lateral-azul")
+      pedido_item = item
+      create(:item_pedido_peca, item_pedido: pedido_item, peca: lateral, arquivo: arte)
+      [ arte, arte.corte, pedido_item.arquivo ].each { |a| a.excluir!(changed_by: "10.0.0.1") }
+
+      expect(bloqueios.select { |tipo, _| tipo == :arquivo_excluido }.map(&:last))
+        .to contain_exactly("tenis está na lixeira", "lateral-azul está na lixeira", "#{arte.corte.filename} está na lixeira")
+    end
+
+    it "ignores a trashed arte of an unchecked piece (it doesn't go to production)" do
+      arte = arte_com_corte
+      create(:item_pedido_peca, item_pedido: item, peca: lateral, arquivo: arte, incluida: false)
+      arte.excluir!(changed_by: "10.0.0.1")
+      expect(bloqueios).to be_empty
+    end
+  end
 end

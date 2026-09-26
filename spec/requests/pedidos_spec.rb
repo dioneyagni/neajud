@@ -51,9 +51,38 @@ RSpec.describe "Pedidos", type: :request do
   end
 
   describe "DELETE /pedidos/:uuid" do
-    it "destroys the pedido" do
+    it "moves the pedido to the trash, keeping its items" do
       pedido = create(:pedido)
-      expect { delete pedido_path(pedido) }.to change(Pedido, :count).by(-1)
+      create(:item_pedido, pedido: pedido, arquivo: arquivo)
+      expect { delete pedido_path(pedido) }.not_to change(Pedido, :count)
+      expect(pedido.reload).to be_excluido
+      expect(pedido.itens_pedido.count).to eq(1)
+    end
+
+    it "hides the trashed pedido from the index but keeps its page, frozen" do
+      pedido = create(:pedido, deleted_at: 1.day.ago)
+      get pedidos_path
+      expect(response.body).not_to include(pedido.uuid.first(8))
+      get resumo_pedido_path(pedido)
+      expect(response.body).to include("badge-excluido")
+      expect(response.body).not_to include("Excluir Rascunho")
+    end
+
+    it "refuses to change a trashed pedido" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido, arquivo: arquivo)
+      pedido.update_columns(deleted_at: Time.current)
+      expect { delete remover_item_pedido_path(pedido, id: item.uuid) }.not_to change(ItemPedido, :count)
+      expect(flash[:alert]).to include("in the trash")
+    end
+
+    it "does not add items to a trashed draft kept in the session" do
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "_total" => "1" } }
+      trashed = Pedido.last
+      trashed.update_columns(deleted_at: Time.current)
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "_total" => "1" } }
+      expect(response.parsed_body["pedido_uuid"]).not_to eq(trashed.uuid)
+      expect(trashed.itens_pedido.count).to eq(1)
     end
 
     it "returns 404 for non-existent pedido" do

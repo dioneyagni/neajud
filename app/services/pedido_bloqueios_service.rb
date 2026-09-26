@@ -6,7 +6,9 @@
 #   :sem_corte  — a checked piece whose arte has no corte (no tamanho chosen),
 #                 so production would have nothing to cut;
 #   :tamanho_sem_corte — a size the pedido asks for that the piece's corte
-#                 doesn't have, so there is no DXF to download for it.
+#                 doesn't have, so there is no DXF to download for it;
+#   :arquivo_excluido — the item's arte, or a checked piece's arte or corte,
+#                 is in the trash (Etapa 0.4): restore it or swap it first.
 # Unchecked pieces never block: the pedido goes to production without them.
 # Used by the confirm guard (server), the pending box and the list badge.
 #
@@ -24,13 +26,28 @@ class PedidoBloqueiosService
   end
 
   def call
-    sem_arte + zerados + sem_corte + tamanhos_sem_corte
+    arquivos_excluidos + sem_arte + zerados + sem_corte + tamanhos_sem_corte
   end
 
   private
 
   def itens
     @itens ||= @pedido.itens_pedido.includes(:grades, :arquivo, item_pedido_pecas: [ :peca, { arquivo: { tamanho: :arquivo } } ]).order(:id).to_a
+  end
+
+  def arquivos_excluidos
+    arquivos_usados.select(&:excluido?).map do |arquivo|
+      Bloqueio.new(tipo: :arquivo_excluido, descricao: "#{arquivo.filename} está na lixeira", arquivo: arquivo)
+    end
+  end
+
+  # Every arquivo production would read: the item's arte, and each checked
+  # piece's arte and corte.
+  def arquivos_usados
+    itens.flat_map do |item|
+      incluidas = item.item_pedido_pecas.select { |p| p.estado == :incluida }
+      [ item.arquivo ] + incluidas.flat_map { |p| [ p.arquivo, p.arquivo.corte ] }
+    end.compact.uniq
   end
 
   def sem_arte

@@ -1,4 +1,7 @@
 class Arquivo < ApplicationRecord
+  include Excluivel
+  include ReferenciaAtiva
+
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy
   has_many :tamanhos, dependent: :destroy
@@ -21,6 +24,7 @@ class Arquivo < ApplicationRecord
   before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
+  recusa_excluido :client, :modelo, :molde, :peca
   validates :uuid, presence: true, uniqueness: true
   validates :filename, presence: true
   validates :extension, presence: true
@@ -30,6 +34,10 @@ class Arquivo < ApplicationRecord
   validate :peca_modelo_uniqueness_for_organized_corte
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
+
+  def rotulo_lixeira
+    filename
+  end
 
   def corte?
     category == "corte"
@@ -53,12 +61,12 @@ class Arquivo < ApplicationRecord
 
   def corte_via_modelo
     return nil unless modelo&.molde
-    Arquivo.where(organized: true, molde_id: modelo.molde_id).first
+    Arquivo.ativos.where(organized: true, molde_id: modelo.molde_id).first
   end
 
   def artes_vinculadas
     return Arquivo.none unless corte? && tipo_corte == "corte_estampa"
-    Arquivo.where(category: "artes", tamanho_id: tamanhos.pluck(:id))
+    Arquivo.ativos.where(category: "artes", tamanho_id: tamanhos.pluck(:id))
   end
 
   delegate :preview_file, :category_notes,
@@ -115,7 +123,7 @@ class Arquivo < ApplicationRecord
   # both stay in sync with what "already taken" means (AGENTS.md: no
   # duplication).
   def self.organized_corte_claiming(peca_id:, modelo_ids:)
-    Arquivo.where(category: "corte", organized: true, peca_id: peca_id)
+    Arquivo.ativos.where(category: "corte", organized: true, peca_id: peca_id)
            .joins(:arquivo_modelos)
            .where(arquivo_modelos: { modelo_id: modelo_ids })
   end

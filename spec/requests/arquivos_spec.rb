@@ -620,9 +620,12 @@ RSpec.describe "Arquivos", type: :request do
   end
 
   describe "DELETE /arquivos/:id" do
-    it "destroys the arquivo" do
+    # Etapa 0.4: moves to the trash; the row and its files stay.
+    it "moves the arquivo to the trash without deleting the row" do
       arquivo = create(:arquivo)
-      expect { delete arquivo_path(arquivo) }.to change(Arquivo, :count).by(-1)
+      expect { delete arquivo_path(arquivo) }.not_to change(Arquivo, :count)
+      expect(arquivo.reload).to be_excluido
+      expect(arquivo.exclusao_logs.last).to have_attributes(acao: "excluido", changed_by: "127.0.0.1")
     end
 
     it "redirects to gallery" do
@@ -631,50 +634,51 @@ RSpec.describe "Arquivos", type: :request do
       expect(response).to redirect_to(arquivos_path)
     end
 
-    it "removes the storage folder on success" do
+    it "keeps the storage folder so it can be restored" do
       arquivo = create(:arquivo)
       folder = ArquivosController::STORAGE_BASE.join(arquivo.uuid)
       FileUtils.mkdir_p(folder)
 
       delete arquivo_path(arquivo)
 
-      expect(File).not_to exist(folder)
+      expect(File).to exist(folder)
+    ensure
+      FileUtils.rm_rf(folder) if folder
     end
 
-    # Regression: a corte whose Tamanho is still referenced by an arte's
-    # tamanho_id used to raise an unhandled 500 (real DB foreign key
-    # violation) instead of a normal redirect + flash.
-    it "redirects with an alert instead of a 500 when the corte's tamanho is still linked" do
+    # Used to be refused (real FK from arquivos.tamanho_id); a trashed corte
+    # keeps its tamanhos, so the linked arte stays intact.
+    it "trashes a corte whose tamanho is still linked, keeping the link" do
       corte = create(:arquivo, :corte)
       tamanho = create(:tamanho, arquivo: corte)
-      create(:arquivo, tamanho: tamanho)
-
-      expect { delete arquivo_path(corte) }.not_to change(Arquivo, :count)
-      expect(response).to redirect_to(arquivo_path(corte))
-      follow_redirect!
-      expect(response.body).to include("vinculado")
-    end
-
-    it "keeps the storage folder when the destroy is blocked" do
-      corte = create(:arquivo, :corte)
-      tamanho = create(:tamanho, arquivo: corte)
-      create(:arquivo, tamanho: tamanho)
-      folder = ArquivosController::STORAGE_BASE.join(corte.uuid)
-      FileUtils.mkdir_p(folder)
+      arte = create(:arquivo, tamanho: tamanho)
 
       delete arquivo_path(corte)
 
-      expect(File).to exist(folder)
+      expect(corte.reload).to be_excluido
+      expect(arte.reload.tamanho).to eq(tamanho)
+    end
+
+    it "hides the trashed arquivo from the gallery but keeps its page with a badge" do
+      arquivo = create(:arquivo, filename: "some-trashed-arte")
+      delete arquivo_path(arquivo)
+
+      get arquivos_path
+      expect(response.body).not_to include("some-trashed-arte")
+      get arquivo_path(arquivo)
+      expect(response.body).to include("badge-excluido")
+      expect(response.body).not_to include("Delete Arquivo")
     end
   end
 
   describe "DELETE /arquivos/batch_destroy" do
-    it "destroys multiple arquivos by uuid" do
+    it "moves multiple arquivos to the trash by uuid" do
       a1 = create(:arquivo)
       a2 = create(:arquivo)
       expect {
         delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, a2.uuid ] }, as: :json
-      }.to change(Arquivo, :count).by(-2)
+      }.to change(Arquivo.excluidos, :count).by(2)
+      expect(Arquivo.count).to eq(2)
     end
 
     it "returns json with destroyed count" do
@@ -706,57 +710,35 @@ RSpec.describe "Arquivos", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
-    it "destroys arquivos with complex FK relationships" do
+    it "trashes arquivos with complex FK relationships, keeping their children" do
       a = create(:arquivo)
       v = create(:arquivo_version, arquivo: a, version_number: 1, status: :processed)
       a.update!(approved_version_id: v.id)
-      ArquivoImageMetadata.create!(arquivo_version: v, icc_profile: "sRGB", width_px: 100, height_px: 100)
-      CutLayer.create!(arquivo_version: v, layer_name: "L1", color: "#000", annotation: "cut")
-      create(:arquivo_time_log, arquivo: a)
       create(:tamanho, arquivo: a)
 
-      expect {
-        delete batch_destroy_arquivos_path, params: { ids: [ a.uuid ] }, as: :json
-      }.to change(Arquivo, :count).by(-1)
-      expect(response).to have_http_status(:success)
-      body = response.parsed_body
-      expect(body["destroyed"]).to eq(1)
-      expect(body["errors"]).to eq([])
+      delete batch_destroy_arquivos_path, params: { ids: [ a.uuid ] }, as: :json
+
+      expect(response.parsed_body).to eq("destroyed" => 1, "errors" => [])
+      expect(a.reload).to have_attributes(excluido?: true, approved_version_id: v.id)
+      expect(a.tamanhos.count).to eq(1)
     end
 
-    # Regression: batch_destroy never called FileUtils.rm_rf, unlike the
-    # singular destroy action — every batch delete leaked its upload folders.
-    it "removes each destroyed arquivo's storage folder" do
+    it "keeps each trashed arquivo's storage folder" do
       a1 = create(:arquivo)
-      a2 = create(:arquivo)
-      folder1 = ArquivosController::STORAGE_BASE.join(a1.uuid)
-      folder2 = ArquivosController::STORAGE_BASE.join(a2.uuid)
-      FileUtils.mkdir_p(folder1)
-      FileUtils.mkdir_p(folder2)
+      folder = ArquivosController::STORAGE_BASE.join(a1.uuid)
+      FileUtils.mkdir_p(folder)
 
-      delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid, a2.uuid ] }, as: :json
+      delete batch_destroy_arquivos_path, params: { ids: [ a1.uuid ] }, as: :json
 
-      expect(File).not_to exist(folder1)
-      expect(File).not_to exist(folder2)
+      expect(File).to exist(folder)
+    ensure
+      FileUtils.rm_rf(folder) if folder
     end
 
-    # Regression: a blocked item used to raise inside one shared transaction,
-    # which rolled back EVERY item in the batch while still reporting the
-    # already-rolled-back ones as destroyed.
-    it "destroys the deletable items and reports the blocked one, without misreporting" do
-      corte = create(:arquivo, :corte)
-      tamanho = create(:tamanho, arquivo: corte)
-      create(:arquivo, tamanho: tamanho)
-      plain = create(:arquivo)
-
-      delete batch_destroy_arquivos_path, params: { ids: [ corte.uuid, plain.uuid ] }, as: :json
-
-      expect(response).to have_http_status(:success)
-      body = response.parsed_body
-      expect(body["destroyed"]).to eq(1)
-      expect(body["errors"]).to match([ { "uuid" => corte.uuid, "error" => a_string_including("vinculado") } ])
-      expect(Arquivo.exists?(corte.id)).to be true
-      expect(Arquivo.exists?(plain.id)).to be false
+    it "reports an arquivo already in the trash as not found" do
+      trashed = create(:arquivo, deleted_at: 1.day.ago)
+      delete batch_destroy_arquivos_path, params: { ids: [ trashed.uuid ] }, as: :json
+      expect(response.parsed_body).to eq("destroyed" => 0, "errors" => [ trashed.uuid ])
     end
 
     it "renders the batch toolbar data attributes on index page" do

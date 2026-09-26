@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -95,6 +95,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
     t.text "category_notes"
     t.integer "client_id"
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
@@ -106,12 +108,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
     t.boolean "organized", default: false, null: false
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.integer "tamanho_id"
     t.string "tipo_corte"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
     t.index ["client_id"], name: "index_arquivos_on_client_id"
+    t.index ["deleted_at"], name: "index_arquivos_on_deleted_at"
     t.index ["modelo_id"], name: "index_arquivos_on_modelo_id"
     t.index ["molde_id"], name: "index_arquivos_on_molde_id"
     t.index ["peca_id"], name: "index_arquivos_on_peca_id"
@@ -133,9 +138,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
 
   create_table "clients", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.text "name", null: false
     t.text "responsible", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_clients_on_deleted_at"
   end
 
   create_table "cor_materiais", force: :cascade do |t|
@@ -158,6 +168,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
     t.datetime "updated_at", null: false
     t.decimal "width_mm", precision: 10, scale: 2
     t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
+  end
+
+  create_table "exclusao_logs", force: :cascade do |t|
+    t.string "acao", null: false
+    t.string "changed_by"
+    t.datetime "created_at", null: false
+    t.integer "registro_id", null: false
+    t.string "registro_rotulo", null: false
+    t.string "registro_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["registro_type", "registro_id"], name: "index_exclusao_logs_on_registro"
   end
 
   create_table "grupo_materiais", force: :cascade do |t|
@@ -230,10 +251,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
   create_table "modelos", force: :cascade do |t|
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.integer "molde_id"
     t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.datetime "updated_at", null: false
     t.index ["client_id"], name: "index_modelos_on_client_id"
+    t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
     t.index ["molde_id"], name: "index_modelos_on_molde_id"
     t.index ["nome", "client_id"], name: "index_modelos_on_nome_and_client_id", unique: true
   end
@@ -248,8 +274,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
 
   create_table "moldes", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_moldes_on_deleted_at"
     t.index ["nome"], name: "index_moldes_on_nome", unique: true
   end
 
@@ -268,19 +299,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_140349) do
 
   create_table "pecas", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_pecas_on_deleted_at"
     t.index ["nome"], name: "index_pecas_on_nome", unique: true
   end
 
   create_table "pedidos", force: :cascade do |t|
     t.integer "client_id"
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.text "observacoes"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
     t.string "status", default: "rascunho", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["client_id"], name: "index_pedidos_on_client_id"
+    t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
     t.index ["status"], name: "index_pedidos_on_status"
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end

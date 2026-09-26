@@ -53,7 +53,7 @@
                       data-submit-label="Update">Edit</button>
               <%= button_to "Delete", client_path(client), method: :delete,
                     form: { style: "display: inline-block;" },
-                    data: { turbo_confirm: "Delete client \"#{client.name}\"?" },
+                    data: { turbo_confirm: "Move client to the trash: \"#{client.name}\"?" },
                     class: "btn btn-danger btn-sm" %>
             </td>
           </tr>

@@ -68,6 +68,20 @@ RSpec.describe Modelo do
       expect(modelo.configured_pecas.pluck(:nome)).to contain_exactly("Frente", "Costa")
     end
 
+    it "keeps a trashed peça's row (and needs_cut) but never creates one for it" do
+      modelo = Modelo.create!(nome: "Camisa", client: client, molde: molde)
+      modelo.sync_modelo_pecas!
+      modelo.modelo_pecas.find_by(peca: peca2).update!(needs_cut: false)
+      peca2.excluir!(changed_by: "10.0.0.1")
+
+      modelo.sync_modelo_pecas!
+      expect(modelo.modelo_pecas.find_by(peca: peca2).needs_cut).to be false
+
+      novo = Modelo.create!(nome: "Blusa", client: client, molde: molde)
+      novo.sync_modelo_pecas!
+      expect(novo.configured_pecas.pluck(:nome)).to eq([ "Frente" ])
+    end
+
     it "does not duplicate existing records" do
       modelo = Modelo.create!(nome: "Camisa", client: client, molde: molde)
       modelo.sync_modelo_pecas!

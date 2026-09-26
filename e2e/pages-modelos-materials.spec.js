@@ -90,7 +90,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("deleted")) throw new Error(`Modelo not deleted: "${body.slice(0, 200)}"`);
+    if (!body.includes("moved to the trash")) throw new Error(`Modelo not deleted: "${body.slice(0, 200)}"`);
   });
 
   // ── Self-contained Show Page Tests ──

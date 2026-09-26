@@ -3,7 +3,7 @@
     goes to production without it · pendente = no arte yet (blocks confirming).
     Checkboxes only while the pedido is a draft and the item has 2+ pieces. %>
 <% pecas = item.item_pedido_pecas %>
-<% editavel = pedido.status == "rascunho" && pecas.size > 1 %>
+<% editavel = pedido.editavel? && pecas.size > 1 %>
 <div class="pedido-item-pecas"
      data-controller="item-pecas"
      data-item-pecas-url-value="<%= alternar_peca_pedido_path(pedido, id: item.uuid) %>"
@@ -20,9 +20,10 @@
         <div class="pedido-peca-thumb pedido-peca-thumb--empty"><%= peca_row.arquivo ? "sem preview" : "sem arte" %></div>
       <% end %>
       <span class="pedido-peca-nome"><%= peca_row.peca&.nome || "Sem peça" %></span>
+      <%= selo_excluido(peca_row.arquivo) %>
       <% if peca_row.estado == :pendente %>
         <span class="pedido-peca-pendente" title="Sem arte: precisa ser completada antes de confirmar o pedido">Pendente</span>
-        <% if pedido.status == "rascunho" && peca_row.peca %>
+        <% if pedido.editavel? && peca_row.peca %>
           <%= link_to "Escolher arte", escolher_arte_pedido_peca_path(pedido, peca_row), class: "btn btn-sm btn-outline pedido-peca-escolher" %>
           <%# Not nested in any other form (see AGENTS.md "Nested forms gotcha"). %>
           <%= form_with url: enviar_arte_pedido_peca_path(pedido, peca_row), multipart: true,

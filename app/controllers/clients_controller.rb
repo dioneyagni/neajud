@@ -2,18 +2,18 @@ class ClientsController < ApplicationController
   before_action :set_client, only: %i[show update destroy]
 
   def index
-    @clients = Client.left_joins(:modelos, :arquivos)
-                     .select("clients.*, COUNT(DISTINCT modelos.id) AS modelos_count, COUNT(DISTINCT arquivos.id) AS arquivos_count")
+    @clients = Client.ativos.left_joins(:modelos, :arquivos)
+                     .select(Client.arel_table[Arel.star], Modelo.contagem_ativos(as: "modelos_count"), Arquivo.contagem_ativos(as: "arquivos_count"))
                      .group(:id)
                      .order(:name)
   end
 
   def show
-    @modelos = @client.modelos.order(:nome)
+    @modelos = @client.modelos.ativos.order(:nome)
     @arquivos_by_modelo = {}
     @modelos.each do |modelo|
-      direct = Arquivo.where(client_id: @client.id, modelo_id: modelo.id, category: "artes")
-      via_join_ids = modelo.vinculated_arquivos.where(client_id: @client.id, category: "artes").select(:id)
+      direct = Arquivo.ativos.where(client_id: @client.id, modelo_id: modelo.id, category: "artes")
+      via_join_ids = modelo.vinculated_arquivos.ativos.where(client_id: @client.id, category: "artes").select(:id)
       @arquivos_by_modelo[modelo] = direct.or(Arquivo.where(id: via_join_ids))
                                         .includes(approved_version: :image_metadata)
                                         .order(created_at: :desc)
@@ -31,12 +31,15 @@ class ClientsController < ApplicationController
   end
 
   def search
-    clients = Client.search(params[:q]).limit(10)
+    clients = Client.ativos.search(params[:q]).limit(10)
     render json: clients.map { |c| { id: c.id, name: c.name, responsible: c.responsible } }
   end
 
   def create
     existing = Client.where("LOWER(name) = ?", client_params[:name].downcase).first
+    if existing&.excluido?
+      return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
+    end
     if existing
       assign_client_to_arquivo(existing) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, alert: "Client \"#{existing.name}\" already exists."
@@ -61,8 +64,8 @@ class ClientsController < ApplicationController
   end
 
   def destroy
-    @client.destroy
-    redirect_back fallback_location: arquivos_path, notice: "Client deleted."
+    @client.excluir!(changed_by: request.remote_ip)
+    redirect_back fallback_location: arquivos_path, notice: "Client moved to the trash."
   end
 
   private

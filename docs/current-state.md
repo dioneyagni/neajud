@@ -113,7 +113,9 @@ Alvo: Etapa 1.1 (UUID em todas as entidades, junto com a renomeação).
 
 ## Exclusões físicas
 
-Toda exclusão hoje apaga de verdade. Não há `deleted_at` nem restauração.
+**Atualizado em 26/09/2026 (Etapa 0.4):** as exclusões pelo usuário da tabela abaixo (menos `remover_item` e `remove_modelo`) agora vão para a lixeira (`deleted_at`, restauração em `/lixeira`), e nada mais é apagado do disco. A tabela registra como era na auditoria.
+
+Na auditoria, toda exclusão apagava de verdade. Não havia `deleted_at` nem restauração.
 
 | Onde | O que apaga |
 | --- | --- |
@@ -129,7 +131,7 @@ Toda exclusão hoje apaga de verdade. Não há `deleted_at` nem restauração.
 
 Substituições internas (não são exclusão pelo usuário, mas também apagam linhas): tamanhos ao reorganizar o DXF (`DxfOrganizationService`, `TamanhoReplacementService`), camadas de corte ao reprocessar ou reconfigurar, `modelo_pecas` ao sincronizar com o molde, linhas de grade zeradas.
 
-Alvo: Etapa 0.4 (exclusão lógica).
+Alvo: Etapa 0.4 (exclusão lógica) — concluída; as substituições internas continuam físicas, pois são dados calculados.
 
 ## Onde o processamento de arquivos roda
 

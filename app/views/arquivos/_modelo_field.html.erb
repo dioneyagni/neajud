@@ -112,7 +112,7 @@
           <label for="modelo_client_id_dialog_arquivo">Client</label>
           <select name="modelo[client_id]" id="modelo_client_id_dialog_arquivo" required>
             <option value="">Select a client...</option>
-            <% Client.order(:name).each do |c| %>
+            <% Client.ativos.order(:name).each do |c| %>
               <option value="<%= c.id %>"><%= c.name %></option>
             <% end %>
           </select>
@@ -122,7 +122,7 @@
         <label for="modelo_molde_id_dialog_arquivo">Mold</label>
         <select name="modelo[molde_id]" id="modelo_molde_id_dialog_arquivo">
           <option value="">Select a mold...</option>
-          <% Molde.order(:nome).each do |m| %>
+          <% Molde.ativos.order(:nome).each do |m| %>
             <option value="<%= m.id %>"><%= m.nome %></option>
           <% end %>
         </select>

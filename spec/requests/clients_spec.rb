@@ -67,17 +67,30 @@ RSpec.describe "Clients", type: :request do
   end
 
   describe "DELETE /clients/:id" do
-    it "destroys a client and nullifies arquivo references" do
+    # Etapa 0.4: used to destroy the client's modelos and stock movements too.
+    it "moves the client to the trash and leaves its modelos, stock and arquivos alone" do
       client = create(:client, name: "ToDelete", responsible: "Resp")
       arquivo = create(:arquivo, client: client)
+      modelo = create(:modelo, client: client)
+      materia_prima = MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"),
+                                           cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "100g")
+      movimento = MovimentoEstoque.create!(client: client, materia_prima: materia_prima, tipo: "entrada", quantidade: 5)
 
-      expect {
-        delete client_path(client)
-      }.to change(Client, :count).by(-1)
+      expect { delete client_path(client) }.not_to change(Client, :count)
 
       expect(response).to redirect_to(arquivos_path)
-      arquivo.reload
-      expect(arquivo.client_id).to be_nil
+      expect(client.reload).to be_excluido
+      expect(arquivo.reload.client_id).to eq(client.id)
+      expect(Modelo.exists?(modelo.id)).to be true
+      expect(MovimentoEstoque.exists?(movimento.id)).to be true
+    end
+
+    it "hides the trashed client from the index and search" do
+      create(:client, name: "Trashed Corp", deleted_at: 1.day.ago)
+      get clients_path
+      expect(response.body).not_to include("Trashed Corp")
+      get search_clients_path(q: "Trashed")
+      expect(response.parsed_body).to eq([])
     end
   end
 

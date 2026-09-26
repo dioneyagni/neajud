@@ -149,7 +149,7 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("Client deleted")) throw new Error(`Client not deleted: "${body.slice(0, 300)}"`);
+    if (!body.includes("Client moved to the trash")) throw new Error(`Client not deleted: "${body.slice(0, 300)}"`);
 
     const rowCountAfter = await page.$$eval(".clients-table tbody tr", els => els.length);
     if (rowCountAfter >= rowCountBefore) throw new Error(`Row count did not decrease: before=${rowCountBefore}, after=${rowCountAfter}`);
@@ -270,7 +270,7 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("deleted")) {
+    if (!body.includes("moved to the trash")) {
       const status = await page.evaluate(() => document.title);
       throw new Error(`Molde not deleted — status: "${status}", body: "${body.slice(0, 300)}"`);
     }
@@ -344,6 +344,6 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("deleted")) throw new Error(`Peca not deleted: "${body.slice(0, 200)}"`);
+    if (!body.includes("moved to the trash")) throw new Error(`Peca not deleted: "${body.slice(0, 200)}"`);
   });
 });

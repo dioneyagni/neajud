@@ -122,12 +122,11 @@ RSpec.describe "Pecas", type: :request do
   end
 
   describe "DELETE /pecas/:id" do
-    it "destroys a peca" do
+    it "moves the peca to the trash" do
       peca = create(:peca, nome: "Solado")
 
-      expect {
-        delete peca_path(peca)
-      }.to change(Peca, :count).by(-1)
+      expect { delete peca_path(peca) }.not_to change(Peca, :count)
+      expect(peca.reload).to be_excluido
     end
   end
 end

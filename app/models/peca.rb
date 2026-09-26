@@ -1,4 +1,6 @@
 class Peca < ApplicationRecord
+  include Excluivel
+
   has_many :arquivos, dependent: :nullify
   has_many :item_pedido_pecas, dependent: :nullify
   has_many :arquivo_vinculo_logs, dependent: :nullify
