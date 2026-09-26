@@ -1,5 +1,10 @@
 # Neajud — AGENTS.md
 
+Product direction lives in `docs/plano.md` (phases, domain, rules for agents) and
+`docs/contexto-claude-code.md` (launch order, decisions, open topics) — read both
+before proposing changes. Both are in Portuguese for now (translation is an open
+decision in `docs/plano.md`).
+
 ## Code style
 
 - Functions: 4-20 lines. Split if longer.
