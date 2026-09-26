@@ -38,3 +38,6 @@
 
 # Windows download metadata (alternate data streams copied into WSL)
 *:Zone.Identifier
+
+# Playwright Test run artifacts (specs run via node e2e/*.spec.js; plano Etapa 0.1)
+/test-results/
