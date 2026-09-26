@@ -1,53 +1,37 @@
 # Neajud
 
-Sistema interno em Ruby on Rails 8 para rastreamento de tempo de produção de estampas e processamento avançado de arquivos gráficos.
+Sistema para pequenas produções (sublimação, gráficas, ateliês, private label) organizarem o
+catálogo de moldes e as peças que os compõem, as artes e cortes de cada peça, e os pedidos que
+vão para o chão de fábrica — com os arquivos de produção (DXF de corte por tamanho) prontos
+para baixar.
 
-## Objetivo inicial
+Rails 8.1 monolítico: SQLite, Hotwire (Turbo + Stimulus), Importmap, Solid Queue/Cache/Cable,
+ImageMagick, exiftool e scripts Node (UTIF.js, dxf) para prévias e extração de DXF.
 
-O primeiro módulo do sistema será o Stamp Tracker:
+## Documentação
 
-- Upload de arquivos gráficos:
-  - TIF / TIFF
-  - PSD
-  - JPG / JPEG
-  - AI
-  - EPS
-  - CDR
+| Documento | Conteúdo |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Como trabalhar no código hoje: estilo, testes, comandos, fluxo de PR, armadilhas conhecidas |
+| [docs/plano.md](docs/plano.md) | Para onde o produto vai: visão, domínio, fases e regras para o agente |
+| [docs/contexto-claude-code.md](docs/contexto-claude-code.md) | Ordem de lançamento, decisões das sessões e temas em aberto |
 
-- Geração automática de previews
-- Detecção de Spot Channels
-- Conversão CMYK/RGB com ICC Profiles
-- Rastreamento de tempo por estampa
-- Histórico de alterações de tempo
-- Galeria técnica de estampas
+## Rodando localmente
 
----
+Dependências do sistema: `imagemagick`, `exiftool` (`libimage-exiftool-perl`) e Node.js.
 
-# Documentação
-
-## Produto
-- [docs/product-requirements.md](docs/product-requirements.md)
-
-## Arquitetura
-- [docs/architecture.md](docs/architecture.md)
-
-## Segurança
-- [docs/security.md](docs/security.md)
-
-## Processamento de imagem
-- [docs/image-processing.md](docs/image-processing.md)
-
-## Frontend
-- [docs/frontend.md](docs/frontend.md)
-
-## Workflow Git
-- [docs/git-workflow.md](docs/git-workflow.md)
-
-## Troubleshooting
-- [docs/troubleshooting.md](docs/troubleshooting.md)
+```bash
+bin/setup                # instala as gems e prepara o banco
+npm install              # pacotes Node dos scripts de prévia/DXF e do Playwright
+bin/dev                  # servidor de desenvolvimento em http://localhost:3000
+bin/dev-backup           # snapshot dos dados de desenvolvimento (antes de algo arriscado)
+```
 
 ## Testes
-- [docs/testing.md](docs/testing.md)
 
-## Modelagem de domínio
-- [docs/domain-models.md](docs/domain-models.md)
+```bash
+bin/rspec                # unitários e de requisição
+bash bin/e2e             # Playwright E2E, num servidor de teste próprio na porta 3001
+```
+
+Pre-commit, fluxo de branch/PR e o que cada teste precisa conferir estão no [AGENTS.md](AGENTS.md).
