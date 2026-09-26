@@ -185,7 +185,7 @@ Antes de qualquer recurso novo, corrigir o que conflita com as decisões deste d
 
 **Etapa 0.1 — Higiene do repositório.** Tornar o repositório privado (feito em 26/09/2026), atualizar o README com o domínio real do sistema (feito no PR #98) e adicionar `test-results/` ao `.gitignore` (feito em 26/09/2026). Etapa concluída.
 
-**Etapa 0.2 — Auditoria.** Sem alterar código, produzir `docs/current-state.md` com: models, controllers, services, jobs, rotas, autenticação, uso de UUID por entidade, exclusões físicas existentes e onde o processamento de arquivos roda. Marcar o que é específico de sublimação e o que é estrutura genérica do catálogo.
+**Etapa 0.2 — Auditoria.** Sem alterar código, produzir `docs/current-state.md` com: models, controllers, services, jobs, rotas, autenticação, uso de UUID por entidade, exclusões físicas existentes e onde o processamento de arquivos roda. Marcar o que é específico de sublimação e o que é estrutura genérica do catálogo. Concluída em 26/09/2026: `docs/current-state.md`.
 
 **Etapa 0.3 — Processamento em fila.** O upload hoje roda o `ArquivoProcessingJob` inline no POST. Passar para Solid Queue, com a interface mostrando o estado (na fila, processando, pronto, erro) via Turbo Streams. Ajustar os specs E2E para esperar o estado final.
 
