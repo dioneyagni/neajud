@@ -432,7 +432,7 @@ What exists today (verified against the code, Sep 2026):
 - Brakeman must stay at 0 warnings; an entry in `config/brakeman.ignore` needs a note
   explaining why it is a false positive (#97 found one "false positive" that was real).
 
-Not done yet (targets in `docs/plano.md` "Segurança de arquivos" and Etapa 3.4): running
+Not done yet (targets in `docs/plano.md` "Segurança de arquivos" and Etapa 8.4): running
 Ghostscript-based previews (PDF/EPS/AI) isolated with `-dSAFER` and limits, a project
 ImageMagick `policy.xml`, disk encryption. The old idea of SQLCipher was dropped in favor
 of disk encryption.
@@ -632,15 +632,15 @@ The plan renames things; until those stages land, the code keeps its names:
 Current code that still differs from the plan — don't copy these patterns into new work:
 
 - **Processing inline** — uploads run `ArquivoProcessingJob.perform_now` in the request
-  (`ArquivoUploadService`). Target: Solid Queue with visible status (Etapa 0.2).
+  (`ArquivoUploadService`). Target: Solid Queue with visible status (Etapa 0.3).
 - **Physical deletes** — every `DELETE` route destroys rows (and, for arquivos, files):
   arquivos (`destroy`, `batch_destroy`), clients, modelos, moldes, peças, pedidos and
-  `remover_item`. Target: logical deletion with restore (Etapa 0.3).
+  `remover_item`. Target: logical deletion with restore (Etapa 0.4).
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
-  use integer ids. Target: UUID on every entity (Etapa 0.4).
+  use integer ids. Target: UUID on every entity (Etapa 1.1).
 - **No authentication** — "who did it" is the request IP (`changed_by`). Target: people,
   vínculos and profiles (Etapa 0.5).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
-  `docs/current-state.md` (Etapa 0.1) will be the audit of the current code.
+  `docs/current-state.md` (Etapa 0.2) will be the audit of the current code.

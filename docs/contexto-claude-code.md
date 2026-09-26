@@ -10,6 +10,8 @@ Este arquivo resume decisões e conversas que não estão (ou não estão comple
 
 ## Ordem de lançamento (prioridade)
 
+Detalhada, fase a fase, em `docs/plano.md` › **Ordem de execução** (reordenado em 26/09/2026: nuvem primeiro; servidor local depois, junto com o launcher Tauri).
+
 O produto principal é a nuvem. Lançar primeiro o plano hospedado; servidor local, ISO, launcher e compartilhamento entre empresas ficam para depois.
 
 Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados de clientes reais; adiar o que pode ser acrescentado sem migração.
