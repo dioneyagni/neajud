@@ -239,8 +239,9 @@ git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-e
 or update PRs (steps 1–10). **Merging (step 12) is always done by a human.**
 Never merge, force-push to `main`, or delete branches you didn't create.
 
-⚠️ **Branch protection is not enabled** (GitHub Free + private repo). The
-discipline is manual: never merge with red CI.
+⚠️ **Branch protection is not enabled**: the repo is private (since 26/09/2026) and
+GitHub Free doesn't offer branch protection for private repos (needs GitHub Team —
+see Etapa 2.5 in `docs/plano.md`). The discipline is manual: never merge with red CI.
 
 Before every push, run the **Pre-commit** command from the Commands section.
 

@@ -183,13 +183,13 @@ Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados 
 
 Antes de qualquer recurso novo, corrigir o que conflita com as decisões deste documento.
 
-**Etapa 0.1 — Higiene do repositório.** Tornar o repositório privado, adicionar `test-results/` ao `.gitignore`, e atualizar o README com o domínio real do sistema.
+**Etapa 0.1 — Higiene do repositório.** Tornar o repositório privado (feito em 26/09/2026), atualizar o README com o domínio real do sistema (feito no PR #98) e adicionar `test-results/` ao `.gitignore` (pendente).
 
 **Etapa 0.2 — Auditoria.** Sem alterar código, produzir `docs/current-state.md` com: models, controllers, services, jobs, rotas, autenticação, uso de UUID por entidade, exclusões físicas existentes e onde o processamento de arquivos roda. Marcar o que é específico de sublimação e o que é estrutura genérica do catálogo.
 
 **Etapa 0.3 — Processamento em fila.** O upload hoje roda o `ArquivoProcessingJob` inline no POST. Passar para Solid Queue, com a interface mostrando o estado (na fila, processando, pronto, erro) via Turbo Streams. Ajustar os specs E2E para esperar o estado final.
 
-**Etapa 0.4 — Exclusão lógica.** Substituir exclusões físicas (rotas DELETE de peças, moldes e arquivos, destroy em lote) por:
+**Etapa 0.4 — Exclusão lógica.** Substituir exclusões físicas — hoje todas as rotas DELETE apagam de verdade: arquivos (incluindo o destroy em lote), clientes, modelos, moldes, peças, pedidos e a remoção de item de pedido — por:
 
 - colunas `deleted_at`, `deleted_by_id`, `restored_at`, `restored_by_id`;
 - escopos explícitos (a gem `discard` ou equivalente), sem `default_scope`;
@@ -223,7 +223,7 @@ Cada cliente hospedado roda seu próprio Neajud Server; o servidor local (Fase 8
 
 O GitHub produz as versões; a Neajud Cloud as entrega. Os servidores dos clientes nunca buscam nada direto no GitHub.
 
-**Etapa 2.5 — Versionamento.** Versão semântica num único arquivo `VERSION`; release-please mantém o PR de release e o CHANGELOG a partir dos commits. `main` protegida, merge só com CI verde.
+**Etapa 2.5 — Versionamento.** Versão semântica num único arquivo `VERSION`; release-please mantém o PR de release e o CHANGELOG a partir dos commits. Merge só com CI verde. Proteger a `main` no GitHub (bloquear merge com CI vermelho e push direto) exige o plano GitHub Team em repositório privado; até contratar, a regra é disciplina manual, como descrito no AGENTS.md.
 
 **Etapa 2.6 — Workflow de release.** Ao criar a tag: testes e verificações de segurança; imagem Docker publicada no GHCR privado; assinatura com cosign; pacote offline (imagem + manifesto assinado) anexado à Release; aviso à nuvem registrando a versão no canal beta. A promoção de beta para estável é manual, no painel da nuvem. O GHCR mantém só as últimas versões.
 
@@ -296,9 +296,10 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 A Neajud Cloud é um app Rails separado (`neajud-cloud`). Sem ela, o servidor continua funcionando; perde apenas os recursos de nuvem.
 
-**Etapa 7.1 — Identidades.** Todos os usuários têm conta na nuvem. O servidor mantém cópia sincronizada de usuários, perfis e hashes de senha, e autentica offline contra ela.
+**Etapa 7.1 — Identidades.** Todos os usuários têm conta na nuvem. Na nuvem, o login acontece na Neajud Cloud e a pessoa é enviada à instância da empresa já autenticada; o admin convida por e-mail e o funcionário cria a própria senha. Isso substitui o login local de cada instância (Etapa 0.5), mantendo pessoa, vínculo e perfis.
 
-- Com internet: admin convida por e-mail; o funcionário cria a própria senha.
+Quando o servidor local chegar (Fase 8), vale também a parte offline: o servidor mantém cópia sincronizada de usuários, perfis e hashes de senha, e autentica offline contra ela.
+
 - Sem internet: admin cria o usuário localmente e recebe um código de acesso temporário; o convite é enviado quando a conexão voltar.
 - Bloqueio feito no servidor local vale na hora e derruba sessões; bloqueio feito no site só chega quando o servidor reconectar, e o site avisa isso. Em conflito, o bloqueio vence.
 - Sempre existe um administrador de emergência local.
