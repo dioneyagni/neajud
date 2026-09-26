@@ -7,6 +7,7 @@ Where things are documented — read the first three before proposing changes:
 | `AGENTS.md` (this file) | How to work on the code **as it is today**: style, tests, commands, workflow, gotchas |
 | `docs/plano.md` | Where the product is going: phases, target domain, rules for agents |
 | `docs/contexto-claude-code.md` | Launch order, decisions taken in sessions, topics still to discuss |
+| `docs/current-state.md` | Audit of the current code: models, routes, UUIDs, deletes, where processing runs, sublimation-specific vs generic |
 | `README.md` | Short overview and quick start |
 
 When this file and `docs/plano.md` disagree, the plan wins for **new** work; the
@@ -644,4 +645,4 @@ Current code that still differs from the plan — don't copy these patterns into
   vínculos and profiles (Etapa 0.5).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
-  `docs/current-state.md` (Etapa 0.2) will be the audit of the current code.
+  `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).
