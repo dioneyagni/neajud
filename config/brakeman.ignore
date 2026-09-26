@@ -1,31 +1,11 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "05f37bba58d9051bd08266dc97922c2dee1945741046e2cac8e81ae72895680b",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
       "fingerprint": "061063b836bff06bb5922320d8a074c2a4ca77086695752d3e966ba2a3986593",
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "1556c698b3d12f514a6c9319bd0d193885c24437938e27d9968920b250062d69",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
-      "fingerprint": "1f6a132c7bbdf55f1fdd37b5a2a9b7fa85376c881b1e95da7ead779e823bdcb9",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
-      "fingerprint": "48e3e7435c9ab0352606bc76aa577605b5ecdc9d0eaa131639fdb2d8f9846eaa",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
       "fingerprint": "668fad5da6f1bf9251ff747154053d38fe98aed876a6b37dd07e73e59bb6fbaf",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
-      "fingerprint": "68db3d263cb532fcf1c4c3aa939de2ed43fee4fed9b8fb5d3a91dad5d302f6f8",
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
@@ -39,6 +19,10 @@
     {
       "fingerprint": "d3d12fa6e44cb3a70e33f65049036853d488f95e39144642f2866d4572aefb32",
       "note": "Pre-existing: false positive (file access via model attributes)"
+    },
+    {
+      "fingerprint": "91c235fedae994b041fc63bda83317f527e8457300deff0095e42d7bffe3c808",
+      "note": "TamanhosController#download: the path is tmp/tamanho_extracts/<arquivo.uuid>/tamanho-<id>.dxf \u2014 uuid is SecureRandom (not a permitted param) and id is an integer. It used to include tamanho.nome (free text): a real path traversal, fixed Sep 2026 with a regression spec. The user-typed nome only goes into the Content-Disposition filename."
     }
   ]
 }

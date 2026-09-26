@@ -4,9 +4,9 @@ RSpec.describe PedidoBloqueiosService do
   let(:pedido) { create(:pedido) }
   let(:lateral) { create(:peca, nome: "Lateral") }
 
-  # An arte printed on a piece that has a corte (a tamanho of an organized corte).
+  # An arte printed on a piece whose corte has a tamanho named like the grade ("35").
   def arte_com_corte(filename: "com-corte")
-    create(:arquivo, filename: filename, tamanho: create(:tamanho, arquivo: create(:arquivo, :corte, peca: lateral)))
+    create(:arquivo, filename: filename, tamanho: create(:tamanho, nome: "35", arquivo: create(:arquivo, :corte, peca: lateral)))
   end
 
   def item(quantidade: 1, filename: "tenis")
@@ -45,5 +45,15 @@ RSpec.describe PedidoBloqueiosService do
     create(:item_pedido_peca, item_pedido: zerado, peca: lateral, arquivo: create(:arquivo, filename: "sem-corte"), position: 0)
     expect(bloqueios.map(&:first)).to eq(%i[sem_arte zerado sem_corte])
     expect(bloqueios.first.last).to eq("Língua sem arte (item tenis)")
+  end
+
+  it "flags a size the pedido asks for that the piece's corte doesn't have (no DXF to download)" do
+    corte = create(:arquivo, :corte, peca: lateral, filename: "24 AO 34 - CABEDAL")
+    arte = create(:arquivo, tamanho: create(:tamanho, nome: "34", arquivo: corte))
+    pedido_item = item(quantidade: 0)
+    pedido_item.grades.create!(tamanho_nome: "34", quantidade: 2)
+    pedido_item.grades.create!(tamanho_nome: "35", quantidade: 1)
+    create(:item_pedido_peca, item_pedido: pedido_item, peca: lateral, arquivo: arte)
+    expect(bloqueios).to eq([ [ :tamanho_sem_corte, "Lateral 35: tamanho não existe no corte 24 AO 34 - CABEDAL" ] ])
   end
 end

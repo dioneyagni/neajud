@@ -4,7 +4,9 @@
 #   :zerado     — an item whose total quantity is 0 (d7b86d8a was confirmed
 #                 like this, Sep 2026);
 #   :sem_corte  — a checked piece whose arte has no corte (no tamanho chosen),
-#                 so production would have nothing to cut.
+#                 so production would have nothing to cut;
+#   :tamanho_sem_corte — a size the pedido asks for that the piece's corte
+#                 doesn't have, so there is no DXF to download for it.
 # Unchecked pieces never block: the pedido goes to production without them.
 # Used by the confirm guard (server), the pending box and the list badge.
 #
@@ -22,7 +24,7 @@ class PedidoBloqueiosService
   end
 
   def call
-    sem_arte + zerados + sem_corte
+    sem_arte + zerados + sem_corte + tamanhos_sem_corte
   end
 
   private
@@ -51,6 +53,19 @@ class PedidoBloqueiosService
         Bloqueio.new(tipo: :sem_corte, descricao: "#{nome_peca(peca_row)} sem arquivo de corte (arte #{peca_row.arquivo.filename})", arquivo: peca_row.arquivo)
       end
     end
+  end
+
+  def tamanhos_sem_corte
+    ProducaoPedidoService.call(@pedido).flat_map do |linha|
+      linha.tamanhos_faltando.map do |tamanho|
+        Bloqueio.new(tipo: :tamanho_sem_corte, arquivo: linha.corte,
+                     descricao: "#{linha.peca&.nome || "Sem peça"} #{tamanho_label(tamanho)}: tamanho não existe no corte #{linha.corte.filename}")
+      end
+    end
+  end
+
+  def tamanho_label(tamanho)
+    tamanho == ProducaoPedidoService::TOTAL_KEY ? "(sem tamanho na arte)" : tamanho
   end
 
   def nome_peca(peca_row)

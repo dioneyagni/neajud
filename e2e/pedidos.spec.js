@@ -243,6 +243,27 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     if (!pedidosBody.includes("rascunho")) throw new Error("Draft pedido not found on pedidos page");
   });
 
+  // The factory floor downloads each size's DXF straight from Produção.
+  async function downloadProducaoDxf() {
+    const link = page.locator("turbo-frame#pedido-producao a.producao-download").first();
+    await link.waitFor({ timeout: 5000 });
+    const [download] = await Promise.all([ page.waitForEvent("download", { timeout: 15000 }), link.click() ]);
+    const filename = download.suggestedFilename();
+    if (filename !== `e2e-corte-${UNIQ} - 34.dxf`) throw new Error(`Unexpected DXF name: ${filename}`);
+    const content = fs.readFileSync(await download.path(), "utf8");
+    if (!content.includes("SECTION") || !content.includes("ENTITIES")) throw new Error(`Not a DXF: ${content.slice(0, 80)}`);
+  }
+
+  let pedidoConfirmadoPath = null;
+
+  await test("Produção: the quantity downloads the DXF of just that size", async () => {
+    await page.goto(`${BASE_URL}/pedidos`);
+    await page.locator("a").filter({ hasText: "Resumo" }).first().click();
+    await page.locator("turbo-frame#pedido-producao").waitFor({ timeout: 5000 });
+    pedidoConfirmadoPath = new URL(page.url()).pathname.replace(/\/resumo$/, "");
+    await downloadProducaoDxf();
+  });
+
   // Used to look for input[value="Confirmar Pedido"] — button_to renders a
   // <button> — and "skip" when missing, so it passed without ever confirming.
   await test("Confirm pedido: a valid draft (quantity > 0, piece with corte) is confirmed", async () => {
@@ -259,6 +280,14 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     await Promise.all([ page.waitForURL("**/pedidos", { timeout: 10000 }), confirmBtn.click() ]);
     const body = await page.textContent("body");
     if (!body.includes("Pedido confirmed")) throw new Error(`Pedido not confirmed. Body preview: ${body.slice(0, 300)}`);
+  });
+
+  await test("Produção downloads still work on the confirmed pedido (factory floor)", async () => {
+    if (!pedidoConfirmadoPath) throw new Error("Pedido path not captured");
+    await page.goto(`${BASE_URL}${pedidoConfirmadoPath}`);
+    const status = (await page.locator("h2 .badge").innerText()).trim();
+    if (status !== "confirmado") throw new Error(`Expected confirmado, got ${status}`);
+    await downloadProducaoDxf();
   });
 
   await test("Create new draft pedido from pedidos page", async () => {
