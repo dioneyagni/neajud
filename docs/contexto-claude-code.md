@@ -52,14 +52,14 @@ Leitura: "—" significa molde usado diretamente, sem referência. Faixas como 3
 
 ## Casos que ainda faltam discutir
 
-- Ciclo do pedido: rascunho, confirmado, produção, entregue (já existe bloqueio de confirmação sem arte no código).
+- Ciclo do pedido: rascunho, confirmado, produção, entregue (já existe bloqueio de confirmação no código: peça sem arte, item com quantidade 0, peça sem corte, tamanho que o corte não tem — `PedidoBloqueiosService`).
 - Registro de tempo de produção e relatórios.
 - Estoque, materiais e cores (existem no código como movimentos, materiais e cores).
 - Montagem da impressão: organizar vários cortes numa folha ou rolo.
 - Cobrança do ponto de vista do cliente: troca de plano, fim do teste, inadimplência.
 - Perfil Financeiro.
 - Relação final entre Estampa e Arte (ligação opcional nos dois sentidos, em definição).
-- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o `docs/product-requirements.md` inicial era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. Tarefas de produção (cortar/imprimir) e o ciclo do pedido ficam para outra conversa.
+- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o antigo `docs/product-requirements.md`, removido em 26/09/2026, era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. Tarefas de produção (cortar/imprimir) e o ciclo do pedido ficam para outra conversa.
 
 ## Sugestão de primeira mensagem na sessão
 

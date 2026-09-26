@@ -409,7 +409,7 @@ Estes itens não devem ser implementados nas fases acima, mas o desenho não pod
 ## Decisões em aberto
 
 - [ ] Permissões do perfil Financeiro.
-- [ ] Idioma deste documento no repositório: o AGENTS.md é só em inglês; traduzir antes de adicioná-lo em `docs/`?
+- [ ] Idioma deste documento no repositório: o AGENTS.md é só em inglês; este documento já está em `docs/` em português (26/09/2026) — traduzir?
 - [ ] Valor da mensalidade, duração do teste grátis e gateway de cobrança (Pix e boleto recorrentes).
 - [ ] Ferramenta de conversão para CDR, e se o formato entra na primeira versão.
 - [ ] Requisitos mínimos de hardware do servidor principal (CPU, memória, disco).

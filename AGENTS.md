@@ -1,9 +1,18 @@
 # Neajud — AGENTS.md
 
-Product direction lives in `docs/plano.md` (phases, domain, rules for agents) and
-`docs/contexto-claude-code.md` (launch order, decisions, open topics) — read both
-before proposing changes. Both are in Portuguese for now (translation is an open
-decision in `docs/plano.md`).
+Where things are documented — read the first three before proposing changes:
+
+| Document | What it covers |
+|---|---|
+| `AGENTS.md` (this file) | How to work on the code **as it is today**: style, tests, commands, workflow, gotchas |
+| `docs/plano.md` | Where the product is going: phases, target domain, rules for agents |
+| `docs/contexto-claude-code.md` | Launch order, decisions taken in sessions, topics still to discuss |
+| `README.md` | Short overview and quick start |
+
+When this file and `docs/plano.md` disagree, the plan wins for **new** work; the
+"Known gaps vs docs/plano.md" list under Key constraints names what the current
+code still does differently. The two docs/ files are in Portuguese for now
+(translating them is an open decision in `docs/plano.md`).
 
 ## Code style
 
@@ -219,7 +228,7 @@ git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-e
 5. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
 6. **Final check** — back to the Rails server: test again, re-check `log/development.log` and the browser console. Fix if needed.
 7. **Final adjustments** — address whatever the final check surfaced.
-8. **Commit** — `git add -A && git commit -m "descriptive message (WHAT + WHY)"`
+8. **Commit** — Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`; release notes are generated from them — `docs/plano.md`), subject + body with WHAT + WHY
 9. **Push** — `git push -u origin fix/what-was-done`
 10. **GitHub PR** — open a Pull Request.
 11. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
@@ -234,6 +243,24 @@ Never merge, force-push to `main`, or delete branches you didn't create.
 discipline is manual: never merge with red CI.
 
 Before every push, run the **Pre-commit** command from the Commands section.
+
+### Rules from docs/plano.md
+
+- One stage per PR; big features become chained series (1/N, 2/N).
+- At the end of each stage: list changed files, explain what changed, report tests run
+  and problems found, then wait for human validation. Merge is always human.
+- Every migration that transforms data runs on a copy first (`bin/dev-backup`) and has
+  its rollback tested.
+- Don'ts:
+  - Don't rewrite the app or swap the frontend (no React, Vue or similar).
+  - Don't use `default_scope` to hide deleted records.
+  - Don't delete records physically (only when anonymizing personal data).
+  - Don't process PSD, TIFF, AI, EPS or PDF inside the web request.
+  - Don't add dependencies without justifying them in the PR.
+  - Don't create abstractions before a second real use exists. This does not contradict
+    "wrap third-party libs behind a thin interface" (Dependencies): wrap a library where
+    the app calls it, don't build generic layers for our own code "just in case".
+- Some of these are still violated by existing code — see "Known gaps" under Key constraints.
 
 ### Checklist: new controller action
 
@@ -388,6 +415,27 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
+
+## Security
+
+What exists today (verified against the code, Sep 2026):
+
+- Upload limit 1GB, checked on the **real file size on disk**, never `Content-Length`
+  or browser metadata (`ArquivoUploadService`).
+- File type identified by **content**, not extension or browser MIME (`FileValidator`,
+  `ArquivoUploadService.erro_de_tipo`); DXF/DWG/CAD can't be verified this way.
+- Abuse: oversize uploads enqueue `AbuseDetectionJob`, which bans the IP (`Ban`) after
+  repeated attempts; `lib/ban_middleware.rb` blocks banned IPs; `Rack::Attack`
+  (`config/initializers/rack_attack.rb`) rate-limits.
+- Files on disk are named by generated ids/uuids, never by user-typed text (the tamanho
+  DXF extract used `tamanho.nome` and allowed path traversal — fixed in #97).
+- Brakeman must stay at 0 warnings; an entry in `config/brakeman.ignore` needs a note
+  explaining why it is a false positive (#97 found one "false positive" that was real).
+
+Not done yet (targets in `docs/plano.md` "Segurança de arquivos" and Etapa 3.4): running
+Ghostscript-based previews (PDF/EPS/AI) isolated with `-dSAFER` and limits, a project
+ImageMagick `policy.xml`, disk encryption. The old idea of SQLCipher was dropped in favor
+of disk encryption.
 
 ## Nested forms gotcha (<form> inside <dialog> breaks the parent form)
 
@@ -545,6 +593,9 @@ assuming global fixtures.
 
 ## Key constraints
 
+- Time fields use the `h:mm` mask (e.g. `130` → 1:30, `2430` → 24:30), parsed by
+  `ArquivosController#parse_hmm`.
+
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
 - Arquivo routes use `uuid` (`Arquivo.find_by!(uuid:)`), not integer id
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
@@ -561,3 +612,35 @@ assuming global fixtures.
   keep their order in `E2E_SPECS`. Shared harness: `e2e/support/runner.js`
   (`runSpec`), fixture paths: `e2e/support/fixtures.js`.
 - System dependencies: `imagemagick`, `exiftool` packages required
+
+## Code names vs docs/plano.md names
+
+The plan renames things; until those stages land, the code keeps its names:
+
+| docs/plano.md | Code today |
+|---|---|
+| Referência | `Modelo` (rename planned in Etapa 1.1) |
+| Modelo (categoria), Produto | don't exist yet (Etapa 1.1) |
+| Molde | `Molde` |
+| Parte | `Peca` |
+| Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
+| Arte | `Arquivo` with `category: "artes"` |
+| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual) |
+
+## Known gaps vs docs/plano.md
+
+Current code that still differs from the plan — don't copy these patterns into new work:
+
+- **Processing inline** — uploads run `ArquivoProcessingJob.perform_now` in the request
+  (`ArquivoUploadService`). Target: Solid Queue with visible status (Etapa 0.2).
+- **Physical deletes** — every `DELETE` route destroys rows (and, for arquivos, files):
+  arquivos (`destroy`, `batch_destroy`), clients, modelos, moldes, peças, pedidos and
+  `remover_item`. Target: logical deletion with restore (Etapa 0.3).
+- **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
+  `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
+  use integer ids. Target: UUID on every entity (Etapa 0.4).
+- **No authentication** — "who did it" is the request IP (`changed_by`). Target: people,
+  vínculos and profiles (Etapa 0.5).
+- **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
+  testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
+  `docs/current-state.md` (Etapa 0.1) will be the audit of the current code.
