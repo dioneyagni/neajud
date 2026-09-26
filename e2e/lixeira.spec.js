@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
 const { uploadFileAndWait } = require("./support/upload");
+const { imageHasVisiblePixels } = require("./support/pixels");
 const { BASE_URL, runSpec } = require("./support/runner");
 
 runSpec("Lixeira E2E Tests", async ({ page, test }) => {
@@ -66,7 +67,7 @@ runSpec("Lixeira E2E Tests", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/lixeira`);
     const row = page.locator('.lixeira-grupo[data-tipo="clients"] .lixeira-item').filter({ hasText: clientName });
     if ((await row.count()) !== 1) throw new Error("Trashed client not listed in /lixeira under Clients");
-    const by = await row.locator("td").nth(2).textContent();
+    const by = await row.locator("td").nth(3).textContent();
     if (!by.trim()) throw new Error("Trash row does not say who deleted it (IP)");
 
     await restoreFromTrash(clientName);
@@ -132,6 +133,32 @@ runSpec("Lixeira E2E Tests", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     if ((await page.locator("h2 .badge-excluido").count()) !== 1) throw new Error("No badge on the trashed pedido");
     if ((await page.locator('button:has-text("Excluir Rascunho")').count()) !== 0) throw new Error("Trashed pedido is still editable");
+  });
+
+  // Previews must show real pixels (AGENTS.md "Preventing false positives"),
+  // and records without one fall back to an icon instead of a broken image.
+  async function thumbOf(label) {
+    const thumb = page.locator(".lixeira-item").filter({ hasText: label }).locator("img.lixeira-thumb");
+    if ((await thumb.count()) !== 1) throw new Error(`Expected one thumbnail in the trash row "${label}"`);
+    const response = await page.request.get(new URL(await thumb.getAttribute("src"), BASE_URL).href);
+    if (!response.ok() || !response.headers()["content-type"].startsWith("image/")) throw new Error(`Thumbnail of "${label}" did not load`);
+    return thumb;
+  }
+
+  await test("Trash rows show the arte preview (also for its pedido), else an icon", async () => {
+    await page.goto(`${BASE_URL}/lixeira`);
+    for (const label of [arteName, `Pedido ${pedidoUuid.slice(0, 8)}`]) {
+      const thumb = await thumbOf(label);
+      if (await thumb.evaluate((img) => img.classList.contains("lixeira-thumb--icone"))) throw new Error(`"${label}" shows an icon, expected the arte preview`);
+      if (!(await imageHasVisiblePixels(page, await thumb.getAttribute("src")))) throw new Error(`Preview of "${label}" has no visible pixels`);
+    }
+
+    await deleteClientFromIndex(clientName);
+    await page.goto(`${BASE_URL}/lixeira`);
+    const icon = await thumbOf(clientName);
+    if (!(await icon.evaluate((img) => img.classList.contains("lixeira-thumb--icone")))) throw new Error("Client row should show the type icon");
+    if (!(await icon.evaluate((img) => img.complete && img.naturalWidth > 0))) throw new Error("Client icon did not render");
+    await restoreFromTrash(clientName);
   });
 
   await test("Restoring the arte and the pedido from the trash unblocks the draft", async () => {

@@ -11,11 +11,12 @@
     <h3><%= registros.first.model_name.human.pluralize %> (<%= registros.size %>)</h3>
     <table class="clients-table">
       <thead>
-        <tr><th>Name</th><th>Deleted at</th><th>By</th><th></th></tr>
+        <tr><th></th><th>Name</th><th>Deleted at</th><th>By</th><th></th></tr>
       </thead>
       <tbody>
         <% registros.each do |registro| %>
           <tr class="lixeira-item">
+            <td class="lixeira-thumb-cell"><%= miniatura_lixeira(registro) %></td>
             <td><%= registro.rotulo_lixeira %></td>
             <td><%= l(registro.deleted_at, format: "%d/%m/%Y %H:%M") %></td>
             <td><%= registro.exclusao_logs.select { |log| log.acao == "excluido" }.max_by(&:created_at)&.changed_by %></td>
