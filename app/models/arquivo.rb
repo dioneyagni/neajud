@@ -134,6 +134,29 @@ class Arquivo < ApplicationRecord
            .exists?
   end
 
+
+  # Each page reacts only to what it shows, so a refresh never wipes what the
+  # user is doing elsewhere (files picked for the next upload, a typed grade):
+  # the gallery swaps just this card on every status change; this arquivo's
+  # page and the pedidos that use it morph-refresh only when processing ends.
+  # Broadcast right away (not *_later): this runs inside the processing job,
+  # and queued broadcasts arrived out of order — a late refresh landed after
+  # the user had already opened the page and reset an open editor.
+  # Usage: arquivo.broadcast_status_change
+  def broadcast_status_change
+    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(self), partial: "arquivos/card", locals: { arquivo: self }
+    return if pending? || processing?
+
+    broadcast_refresh
+    pedidos_que_usam.each(&:broadcast_refresh)
+  end
+
+  # Pedidos with an item for this arte, or with it as one of an item's pieces.
+  def pedidos_que_usam
+    item_ids = ItemPedidoPeca.where(arquivo_id: id).select(:item_pedido_id)
+    Pedido.where(id: ItemPedido.where(arquivo_id: id).or(ItemPedido.where(id: item_ids)).select(:pedido_id))
+  end
+
   private
 
   # Bug (found while verifying feat/mold-org-cascade-filter, PR #70):

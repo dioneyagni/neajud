@@ -133,14 +133,14 @@ Alvo: Etapa 0.4 (exclusão lógica).
 
 ## Onde o processamento de arquivos roda
 
-- **Dentro do request (fere a regra do plano):** `ArquivoProcessingJob.perform_now` no upload (`ArquivoUploadService`, usado pela galeria e pelo "Enviar arquivo" da peça pendente) e no `upload_version`. Processa TIFF, PSD, EPS, AI e PDF (ImageMagick, UTIF.js) no request.
+- **Atualizado em 26/09/2026 (Etapa 0.3):** o `ArquivoProcessingJob` do upload (galeria, nova versão e "Enviar arquivo") agora é enfileirado no Solid Queue; a tela mostra "Na fila"/"Processando" e se atualiza sozinha (ver "Background processing" no AGENTS.md). Antes rodava com `perform_now` dentro do request.
 - **Também no request, trabalho pesado sobre arquivos já processados:**
   - `MoldMatchService` (ImageMagick) no `update_modelo`, via `TamanhoAutoAssignService`;
   - `DxfOrganizationService` (gera PNG das prévias dos tamanhos) na organização do DXF;
   - `TamanhosController#download` roda `bin/extract-tamanho-dxf.js` no primeiro download de cada tamanho (depois usa o arquivo em `tmp/tamanho_extracts/`).
-- **Em fila de verdade:** só o `AbuseDetectionJob`.
+- **Em fila:** o `ArquivoProcessingJob` (desde a Etapa 0.3) e o `AbuseDetectionJob`.
 
-Alvo: Etapa 0.3 (processamento em fila, com estado visível).
+Alvo para o que ainda roda no request: Etapa 0.6.
 
 ## Específico de sublimação × estrutura genérica
 

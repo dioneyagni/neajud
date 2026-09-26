@@ -2,7 +2,8 @@
 # (ArquivosController#create) and a pending piece's upload
 # (PedidoPecasController#enviar_arte): fill filename/extension/category from
 # the file, reject oversize files (reporting abuse) and extensions that don't
-# match the real format, save, store version 1 and process it inline.
+# match the real format, save, store version 1 and enqueue its processing —
+# never inside the request (plano Etapa 0.3). The version starts "pending".
 # Returns the arquivo: persisted on success, with errors otherwise.
 #
 # Usage: arquivo = ArquivoUploadService.call(upload, remote_ip: request.remote_ip,
@@ -40,7 +41,7 @@ class ArquivoUploadService
     preencher_metadados
     return @arquivo unless tamanho_ok? && tipo_ok? && @arquivo.save
 
-    ArquivoProcessingJob.perform_now(criar_versao!.id)
+    ArquivoProcessingJob.perform_later(criar_versao!.id)
     @arquivo
   end
 

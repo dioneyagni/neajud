@@ -201,6 +201,24 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
     await multiCard.waitFor({ timeout: UPLOAD_TIMEOUT });
   });
 
+  // Etapa 0.3 safety net: with the live connection blocked, no broadcast ever
+  // arrives — only the card's own polling ("processamento" controller) can take
+  // it from "Na fila"/"Processando" to its final state.
+  await test("Without the live connection, a queued card still reaches its final state by polling", async () => {
+    const offline = await page.context().newPage();
+    await offline.addInitScript(() => {
+      window.WebSocket = class { constructor() { throw new Error("WebSocket blocked by the E2E spec"); } };
+    });
+    try {
+      await offline.goto(BASE_URL);
+      await uploadFileAndWait(offline, testImagePath);
+      const status = await offline.locator('.stamp-card[data-filename="test-image"]').first().getAttribute("data-status");
+      if (["pending", "processing"].includes(status)) throw new Error(`Card still ${status}`);
+    } finally {
+      await offline.close();
+    }
+  });
+
   await test("Upload a file creates a arquivo visible in gallery", async () => {
     await page.goto(BASE_URL);
     const fileInput = await page.$('input[type="file"]');

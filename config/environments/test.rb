@@ -40,7 +40,14 @@ Rails.application.configure do
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
 
-  # Run jobs inline during E2E tests so previews are generated before the HTTP response.
-  # This avoids race conditions where the test navigates before processing finishes.
-  config.active_job.queue_adapter = :inline
+  # RSpec runs jobs inline: specs assert on the processed result right away.
+  # The E2E server (bin/e2e sets E2E_SOLID_QUEUE=1) uses Solid Queue like
+  # production, so uploads return before processing and specs wait for the
+  # status the UI shows (plano Etapa 0.3).
+  if ENV["E2E_SOLID_QUEUE"] == "1"
+    config.active_job.queue_adapter = :solid_queue
+    config.solid_queue.connects_to = { database: { writing: :queue } }
+  else
+    config.active_job.queue_adapter = :inline
+  end
 end

@@ -13,7 +13,9 @@ if [ "${RAILS_ENV:-test}" != "test" ]; then
   exit 1
 fi
 export RAILS_ENV=test
-export CABLE_ADAPTER=async
+# Broadcasts come from the Solid Queue process (Etapa 0.3); only a
+# cross-process adapter reaches the browser. Same as production.
+export CABLE_ADAPTER=solid_cable
 
 # The E2E server gets its own port so the development server on :3000 keeps
 # running untouched. They used to share :3000: every run replaced the dev
@@ -145,6 +147,9 @@ echo "       Done."
 
 # Step 2: Prepare test database
 echo "[2/5] Preparing test database..."
+# Fresh queue DB: jobs left by an aborted run would process uploads whose
+# rows are about to be truncated.
+rm -f storage/test_queue.sqlite3* storage/test_cable.sqlite3*
 bin/rails db:test:prepare 2>&1 | tail -1
 # Wipe upload folders so E2E runs never accumulate orphan stamps. Only
 # storage/test_stamps/ — never storage/stamps/, which holds real
@@ -168,7 +173,10 @@ prepare_run_log
 echo "       Logs: $RUN_LOG_DIR/ (requests.log, server.log)"
 # Append mode (>>) so the spec markers written below interleave instead of
 # being overwritten at the server's own file offset.
-bin/rails server -p "$E2E_PORT" -b 0.0.0.0 -e test -P "tmp/pids/e2e-server.pid" >>"$SERVER_LOG" 2>&1 &
+# Processing runs in Solid Queue inside Puma, like production (Etapa 0.3):
+# uploads return before processing, and specs wait for the status the UI shows.
+E2E_SOLID_QUEUE=1 SOLID_QUEUE_IN_PUMA=1 \
+  bin/rails server -p "$E2E_PORT" -b 0.0.0.0 -e test -P "tmp/pids/e2e-server.pid" >>"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 echo "       PID: $SERVER_PID"
 

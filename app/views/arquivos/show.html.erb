@@ -1,7 +1,19 @@
+<%# Processing is queued (Etapa 0.3): this page morph-refreshes when this
+    arquivo's status changes (Arquivo#broadcast_status_change). %>
+<% turbo_refreshes_with method: :morph, scroll: :preserve %>
+<%= turbo_stream_from @arquivo %>
+
 <h2>
   <%= image_tag "#{FileCategory.extension_icon(@arquivo.extension)}.svg", class: "stamp-detail-ext-icon", alt: @arquivo.extension %>
   <%= @arquivo.category == "corte" ? "Cut" : "Arquivo" %>: <%= @arquivo.filename %>.<%= @arquivo.extension %>
 </h2>
+
+<% if @arquivo.pending? || @arquivo.processing? %>
+  <p class="processamento-status badge-<%= @arquivo.status %>" data-status="<%= @arquivo.status %>"
+     data-controller="processamento" data-processamento-url-value="<%= processamento_arquivo_path(@arquivo, format: :json) %>">
+    <%= processamento_label(@arquivo.status) %> — a prévia e as medidas aparecem aqui quando o processamento terminar.
+  </p>
+<% end %>
 
 <div class="stamp-detail">
   <div class="stamp-detail-preview">

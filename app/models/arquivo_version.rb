@@ -5,6 +5,12 @@ class ArquivoVersion < ApplicationRecord
   has_many :cut_layers, dependent: :destroy
 
   before_validation :set_uuid, on: :create
+  # Processing runs in Solid Queue (Etapa 0.3): open pages learn about each
+  # status change (pending → processing → processed/failed) by broadcast.
+  # reload: the job's arquivo caches its approved_version as another object
+  # than this one, so it still read "processing" and the final card/refresh
+  # never went out.
+  after_update_commit -> { arquivo.reload.broadcast_status_change }, if: :saved_change_to_status?
 
   validates :uuid, presence: true, uniqueness: true
   validates :version_number, presence: true, uniqueness: { scope: :arquivo_id }

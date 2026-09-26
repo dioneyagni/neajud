@@ -1,4 +1,10 @@
-<%= tag.div id: dom_id(arquivo), class: "stamp-card" do %>
+<%# data-status lets E2E specs wait for queued processing to finish (Etapa 0.3).
+    While queued, the card polls itself in case the broadcast was missed. %>
+<% em_fila = arquivo.pending? || arquivo.processing? %>
+<%= tag.div id: dom_id(arquivo), class: "stamp-card",
+      data: { status: arquivo.status, filename: arquivo.filename }.merge(
+        em_fila ? { controller: "processamento", processamento_mode_value: "card", processamento_url_value: processamento_arquivo_path(arquivo) } : {}
+      ) do %>
   <label class="stamp-card-checkbox">
     <input type="checkbox" name="arquivo_ids[]" value="<%= arquivo.uuid %>" data-batch-select-target="checkbox" data-action="change->batch-select#toggle">
   </label>
@@ -46,6 +52,8 @@
       <div class="stamp-card-meta">
         <% if arquivo.failed? || arquivo.unsupported_format? || arquivo.invalid_colorspace? %>
           <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= arquivo.status.humanize %></span>
+        <% elsif arquivo.pending? || arquivo.processing? %>
+          <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= processamento_label(arquivo.status) %></span>
         <% end %>
         <% if arquivo.annotated_seconds || arquivo.estimated_seconds&.positive? %>
           <span><%= format_time(arquivo.annotated_seconds || arquivo.estimated_seconds) %></span>

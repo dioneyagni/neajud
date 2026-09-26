@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   PER_PAGE_GRID = 12
@@ -67,7 +67,7 @@ class ArquivosController < ApplicationController
     version.update!(approved: true)
     @arquivo.update!(approved_version_id: version.id)
 
-    ArquivoProcessingJob.perform_now(version.id)
+    ArquivoProcessingJob.perform_later(version.id)
     redirect_to @arquivo, notice: "Version #{version_number} uploaded and processing."
   end
 
@@ -208,6 +208,19 @@ class ArquivosController < ApplicationController
   def composicao
     slots = ModeloComposicaoService.call(@arquivo)
     render json: { pecas: slots.map { |slot| composicao_slot_json(slot) } }
+  end
+
+  # Processing state of the approved version, polled by the "processamento"
+  # Stimulus controller while an arquivo is queued. Safety net for a broadcast
+  # sent while the page was still (re)connecting to the cable — it never
+  # arrives, and the card stayed on "Processando" (Etapa 0.3, seen in E2E).
+  # Usage: GET /arquivos/:uuid/processamento.json → { status:, final: }
+  #        GET /arquivos/:uuid/processamento (turbo-stream) → replaces the card
+  def processamento
+    respond_to do |format|
+      format.json { render json: { status: @arquivo.status, final: !(@arquivo.pending? || @arquivo.processing?) } }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(@arquivo, partial: "arquivos/card", locals: { arquivo: @arquivo }) }
+    end
   end
 
   def version_preview

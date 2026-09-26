@@ -452,4 +452,35 @@ RSpec.describe ArquivoProcessingJob do
       svg_arquivo.destroy!
     end
   end
+
+  # Etapa 0.3: processing is queued, so a modelo may be chosen before the
+  # preview exists; the job retries the tamanho auto-assign at the end.
+  describe "#assign_tamanho_after_processing" do
+    let(:arte) { create(:arquivo, category: "artes", modelo: create(:modelo)) }
+    let(:arte_version) { create(:arquivo_version, arquivo: arte).tap { |v| arte.update!(approved_version: v) } }
+
+    it "assigns the tamanho for an arte with modelo and no tamanho" do
+      expect(TamanhoAutoAssignService).to receive(:call).with(arte)
+      job.send(:assign_tamanho_after_processing, arte_version)
+    end
+
+    it "skips an arte whose peça was set explicitly (Escolher/Enviar arte)" do
+      arte.update!(peca: create(:peca))
+      expect(TamanhoAutoAssignService).not_to receive(:call)
+      job.send(:assign_tamanho_after_processing, arte_version)
+    end
+
+    it "skips artes without modelo, with a tamanho, and non-approved versions" do
+      expect(TamanhoAutoAssignService).not_to receive(:call)
+      sem_modelo = create(:arquivo, category: "artes")
+      job.send(:assign_tamanho_after_processing, create(:arquivo_version, arquivo: sem_modelo).tap { |v| sem_modelo.update!(approved_version: v) })
+      arte_version
+      job.send(:assign_tamanho_after_processing, create(:arquivo_version, arquivo: arte))
+    end
+
+    it "never fails the processing when the auto-assign raises" do
+      allow(TamanhoAutoAssignService).to receive(:call).and_raise("boom")
+      expect { job.send(:assign_tamanho_after_processing, arte_version) }.not_to raise_error
+    end
+  end
 end
