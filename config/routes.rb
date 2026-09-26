@@ -21,6 +21,7 @@ Rails.application.routes.draw do
       delete :remove_modelo
       get :preview
       get :composicao
+      get :processamento
       get :download
       post :upload_version
       patch :approve_version

@@ -1,3 +1,8 @@
+<%# An arte of this pedido finishing its queued processing (e.g. after
+    "Enviar arquivo") morph-refreshes the page (Arquivo#broadcast_status_change). %>
+<% turbo_refreshes_with method: :morph, scroll: :preserve %>
+<%= turbo_stream_from @pedido %>
+
 <h2>
   Pedido
   <span style="font-size:0.8rem; color:var(--text-muted);">#<%= @pedido.uuid.first(8) %></span>

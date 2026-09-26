@@ -575,6 +575,52 @@ next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
 server, creating and deleting records mid-run and producing dozens of unrelated
 failures: `ps -eo pid,args | grep -E "node e2e|chrom|puma" | grep -v grep`.
 
+## Background processing (Solid Queue + Solid Cable)
+
+Since Etapa 0.3, `ArquivoProcessingJob` is enqueued (`perform_later`) by
+`ArquivoUploadService` and `upload_version`; the request only stores the file
+and the version starts `pending` → `processing` → `processed`/`failed`.
+
+| Where | Jobs | Cable (live updates) |
+|---|---|---|
+| Production | Solid Queue inside Puma (`SOLID_QUEUE_IN_PUMA`) | Solid Cable |
+| Development | Solid Queue inside Puma (`config/puma.rb` enables it in development) — `bin/rails server` alone processes uploads | Solid Cable |
+| E2E server (`bin/e2e`) | Solid Queue inside Puma (`E2E_SOLID_QUEUE=1`) | Solid Cable (`CABLE_ADAPTER=solid_cable`) |
+| RSpec | inline (specs assert on the processed result) | test adapter |
+
+Development and test have their own `*_queue.sqlite3` and `*_cable.sqlite3`
+(`config/database.yml`); `bin/e2e` recreates the test ones every run.
+
+How the UI learns the result (`Arquivo#broadcast_status_change`, called when a
+version's status changes):
+
+- the gallery card is replaced on every change ("Na fila", "Processando");
+  cards carry `data-status` and `data-filename`;
+- the arquivo page and the pedidos using the arte morph-refresh **only when
+  processing ends** — never mid-edit.
+
+Gotchas found while building it:
+
+- The worker is a **separate process**: the in-process `async` cable adapter
+  never reached the browser. Anything that broadcasts from a job needs Solid
+  Cable (or another cross-process adapter).
+- Broadcast **synchronously** from inside the job (`broadcast_replace_to`,
+  `broadcast_refresh`), not `*_later`: queued broadcasts ran out of order and a
+  late refresh reset an editor the user had just opened.
+- **Reload** before broadcasting: the job's `arquivo` cached its
+  `approved_version` as another object, so it still read "processing" and the
+  final update never went out (regression spec in
+  `spec/models/arquivo_broadcast_status_spec.rb`).
+- A broadcast sent while the page is still (re)connecting to the cable is
+  **lost** (seen after an upload reload, mostly in `--headed`). Safety net: while
+  queued, the card, the arquivo banner and a pedido piece carry the
+  `processamento` Stimulus controller, which polls `GET /arquivos/:uuid/processamento`
+  every 2s until the state is final (card: swaps itself via turbo-stream; pages:
+  reload). The E2E "Without the live connection…" blocks WebSocket to prove it.
+- E2E: `uploadFileAndWait` / `submitUploadAndWait` (`e2e/support/upload.js`)
+  wait for the newest card of each uploaded file to leave "pending"/"processing"
+  (`waitForProcessed`), so specs can keep assuming a processed file.
+
 ## db/seeds.rb is empty on purpose
 
 There is no seed data. `GrupoMaterial`, `CorMaterial` and `Client` are all
@@ -633,8 +679,10 @@ The plan renames things; until those stages land, the code keeps its names:
 
 Current code that still differs from the plan — don't copy these patterns into new work:
 
-- **Processing inline** — uploads run `ArquivoProcessingJob.perform_now` in the request
-  (`ArquivoUploadService`). Target: Solid Queue with visible status (Etapa 0.3).
+- **Heavy work still in the request** — uploads are queued since Etapa 0.3, but
+  `MoldMatchService` (in `update_modelo`), the tamanho previews of
+  `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
+  (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
 - **Physical deletes** — every `DELETE` route destroys rows (and, for arquivos, files):
   arquivos (`destroy`, `batch_destroy`), clients, modelos, moldes, peças, pedidos and
   `remover_item`. Target: logical deletion with restore (Etapa 0.4).

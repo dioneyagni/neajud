@@ -7,6 +7,12 @@ module ArquivosHelper
     format("%d:%02d", hours, mins)
   end
 
+  # Label for queued processing states (Etapa 0.3).
+  # Usage: processamento_label("pending") # => "Na fila"
+  def processamento_label(status)
+    { "pending" => "Na fila", "processing" => "Processando" }.fetch(status, status.to_s.humanize)
+  end
+
   def preview_arquivo_url(arquivo)
     preview_arquivo_path(arquivo) if arquivo.preview_file.present?
   end

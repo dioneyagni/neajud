@@ -10,7 +10,11 @@
      data-item-pecas-producao-url-value="<%= producao_pedido_path(pedido) %>">
   <% pecas.each do |peca_row| %>
     <div class="pedido-peca pedido-peca--<%= peca_row.estado %>" data-peca-id="<%= peca_row.id %>">
-      <% if peca_row.arquivo&.preview_file.present? %>
+      <% if peca_row.arquivo && (peca_row.arquivo.pending? || peca_row.arquivo.processing?) %>
+        <%# Queued processing (Etapa 0.3): reload the page once the arte is ready. %>
+        <div class="pedido-peca-thumb pedido-peca-thumb--empty"
+             data-controller="processamento" data-processamento-url-value="<%= processamento_arquivo_path(peca_row.arquivo, format: :json) %>">processando…</div>
+      <% elsif peca_row.arquivo&.preview_file.present? %>
         <img class="pedido-peca-thumb" src="<%= preview_arquivo_path(peca_row.arquivo) %>" alt="<%= peca_row.arquivo.filename %>">
       <% else %>
         <div class="pedido-peca-thumb pedido-peca-thumb--empty"><%= peca_row.arquivo ? "sem preview" : "sem arte" %></div>
