@@ -2686,3 +2686,30 @@ section {
   padding: 10px;
   box-sizing: border-box;
 }
+
+/* Etapa 0.5: sign-in, first-access setup and the signed-in user in the header. */
+.auth-card {
+  max-width: 420px;
+  margin: 3rem auto;
+}
+
+.auth-intro {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.auth-errors {
+  color: #c5221f;
+  padding-left: 1.2rem;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.header-user-sair {
+  margin: 0;
+}

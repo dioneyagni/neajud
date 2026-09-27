@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::Base
+  include Authentication
   allow_browser versions: :modern
   stale_when_importmap_changes
 
@@ -13,6 +14,13 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  # Who did it, for every log and for deleted_by/restored_by: the logged-in
+  # user plus the request IP (all that rows before Etapa 0.5 have).
+  # Usage: record.excluir!(**autoria)
+  def autoria
+    { changed_by: request.remote_ip, user: Current.user }
+  end
 
   def load_current_pedido_count
     pedido = Pedido.ativos.find_by(uuid: session[:current_pedido_uuid])

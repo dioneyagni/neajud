@@ -9,13 +9,13 @@ class LixeiraController < ApplicationController
   }.freeze
 
   def index
-    @excluidos_por_tipo = TIPOS.transform_values { |model| model.excluidos.includes(:exclusao_logs).order(deleted_at: :desc) }
+    @excluidos_por_tipo = TIPOS.transform_values { |model| model.excluidos.includes(exclusao_logs: :user).order(deleted_at: :desc) }
   end
 
   # Usage: POST /lixeira/clients/12/restaurar
   def restaurar
     registro = registro_excluido
-    registro.restaurar!(changed_by: request.remote_ip)
+    registro.restaurar!(**autoria)
     redirect_to lixeira_path, notice: "#{registro.model_name.human} \"#{registro.rotulo_lixeira}\" restored."
   end
 

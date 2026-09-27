@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_27_111715) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -44,8 +44,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.integer "new_seconds", null: false
     t.integer "previous_seconds", null: false
     t.datetime "updated_at", null: false
+    t.integer "user_id"
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_arquivo_time_logs_on_arquivo_id"
+    t.index ["user_id"], name: "index_arquivo_time_logs_on_user_id"
     t.index ["uuid"], name: "index_arquivo_time_logs_on_uuid", unique: true
   end
 
@@ -80,11 +82,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.integer "to_modelo_id"
     t.string "to_modelo_nome", null: false
     t.datetime "updated_at", null: false
+    t.integer "user_id"
     t.index ["arquivo_id"], name: "index_arquivo_vinculo_logs_on_arquivo_id"
     t.index ["from_modelo_id"], name: "index_arquivo_vinculo_logs_on_from_modelo_id"
     t.index ["peca_id"], name: "index_arquivo_vinculo_logs_on_peca_id"
     t.index ["pedido_id"], name: "index_arquivo_vinculo_logs_on_pedido_id"
     t.index ["to_modelo_id"], name: "index_arquivo_vinculo_logs_on_to_modelo_id"
+    t.index ["user_id"], name: "index_arquivo_vinculo_logs_on_user_id"
   end
 
   create_table "arquivos", force: :cascade do |t|
@@ -170,6 +174,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
   end
 
+  create_table "empresas", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "nome", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
+  end
+
   create_table "exclusao_logs", force: :cascade do |t|
     t.string "acao", null: false
     t.string "changed_by"
@@ -178,7 +190,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.string "registro_rotulo", null: false
     t.string "registro_type", null: false
     t.datetime "updated_at", null: false
+    t.integer "user_id"
     t.index ["registro_type", "registro_id"], name: "index_exclusao_logs_on_registro"
+    t.index ["user_id"], name: "index_exclusao_logs_on_user_id"
   end
 
   create_table "grupo_materiais", force: :cascade do |t|
@@ -326,6 +340,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end
 
+  create_table "sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
   create_table "tamanhos", force: :cascade do |t|
     t.decimal "area_mm2", precision: 10, scale: 2
     t.integer "arquivo_id", null: false
@@ -342,16 +365,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
     t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
   end
 
+  create_table "users", force: :cascade do |t|
+    t.string "cloud_user_uuid"
+    t.datetime "created_at", null: false
+    t.string "email_address", null: false
+    t.string "nome", null: false
+    t.string "password_digest", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["cloud_user_uuid"], name: "index_users_on_cloud_user_uuid", unique: true
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["uuid"], name: "index_users_on_uuid", unique: true
+  end
+
+  create_table "vinculos", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "empresa_id", null: false
+    t.json "perfis", default: [], null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.string "uuid", null: false
+    t.index ["empresa_id"], name: "index_vinculos_on_empresa_id"
+    t.index ["user_id", "empresa_id"], name: "index_vinculos_on_user_id_and_empresa_id", unique: true
+    t.index ["user_id"], name: "index_vinculos_on_user_id"
+    t.index ["uuid"], name: "index_vinculos_on_uuid", unique: true
+  end
+
   add_foreign_key "arquivo_image_metadata", "arquivo_versions"
   add_foreign_key "arquivo_modelos", "arquivos"
   add_foreign_key "arquivo_modelos", "modelos"
   add_foreign_key "arquivo_time_logs", "arquivos"
+  add_foreign_key "arquivo_time_logs", "users"
   add_foreign_key "arquivo_versions", "arquivos"
   add_foreign_key "arquivo_vinculo_logs", "arquivos"
   add_foreign_key "arquivo_vinculo_logs", "modelos", column: "from_modelo_id"
   add_foreign_key "arquivo_vinculo_logs", "modelos", column: "to_modelo_id"
   add_foreign_key "arquivo_vinculo_logs", "pecas"
   add_foreign_key "arquivo_vinculo_logs", "pedidos"
+  add_foreign_key "arquivo_vinculo_logs", "users"
   add_foreign_key "arquivos", "arquivo_versions", column: "approved_version_id"
   add_foreign_key "arquivos", "clients"
   add_foreign_key "arquivos", "modelos"
@@ -359,6 +410,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "exclusao_logs", "users"
   add_foreign_key "item_pedido_pecas", "arquivos"
   add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "item_pedido_pecas", "pecas"
@@ -377,5 +429,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_170000) do
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
+  add_foreign_key "sessions", "users"
   add_foreign_key "tamanhos", "arquivos"
+  add_foreign_key "vinculos", "empresas"
+  add_foreign_key "vinculos", "users"
 end

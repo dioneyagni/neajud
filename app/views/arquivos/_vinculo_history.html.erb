@@ -21,7 +21,7 @@
             <td><%= log.to_modelo_nome %></td>
             <td><%= log.peca&.nome || "—" %></td>
             <td><%= log.pedido ? link_to(log.pedido.uuid.first(8), pedido_path(log.pedido)) : "—" %></td>
-            <td><%= log.changed_by %></td>
+            <td><%= autor_do_log(log) %></td>
             <td><%= l log.created_at, format: :short %></td>
           </tr>
         <% end %>

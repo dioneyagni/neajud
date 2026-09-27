@@ -5,9 +5,9 @@
 # is refused by ReferenciaAtiva.
 #
 # Usage:
-#   client.excluir!(changed_by: request.remote_ip)
+#   client.excluir!(changed_by: request.remote_ip, user: Current.user)
 #   Client.ativos.order(:name)
-#   client.restaurar!(changed_by: request.remote_ip)
+#   client.restaurar!(changed_by: request.remote_ip, user: Current.user)
 module Excluivel
   extend ActiveSupport::Concern
 
@@ -35,12 +35,17 @@ module Excluivel
 
   # update_columns: a legacy row that no longer passes today's validations
   # must still be deletable.
-  def excluir!(changed_by:)
-    registrar_exclusao!("excluido", changed_by) { update_columns(deleted_at: Time.current, restored_at: nil) }
+  # user is nil only outside a request (console, specs); changed_by is the IP.
+  def excluir!(changed_by:, user: nil)
+    registrar_exclusao!("excluido", changed_by, user) do
+      update_columns(deleted_at: Time.current, deleted_by_id: user&.id, restored_at: nil, restored_by_id: nil)
+    end
   end
 
-  def restaurar!(changed_by:)
-    registrar_exclusao!("restaurado", changed_by) { update_columns(deleted_at: nil, restored_at: Time.current) }
+  def restaurar!(changed_by:, user: nil)
+    registrar_exclusao!("restaurado", changed_by, user) do
+      update_columns(deleted_at: nil, restored_at: Time.current, restored_by_id: user&.id)
+    end
   end
 
   # How the record is named in the trash and in error messages. Models whose
@@ -56,10 +61,10 @@ module Excluivel
 
   private
 
-  def registrar_exclusao!(acao, changed_by)
+  def registrar_exclusao!(acao, changed_by, user)
     transaction do
       yield
-      exclusao_logs.create!(acao: acao, registro_rotulo: rotulo_lixeira.to_s, changed_by: changed_by)
+      exclusao_logs.create!(acao: acao, registro_rotulo: rotulo_lixeira.to_s, changed_by: changed_by, user: user)
     end
   end
 end

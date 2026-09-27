@@ -5,6 +5,7 @@ class ExclusaoLog < ApplicationRecord
   ACOES = %w[excluido restaurado].freeze
 
   belongs_to :registro, polymorphic: true
+  belongs_to :user, optional: true
 
   validates :acao, inclusion: { in: ACOES }
   validates :registro_rotulo, presence: true

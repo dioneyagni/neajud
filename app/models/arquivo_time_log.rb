@@ -1,5 +1,6 @@
 class ArquivoTimeLog < ApplicationRecord
   belongs_to :arquivo
+  belongs_to :user, optional: true
 
   before_validation :set_uuid, on: :create
 

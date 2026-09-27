@@ -14,7 +14,7 @@ class PedidoPecasController < ApplicationController
   # Usage: POST /pedidos/:pedido_uuid/pecas/:id/vincular_arte (arquivo_uuid, confirmar_mudanca=1 to move)
   def vincular_arte
     arte = Arquivo.ativos.find_by!(uuid: params[:arquivo_uuid])
-    VincularArteService.call(@peca_row, arte, changed_by: request.remote_ip,
+    VincularArteService.call(@peca_row, arte, **autoria,
                                               confirmar_mudanca: params[:confirmar_mudanca] == "1")
     redirect_to resumo_pedido_path(@pedido), notice: "Arte #{arte.filename} vinculada à peça #{@peca_row.peca.nome}."
   rescue VincularArteService::Recusado => e
@@ -32,7 +32,7 @@ class PedidoPecasController < ApplicationController
                                                              arquivo: Arquivo.new(client_id: @peca_row.item_pedido.arquivo.modelo.client_id))
     return redirect_to resumo_pedido_path(@pedido), alert: "Upload failed: #{arte.errors.full_messages.to_sentence}" unless arte.persisted?
 
-    VincularArteService.call(@peca_row, arte, changed_by: request.remote_ip)
+    VincularArteService.call(@peca_row, arte, **autoria)
     redirect_to resumo_pedido_path(@pedido), notice: "Arte #{arte.filename} enviada e vinculada à peça #{@peca_row.peca.nome}."
   rescue VincularArteService::Recusado => e
     redirect_to resumo_pedido_path(@pedido), alert: e.message

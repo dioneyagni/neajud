@@ -64,7 +64,7 @@ class MoldesController < ApplicationController
   end
 
   def destroy
-    @molde.excluir!(changed_by: request.remote_ip)
+    @molde.excluir!(**autoria)
     redirect_to moldes_path, notice: "Molde moved to the trash."
   end
 

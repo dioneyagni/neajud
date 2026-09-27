@@ -26,6 +26,7 @@
   <body>
     <header>
       <h1><%= link_to "Neajud", root_path %></h1>
+      <% if Current.user %>
       <nav class="header-nav">
         <%= link_to "Clients", clients_path, class: "header-nav-link" %>
         <%= link_to "Moldes", moldes_path, class: "header-nav-link" %>
@@ -43,6 +44,11 @@
         <% end %>
         <%= link_to "Lixeira", lixeira_path, class: "header-nav-link" %>
       </nav>
+      <div class="header-user">
+        <span class="header-user-nome" title="<%= Current.user.email_address %>"><%= Current.user.nome %></span>
+        <%= button_to "Sign out", session_path, method: :delete, class: "btn btn-secondary btn-sm", form: { class: "header-user-sair" } %>
+      </div>
+      <% end %>
     </header>
 
     <main>

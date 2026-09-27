@@ -41,6 +41,10 @@ clean_e2e_artifacts() {
 # a spec missing here runs nowhere (moldes.spec.js was silently skipped).
 # Explicit list (not a glob) keeps the historical run order.
 E2E_SPECS=(
+  # autenticacao must run first: it needs the empty database of a new
+  # instance to test the first-access setup, which creates the user every
+  # later spec signs in as (e2e/support/sessao.js).
+  autenticacao
   # Former arquivos.spec.js, split by area — keep this order: later files reuse
   # data created by earlier ones (arquivos-client-field opens the 29-30 card
   # that arquivos-previews / arquivos-dxf-organization uploaded).

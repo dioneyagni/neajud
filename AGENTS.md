@@ -531,6 +531,37 @@ close() {
 }
 ```
 
+## Authentication (Etapa 0.5)
+
+Every page requires a signed-in user (Rails 8 authentication generator:
+`Authentication` concern, `Session`, `Current.user`, `bcrypt`). Only
+`SessionsController#new/create` and the first-access setup are public.
+
+- **Model:** `User` (the plan's "pessoa"; name chosen in session) +
+  `Empresa` (**one per instance** — docs/plano.md Etapa 2.1; `Empresa.atual`)
+  + `Vinculo` (user × empresa × `perfis`, a JSON array of
+  `Vinculo::PERFIS`). New tables get a `uuid` via the `GeraUuid` concern;
+  `users.cloud_user_uuid` links to the future Neajud Cloud account (Etapa 7.1).
+- **First access:** while there is no user, every page redirects to
+  `/configuracao` (`ConfiguracaoInicialService`: empresa + first user as
+  `dono`). Once a user exists the screen redirects to sign in — it must never
+  reopen (it would let anyone create a second owner).
+- **No password reset by email.** An owner/admin sets a new one (Etapa 0.5
+  2/3); email recovery comes with the cloud account (Etapa 7.1).
+- **Who did it:** controllers pass `**autoria` (`{ changed_by: request.remote_ip,
+  user: Current.user }`, `ApplicationController`) to every log and to
+  `excluir!`/`restaurar!` (fills `deleted_by_id`/`restored_by_id`). Views show
+  `autor_do_log(log)`: the user's name, else the IP of pre-0.5 rows.
+- **Action Cable** rejects connections without a session cookie
+  (`ApplicationCable::Connection`).
+- **Tests:** request specs sign in as a dono automatically
+  (`spec/support/autenticacao.rb`, `@usuario_logado`); tag a group
+  `sem_login: true` to test signed-out behavior. E2E specs start signed in
+  (`e2e/support/sessao.js`, called by `runSpec`); `autenticacao.spec.js` runs
+  **first** in `E2E_SPECS` because it needs the empty database to exercise the
+  setup screen, and opts out with `runSpec(…, { entrar: false })`.
+- Perfis are stored but **not enforced yet** — see Known gaps.
+
 ## Logical deletion (Etapa 0.4)
 
 Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Modelo`,
@@ -721,14 +752,13 @@ Current code that still differs from the plan — don't copy these patterns into
   `MoldMatchService` (in `update_modelo`), the tamanho previews of
   `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
   (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
-- **Restore is open to anyone** — until Etapa 0.5 there are no users, so `/lixeira`
-  has no owner check and `deleted_by_id`/`restored_by_id` stay empty (the IP is in
-  `exclusao_logs.changed_by`). Target: owner-only restore (Etapa 0.5).
+- **Perfis not enforced** — every signed-in user can do everything, including
+  restoring from `/lixeira` (the plan: dono only) and managing nothing yet (no
+  users page). Target: permissions per perfil + users page (Etapa 0.5, 2/3).
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
   use integer ids. Target: UUID on every entity (Etapa 1.1).
-- **No authentication** — "who did it" is the request IP (`changed_by`). Target: people,
-  vínculos and profiles (Etapa 0.5).
+- **No art approval record** yet. Target: Etapa 0.5 (3/3).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
   `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).

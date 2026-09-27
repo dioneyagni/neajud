@@ -3,15 +3,15 @@
 # Files in storage stay (Etapa 0.4: nothing is physically deleted; restore
 # from /lixeira).
 #
-# Usage: trashed_uuids, errors = ArquivoBatchDestroyService.call(params[:ids], changed_by: request.remote_ip)
+# Usage: trashed_uuids, errors = ArquivoBatchDestroyService.call(params[:ids], **autoria)
 class ArquivoBatchDestroyService
-  def self.call(uuids, changed_by:)
-    new(uuids, changed_by).call
+  def self.call(uuids, changed_by:, user: nil)
+    new(uuids, { changed_by: changed_by, user: user }).call
   end
 
-  def initialize(uuids, changed_by)
+  def initialize(uuids, autoria)
     @uuids = uuids
-    @changed_by = changed_by
+    @autoria = autoria
     @trashed_uuids = []
     @errors = []
   end
@@ -30,7 +30,7 @@ class ArquivoBatchDestroyService
     arquivo = Arquivo.ativos.find_by(uuid: uuid)
     return @errors << uuid unless arquivo
 
-    arquivo.excluir!(changed_by: @changed_by)
+    arquivo.excluir!(**@autoria)
     @trashed_uuids << uuid
   end
 end
