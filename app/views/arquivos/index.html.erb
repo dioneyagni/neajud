@@ -1,5 +1,6 @@
 <h2>Tracker</h2>
 
+<% if pode?(:artes, :editar) || pode?(:catalogo, :editar) %>
 <section>
   <h3>Upload New File</h3>
   <div class="upload-form-wrapper">
@@ -29,6 +30,7 @@
   <% end %>
   </div>
 </section>
+<% end %>
 
 <div data-controller="add-to-order">
 <section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">

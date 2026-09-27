@@ -2,6 +2,9 @@
 # already in the system (ArteCandidatasService) or by uploading a new one;
 # both link through VincularArteService.
 class PedidoPecasController < ApplicationController
+  exige :pedidos, :editar
+  # Uploading creates an arte, so it also needs Artes.
+  exige :artes, :editar, only: :enviar_arte
   before_action :set_peca_row
   before_action :require_pending_in_draft
 

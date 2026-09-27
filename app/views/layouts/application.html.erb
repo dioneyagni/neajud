@@ -23,17 +23,29 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <%# Gallery cards are also re-rendered by broadcast (no user in that
+      context), so they can't check permissions themselves: these flags hide
+      their controls by CSS. The server refuses the actions anyway. %>
+  <body data-pode-adicionar-ao-pedido="<%= Current.user ? pode?(:pedidos, :editar) : false %>"
+        data-pode-excluir-arquivos="<%= Current.user ? (pode?(:artes, :excluir) || pode?(:catalogo, :excluir)) : false %>">
     <header>
       <h1><%= link_to "Neajud", root_path %></h1>
       <% if Current.user %>
       <nav class="header-nav">
-        <%= link_to "Clients", clients_path, class: "header-nav-link" %>
-        <%= link_to "Moldes", moldes_path, class: "header-nav-link" %>
-        <%= link_to "Pecas", pecas_path, class: "header-nav-link" %>
-        <%= link_to "Modelos", modelos_path, class: "header-nav-link" %>
-        <%= link_to "Materials", materiais_path, class: "header-nav-link" %>
-        <%= link_to "Movements", movimentos_path, class: "header-nav-link" %>
+        <%# Only the áreas the user's função can see (Etapa 0.5, ControleDeAcesso). %>
+        <% if pode?(:clientes, :ver) %>
+          <%= link_to "Clients", clients_path, class: "header-nav-link" %>
+        <% end %>
+        <% if pode?(:catalogo, :ver) %>
+          <%= link_to "Moldes", moldes_path, class: "header-nav-link" %>
+          <%= link_to "Pecas", pecas_path, class: "header-nav-link" %>
+          <%= link_to "Modelos", modelos_path, class: "header-nav-link" %>
+        <% end %>
+        <% if pode?(:estoque, :ver) %>
+          <%= link_to "Materials", materiais_path, class: "header-nav-link" %>
+          <%= link_to "Movements", movimentos_path, class: "header-nav-link" %>
+        <% end %>
+        <% if pode?(:pedidos, :ver) %>
         <%= link_to pedidos_path, class: "header-nav-link", data: { controller: "pedido-counter" } do %>
           Pedidos
           <% if @current_pedido_count > 0 %>
@@ -42,7 +54,13 @@
             <span class="header-pedido-counter header-pedido-counter--hidden" data-pedido-counter-target="count"></span>
           <% end %>
         <% end %>
-        <%= link_to "Lixeira", lixeira_path, class: "header-nav-link" %>
+        <% end %>
+        <% if pode?(:lixeira, :ver) %>
+          <%= link_to "Lixeira", lixeira_path, class: "header-nav-link" %>
+        <% end %>
+        <% if dono? %>
+          <%= link_to "Funções", funcoes_path, class: "header-nav-link" %>
+        <% end %>
       </nav>
       <div class="header-user">
         <span class="header-user-nome" title="<%= Current.user.email_address %>"><%= Current.user.nome %></span>

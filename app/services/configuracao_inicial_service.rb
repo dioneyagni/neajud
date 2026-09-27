@@ -1,5 +1,6 @@
-# First access to an instance (Etapa 0.5): creates the empresa, the first
-# user and their vínculo as dono, all or nothing. Refused once any user
+# First access to an instance (Etapa 0.5): creates the empresa, the default
+# funções (Funcao::PADRAO) and the first user with the Dono função, all or
+# nothing. Refused once any user
 # exists, so the setup screen can't be used to take over an instance.
 #
 # Usage: user = ConfiguracaoInicialService.call(empresa_nome: "Sublimação X", nome: "Ana",
@@ -24,7 +25,8 @@ class ConfiguracaoInicialService
     ActiveRecord::Base.transaction do
       @empresa.save!
       @user.save!
-      Vinculo.create!(user: @user, empresa: @empresa, perfis: %w[dono])
+      Funcao.criar_padrao!
+      Vinculo.create!(user: @user, empresa: @empresa, funcao: Funcao.dono)
     end
     @user
   end

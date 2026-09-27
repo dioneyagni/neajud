@@ -34,7 +34,7 @@
             <td><%= t.area_mm2 ? "#{t.area_mm2.round(1)} mm²" : "—" %></td>
             <td><%= t.perimeter_mm ? "#{t.perimeter_mm.round(1)} mm" : "—" %></td>
             <td>
-              <% if t.id != arquivo.tamanho_id %>
+              <% if t.id != arquivo.tamanho_id && pode_editar_arquivo?(arquivo) %>
                 <%= button_to "Select", update_tamanho_arquivo_path(arquivo),
                       params: { tamanho_id: t.id }, method: :patch,
                       class: "btn btn-sm btn-primary" %>

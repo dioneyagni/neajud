@@ -2,7 +2,7 @@ module ExcluivelHelper
   # Icon per trashed type that has no preview of its own.
   ICONES_LIXEIRA = {
     "Client" => "icons/lixeira/client", "Modelo" => "icons/lixeira/modelo", "Molde" => "icons/lixeira/molde",
-    "Peca" => "icons/lixeira/peca", "Pedido" => "icons/lixeira/pedido"
+    "Peca" => "icons/lixeira/peca", "Pedido" => "icons/lixeira/pedido", "Funcao" => "icons/lixeira/funcao"
   }.freeze
 
   # The "excluído em" badge next to a record in the trash that is still shown

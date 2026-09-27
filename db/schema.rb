@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_27_111715) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_27_140000) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -193,6 +193,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_111715) do
     t.integer "user_id"
     t.index ["registro_type", "registro_id"], name: "index_exclusao_logs_on_registro"
     t.index ["user_id"], name: "index_exclusao_logs_on_user_id"
+  end
+
+  create_table "funcoes", force: :cascade do |t|
+    t.json "acoes", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.boolean "dono", default: false, null: false
+    t.json "niveis", default: {}, null: false
+    t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["deleted_at"], name: "index_funcoes_on_deleted_at"
+    t.index ["nome"], name: "index_funcoes_on_nome", unique: true
+    t.index ["uuid"], name: "index_funcoes_on_uuid", unique: true
   end
 
   create_table "grupo_materiais", force: :cascade do |t|
@@ -379,13 +396,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_111715) do
   end
 
   create_table "vinculos", force: :cascade do |t|
+    t.json "acessos_extras", default: {}, null: false
     t.datetime "created_at", null: false
     t.integer "empresa_id", null: false
-    t.json "perfis", default: [], null: false
+    t.integer "funcao_id"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.string "uuid", null: false
     t.index ["empresa_id"], name: "index_vinculos_on_empresa_id"
+    t.index ["funcao_id"], name: "index_vinculos_on_funcao_id"
     t.index ["user_id", "empresa_id"], name: "index_vinculos_on_user_id_and_empresa_id", unique: true
     t.index ["user_id"], name: "index_vinculos_on_user_id"
     t.index ["uuid"], name: "index_vinculos_on_uuid", unique: true
@@ -432,5 +451,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_111715) do
   add_foreign_key "sessions", "users"
   add_foreign_key "tamanhos", "arquivos"
   add_foreign_key "vinculos", "empresas"
+  add_foreign_key "vinculos", "funcoes"
   add_foreign_key "vinculos", "users"
 end

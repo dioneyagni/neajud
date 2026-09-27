@@ -8,6 +8,13 @@ module AutenticacaoHelpers
     post session_path, params: { email_address: user.email_address, password: password }
     user
   end
+
+  # Signs in as a user whose função has exactly these levels/actions.
+  # Usage: entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[baixar_producao])
+  def entrar_com_funcao(niveis: {}, acoes: [])
+    funcao = create(:funcao, niveis: niveis, acoes: acoes)
+    entrar_como(create(:vinculo, funcao: funcao).user)
+  end
 end
 
 # bcrypt at its cheapest: signing in happens in almost every request spec.

@@ -1,23 +1,27 @@
-# A user's access to the empresa: one or more fixed perfis whose permissions
-# add up (docs/plano.md, "Usuários e permissões"). The table of what each
-# perfil may do is enforced in Etapa 0.5 (2/3).
+# A user's access to the empresa: one função (shared by many workers) plus
+# optional acessos_extras ({ "niveis" => { área => level }, "acoes" => [...] })
+# that can only raise it (Etapa 0.5, 2/4; extras are edited from 3/4).
 class Vinculo < ApplicationRecord
   include GeraUuid
-
-  PERFIS = %w[dono admin atendimento designer producao cliente_final].freeze
+  include ReferenciaAtiva
 
   belongs_to :user
   belongs_to :empresa
+  belongs_to :funcao
+  recusa_excluido :funcao
 
   validates :user_id, uniqueness: { scope: :empresa_id }
-  validate :perfis_conhecidos
+  validate :acessos_extras_validos
+
+  # Usage: vinculo.autorizacao.pode?(:pedidos, :ver)
+  def autorizacao
+    Autorizacao.new(funcao, acessos_extras)
+  end
 
   private
 
-  def perfis_conhecidos
-    return errors.add(:perfis, "must have at least one perfil; expected some of #{PERFIS.join(", ")}") if perfis.blank?
-
-    desconhecidos = perfis - PERFIS
-    errors.add(:perfis, "has unknown #{desconhecidos.inspect}; expected some of #{PERFIS.join(", ")}") if desconhecidos.any?
+  def acessos_extras_validos
+    extras = acessos_extras.to_h.stringify_keys
+    Autorizacao.erros_da_grade(extras.fetch("niveis", {}), extras.fetch("acoes", [])).each { |erro| errors.add(:acessos_extras, erro) }
   end
 end

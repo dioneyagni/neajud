@@ -1,4 +1,7 @@
 class MoldesController < ApplicationController
+  exige :catalogo, :ver, only: %i[index show search pecas]
+  exige :catalogo, :editar, only: %i[new create edit update]
+  exige :catalogo, :excluir, only: :destroy
   before_action :set_molde, only: %i[show edit update destroy pecas]
 
   def index

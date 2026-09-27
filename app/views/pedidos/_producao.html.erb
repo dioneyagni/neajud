@@ -31,7 +31,7 @@
                   <% qtd = linha.quantidades[t] %>
                   <% if !qtd.positive? %>
                     —
-                  <% elsif linha.corte.nil? %>
+                  <% elsif linha.corte.nil? || !pode_acao?(:baixar_producao) %>
                     <%= qtd %>
                   <% elsif linha.downloads[t].empty? %>
                     <span class="producao-sem-dxf" title="O corte <%= linha.corte.filename %> não tem este tamanho">

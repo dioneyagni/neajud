@@ -4,6 +4,7 @@
 
   <%= form_with url: update_tipo_corte_arquivo_path(arquivo), method: :patch,
         data: { tipo_corte_target: "form" } do |f| %>
+    <fieldset class="tipo-corte-fieldset" <%= "disabled" unless pode_editar_arquivo?(arquivo) %>>
     <label class="tipo-corte-radio">
       <%= f.radio_button :tipo_corte, "corte_estampa",
             checked: arquivo.tipo_corte == "corte_estampa",
@@ -17,6 +18,7 @@
             data: { action: "tipo-corte#change", tipo_corte_target: "radio" } %>
       <span>Apenas Corte — não permite vincular artes</span>
     </label>
+    </fieldset>
   <% end %>
 
   <% if arquivo.tipo_corte == "corte_estampa" %>

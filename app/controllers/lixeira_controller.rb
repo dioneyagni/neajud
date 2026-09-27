@@ -2,10 +2,13 @@
 # newest first, with Restore. Until Etapa 0.5 (login) anyone can restore;
 # then only the company owner.
 class LixeiraController < ApplicationController
+  exige :lixeira, :ver, only: :index
+  # Lixeira's level 2 is "restaurar" (Autorizacao::NIVEL_MAXIMO).
+  exige :lixeira, :editar, only: :restaurar
   # Route segment => model. Also the whitelist for #restaurar's :tipo.
   TIPOS = {
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
-    "modelos" => Modelo, "moldes" => Molde, "pecas" => Peca
+    "modelos" => Modelo, "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao
   }.freeze
 
   def index

@@ -1,4 +1,7 @@
 class ClientsController < ApplicationController
+  exige :clientes, :ver, only: %i[index show search]
+  exige :clientes, :editar, only: %i[create update]
+  exige :clientes, :excluir, only: :destroy
   before_action :set_client, only: %i[show update destroy]
 
   def index

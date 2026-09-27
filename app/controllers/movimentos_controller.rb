@@ -1,4 +1,6 @@
 class MovimentosController < ApplicationController
+  exige :estoque, :ver, only: :index
+  exige :estoque, :editar, only: %i[new create]
   include MovimentoCreatable
 
   def index

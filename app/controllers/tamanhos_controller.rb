@@ -1,6 +1,8 @@
 require "open3"
 
 class TamanhosController < ApplicationController
+  exige_acao :baixar_producao, only: :download
+  exige :catalogo, :ver, only: :for_cascade
   before_action :set_tamanho, only: %i[download]
 
   def download

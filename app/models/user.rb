@@ -1,5 +1,5 @@
 # The person's account (the plan's "pessoa"). Access to the empresa comes from
-# a Vinculo with perfis; permissions per perfil arrive in Etapa 0.5 (2/3).
+# its Vinculo: a função plus extra accesses (see Autorizacao).
 class User < ApplicationRecord
   include GeraUuid
 
@@ -14,10 +14,14 @@ class User < ApplicationRecord
   validates :email_address, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :cloud_user_uuid, uniqueness: true, allow_nil: true
 
-  # The perfis this user has in the instance's empresa (one empresa per
-  # instance, see Empresa).
-  # Usage: user.perfis # => ["dono"]
-  def perfis
-    vinculos.find_by(empresa: Empresa.atual)&.perfis || []
+  # The vínculo with the instance's empresa (one empresa per instance).
+  def vinculo
+    vinculos.find_by(empresa: Empresa.atual)
+  end
+
+  # What this user may do; without a vínculo, nothing.
+  # Usage: user.autorizacao.pode?(:pedidos, :editar)
+  def autorizacao
+    @autorizacao ||= vinculo&.autorizacao || Autorizacao.new(nil)
   end
 end

@@ -1,4 +1,7 @@
 class PedidosController < ApplicationController
+  exige :pedidos, :ver, only: %i[index show resumo producao]
+  exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar]
+  exige :pedidos, :excluir, only: :destroy
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca producao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 

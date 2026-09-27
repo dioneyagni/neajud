@@ -1,4 +1,6 @@
 class MateriaisController < ApplicationController
+  exige :estoque, :ver, only: %i[index grupos cores search]
+  exige :estoque, :editar, only: %i[new create create_grupo create_cor]
   include MovimentoCreatable
 
   def index
