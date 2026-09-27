@@ -9,10 +9,6 @@
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "ba8f0aa33b39df4d81fa2039504e46667e0fad78d9025c9d4e46dce8eb936f0b",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
       "fingerprint": "c1339fb993b064ae9af3d1ffdca196ffdb0f828eb4a8f837356d71c99ff581b9",
       "note": "Pre-existing: false positive (file access via model attributes)"
     },

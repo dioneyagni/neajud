@@ -140,7 +140,7 @@
                 <tr>
                   <td><%= format_time(log.previous_seconds) %></td>
                   <td><%= format_time(log.new_seconds) %></td>
-                  <td><%= log.changed_by %></td>
+                  <td><%= autor_do_log(log) %></td>
                   <td><%= l log.created_at, format: :short %></td>
                 </tr>
               <% end %>

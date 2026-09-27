@@ -1,0 +1,30 @@
+<div class="auth-card">
+  <h2>Set up Neajud</h2>
+  <p class="auth-intro">First access: name the company and create your account. You will be its owner (dono).</p>
+
+  <% if @user.errors.any? %>
+    <ul class="auth-errors">
+      <% @user.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+    </ul>
+  <% end %>
+
+  <%= form_with scope: :configuracao, url: configuracao_path, class: "client-form" do |form| %>
+    <div class="client-field">
+      <%= form.label :empresa_nome, "Company name" %>
+      <%= form.text_field :empresa_nome, required: true, autofocus: true, value: params.dig(:configuracao, :empresa_nome) %>
+    </div>
+    <div class="client-field">
+      <%= form.label :nome, "Your name" %>
+      <%= form.text_field :nome, required: true, value: @user.nome %>
+    </div>
+    <div class="client-field">
+      <%= form.label :email_address, "Email" %>
+      <%= form.email_field :email_address, required: true, autocomplete: "username", value: @user.email_address %>
+    </div>
+    <div class="client-field">
+      <%= form.label :password, "Password" %>
+      <%= form.password_field :password, required: true, autocomplete: "new-password", minlength: 8, maxlength: 72 %>
+    </div>
+    <%= form.submit "Create company and account", class: "btn btn-primary" %>
+  <% end %>
+</div>

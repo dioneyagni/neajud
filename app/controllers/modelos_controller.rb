@@ -84,7 +84,7 @@ class ModelosController < ApplicationController
   end
 
   def destroy
-    @modelo.excluir!(changed_by: request.remote_ip)
+    @modelo.excluir!(**autoria)
     redirect_back fallback_location: arquivos_path, notice: "Modelo moved to the trash."
   end
 

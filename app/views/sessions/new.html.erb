@@ -1,0 +1,16 @@
+<div class="auth-card">
+  <h2>Sign in<% if Empresa.atual %> — <%= Empresa.atual.nome %><% end %></h2>
+
+  <%= form_with url: session_path, class: "client-form" do |form| %>
+    <div class="client-field">
+      <%= form.label :email_address, "Email" %>
+      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", value: params[:email_address] %>
+    </div>
+    <div class="client-field">
+      <%= form.label :password, "Password" %>
+      <%= form.password_field :password, required: true, autocomplete: "current-password", maxlength: 72 %>
+    </div>
+    <%= form.submit "Sign in", class: "btn btn-primary" %>
+  <% end %>
+  <p class="auth-intro">Forgot your password? Ask the company owner or an admin to set a new one.</p>
+</div>

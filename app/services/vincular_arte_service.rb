@@ -6,19 +6,19 @@
 # "Mover para …?" prompt); otherwise NaoConfirmado is raised and nothing
 # changes.
 #
-# Usage: VincularArteService.call(peca_row, arte, changed_by: request.remote_ip, confirmar_mudanca: true)
+# Usage: VincularArteService.call(peca_row, arte, changed_by: request.remote_ip, user: Current.user, confirmar_mudanca: true)
 class VincularArteService
   class Recusado < StandardError; end
   class NaoConfirmado < Recusado; end
 
-  def self.call(peca_row, arte, changed_by:, confirmar_mudanca: false)
-    new(peca_row, arte, changed_by, confirmar_mudanca).call
+  def self.call(peca_row, arte, changed_by:, user: nil, confirmar_mudanca: false)
+    new(peca_row, arte, { changed_by: changed_by, user: user }, confirmar_mudanca).call
   end
 
-  def initialize(peca_row, arte, changed_by, confirmar_mudanca)
+  def initialize(peca_row, arte, autoria, confirmar_mudanca)
     @peca_row = peca_row
     @arte = arte
-    @changed_by = changed_by
+    @autoria = autoria
     @confirmar_mudanca = confirmar_mudanca
     @modelo = peca_row.item_pedido.arquivo.modelo
   end
@@ -59,7 +59,7 @@ class VincularArteService
       from_modelo: from_modelo == @modelo ? nil : from_modelo,
       from_modelo_nome: from_modelo == @modelo ? nil : from_modelo&.nome,
       to_modelo: @modelo, to_modelo_nome: @modelo.nome,
-      peca: @peca_row.peca, pedido: @peca_row.item_pedido.pedido, changed_by: @changed_by
+      peca: @peca_row.peca, pedido: @peca_row.item_pedido.pedido, **@autoria
     )
   end
 

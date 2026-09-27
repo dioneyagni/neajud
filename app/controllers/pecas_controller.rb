@@ -65,7 +65,7 @@ class PecasController < ApplicationController
   end
 
   def destroy
-    @peca.excluir!(changed_by: request.remote_ip)
+    @peca.excluir!(**autoria)
     redirect_to pecas_path, notice: "Peca moved to the trash."
   end
 

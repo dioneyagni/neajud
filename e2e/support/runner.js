@@ -3,6 +3,7 @@
 // bin/e2e output (and CI logs) are read by.
 
 const { chromium } = require("playwright");
+const { entrar } = require("./sessao");
 
 // Set by bin/e2e (E2E_PORT, default 3001) so the dev server on :3000 is never
 // involved. Running one spec by hand: start `bin/rails s -e test -p 3001
@@ -61,13 +62,16 @@ function printSummary(counts, consoleErrors) {
 
 // consoleErrors is the live array the summary prints; a spec may inspect or
 // clear it (movimentos asserts a page loads with none).
+// Every spec starts signed in (e2e/support/sessao.js); pass { entrar: false }
+// to start signed out (autenticacao.spec.js tests sign-in itself).
 // Usage: runSpec("Arquivos E2E: upload", async ({ page, test }) => { await test("…", async () => {…}); });
-function runSpec(title, body) {
+function runSpec(title, body, { entrar: comLogin = true } = {}) {
   (async () => {
     const { browser, page } = await openPage();
     const consoleErrors = watchConsole(page);
     const counts = { passed: 0, failed: 0 };
     console.log(`\n${title}\n`);
+    if (comLogin) await entrar(page, BASE_URL);
     await body({ page, test: makeTest(counts), consoleErrors });
     printSummary(counts, consoleErrors);
     await browser.close();

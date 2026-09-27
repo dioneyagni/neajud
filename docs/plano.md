@@ -209,6 +209,12 @@ Concluída em 26/09/2026. Decisões desta etapa:
 
 **Etapa 0.5 — Autenticação e perfis.** Se não existir, implementar login local (gerador de autenticação do Rails 8, com `bcrypt`) e perfis: os perfis fixos da seção Usuários e permissões, combináveis no mesmo vínculo. Modelar desde já pessoa e vínculo (pessoa × empresa × perfis) e o registro de aprovação de arte, prevendo a ligação com a conta na nuvem (`cloud_user_uuid` opcional).
 
+Dividida em três PRs (decidido em 27/09/2026):
+
+- **1/3 — Login e modelo de acesso** (concluída em 27/09/2026): login por e-mail e senha; `User` (a "pessoa" do plano; o nome em inglês foi escolhido para seguir o gerador do Rails), `Empresa` (uma por instância) e `Vinculo` com perfis; primeiro acesso por uma tela de configuração que cria a empresa e o primeiro dono e depois se fecha; os registros de autoria passam a guardar o usuário (além do IP). Sem recuperação de senha por e-mail: dono ou admin redefine (2/3); o e-mail vem com a conta na nuvem (Etapa 7.1).
+- **2/3 — Permissões:** a tabela de perfis aplicada no servidor e na tela; página de usuários (convidar, perfis, redefinir senha); restaurar excluídos só pelo dono; cliente final vendo só o que é dele.
+- **3/3 — Aprovação de arte:** o registro formal e o estado de cada arte no pedido.
+
 
 **Etapa 0.6 — Trabalho pesado restante fora do request.** A auditoria (Etapa 0.2) achou, além do upload, trabalho pesado que ainda roda no request: o `MoldMatchService` (ImageMagick) ao escolher o modelo de uma arte, as prévias dos tamanhos na organização do DXF e a extração do DXF de um tamanho no primeiro download. Levar para o Solid Queue com o mesmo padrão da Etapa 0.3 (estado visível e atualização da tela por broadcast).
 ## Fase 1 — Modelo de domínio

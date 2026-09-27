@@ -20,6 +20,16 @@ RSpec.describe Excluivel do
     end
   end
 
+  it "records who deleted and restored it (Etapa 0.5)" do
+    ana, bia = create(:user), create(:user)
+    client.excluir!(changed_by: "10.0.0.1", user: ana)
+    expect(client.reload.deleted_by_id).to eq(ana.id)
+    expect(client.exclusao_logs.last.user).to eq(ana)
+
+    client.restaurar!(changed_by: "10.0.0.2", user: bia)
+    expect(client.reload).to have_attributes(deleted_by_id: ana.id, restored_by_id: bia.id)
+  end
+
   describe "#restaurar!" do
     it "clears deleted_at, stamps restored_at and logs it" do
       client.excluir!(changed_by: "10.0.0.1")

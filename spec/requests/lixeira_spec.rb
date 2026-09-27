@@ -20,6 +20,14 @@ RSpec.describe "Lixeira", type: :request do
     end
   end
 
+  it "names the signed-in user who deleted each record" do
+    client = create(:client, name: "Fagner")
+    delete client_path(client)
+    expect(client.reload.deleted_by_id).to eq(@usuario_logado.id)
+    get lixeira_path
+    expect(response.body).to include(@usuario_logado.nome)
+  end
+
   describe "POST /lixeira/:tipo/:id/restaurar" do
     it "restores a client by id" do
       client = create(:client).tap { |c| c.excluir!(changed_by: "10.0.0.1") }

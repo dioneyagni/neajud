@@ -8,6 +8,7 @@ class ArquivoVinculoLog < ApplicationRecord
   belongs_to :to_modelo, class_name: "Modelo", optional: true
   belongs_to :peca, optional: true
   belongs_to :pedido, optional: true
+  belongs_to :user, optional: true
 
   validates :to_modelo_nome, presence: true
 

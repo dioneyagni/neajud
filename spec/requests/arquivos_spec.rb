@@ -240,6 +240,7 @@ RSpec.describe "Arquivos", type: :request do
         patch update_time_arquivo_path(arquivo), params: { annotated_seconds: 300 }
       }.to change(ArquivoTimeLog, :count).by(1)
       expect(arquivo.reload.annotated_seconds).to eq(300)
+      expect(ArquivoTimeLog.last.user).to eq(@usuario_logado)
     end
 
     it "responds with turbo stream when requested" do

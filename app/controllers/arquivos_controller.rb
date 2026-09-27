@@ -180,7 +180,7 @@ class ArquivosController < ApplicationController
       @arquivo.arquivo_time_logs.create!(
         previous_seconds: previous_seconds,
         new_seconds: @arquivo.annotated_seconds,
-        changed_by: request.remote_ip
+        **autoria
       )
       @time_logs = @arquivo.arquivo_time_logs.order(created_at: :desc)
       respond_to do |format|
@@ -294,7 +294,7 @@ class ArquivosController < ApplicationController
   # storage/stamps/<uuid> stay, so pedidos that use it keep their previews
   # and it can be restored from /lixeira.
   def destroy
-    @arquivo.excluir!(changed_by: request.remote_ip)
+    @arquivo.excluir!(**autoria)
     redirect_to arquivos_path, notice: "Arquivo moved to the trash."
   end
 
@@ -304,7 +304,7 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids, changed_by: request.remote_ip)
+    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids, **autoria)
 
     render json: { destroyed: destroyed_uuids.size, errors: errors }
   end

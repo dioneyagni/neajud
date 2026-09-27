@@ -64,7 +64,7 @@ class ClientsController < ApplicationController
   end
 
   def destroy
-    @client.excluir!(changed_by: request.remote_ip)
+    @client.excluir!(**autoria)
     redirect_back fallback_location: arquivos_path, notice: "Client moved to the trash."
   end
 

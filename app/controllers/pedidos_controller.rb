@@ -35,7 +35,7 @@ class PedidosController < ApplicationController
   end
 
   def destroy
-    @pedido.excluir!(changed_by: request.remote_ip)
+    @pedido.excluir!(**autoria)
     session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
     redirect_to pedidos_path, notice: "Pedido moved to the trash."
   end

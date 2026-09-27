@@ -95,6 +95,7 @@ RSpec.describe "PedidoPecas", type: :request do
       expect([ arte.client, arte.modelo, arte.peca, arte.category ]).to eq([ client, modelo, lingua, "artes" ])
       expect(pending_row.reload.arquivo).to eq(arte)
       expect(arte.vinculo_logs.sole.to_modelo_nome).to eq("Tênis baixo")
+      expect(arte.vinculo_logs.sole.user).to eq(@usuario_logado)
       expect(response).to redirect_to(resumo_pedido_path(pedido))
       expect(flash[:notice]).to include("02-no_spot", "Língua")
     end
