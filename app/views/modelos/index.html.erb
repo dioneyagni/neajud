@@ -17,7 +17,7 @@
         <label for="modelo_client_id_dialog">Client</label>
         <select name="modelo[client_id]" id="modelo_client_id_dialog" data-dialog-field="clientId" required>
           <option value="">Select a client...</option>
-          <% Client.order(:name).each do |c| %>
+          <% Client.ativos.order(:name).each do |c| %>
             <option value="<%= c.id %>"><%= c.name %></option>
           <% end %>
         </select>
@@ -26,7 +26,7 @@
         <label for="modelo_molde_id_dialog">Mold</label>
         <select name="modelo[molde_id]" id="modelo_molde_id_dialog" data-dialog-field="moldeId">
           <option value="">Select a mold...</option>
-          <% Molde.order(:nome).each do |m| %>
+          <% Molde.ativos.order(:nome).each do |m| %>
             <option value="<%= m.id %>"><%= m.nome %></option>
           <% end %>
         </select>
@@ -54,7 +54,7 @@
         <% @modelos.each do |modelo| %>
           <tr>
             <td><%= modelo.nome %></td>
-            <td><%= modelo.client.name %></td>
+            <td><%= modelo.client.name %> <%= selo_excluido(modelo.client) %></td>
             <td><%= modelo.molde&.nome || "—" %></td>
             <td><%= modelo.arquivos_count %></td>
             <td><%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm" %></td>
@@ -70,7 +70,7 @@
                       data-submit-label="Update">Edit</button>
               <%= button_to "Delete", modelo_path(modelo), method: :delete,
                     form: { style: "display: inline-block;" },
-                    data: { turbo_confirm: "Delete modelo \"#{modelo.nome}\"?" },
+                    data: { turbo_confirm: "Move modelo to the trash: \"#{modelo.nome}\"?" },
                     class: "btn btn-danger btn-sm" %>
             </td>
           </tr>

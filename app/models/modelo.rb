@@ -1,4 +1,7 @@
 class Modelo < ApplicationRecord
+  include Excluivel
+  include ReferenciaAtiva
+
   belongs_to :client
   belongs_to :molde, optional: true
   has_many :arquivos, dependent: :nullify
@@ -9,6 +12,7 @@ class Modelo < ApplicationRecord
   has_many :vinculo_logs_saida, class_name: "ArquivoVinculoLog", foreign_key: :from_modelo_id, dependent: :nullify
   has_many :vinculo_logs_entrada, class_name: "ArquivoVinculoLog", foreign_key: :to_modelo_id, dependent: :nullify
 
+  recusa_excluido :client, :molde
   validates :nome, presence: true
   validates :nome, uniqueness: { scope: :client_id, case_sensitive: false }
 
@@ -29,7 +33,8 @@ class Modelo < ApplicationRecord
 
     existing = modelo_pecas.index_by(&:peca_id)
 
-    molde_peca_ids.each do |peca_id|
+    # A trashed peça keeps its existing row (and needs_cut) but gets no new one.
+    Peca.ativos.where(id: molde_peca_ids).pluck(:id).each do |peca_id|
       modelo_pecas.find_or_create_by!(peca_id: peca_id) unless existing[peca_id]
     end
 

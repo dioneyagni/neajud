@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  get "lixeira" => "lixeira#index", as: :lixeira
+  post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
+       constraints: { tipo: /arquivos|pedidos|clients|modelos|moldes|pecas/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do

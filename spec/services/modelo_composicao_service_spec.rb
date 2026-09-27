@@ -22,6 +22,16 @@ RSpec.describe ModeloComposicaoService do
     expect(pieces(described_class.call(arte_lateral))).to eq([ [ "Lateral", arte_lateral ], [ "Língua", arte_lingua ] ])
   end
 
+  # Etapa 0.4: trashed artes and peças never become new pedido pieces.
+  it "skips trashed artes (pending slot) and trashed peças (no slot)" do
+    arte_lateral = arte_for(lateral)
+    arte_for(lingua).excluir!(changed_by: "10.0.0.1")
+    expect(pieces(described_class.call(arte_lateral))).to eq([ [ "Lateral", arte_lateral ], [ "Língua", nil ] ])
+
+    lingua.excluir!(changed_by: "10.0.0.1")
+    expect(pieces(described_class.call(arte_lateral))).to eq([ [ "Lateral", arte_lateral ] ])
+  end
+
   it "leaves the arte empty (pending) for a peça that has none" do
     arte_lateral = arte_for(lateral)
     expect(pieces(described_class.call(arte_lateral))).to eq([ [ "Lateral", arte_lateral ], [ "Língua", nil ] ])

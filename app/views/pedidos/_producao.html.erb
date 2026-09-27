@@ -50,7 +50,7 @@
                 </td>
               <% end %>
               <td><strong><%= linha.total %></strong></td>
-              <td class="producao-corte"><%= linha.corte&.filename || "—" %></td>
+              <td class="producao-corte"><%= linha.corte&.filename || "—" %> <%= selo_excluido(linha.corte) %></td>
             </tr>
           <% end %>
         </tbody>

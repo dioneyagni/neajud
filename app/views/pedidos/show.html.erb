@@ -7,14 +7,15 @@
   Pedido
   <span style="font-size:0.8rem; color:var(--text-muted);">#<%= @pedido.uuid.first(8) %></span>
   <span class="badge badge-<%= @pedido.status %>"><%= @pedido.status %></span>
+  <%= selo_excluido(@pedido) %>
 </h2>
 
 <% if @pedido.client %>
-  <p><strong>Cliente:</strong> <%= @pedido.client.name %></p>
+  <p><strong>Cliente:</strong> <%= @pedido.client.name %> <%= selo_excluido(@pedido.client) %></p>
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
-<% if @pedido.status == "rascunho" %>
+<% if @pedido.editavel? %>
   <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
       without arte, items with total 0, checked pieces without corte. %>
   <% bloqueios = @pedido.bloqueios_confirmacao %>
@@ -39,7 +40,7 @@
           data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
     <%= button_to "Excluir Rascunho", @pedido, method: :delete,
           class: "btn btn-secondary",
-          data: { turbo_confirm: "Delete this draft?" } %>
+          data: { turbo_confirm: "Move this draft to the trash?" } %>
   </div>
 <% end %>
 
@@ -54,7 +55,7 @@
 
     <div class="pedido-item-info">
       <div class="pedido-item-header">
-        <strong><%= link_to item.arquivo.filename, item.arquivo %></strong>
+        <strong><%= link_to item.arquivo.filename, item.arquivo %></strong> <%= selo_excluido(item.arquivo) %>
         <span class="pedido-item-client">(<%= item.arquivo.client&.name %>)</span>
       </div>
 
@@ -82,13 +83,13 @@
       <% corte = item.arquivo.corte || item.arquivo.corte_via_modelo %>
       <% if corte %>
         <div class="pedido-item-corte">
-          Corte: <%= link_to corte.filename, corte %>
+          Corte: <%= link_to corte.filename, corte %> <%= selo_excluido(corte) %>
         </div>
       <% end %>
     </div>
 
     <div class="pedido-item-actions">
-      <% if @pedido.status == "rascunho" %>
+      <% if @pedido.editavel? %>
         <button type="button" class="btn btn-sm btn-primary grade-save-btn"
                 data-action="click->grade-editor#save">Salvar</button>
         <%= button_to "Remover", remover_item_pedido_path(@pedido, id: item.uuid),

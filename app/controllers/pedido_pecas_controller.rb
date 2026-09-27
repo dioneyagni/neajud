@@ -13,7 +13,7 @@ class PedidoPecasController < ApplicationController
 
   # Usage: POST /pedidos/:pedido_uuid/pecas/:id/vincular_arte (arquivo_uuid, confirmar_mudanca=1 to move)
   def vincular_arte
-    arte = Arquivo.find_by!(uuid: params[:arquivo_uuid])
+    arte = Arquivo.ativos.find_by!(uuid: params[:arquivo_uuid])
     VincularArteService.call(@peca_row, arte, changed_by: request.remote_ip,
                                               confirmar_mudanca: params[:confirmar_mudanca] == "1")
     redirect_to resumo_pedido_path(@pedido), notice: "Arte #{arte.filename} vinculada à peça #{@peca_row.peca.nome}."
@@ -51,7 +51,7 @@ class PedidoPecasController < ApplicationController
   end
 
   def set_peca_row
-    @pedido = Pedido.find_by!(uuid: params[:pedido_uuid])
+    @pedido = Pedido.ativos.find_by!(uuid: params[:pedido_uuid])
     @peca_row = ItemPedidoPeca.joins(:item_pedido).where(itens_pedido: { pedido_id: @pedido.id }).find(params[:id])
   end
 

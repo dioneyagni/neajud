@@ -31,12 +31,12 @@ class ModeloComposicaoService
   private
 
   def modelo_pecas
-    configured = @modelo.modelo_pecas.includes(:peca).order(:id).map(&:peca)
-    configured.presence || @modelo.molde&.pecas&.order(:id).to_a || []
+    configured = @modelo.modelo_pecas.includes(:peca).order(:id).map(&:peca).reject(&:excluido?)
+    configured.presence || @modelo.molde&.pecas&.ativos&.order(:id).to_a || []
   end
 
   def modelo_artes
-    @modelo_artes ||= Arquivo.where(category: "artes", modelo_id: @modelo.id)
+    @modelo_artes ||= Arquivo.ativos.where(category: "artes", modelo_id: @modelo.id)
                              .includes(:peca, tamanho: { arquivo: :peca }).order(:id).to_a
   end
 

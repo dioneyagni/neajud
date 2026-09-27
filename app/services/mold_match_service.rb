@@ -33,13 +33,13 @@ class MoldMatchService
 
   def candidate_cortes
     if @arte.modelo&.molde
-      by_molde = Arquivo.where(organized: true, molde_id: @arte.modelo.molde_id).to_a
+      by_molde = Arquivo.ativos.where(organized: true, molde_id: @arte.modelo.molde_id).to_a
       return by_molde if by_molde.any?
     end
 
     if @arte.client
-      molde_ids = Modelo.where(client_id: @arte.client_id).distinct.pluck(:molde_id).compact
-      by_client = Arquivo.where(organized: true, molde_id: molde_ids).to_a
+      molde_ids = Modelo.ativos.where(client_id: @arte.client_id).distinct.pluck(:molde_id).compact
+      by_client = Arquivo.ativos.where(organized: true, molde_id: molde_ids).to_a
       return by_client if by_client.any?
     end
 

@@ -24,7 +24,7 @@
             <%= link_to "Edit", edit_molde_path(molde), class: "btn btn-secondary btn-sm" %>
             <%= button_to "Delete", molde_path(molde), method: :delete,
                   form: { style: "display: inline-block;" },
-                  data: { turbo_confirm: "Delete molde \"#{molde.nome}\"?" },
+                  data: { turbo_confirm: "Move molde to the trash: \"#{molde.nome}\"?" },
                   class: "btn btn-danger btn-sm" %>
           </td>
         </tr>

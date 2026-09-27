@@ -6,6 +6,7 @@
 <h2>
   <%= image_tag "#{FileCategory.extension_icon(@arquivo.extension)}.svg", class: "stamp-detail-ext-icon", alt: @arquivo.extension %>
   <%= @arquivo.category == "corte" ? "Cut" : "Arquivo" %>: <%= @arquivo.filename %>.<%= @arquivo.extension %>
+  <%= selo_excluido(@arquivo) %>
 </h2>
 
 <% if @arquivo.pending? || @arquivo.processing? %>
@@ -159,9 +160,11 @@
 
       <div class="stamp-detail-section stamp-detail-section--actions">
         <%= link_to "Back to Gallery", arquivos_path, class: "back-link" %>
-        <%= button_to "Delete Arquivo", arquivo_path(@arquivo), method: :delete,
-              data: { turbo_confirm: "Are you sure?" },
-              class: "btn btn-danger" %>
+        <% unless @arquivo.excluido? %>
+          <%= button_to "Delete Arquivo", arquivo_path(@arquivo), method: :delete,
+                data: { turbo_confirm: "Move this arquivo to the trash?" },
+                class: "btn btn-danger" %>
+        <% end %>
       </div>
     </div>
   </div>

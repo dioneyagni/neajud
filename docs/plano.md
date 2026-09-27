@@ -197,6 +197,16 @@ Antes de qualquer recurso novo, corrigir o que conflita com as decisões deste d
 - validação no model que impede associar registro excluído a registros novos;
 - restauração permitida só ao dono da empresa.
 
+Concluída em 26/09/2026. Decisões desta etapa:
+
+- **Onde entra:** arquivos (inclusive o lote), clientes, modelos, moldes, peças e pedidos vão para a lixeira (`/lixeira`), que lista tudo com o botão Restaurar. Remover um item ou zerar uma grade de um pedido em **rascunho** continua físico: é edição em andamento, e o pedido inteiro é que vai para a lixeira.
+- **Sem cascata:** excluir um cliente, modelo ou molde não mexe no que depende dele (antes, excluir um cliente apagava os modelos e o estoque dele). Os dependentes continuam e mostram o selo.
+- **Nome repetido:** cadastrar um nome que está na lixeira é recusado com um aviso para restaurar, para não haver dois registros iguais depois da restauração.
+- **Quem:** até a Etapa 0.5, quem excluiu ou restaurou fica registrado pelo IP em `exclusao_logs`; `deleted_by_id` e `restored_by_id` já existem e ficam vazios até haver usuários. Até lá qualquer pessoa restaura; a 0.5 restringe ao dono.
+- **Arquivos em disco:** ficam, para que pedidos e restaurações continuem com as prévias. Apagar de vez (esvaziar a lixeira) fica para quando houver necessidade.
+- **Pedido em rascunho** que usa uma arte ou um corte na lixeira não pode ser confirmado (nova pendência "está na lixeira"). Um pedido na lixeira continua abrindo, mas fica congelado até ser restaurado.
+- Escopos próprios (`Excluivel`: `ativos`/`excluidos`, `excluir!`/`restaurar!`) em vez da gem `discard`, sem dependência nova; nenhum `default_scope`.
+
 **Etapa 0.5 — Autenticação e perfis.** Se não existir, implementar login local (gerador de autenticação do Rails 8, com `bcrypt`) e perfis: os perfis fixos da seção Usuários e permissões, combináveis no mesmo vínculo. Modelar desde já pessoa e vínculo (pessoa × empresa × perfis) e o registro de aprovação de arte, prevendo a ligação com a conta na nuvem (`cloud_user_uuid` opcional).
 
 

@@ -531,6 +531,39 @@ close() {
 }
 ```
 
+## Logical deletion (Etapa 0.4)
+
+Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Modelo`,
+`Molde`, `Peca` and `Pedido` include `Excluivel` (`app/models/concerns/excluivel.rb`):
+`excluir!(changed_by:)` / `restaurar!(changed_by:)` set `deleted_at` / `restored_at`
+and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
+
+- **No `default_scope`.** A trashed record must keep showing where it is already
+  used (a pedido's arte, a modelo's client), with `selo_excluido(record)` (the
+  "excluído em" badge). So every **listing, picker, search and JSON endpoint**
+  must say `.ativos` explicitly — `Client.ativos.order(:name)`,
+  `@molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
+  show page stay unscoped. When you add a query that feeds a list or a
+  `<select>`, add `.ativos`.
+- **Counts on index pages** use `Model.contagem_ativos(as: "x_count")` (Arel),
+  not `COUNT(DISTINCT table.id)`, so trashed children aren't counted.
+- **New references to trashed records are refused** by `ReferenciaAtiva`
+  (`recusa_excluido :client, :modelo` on the referencing model). Rows that
+  already pointed at the record stay valid. A controller that assigns a
+  reference must report the validation error, not raise.
+- **No cascade.** Trashing a client leaves its modelos, stock and arquivos as
+  they are. `dependent:` options on these models only matter for internal hard
+  deletes (tests, future "empty trash").
+- **Files stay** in `storage/stamps/<uuid>` for trashed arquivos.
+- **Names stay unique across the trash.** `create` actions check the name
+  first and answer with `record.aviso_na_lixeira` (restore instead of a duplicate).
+- **Trashed pedidos are frozen** (`PedidosController#recusar_pedido_excluido`,
+  `Pedido#editavel?`); a draft that uses a trashed arte or corte can't be
+  confirmed (`PedidoBloqueiosService` `:arquivo_excluido`).
+- Still physical on purpose: removing an item / zeroing a size of a **draft**
+  pedido, unlinking a corte from a modelo, and derived data rebuilt by
+  reprocessing (tamanhos, cut layers, `modelo_pecas` sync).
+
 ## Guard: never run bin/e2e with the wrong RAILS_ENV
 
 `bin/e2e` truncates the database to guarantee a clean state. Run with
@@ -539,6 +572,11 @@ has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 
 ⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
 test, but an earlier `export RAILS_ENV=development` in the shell can override it.
+
+⚠️ Never run `bin/rspec` while `bin/e2e` is running: both use the **same test
+database**, and each one's cleanup (RSpec transactions/truncation, `bin/e2e`'s
+`db:test:prepare`) breaks the other — you get `StatementTimeout`s and records
+vanishing mid-spec, not real failures. Run them one after the other.
 
 ## Dev server and E2E server run side by side
 
@@ -683,9 +721,9 @@ Current code that still differs from the plan — don't copy these patterns into
   `MoldMatchService` (in `update_modelo`), the tamanho previews of
   `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
   (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
-- **Physical deletes** — every `DELETE` route destroys rows (and, for arquivos, files):
-  arquivos (`destroy`, `batch_destroy`), clients, modelos, moldes, peças, pedidos and
-  `remover_item`. Target: logical deletion with restore (Etapa 0.4).
+- **Restore is open to anyone** — until Etapa 0.5 there are no users, so `/lixeira`
+  has no owner check and `deleted_by_id`/`restored_by_id` stay empty (the IP is in
+  `exclusao_logs.changed_by`). Target: owner-only restore (Etapa 0.5).
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
   use integer ids. Target: UUID on every entity (Etapa 1.1).

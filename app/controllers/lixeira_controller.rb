@@ -1,0 +1,30 @@
+# The trash (Etapa 0.4): everything moved there instead of being deleted,
+# newest first, with Restore. Until Etapa 0.5 (login) anyone can restore;
+# then only the company owner.
+class LixeiraController < ApplicationController
+  # Route segment => model. Also the whitelist for #restaurar's :tipo.
+  TIPOS = {
+    "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
+    "modelos" => Modelo, "moldes" => Molde, "pecas" => Peca
+  }.freeze
+
+  def index
+    @excluidos_por_tipo = TIPOS.transform_values { |model| model.excluidos.includes(:exclusao_logs).order(deleted_at: :desc) }
+  end
+
+  # Usage: POST /lixeira/clients/12/restaurar
+  def restaurar
+    registro = registro_excluido
+    registro.restaurar!(changed_by: request.remote_ip)
+    redirect_to lixeira_path, notice: "#{registro.model_name.human} \"#{registro.rotulo_lixeira}\" restored."
+  end
+
+  private
+
+  # Arquivos and pedidos are addressed by uuid everywhere else; the rest by id.
+  def registro_excluido
+    model = TIPOS.fetch(params[:tipo]) { raise ActionController::RoutingError, "Unknown trash type #{params[:tipo].inspect}; expected one of #{TIPOS.keys.join(", ")}" }
+    chave = model.column_names.include?("uuid") ? :uuid : :id
+    model.excluidos.find_by!(chave => params[:id])
+  end
+end

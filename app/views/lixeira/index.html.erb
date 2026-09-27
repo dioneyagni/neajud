@@ -1,0 +1,32 @@
+<h2>Lixeira</h2>
+<p class="lixeira-intro">Nothing is deleted for good: records here keep showing where they were already used, and can be restored.</p>
+
+<% if @excluidos_por_tipo.values.all?(&:empty?) %>
+  <p class="lixeira-vazia">The trash is empty.</p>
+<% end %>
+
+<% @excluidos_por_tipo.each do |tipo, registros| %>
+  <% next if registros.empty? %>
+  <section class="lixeira-grupo" data-tipo="<%= tipo %>">
+    <h3><%= registros.first.model_name.human.pluralize %> (<%= registros.size %>)</h3>
+    <table class="clients-table">
+      <thead>
+        <tr><th></th><th>Name</th><th>Deleted at</th><th>By</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% registros.each do |registro| %>
+          <tr class="lixeira-item">
+            <td class="lixeira-thumb-cell"><%= miniatura_lixeira(registro) %></td>
+            <td><%= registro.rotulo_lixeira %></td>
+            <td><%= l(registro.deleted_at, format: "%d/%m/%Y %H:%M") %></td>
+            <td><%= registro.exclusao_logs.select { |log| log.acao == "excluido" }.max_by(&:created_at)&.changed_by %></td>
+            <td>
+              <%= button_to "Restore", restaurar_lixeira_path(tipo: tipo, id: registro.to_param), method: :post,
+                    form: { style: "display: inline-block;" }, class: "btn btn-secondary btn-sm" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>

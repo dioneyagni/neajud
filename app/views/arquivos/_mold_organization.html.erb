@@ -16,14 +16,14 @@
   <%
     linked_molde_id = arquivo.molde_id || arquivo.modelos.find { |m| m.molde_id.present? }&.molde_id
     initial_pecas = if linked_molde_id
-                      Molde.find_by(id: linked_molde_id)&.pecas&.order(:nome)&.to_a || []
+                      Molde.find_by(id: linked_molde_id)&.pecas&.ativos&.order(:nome)&.to_a || []
                     else
-                      Peca.order(:nome).to_a
+                      Peca.ativos.order(:nome).to_a
                     end
 
     modelo_ids = arquivo.modelos.pluck(:id)
     occupied_peca_ids = if arquivo.corte? && modelo_ids.any?
-                          Arquivo.where(category: "corte", organized: true)
+                          Arquivo.ativos.where(category: "corte", organized: true)
                                  .joins(:arquivo_modelos)
                                  .where(arquivo_modelos: { modelo_id: modelo_ids })
                                  .where.not(id: arquivo.id)
@@ -47,7 +47,7 @@
                   data-action="change->mold-org-cascade#onMoldeChange"
                   data-original-value="<%= arquivo.molde_id %>">
             <option value="">Select a mold...</option>
-            <% Molde.order(:nome).each do |m| %>
+            <% Molde.ativos.order(:nome).each do |m| %>
               <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
@@ -58,7 +58,7 @@
                 data-mold-org-cascade-target="moldeSelect"
                 data-action="change->mold-org-cascade#onMoldeChange">
           <option value="">Select a mold...</option>
-          <% Molde.order(:nome).each do |m| %>
+          <% Molde.ativos.order(:nome).each do |m| %>
             <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>

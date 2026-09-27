@@ -33,6 +33,12 @@ RSpec.describe ArteCandidatasService do
     expect(groups[:cliente_sem_modelo]).to eq([ free, on_lingua ])
   end
 
+  it "never offers an arte that is in the trash" do
+    trashed = create(:arquivo, client: nil, filename: "na-lixeira")
+    trashed.excluir!(changed_by: "10.0.0.1")
+    expect(groups.values.flatten).not_to include(trashed)
+  end
+
   it "group 3: artes without client" do
     orphan = create(:arquivo, client: nil)
     expect(groups[:sem_cliente]).to eq([ orphan ])

@@ -1,6 +1,9 @@
 class MovimentoEstoque < ApplicationRecord
+  include ReferenciaAtiva
+
   belongs_to :materia_prima
   belongs_to :client
+  recusa_excluido :client
 
   validates :tipo, presence: true, inclusion: { in: %w[entrada saida] }
   validates :quantidade, presence: true, numericality: { greater_than: 0 }
