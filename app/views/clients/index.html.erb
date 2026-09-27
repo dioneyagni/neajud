@@ -2,7 +2,9 @@
 
 <div data-controller="dialog" data-create-title="Register New Client" data-create-label="Register" data-create-url="<%= clients_path %>">
   <div class="clients-toolbar">
-    <button class="btn btn-primary" data-action="click->dialog#open">New Client</button>
+    <% if pode?(:clientes, :editar) %>
+      <button class="btn btn-primary" data-action="click->dialog#open">New Client</button>
+    <% end %>
   </div>
 
   <dialog data-dialog-target="dialog" class="client-dialog">
@@ -43,18 +45,22 @@
             <td><%= client.modelos_count %></td>
             <td><%= client.arquivos_count %></td>
             <td class="clients-table-actions">
-              <button class="btn btn-secondary btn-sm"
-                      data-action="click->dialog#edit"
-                      data-name="<%= client.name %>"
-                      data-responsible="<%= client.responsible %>"
-                      data-action-url="<%= client_path(client) %>"
-                      data-method="patch"
-                      data-dialog-title="Edit Client"
-                      data-submit-label="Update">Edit</button>
-              <%= button_to "Delete", client_path(client), method: :delete,
-                    form: { style: "display: inline-block;" },
-                    data: { turbo_confirm: "Move client to the trash: \"#{client.name}\"?" },
-                    class: "btn btn-danger btn-sm" %>
+              <% if pode?(:clientes, :editar) %>
+                <button class="btn btn-secondary btn-sm"
+                        data-action="click->dialog#edit"
+                        data-name="<%= client.name %>"
+                        data-responsible="<%= client.responsible %>"
+                        data-action-url="<%= client_path(client) %>"
+                        data-method="patch"
+                        data-dialog-title="Edit Client"
+                        data-submit-label="Update">Edit</button>
+              <% end %>
+              <% if pode?(:clientes, :excluir) %>
+                <%= button_to "Delete", client_path(client), method: :delete,
+                      form: { style: "display: inline-block;" },
+                      data: { turbo_confirm: "Move client to the trash: \"#{client.name}\"?" },
+                      class: "btn btn-danger btn-sm" %>
+              <% end %>
             </td>
           </tr>
         <% end %>

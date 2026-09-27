@@ -9,9 +9,22 @@ FactoryBot.define do
     nome { "Empresa Teste" }
   end
 
+  factory :funcao do
+    sequence(:nome) { |n| "Função #{n}" }
+    niveis { {} }
+    acoes { [] }
+
+    # The system função; reused, since there is only one.
+    factory :funcao_dono do
+      nome { "Dono" }
+      dono { true }
+      initialize_with { Funcao.find_or_initialize_by(dono: true) }
+    end
+  end
+
   factory :vinculo do
     user
     empresa { Empresa.atual || association(:empresa) }
-    perfis { %w[dono] }
+    funcao { association(:funcao_dono) }
   end
 end

@@ -15,7 +15,7 @@
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
-<% if @pedido.editavel? %>
+<% if pedido_editavel?(@pedido) %>
   <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
       without arte, items with total 0, checked pieces without corte. %>
   <% bloqueios = @pedido.bloqueios_confirmacao %>
@@ -38,9 +38,11 @@
           disabled: bloqueios.any?,
           title: (bloqueios.any? ? "Há pendências — veja a lista acima" : nil),
           data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
-    <%= button_to "Excluir Rascunho", @pedido, method: :delete,
-          class: "btn btn-secondary",
-          data: { turbo_confirm: "Move this draft to the trash?" } %>
+    <% if pode?(:pedidos, :excluir) %>
+      <%= button_to "Excluir Rascunho", @pedido, method: :delete,
+            class: "btn btn-secondary",
+            data: { turbo_confirm: "Move this draft to the trash?" } %>
+    <% end %>
   </div>
 <% end %>
 
@@ -89,7 +91,7 @@
     </div>
 
     <div class="pedido-item-actions">
-      <% if @pedido.editavel? %>
+      <% if pedido_editavel?(@pedido) %>
         <button type="button" class="btn btn-sm btn-primary grade-save-btn"
                 data-action="click->grade-editor#save">Salvar</button>
         <%= button_to "Remover", remover_item_pedido_path(@pedido, id: item.uuid),

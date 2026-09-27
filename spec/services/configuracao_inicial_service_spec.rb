@@ -3,11 +3,12 @@ require "rails_helper"
 RSpec.describe ConfiguracaoInicialService do
   let(:dados) { { empresa_nome: "Sublimação X", nome: "Ana", email_address: "ana@x.com", password: "senha-segura-123" } }
 
-  it "creates the empresa, the user and their vínculo as dono" do
+  it "creates the empresa, the default funções and the user as Dono" do
     user = described_class.call(**dados)
     expect(user).to be_persisted
     expect(Empresa.atual.nome).to eq("Sublimação X")
-    expect(user.perfis).to eq(%w[dono])
+    expect(Funcao.pluck(:nome)).to match_array(Funcao::PADRAO.pluck(:nome))
+    expect(user.vinculo.funcao).to eq(Funcao.dono)
   end
 
   it "creates nothing and reports every error when invalid" do

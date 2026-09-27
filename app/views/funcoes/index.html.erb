@@ -1,0 +1,82 @@
+<h2>Funções</h2>
+<p class="funcoes-intro">What each função may do. Each level includes the ones before it:
+  <strong>Ver</strong> → <strong>Editar</strong> (create and edit) → <strong>Excluir</strong>.
+  Dono always has everything.</p>
+
+<%= form_with url: funcoes_path, scope: :funcao, class: "funcoes-nova" do |form| %>
+  <%= form.text_field :nome, placeholder: "New função (e.g. Corte, Expedição)", required: true, "aria-label": "New função name" %>
+  <%= form.submit "+ New função", class: "btn btn-secondary" %>
+<% end %>
+
+<%= form_with url: atualizar_funcoes_path, method: :patch, id: "funcoes-grade" do %>
+  <div class="funcoes-scroll">
+    <table class="clients-table funcoes-tabela">
+      <thead>
+        <tr>
+          <th>Área</th>
+          <% @funcoes.each do |funcao| %>
+            <th class="funcao-coluna" data-funcao="<%= funcao.nome %>">
+              <% if funcao.dono? %>
+                <%= funcao.nome %>
+              <% else %>
+                <input type="text" name="funcoes[<%= funcao.uuid %>][nome]" value="<%= funcao.nome %>" required class="funcao-nome" aria-label="Name of <%= funcao.nome %>">
+              <% end %>
+            </th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% Autorizacao::AREAS.each do |area| %>
+          <tr data-area="<%= area %>">
+            <th scope="row"><%= FuncoesHelper::ROTULOS_AREA.fetch(area) %></th>
+            <% @funcoes.each do |funcao| %>
+              <td data-funcao="<%= funcao.nome %>">
+                <% if funcao.dono? %>
+                  <span class="funcao-dono-tudo"><%= rotulo_de_nivel(area, Autorizacao.nivel_maximo(area)) %></span>
+                <% else %>
+                  <select name="funcoes[<%= funcao.uuid %>][niveis][<%= area %>]" aria-label="<%= funcao.nome %>: <%= area %>">
+                    <%= options_for_select(opcoes_de_nivel(area), funcao.niveis.to_h[area].to_i) %>
+                  </select>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+        <tr class="funcoes-secao"><th colspan="<%= @funcoes.size + 1 %>">Special actions</th></tr>
+        <% Autorizacao::ACOES.each do |acao| %>
+          <tr data-acao="<%= acao %>">
+            <th scope="row"><%= FuncoesHelper::ROTULOS_ACAO.fetch(acao) %></th>
+            <% @funcoes.each do |funcao| %>
+              <td data-funcao="<%= funcao.nome %>">
+                <% if funcao.dono? %>
+                  <span class="funcao-dono-tudo">✓</span>
+                <% else %>
+                  <input type="hidden" name="funcoes[<%= funcao.uuid %>][acoes][]" value="">
+                  <input type="checkbox" name="funcoes[<%= funcao.uuid %>][acoes][]" value="<%= acao %>" <%= "checked" if funcao.acoes.include?(acao) %> aria-label="<%= funcao.nome %>: <%= acao %>">
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+        <tr class="funcoes-rodape">
+          <th scope="row">Users</th>
+          <% @funcoes.each do |funcao| %>
+            <td data-funcao="<%= funcao.nome %>">
+              <%= @usuarios_por_funcao.fetch(funcao.id, 0) %>
+              <% unless funcao.dono? || @usuarios_por_funcao.key?(funcao.id) %>
+                <button type="submit" form="excluir-funcao-<%= funcao.uuid %>" class="btn btn-danger btn-sm"
+                        data-turbo-confirm="Move função &quot;<%= funcao.nome %>&quot; to the trash?">Delete</button>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn btn-primary">Save</button>
+<% end %>
+
+<%# Outside the grid form: a <form> nested in another breaks the outer one (AGENTS.md). %>
+<% @funcoes.reject(&:dono?).each do |funcao| %>
+  <%= form_with url: funcao_path(funcao), method: :delete, id: "excluir-funcao-#{funcao.uuid}", data: { turbo_confirm: "Move função \"#{funcao.nome}\" to the trash?" } do %><% end %>
+<% end %>

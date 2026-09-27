@@ -21,8 +21,11 @@
             <td><%= l(registro.deleted_at, format: "%d/%m/%Y %H:%M") %></td>
             <td><%= autor_do_log(registro.exclusao_logs.select { |log| log.acao == "excluido" }.max_by(&:created_at)) %></td>
             <td>
-              <%= button_to "Restore", restaurar_lixeira_path(tipo: tipo, id: registro.to_param), method: :post,
-                    form: { style: "display: inline-block;" }, class: "btn btn-secondary btn-sm" %>
+              <%# Lixeira's level 2 restores (Autorizacao::NIVEL_MAXIMO). %>
+              <% if pode?(:lixeira, :editar) %>
+                <%= button_to "Restore", restaurar_lixeira_path(tipo: tipo, id: registro.to_param), method: :post,
+                      form: { style: "display: inline-block;" }, class: "btn btn-secondary btn-sm" %>
+              <% end %>
             </td>
           </tr>
         <% end %>

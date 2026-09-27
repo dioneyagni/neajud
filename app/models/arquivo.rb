@@ -43,6 +43,22 @@ class Arquivo < ApplicationRecord
     category == "corte"
   end
 
+  # Permission área (Autorizacao): cortes (DXF) are Catálogo, the rest Artes.
+  # Usage: autorizacao.pode?(arquivo.area_de_acesso, :editar)
+  def area_de_acesso
+    corte? ? "catalogo" : "artes"
+  end
+
+  # Categories a user may list: "corte" needs Catálogo, the rest Artes
+  # (nil = not yet classified, shown as an arte).
+  # Usage: Arquivo.where(category: Arquivo.categorias_visiveis(autorizacao))
+  def self.categorias_visiveis(autorizacao)
+    categorias = []
+    categorias += [ "artes", nil ] if autorizacao.pode?(:artes, :ver)
+    categorias << "corte" if autorizacao.pode?(:catalogo, :ver)
+    categorias
+  end
+
   # SQL mirror of #resolved_peca being nil: no peca_id and no corte peça.
   # Usage: Arquivo.where(category: "artes").sem_peca_resolvida
   scope :sem_peca_resolvida, -> {

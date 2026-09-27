@@ -539,9 +539,9 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 
 - **Model:** `User` (the plan's "pessoa"; name chosen in session) +
   `Empresa` (**one per instance** — docs/plano.md Etapa 2.1; `Empresa.atual`)
-  + `Vinculo` (user × empresa × `perfis`, a JSON array of
-  `Vinculo::PERFIS`). New tables get a `uuid` via the `GeraUuid` concern;
-  `users.cloud_user_uuid` links to the future Neajud Cloud account (Etapa 7.1).
+  + `Vinculo` (user × empresa × **one `Funcao`** + `acessos_extras`). New
+  tables get a `uuid` via the `GeraUuid` concern; `users.cloud_user_uuid`
+  links to the future Neajud Cloud account (Etapa 7.1).
 - **First access:** while there is no user, every page redirects to
   `/configuracao` (`ConfiguracaoInicialService`: empresa + first user as
   `dono`). Once a user exists the screen redirects to sign in — it must never
@@ -560,7 +560,38 @@ Every page requires a signed-in user (Rails 8 authentication generator:
   (`e2e/support/sessao.js`, called by `runSpec`); `autenticacao.spec.js` runs
   **first** in `E2E_SPECS` because it needs the empty database to exercise the
   setup screen, and opts out with `runSpec(…, { entrar: false })`.
-- Perfis are stored but **not enforced yet** — see Known gaps.
+
+## Permissions (Etapa 0.5, 2/4)
+
+Decided 27/09/2026: instead of the plan's fixed perfis, the **dono edits a
+grid** (`/funcoes`) and creates funções — many workers share one função.
+
+- **Grid:** `Funcao#niveis` = level per área (`Autorizacao::AREAS`: pedidos,
+  clientes, artes, catalogo, estoque, lixeira), 0 nenhum · 1 ver · 2 editar
+  (create/edit) · 3 excluir; each level includes the lower ones. Lixeira stops
+  at 2 = restaurar (`Autorizacao::NIVEL_MAXIMO`). `Funcao#acoes` = special
+  actions (`baixar_producao`, `gerenciar_usuarios`). `Vinculo#acessos_extras`
+  (same shape) can only **raise** a user's levels (UI in 3/4).
+- **Dono** is a system função (`Funcao.dono`): everything, not editable, never
+  deleted. Editing funções is dono-only on purpose (it grants permissions).
+- **One entry point:** `Autorizacao` (`user.autorizacao.pode?(:pedidos, :editar)`,
+  `pode_acao?`, `dono?`). An unknown área/level/action **raises** — a typo
+  must not silently deny or allow.
+- **Server:** controllers declare requirements with `exige :area, :nivel, only:`,
+  `exige_acao`, `exige_dono` (`ControleDeAcesso`); refused → 403 page "Sem
+  permissão" (JSON: `{ ok: false, error: "No permission: needs …" }`). **Every
+  new action needs one** — `spec/requests/permissoes_spec.rb` holds one row per
+  requirement (403 below it, allowed at it); add yours.
+- **Arquivos** belong to Artes, or to Catálogo when they are cortes
+  (`Arquivo#area_de_acesso`); the gallery lists only visible categories
+  (`Arquivo.categorias_visiveis`); batch delete skips what the user can't delete.
+- **Views** hide what the user can't do with `pode?` / `pode_acao?` / `dono?`,
+  `pode_editar_arquivo?(arquivo)` and `pedido_editavel?(pedido)`.
+- ⚠️ **Partials rendered by broadcast** (`arquivos/_card`, via
+  `broadcast_replace_to`) have **no user**: never call `pode?` in them. Their
+  controls are hidden by CSS from `<body data-pode-…>` flags in the layout.
+- Tests: `entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: [...])` signs
+  in a request spec as a user of such a função.
 
 ## Logical deletion (Etapa 0.4)
 
@@ -752,13 +783,15 @@ Current code that still differs from the plan — don't copy these patterns into
   `MoldMatchService` (in `update_modelo`), the tamanho previews of
   `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
   (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
-- **Perfis not enforced** — every signed-in user can do everything, including
-  restoring from `/lixeira` (the plan: dono only) and managing nothing yet (no
-  users page). Target: permissions per perfil + users page (Etapa 0.5, 2/3).
+- **No users page** — only the first dono exists (setup); funções can't be
+  given to anyone yet, and `acessos_extras` has no UI. Target: Etapa 0.5 (3/4).
+- **No "cliente final"** — the client's own access (seeing only their pedidos
+  and artes) needs every query filtered by client. Target: its own etapa
+  before the beta.
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
   use integer ids. Target: UUID on every entity (Etapa 1.1).
-- **No art approval record** yet. Target: Etapa 0.5 (3/3).
+- **No art approval record** yet. Target: Etapa 0.5 (4/4).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
   `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).

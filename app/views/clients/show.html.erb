@@ -26,7 +26,9 @@
       <div class="stamp-detail-section stamp-detail-section--full" data-controller="dialog" data-create-title="Register New Modelo" data-create-label="Register" data-create-url="<%= modelos_path %>">
         <div class="clients-toolbar">
           <h3 style="margin-bottom:0">Modelos</h3>
-          <button class="btn btn-primary" data-action="click->dialog#open">New Modelo</button>
+          <% if pode?(:catalogo, :editar) %>
+            <button class="btn btn-primary" data-action="click->dialog#open">New Modelo</button>
+          <% end %>
         </div>
 
         <dialog data-dialog-target="dialog" class="client-dialog">
@@ -73,18 +75,22 @@
                   <td><%= modelo.arquivos.count %></td>
                   <td><%= link_to "Show", modelo_path(modelo), class: "btn btn-secondary btn-sm" %></td>
                   <td class="clients-table-actions">
-                    <button class="btn btn-secondary btn-sm"
-                            data-action="click->dialog#edit"
-                            data-nome="<%= modelo.nome %>"
-                            data-molde-id="<%= modelo.molde_id %>"
-                            data-action-url="<%= modelo_path(modelo) %>"
-                            data-method="patch"
-                            data-dialog-title="Edit Modelo"
-                            data-submit-label="Update">Edit</button>
-                    <%= button_to "Delete", modelo_path(modelo), method: :delete,
-                          form: { style: "display: inline-block;" },
-                          data: { turbo_confirm: "Move modelo to the trash: \"#{modelo.nome}\"?" },
-                          class: "btn btn-danger btn-sm" %>
+                    <% if pode?(:catalogo, :editar) %>
+                      <button class="btn btn-secondary btn-sm"
+                              data-action="click->dialog#edit"
+                              data-nome="<%= modelo.nome %>"
+                              data-molde-id="<%= modelo.molde_id %>"
+                              data-action-url="<%= modelo_path(modelo) %>"
+                              data-method="patch"
+                              data-dialog-title="Edit Modelo"
+                              data-submit-label="Update">Edit</button>
+                    <% end %>
+                    <% if pode?(:catalogo, :excluir) %>
+                      <%= button_to "Delete", modelo_path(modelo), method: :delete,
+                            form: { style: "display: inline-block;" },
+                            data: { turbo_confirm: "Move modelo to the trash: \"#{modelo.nome}\"?" },
+                            class: "btn btn-danger btn-sm" %>
+                    <% end %>
                   </td>
                 </tr>
               <% end %>

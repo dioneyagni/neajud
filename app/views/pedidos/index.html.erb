@@ -4,7 +4,9 @@
   <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
     <%= @pedidos.size %> pedidos
   </span>
-  <%= button_to "+ Novo Pedido", pedidos_path, method: :post, class: "btn btn-primary", style: "margin-left:auto;" %>
+  <% if pode?(:pedidos, :editar) %>
+    <%= button_to "+ Novo Pedido", pedidos_path, method: :post, class: "btn btn-primary", style: "margin-left:auto;" %>
+  <% end %>
 </div>
 
 <div style="margin: 1rem 0;">
@@ -36,14 +38,16 @@
                   <%= link_to "#{pendentes} pendente(s)", resumo_pedido_path(p),
                         class: "btn btn-sm pedido-pendentes-badge",
                         title: "Pendências (sem arte, quantidade 0 ou sem corte) — resolva antes de confirmar" %>
-                <% else %>
+                <% elsif pode?(:pedidos, :editar) %>
                   <%= link_to "Confirmar", confirmar_pedido_path(p),
                         data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },
                         class: "btn btn-sm btn-primary" %>
                 <% end %>
-                <%= link_to "Excluir", p,
-                      data: { turbo_method: :delete, turbo_confirm: "Move this pedido to the trash?" },
-                      class: "btn btn-sm btn-danger" %>
+                <% if pode?(:pedidos, :excluir) %>
+                  <%= link_to "Excluir", p,
+                        data: { turbo_method: :delete, turbo_confirm: "Move this pedido to the trash?" },
+                        class: "btn btn-sm btn-danger" %>
+                <% end %>
               </div>
             <% end %>
           </td>

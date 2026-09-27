@@ -2,6 +2,17 @@ class ArquivosController < ApplicationController
   before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
+  # Permissions (Etapa 0.5): an arquivo is Artes or, if a corte, Catálogo
+  # (Arquivo#area_de_acesso), so most checks need @arquivo loaded first.
+  before_action(only: :index) { exigir!(pode?(:artes, :ver) || pode?(:catalogo, :ver), "artes or catalogo: ver") }
+  before_action(only: :create) { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
+  before_action(only: :batch_destroy) { exigir!(pode?(:artes, :excluir) || pode?(:catalogo, :excluir), "artes or catalogo: excluir") }
+  before_action(only: %i[show preview composicao processamento version_preview]) { exigir_no_arquivo!(:ver) }
+  before_action(only: %i[update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo
+                         upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
+  before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
+  exige_acao :baixar_producao, only: :download
+
   PER_PAGE_GRID = 12
   PER_PAGE_LIST = 50
 
@@ -304,7 +315,9 @@ class ArquivosController < ApplicationController
       return render json: { error: "No IDs provided" }, status: :unprocessable_content
     end
 
-    destroyed_uuids, errors = ArquivoBatchDestroyService.call(ids, **autoria)
+    permitidos, negados = ids.partition { |uuid| pode_excluir_arquivo?(uuid) }
+    destroyed_uuids, errors = ArquivoBatchDestroyService.call(permitidos, **autoria)
+    errors += negados.map { |uuid| { uuid: uuid, error: "no permission to delete it" } }
 
     render json: { destroyed: destroyed_uuids.size, errors: errors }
   end
@@ -321,6 +334,16 @@ class ArquivosController < ApplicationController
       pendente: arte.nil?,
       adicionada: arte == @arquivo
     }
+  end
+
+  def exigir_no_arquivo!(nivel)
+    exigir!(pode?(@arquivo.area_de_acesso, nivel), "#{@arquivo.area_de_acesso}: #{nivel}")
+  end
+
+  # Unknown uuids pass through so the service reports them as not found.
+  def pode_excluir_arquivo?(uuid)
+    arquivo = Arquivo.find_by(uuid: uuid)
+    arquivo.nil? || pode?(arquivo.area_de_acesso, :excluir)
   end
 
   def set_arquivo
@@ -361,7 +384,7 @@ class ArquivosController < ApplicationController
     per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
     @page = [ params[:page].to_i, 1 ].max
 
-    base = Arquivo.ativos.includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
+    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil
     @page = @page.clamp(1, [ @total_pages, 1 ].max)

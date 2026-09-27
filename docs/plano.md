@@ -109,7 +109,9 @@ A conta é da pessoa; o acesso a cada empresa é um vínculo com um ou mais perf
 - **Admin:** administra o dia a dia: usuários, perfis, configurações, catálogo e aprovação de atualizações. Não mexe em cobrança, não encerra a empresa, não restaura excluídos.
 - Se a empresa ficar sem dono acessível, a recuperação é feita pelo suporte, com verificação de identidade.
 
-**Perfis fixos, combináveis no mesmo vínculo** (as permissões somam; empresa de uma pessoa só tem o dono com tudo):
+**Atualizado em 27/09/2026 — funções editáveis pelo dono.** Os perfis fixos abaixo viraram o **ponto de partida** de uma política que o dono edita na tela Funções: uma grade área × função com os níveis — / Ver / Editar / Excluir (cada nível inclui os anteriores), mais ações especiais. O dono também cria funções novas (no chão de fábrica, vários funcionários usam a mesma função). Cada pessoa tem **uma função**, e pode receber **acessos extras** que só aumentam o que a função dá. A Lixeira entrou como área (— / Ver / Restaurar), liberada pelo dono a quem ele quiser. O dono tem tudo e sua função não é editável; editar funções é só do dono. Evolução prevista: agrupar funções por **setor**. Motor próprio (sem Oso, cuja política fica num serviço externo, nem Action Policy, cujas regras ficam em código); se as regras por registro crescerem (cliente final), o motor pode mudar por baixo da classe `Autorizacao`.
+
+**Perfis fixos, combináveis no mesmo vínculo** (as permissões somam; empresa de uma pessoa só tem o dono com tudo) — a grade inicial das funções:
 
 | Ação | Dono | Admin | Atendimento | Designer | Produção | Cliente final |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -209,11 +211,13 @@ Concluída em 26/09/2026. Decisões desta etapa:
 
 **Etapa 0.5 — Autenticação e perfis.** Se não existir, implementar login local (gerador de autenticação do Rails 8, com `bcrypt`) e perfis: os perfis fixos da seção Usuários e permissões, combináveis no mesmo vínculo. Modelar desde já pessoa e vínculo (pessoa × empresa × perfis) e o registro de aprovação de arte, prevendo a ligação com a conta na nuvem (`cloud_user_uuid` opcional).
 
-Dividida em três PRs (decidido em 27/09/2026):
+Dividida em quatro PRs (decidido em 27/09/2026; eram três, a política editável dividiu o antigo 2/3):
 
 - **1/3 — Login e modelo de acesso** (concluída em 27/09/2026): login por e-mail e senha; `User` (a "pessoa" do plano; o nome em inglês foi escolhido para seguir o gerador do Rails), `Empresa` (uma por instância) e `Vinculo` com perfis; primeiro acesso por uma tela de configuração que cria a empresa e o primeiro dono e depois se fecha; os registros de autoria passam a guardar o usuário (além do IP). Sem recuperação de senha por e-mail: dono ou admin redefine (2/3); o e-mail vem com a conta na nuvem (Etapa 7.1).
-- **2/3 — Permissões:** a tabela de perfis aplicada no servidor e na tela; página de usuários (convidar, perfis, redefinir senha); restaurar excluídos só pelo dono; cliente final vendo só o que é dele.
-- **3/3 — Aprovação de arte:** o registro formal e o estado de cada arte no pedido.
+- **2/4 — Política** (concluída em 27/09/2026): funções editáveis pelo dono (grade de níveis por área + ações especiais, criar e excluir funções), aplicadas no servidor (403) e na tela (menus e botões). As funções padrão (Dono, Admin, Atendimento, Designer, Produção) seguem a tabela acima.
+- **3/4 — Usuários:** tela de usuários com função, acessos extras, senha provisória (troca no próximo login) e desativação.
+- **4/4 — Aprovação de arte:** o registro formal e o estado de cada arte no pedido.
+- **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira etapa própria antes do beta; setores, depois.
 
 
 **Etapa 0.6 — Trabalho pesado restante fora do request.** A auditoria (Etapa 0.2) achou, além do upload, trabalho pesado que ainda roda no request: o `MoldMatchService` (ImageMagick) ao escolher o modelo de uma arte, as prévias dos tamanhos na organização do DXF e a extração do DXF de um tamanho no primeiro download. Levar para o Solid Queue com o mesmo padrão da Etapa 0.3 (estado visível e atualização da tela por broadcast).

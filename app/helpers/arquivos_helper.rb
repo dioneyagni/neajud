@@ -1,4 +1,11 @@
 module ArquivosHelper
+  # Whether the edit controls of an arquivo page show: Artes or, for a corte,
+  # Catálogo at "editar" (the server checks the same in ArquivosController).
+  # Usage: <% if pode_editar_arquivo?(@arquivo) %>…<% end %>
+  def pode_editar_arquivo?(arquivo)
+    pode?(arquivo.area_de_acesso, :editar)
+  end
+
   def format_time(seconds)
     return "0:00" unless seconds
 

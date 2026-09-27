@@ -19,14 +19,15 @@ RSpec.describe User do
     expect(build(:user, cloud_user_uuid: "cloud-1")).not_to be_valid
   end
 
-  describe "#perfis" do
-    it "returns the perfis of its vínculo with the instance's empresa" do
-      vinculo = create(:vinculo, perfis: %w[designer producao])
-      expect(vinculo.user.perfis).to eq(%w[designer producao])
+  describe "#autorizacao" do
+    it "comes from its vínculo's função" do
+      vinculo = create(:vinculo, funcao: create(:funcao, niveis: { "artes" => 2 }))
+      expect(vinculo.user.autorizacao.pode?(:artes, :editar)).to be true
+      expect(vinculo.user.autorizacao.pode?(:artes, :excluir)).to be false
     end
 
-    it "is empty without a vínculo" do
-      expect(create(:user).perfis).to eq([])
+    it "allows nothing without a vínculo" do
+      expect(create(:user).autorizacao.pode?(:pedidos, :ver)).to be false
     end
   end
 end

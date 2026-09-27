@@ -1,4 +1,7 @@
 class ModelosController < ApplicationController
+  exige :catalogo, :ver, only: %i[index show search for_client]
+  exige :catalogo, :editar, only: %i[create update update_peca_config]
+  exige :catalogo, :excluir, only: :destroy
   before_action :set_modelo, only: %i[show update destroy update_peca_config]
 
   def index

@@ -2713,3 +2713,51 @@ section {
 .header-user-sair {
   margin: 0;
 }
+
+/* Etapa 0.5 (2/4): the Funções permission grid. */
+.funcoes-intro {
+  color: #5f6368;
+}
+
+.funcoes-nova {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.funcoes-scroll {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.funcoes-tabela th[scope="row"] {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.funcao-nome {
+  width: 9rem;
+}
+
+.funcao-dono-tudo {
+  color: #5f6368;
+  font-style: italic;
+}
+
+.funcoes-secao th {
+  background: #f1f3f4;
+  text-align: left;
+}
+
+.tipo-corte-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Permission flags on <body> (layout): broadcast-rendered cards can't check them. */
+body[data-pode-adicionar-ao-pedido="false"] .btn-add-to-order,
+body[data-pode-excluir-arquivos="false"] [data-batch-select-target="checkbox"],
+body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
+  display: none;
+}

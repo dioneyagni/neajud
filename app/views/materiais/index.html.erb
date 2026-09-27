@@ -4,7 +4,9 @@
   <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
     <%= @materiais.count %> registered materials
   </span>
-  <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary", style: "margin-left:auto;" %>
+  <% if pode?(:estoque, :editar) %>
+    <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary", style: "margin-left:auto;" %>
+  <% end %>
 </div>
 
 <%# Stock summary %>

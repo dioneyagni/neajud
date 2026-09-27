@@ -1,4 +1,7 @@
 class PecasController < ApplicationController
+  exige :catalogo, :ver, only: %i[index search for_cascade]
+  exige :catalogo, :editar, only: %i[new create edit update]
+  exige :catalogo, :excluir, only: :destroy
   before_action :set_peca, only: %i[edit update destroy]
 
   def index

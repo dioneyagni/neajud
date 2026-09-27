@@ -2,9 +2,12 @@ Rails.application.routes.draw do
   resource :session, only: %i[new create destroy]
   get "configuracao" => "configuracao#new", as: :configuracao
   post "configuracao" => "configuracao#create"
+  resources :funcoes, only: %i[index create destroy], param: :uuid do
+    collection { patch :atualizar }
+  end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|modelos|moldes|pecas/ }
+       constraints: { tipo: /arquivos|pedidos|clients|modelos|moldes|pecas|funcoes/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do
