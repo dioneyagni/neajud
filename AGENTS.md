@@ -655,6 +655,11 @@ vanishing mid-spec, not real failures. Run them one after the other.
 - Running one spec by hand:
   `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
   `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).
+- **Restart the dev server after changing `config/initializers/`, the
+  Gemfile or `config/*.yml`** — code reloading doesn't cover them. Example
+  (Sep 2026): `inflect.irregular "funcao", "funcoes"` was added while the dev
+  server ran; it kept looking for a table `funcaos` and every page returned
+  500 until restarted (RSpec and E2E boot fresh, so they didn't catch it).
 - Before trusting what `localhost:<port>` shows, check which environment is
   behind it: `tr '\0' '\n' < /proc/$(lsof -t -iTCP:3000 -sTCP:LISTEN)/environ | grep RAILS_ENV`
   (empty = development).
