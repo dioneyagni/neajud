@@ -95,6 +95,29 @@ RSpec.describe MoldMatchService do
       end
     end
 
+    # Regression (28/09/2026): a molde shared by several modelos, each with its
+    # own corte. An arte of modelo 28-29 got the tamanho of 21-24's corte,
+    # which matched better — it must only look at its modelo's cortes.
+    context "when the molde is shared by several modelos" do
+      it "only considers the cortes linked to the arte's modelo" do
+        molde = create(:molde)
+        client = create(:client)
+        outro_modelo = create(:modelo, molde: molde, client: client, nome: "21-24")
+        modelo = create(:modelo, molde: molde, client: client, nome: "28-29")
+        arte = arte_with_preview
+        arte.update!(client_id: client.id, modelo_id: modelo.id)
+
+        do_outro = corte_with_tamanhos(molde_id: molde.id, preview_filename: "outro.png",
+          tamanhos: [ { nome: "Exato do outro", width_mm: 100, height_mm: 50 } ])
+        do_outro.modelos << outro_modelo
+        do_meu = corte_with_tamanhos(molde_id: molde.id, preview_filename: "meu.png",
+          tamanhos: [ { nome: "Do meu modelo", width_mm: 106, height_mm: 53 } ])
+        do_meu.modelos << modelo
+
+        expect(described_class.call(arte.reload).nome).to eq("Do meu modelo")
+      end
+    end
+
     context "when dimensions match" do
       it "returns the tamanho with closest dimensions" do
         molde = create(:molde)

@@ -94,9 +94,34 @@ class Arquivo < ApplicationRecord
     corte&.peca || peca
   end
 
+  # Organized cortes of a modelo: the ones linked to it (arquivo_modelos).
+  # Several modelos share a molde, each with its own cortes (e.g. Tenis Baixo
+  # → 19-20-25, 21-24, 28-29); taking every corte of the molde gave an arte of
+  # 28-29 the tamanho of 21-24's corte (bug found 28/09/2026). Only when no
+  # corte is linked to the modelo, the molde's cortes.
+  # Usage: Arquivo.cortes_do_modelo(arte.modelo)
+  def self.cortes_do_modelo(modelo)
+    return none unless modelo&.molde_id
+
+    organizados = ativos.where(organized: true)
+    ligados = organizados.joins(:arquivo_modelos).where(arquivo_modelos: { modelo_id: modelo.id })
+    ligados.exists? ? ligados : organizados.where(molde_id: modelo.molde_id)
+  end
+
+  # This arte's corte through its modelo: the one of its own peça when it has
+  # one, else the first of the modelo's cortes.
   def corte_via_modelo
-    return nil unless modelo&.molde
-    Arquivo.ativos.where(organized: true, molde_id: modelo.molde_id).first
+    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+    (peca_id && cortes.find { |corte| corte.peca_id == peca_id }) || cortes.first
+  end
+
+  # Like corte_via_modelo, but nil when it would be a guess: the modelo has
+  # several cortes (lateral, língua…) and the arte has no peça to pick one.
+  def corte_inequivoco_via_modelo
+    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+    return cortes.first if cortes.one?
+
+    peca_id && cortes.find { |corte| corte.peca_id == peca_id }
   end
 
   def artes_vinculadas
