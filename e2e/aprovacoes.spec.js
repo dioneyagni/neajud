@@ -1,6 +1,7 @@
-// Etapa 0.5 (4/4): registering a client's approval of an arte, from a pedido
-// (returning there) and from the arte page, with an optional attachment;
-// a new version waits again; cancelling keeps the history.
+// Etapa 0.5 (4/4): an arte shows nothing until someone sends it for approval
+// (changed before merge, 28/09/2026); then its approval is registered from a
+// pedido (returning there) or the arte page, with an optional attachment;
+// cancelling keeps the history.
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
@@ -42,7 +43,20 @@ runSpec("Aprovações E2E Tests", async ({ page, test }) => {
     pedidoUuid = added.pedido_uuid;
   });
 
-  await test("The pedido shows the arte waiting for approval", async () => {
+  // Not sent yet: no "waiting" badge and no register button in the pedido.
+  await test("Before it is sent, the pedido shows no approval badge or button", async () => {
+    await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
+    await page.locator(".pedido-peca").first().waitFor();
+    if ((await page.locator(".badge-aprovacao").count()) !== 0) throw new Error("Approval badge shown before sending");
+    if ((await page.locator("a.pedido-peca-aprovar").count()) !== 0) throw new Error("Register button shown before sending");
+  });
+
+  await test("Send for approval on the arte page; the pedido then shows it waiting", async () => {
+    await page.goto(`${BASE_URL}/arquivos/${arteUuid}`);
+    await waitForText(page, "Not sent for approval.");
+    await page.click('#aprovacao-section button:has-text("Send for approval")');
+    await waitForText(page, "sent for approval.");
+    await page.locator('#aprovacao-section[data-estado="aguardando"]').waitFor();
     await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     await waitForText(page, "Aguardando aprovação");
   });
@@ -73,7 +87,7 @@ runSpec("Aprovações E2E Tests", async ({ page, test }) => {
     if (!response.ok() || !response.headers()["content-disposition"].includes("attachment")) throw new Error("Attachment is not downloaded as a file");
   });
 
-  await test("Registering without an attachment (optional) and cancelling keeps the history", async () => {
+  await test("Cancelling the approval keeps it in the history; registering again works without an attachment", async () => {
     await page.click('#aprovacao-section button:has-text("Cancel")');
     await waitForText(page, "Approval cancelled");
     await waitForText(page, "Aguardando aprovação");

@@ -49,26 +49,36 @@ RSpec.describe AprovacaoArte do
   describe "the arte's state (Aprovavel)" do
     before { arte.update!(approved_version: v1) }
 
-    it "waits until the version in use is approved" do
-      expect(arte.estado_aprovacao).to eq(:aguardando)
+    def enviar(versao = v1)
+      SolicitacaoAprovacao.create!(arquivo: arte, arquivo_version: versao, user: user)
+    end
+
+    # Changed before merge (28/09/2026): nothing waits until it is sent.
+    it "is not sent by default, waits once sent, and is approved once registered" do
+      expect(arte.estado_aprovacao).to eq(:nao_enviada)
+      enviar
+      expect(arte.reload.estado_aprovacao).to eq(:aguardando)
       aprovacao = aprovar
       expect(arte.reload.estado_aprovacao).to eq(:aprovada)
       expect(arte.aprovacao_vigente).to eq(aprovacao)
     end
 
-    # Approvals are per version: the client approved what they saw.
-    it "a new version waits again, noting an earlier one was approved" do
+    # Requests and approvals are per version: the client saw that version.
+    it "a new version starts over (not sent), noting an earlier one was approved" do
+      enviar
       aprovar
       v2 = create(:arquivo_version, arquivo: arte, version_number: 2, status: :processed)
       arte.update!(approved_version: v2)
-      expect(arte.reload.estado_aprovacao).to eq(:aguardando)
+      expect(arte.reload.estado_aprovacao).to eq(:nao_enviada)
       expect(arte.aprovada_versao_anterior?).to be true
     end
 
-    it "a cancelled approval doesn't count" do
+    it "cancelling the approval goes back to waiting; cancelling the request to not sent" do
+      solicitacao = enviar
       aprovar.cancelar!(por: user)
       expect(arte.reload.estado_aprovacao).to eq(:aguardando)
-      expect(arte.aprovada_versao_anterior?).to be false
+      solicitacao.cancelar!(por: user)
+      expect(arte.reload.estado_aprovacao).to eq(:nao_enviada)
     end
   end
 end

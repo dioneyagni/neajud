@@ -1,5 +1,6 @@
 # Registers a client's approval of the arte's version in use (Etapa 0.5,
-# 4/4), with the channel and an optional attachment. All or nothing: a bad
+# 4/4), with the channel and an optional attachment. Only once the version
+# was sent for approval (SolicitacaoAprovacao) — it is "aguardando". All or nothing: a bad
 # attachment saves no approval.
 #
 # Usage: aprovacao = RegistrarAprovacaoService.call(arte, user: Current.user,
@@ -11,6 +12,7 @@ class RegistrarAprovacaoService
   end
 
   def initialize(arte, user, dados, anexo)
+    @arte = arte
     @anexo = anexo
     @aprovacao = AprovacaoArte.new(
       arquivo: arte, arquivo_version: arte.approved_version, user: user,
@@ -22,6 +24,7 @@ class RegistrarAprovacaoService
   def call
     @aprovacao.validate
     @aprovacao.errors.add(:arquivo_version, "missing: the arte has no version yet") if @aprovacao.arquivo_version.nil?
+    @aprovacao.errors.add(:base, "#{@arte.filename} is #{@arte.rotulo_estado_aprovacao}; send it for approval first") unless @arte.estado_aprovacao == :aguardando
     @aprovacao.errors.add(:anexo, @anexo.erro) if @anexo.erro
     return @aprovacao if @aprovacao.errors.any?
 

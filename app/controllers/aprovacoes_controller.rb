@@ -8,6 +8,10 @@ class AprovacoesController < ApplicationController
   before_action :set_aprovacao, only: %i[cancelar anexo]
 
   def new
+    unless @arte.estado_aprovacao == :aguardando
+      return redirect_to arquivo_path(@arte), alert: "#{@arte.filename} is #{@arte.rotulo_estado_aprovacao}; send it for approval first."
+    end
+
     @aprovacao = AprovacaoArte.new(arquivo: @arte, aprovado_em: Date.current, canal: "whatsapp")
   end
 

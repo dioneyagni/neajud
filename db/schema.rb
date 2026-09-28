@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_160000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -388,6 +388,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_120000) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "solicitacoes_aprovacao", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.integer "arquivo_version_id", null: false
+    t.datetime "cancelada_em"
+    t.integer "cancelada_por_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.string "uuid", null: false
+    t.index ["arquivo_id"], name: "index_solicitacoes_aprovacao_on_arquivo_id"
+    t.index ["arquivo_version_id"], name: "index_solicitacoes_aprovacao_on_arquivo_version_id"
+    t.index ["user_id"], name: "index_solicitacoes_aprovacao_on_user_id"
+    t.index ["uuid"], name: "index_solicitacoes_aprovacao_on_uuid", unique: true
+  end
+
   create_table "tamanhos", force: :cascade do |t|
     t.decimal "area_mm2", precision: 10, scale: 2
     t.integer "arquivo_id", null: false
@@ -477,6 +492,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_120000) do
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
   add_foreign_key "sessions", "users"
+  add_foreign_key "solicitacoes_aprovacao", "arquivo_versions"
+  add_foreign_key "solicitacoes_aprovacao", "arquivos"
+  add_foreign_key "solicitacoes_aprovacao", "users"
   add_foreign_key "tamanhos", "arquivos"
   add_foreign_key "vinculos", "empresas"
   add_foreign_key "vinculos", "funcoes"

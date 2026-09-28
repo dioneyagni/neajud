@@ -615,9 +615,15 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   channel the client used (`CANAIS`; "outro" needs `canal_detalhe`), the date,
   notes and an optional attachment. Cortes are never approved. Cancelled by
   mistake → `cancelar!` (kept in the history, struck through).
-- `Aprovavel` (in `Arquivo`): `estado_aprovacao` is about the **version in
-  use** (`approved_version`) — a new version waits again
-  (`aprovada_versao_anterior?` tells an older one was approved).
+- **Nothing waits until it is sent** (changed before merge, 28/09/2026):
+  `SolicitacaoAprovacao` = "Enviar para aprovação" for the version in use.
+  `Aprovavel#estado_aprovacao` is `:nao_enviada` (default — no badge, no
+  register button anywhere) → `:aguardando` (sent) → `:aprovada`. Registering
+  an approval is refused unless it is `:aguardando` (service + controller).
+  All of it is per **version in use** (`approved_version`): a new version
+  starts over as not sent (`aprovada_versao_anterior?` tells an older one was
+  approved). Both records share `VersaoDeArte` (version of that arte, artes
+  only) and `Cancelavel` (cancel = kept in the history).
 - ⚠️ **Naming:** `approved_version` / `ArquivoVersion#approved` / the
   `approve_version` route mean **"the version in use"**, not client approval.
   The UI says "Usar esta versão" / "Em uso"; keep "Aprovar/Aprovada" for
@@ -627,11 +633,13 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   `<STORAGE_BASE>/<arquivo uuid>/aprovacoes/<aprovação uuid>.<ext>` — the path
   is rebuilt from uuids + a fixed extension, never read from the column;
   always served as a download (`disposition: "attachment"`).
-- Registered from the arte page ("Client approval" section) or from a pedido
-  (badge + "Registrar aprovação" on each piece); `voltar_para` goes through
-  `url_from`, so it can't redirect to another host.
+- Sent from the arte page ("Client approval" → "Send for approval");
+  registered from there or from a pedido (badge + "Registrar aprovação" on each
+  piece, only while waiting); `voltar_para` goes through `url_from`, so it
+  can't redirect to another host.
 - Portuguese plurals the app routes on need an inflection
-  (`config/initializers/inflections.rb`: materiais, funcoes, aprovacoes) —
+  (`config/initializers/inflections.rb`: materiais, funcoes, aprovacoes,
+  solicitacoes) —
   without it `resources :aprovacoes` generated `new_arquivo_aprovaco_path`.
 
 ## Logical deletion (Etapa 0.4)

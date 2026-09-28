@@ -2815,3 +2815,27 @@ body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
 .usuario-redefinir-senha {
   margin-top: 2rem;
 }
+
+.aprovacao-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.aprovacao-nao-enviada,
+.aprovacao-enviada {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.aprovacao-solicitacoes {
+  color: #5f6368;
+  font-size: 0.85rem;
+  padding-left: 1.2rem;
+}
+
+li.aprovacao--cancelada {
+  color: #9aa0a6;
+}

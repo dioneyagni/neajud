@@ -5,6 +5,7 @@ RSpec.describe RegistrarAprovacaoService do
   let(:arte) do
     create(:arquivo, category: "artes").tap do |a|
       a.update!(approved_version: create(:arquivo_version, arquivo: a, version_number: 1, status: :processed))
+      SolicitacaoAprovacao.create!(arquivo: a, arquivo_version: a.approved_version, user: user)
     end
   end
   let(:dados) { { canal: "whatsapp", aprovado_em: "2026-09-20", observacao: "ok pelo zap" } }
@@ -41,6 +42,12 @@ RSpec.describe RegistrarAprovacaoService do
     grande = upload("\x89PNG\r\n\x1A\n".b + ("0" * (20.megabytes + 1)), "print.png")
     aprovacao = described_class.call(arte, user: user, dados: dados, anexo: grande)
     expect(aprovacao.errors[:anexo].first).to include("expected at most 20 MB")
+  end
+
+  it "refuses an arte that was not sent for approval" do
+    arte.solicitacoes_aprovacao.each { |s| s.cancelar!(por: user) }
+    aprovacao = described_class.call(arte.reload, user: user, dados: dados)
+    expect(aprovacao.errors[:base]).to include("#{arte.filename} is not sent for approval; send it for approval first")
   end
 
   it "defaults the date to today" do

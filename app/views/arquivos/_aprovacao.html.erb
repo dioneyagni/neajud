@@ -1,12 +1,41 @@
-<%# Client approval of this arte (Etapa 0.5, 4/4): the state of the version in
-    use and the history of every approval, cancelled ones included. %>
-<div class="stamp-detail-section stamp-detail-section--full" id="aprovacao-section">
-  <h3 class="section-heading-with-action">Client approval
-    <% if pode_acao?(:aprovar_arte) && !arquivo.excluido? && arquivo.approved_version %>
-      <%= link_to "Register approval", new_arquivo_aprovacao_path(arquivo, voltar_para: arquivo_path(arquivo)), class: "btn btn-sm btn-primary" %>
+<%# Client approval of this arte (Etapa 0.5, 4/4): nothing waits until someone
+    sends the version in use for approval; then it can be registered. History
+    of requests and approvals, cancelled ones included. %>
+<% pode_aprovar = pode_acao?(:aprovar_arte) && !arquivo.excluido? && arquivo.approved_version %>
+<% estado = arquivo.estado_aprovacao %>
+<div class="stamp-detail-section stamp-detail-section--full" id="aprovacao-section" data-estado="<%= estado %>">
+  <h3>Client approval</h3>
+  <div class="aprovacao-estado">
+    <% if estado == :nao_enviada %>
+      <span class="aprovacao-nao-enviada">Not sent for approval.</span>
+      <% if pode_aprovar %>
+        <%= button_to "Send for approval", arquivo_solicitacoes_path(arquivo), method: :post, class: "btn btn-sm btn-primary",
+              form: { style: "display: inline-block;" } %>
+      <% end %>
+    <% else %>
+      <%= selo_aprovacao(arquivo) %>
     <% end %>
-  </h3>
-  <p><%= selo_aprovacao(arquivo) %></p>
+    <% if estado == :aguardando %>
+      <% solicitacao = arquivo.solicitacao_vigente %>
+      <span class="aprovacao-enviada">sent <%= l(solicitacao.created_at.to_date, format: "%d/%m/%Y") %> by <%= solicitacao.user.nome %></span>
+      <% if pode_aprovar %>
+        <%= link_to "Register approval", new_arquivo_aprovacao_path(arquivo, voltar_para: arquivo_path(arquivo)), class: "btn btn-sm btn-primary" %>
+        <%= button_to "Cancel request", cancelar_solicitacao_path(solicitacao), method: :post, class: "btn btn-sm btn-secondary",
+              form: { style: "display: inline-block;" }, data: { turbo_confirm: "Cancel sending it for approval? It stays in the history." } %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if arquivo.solicitacoes_aprovacao.any? %>
+    <ul class="aprovacao-solicitacoes">
+      <% arquivo.solicitacoes_aprovacao.each do |solicitacao| %>
+        <li class="<%= "aprovacao--cancelada" if solicitacao.cancelada? %>">
+          v<%= solicitacao.arquivo_version.version_number %> sent for approval <%= l(solicitacao.created_at.to_date, format: "%d/%m/%Y") %> by <%= solicitacao.user.nome %>
+          <% if solicitacao.cancelada? %> — cancelled by <%= solicitacao.cancelada_por&.nome %><% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
 
   <% if arquivo.aprovacoes_arte.any? %>
     <table class="time-history-table aprovacao-historico">
