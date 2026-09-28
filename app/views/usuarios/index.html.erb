@@ -1,0 +1,36 @@
+<h2>Usuários</h2>
+
+<div class="clients-toolbar">
+  <%= link_to "+ New user", new_usuario_path, class: "btn btn-primary" %>
+</div>
+
+<table class="clients-table usuarios-tabela">
+  <thead>
+    <tr><th>Name</th><th>Email</th><th>Função</th><th>Extra accesses</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% @usuarios.each do |usuario| %>
+      <% vinculo = usuario.vinculos.first %>
+      <tr class="usuario-linha <%= "usuario-linha--desativado" unless usuario.ativo? %>" data-email="<%= usuario.email_address %>">
+        <td><%= usuario.nome %><% if usuario.trocar_senha? %> <span class="badge-pending usuario-senha-provisoria">provisional password</span><% end %></td>
+        <td><%= usuario.email_address %></td>
+        <td><%= vinculo&.funcao&.nome || "—" %></td>
+        <td><%= resumo_acessos_extras(vinculo) %></td>
+        <td><%= usuario.ativo? ? "active" : "deactivated" %></td>
+        <td class="clients-table-actions">
+          <% if gestao_de_usuarios.pode_gerir?(usuario) %>
+            <% if usuario.ativo? %>
+              <%= link_to "Edit", edit_usuario_path(usuario), class: "btn btn-secondary btn-sm" %>
+              <% unless usuario == Current.user %>
+                <%= button_to "Deactivate", desativar_usuario_path(usuario), method: :post, form: { style: "display: inline-block;" },
+                      data: { turbo_confirm: "Deactivate #{usuario.nome}? They won't be able to sign in." }, class: "btn btn-danger btn-sm" %>
+              <% end %>
+            <% else %>
+              <%= button_to "Reactivate", reativar_usuario_path(usuario), method: :post, form: { style: "display: inline-block;" }, class: "btn btn-secondary btn-sm" %>
+            <% end %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

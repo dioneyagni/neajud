@@ -215,7 +215,7 @@ Dividida em quatro PRs (decidido em 27/09/2026; eram três, a política editáve
 
 - **1/3 — Login e modelo de acesso** (concluída em 27/09/2026): login por e-mail e senha; `User` (a "pessoa" do plano; o nome em inglês foi escolhido para seguir o gerador do Rails), `Empresa` (uma por instância) e `Vinculo` com perfis; primeiro acesso por uma tela de configuração que cria a empresa e o primeiro dono e depois se fecha; os registros de autoria passam a guardar o usuário (além do IP). Sem recuperação de senha por e-mail: dono ou admin redefine (2/3); o e-mail vem com a conta na nuvem (Etapa 7.1).
 - **2/4 — Política** (concluída em 27/09/2026): funções editáveis pelo dono (grade de níveis por área + ações especiais, criar e excluir funções), aplicadas no servidor (403) e na tela (menus e botões). As funções padrão (Dono, Admin, Atendimento, Designer, Produção) seguem a tabela acima.
-- **3/4 — Usuários:** tela de usuários com função, acessos extras, senha provisória (troca no próximo login) e desativação.
+- **3/4 — Usuários** (concluída em 27/09/2026): tela de usuários com função, acessos extras (só aumentam o que a função dá), senha provisória (a pessoa escolhe a própria no primeiro login), redefinir senha e desativar/reativar (nunca excluir). Regras: só o dono mexe em donos e dá a função Dono; ninguém dá mais acesso do que tem; a empresa sempre mantém um dono ativo; ninguém desativa a si mesmo. Qualquer pessoa troca a própria senha pelo nome no cabeçalho.
 - **4/4 — Aprovação de arte:** o registro formal e o estado de cada arte no pedido.
 - **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira etapa própria antes do beta; setores, depois.
 

@@ -1,0 +1,14 @@
+<div class="usuario-pagina">
+  <h2>Edit <%= @usuario.nome %></h2>
+  <%= render "form", usuario: @usuario, url: usuario_path(@usuario), method: :patch, submit_label: "Save" %>
+
+  <%# Separate form: nested forms break the outer one (AGENTS.md). %>
+  <section class="usuario-redefinir-senha">
+    <h3>Reset password</h3>
+    <p class="auth-intro">Sets a new provisional password and signs <%= @usuario.nome %> out; they must choose their own at the next sign-in.</p>
+    <%= form_with url: redefinir_senha_usuario_path(@usuario), method: :post, class: "funcoes-nova" do |form| %>
+      <%= form.text_field :senha_provisoria, required: true, minlength: 8, maxlength: 72, autocomplete: "off", placeholder: "New provisional password", "aria-label": "New provisional password" %>
+      <%= form.submit "Reset password", class: "btn btn-secondary" %>
+    <% end %>
+  </section>
+</div>

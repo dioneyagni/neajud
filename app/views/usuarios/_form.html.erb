@@ -1,0 +1,61 @@
+<% vinculo = usuario.vinculos.first %>
+<% funcao_atual = vinculo&.funcao %>
+<% extras = vinculo&.acessos_extras.to_h %>
+
+<% if usuario.errors.any? %>
+  <ul class="auth-errors">
+    <% usuario.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+  </ul>
+<% end %>
+
+<%= form_with scope: :usuario, url: url, method: method, class: "client-form usuario-form" do |form| %>
+  <div class="client-field">
+    <%= form.label :nome, "Name" %>
+    <%= form.text_field :nome, value: usuario.nome, required: true %>
+  </div>
+  <div class="client-field">
+    <%= form.label :email_address, "Email" %>
+    <%= form.email_field :email_address, value: usuario.email_address, required: true %>
+  </div>
+  <% if usuario.new_record? %>
+    <div class="client-field">
+      <%= form.label :senha_provisoria, "Provisional password (they change it at the first sign-in)" %>
+      <%= form.text_field :senha_provisoria, required: true, minlength: 8, maxlength: 72, autocomplete: "off" %>
+    </div>
+  <% end %>
+  <div class="client-field">
+    <%= form.label :funcao_uuid, "Função" %>
+    <%= form.select :funcao_uuid, options_for_select(funcoes_para_atribuir.map { |f| [ f.nome, f.uuid ] }, funcao_atual&.uuid),
+          { include_blank: "Choose…" }, required: true %>
+  </div>
+
+  <h4>Extra accesses <small class="auth-intro">— only raise what the função gives</small></h4>
+  <table class="clients-table usuario-extras">
+    <thead><tr><th>Área</th><th>Função gives</th><th>Extra</th></tr></thead>
+    <tbody>
+      <% Autorizacao::AREAS.each do |area| %>
+        <tr data-area="<%= area %>">
+          <th scope="row"><%= FuncoesHelper::ROTULOS_AREA.fetch(area) %></th>
+          <td class="usuario-extras-funcao"><%= funcao_atual ? rotulo_de_nivel(area, funcao_atual.dono? ? Autorizacao.nivel_maximo(area) : funcao_atual.niveis.to_h[area].to_i) : "—" %></td>
+          <td>
+            <%= select_tag "usuario[acessos_extras][niveis][#{area}]", options_for_select(opcoes_de_nivel(area), extras.dig("niveis", area).to_i),
+                  "aria-label": "Extra #{area}" %>
+          </td>
+        </tr>
+      <% end %>
+      <% Autorizacao::ACOES.each do |acao| %>
+        <tr data-acao="<%= acao %>">
+          <th scope="row"><%= FuncoesHelper::ROTULOS_ACAO.fetch(acao) %></th>
+          <td class="usuario-extras-funcao"><%= funcao_atual && (funcao_atual.dono? || funcao_atual.acoes.include?(acao)) ? "✓" : "—" %></td>
+          <td>
+            <%= hidden_field_tag "usuario[acessos_extras][acoes][]", "", id: nil %>
+            <%= check_box_tag "usuario[acessos_extras][acoes][]", acao, Array(extras["acoes"]).include?(acao), id: "extra-#{acao}", "aria-label": "Extra #{acao}" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%= form.submit submit_label, class: "btn btn-primary" %>
+  <%= link_to "Cancel", usuarios_path, class: "btn btn-secondary" %>
+<% end %>

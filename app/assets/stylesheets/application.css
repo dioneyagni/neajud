@@ -2761,3 +2761,20 @@ body[data-pode-excluir-arquivos="false"] [data-batch-select-target="checkbox"],
 body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
   display: none;
 }
+
+/* Etapa 0.5 (3/4): Usuários. */
+.usuario-pagina {
+  max-width: 640px;
+}
+
+.usuario-linha--desativado td {
+  color: #9aa0a6;
+}
+
+.usuario-extras-funcao {
+  color: #5f6368;
+}
+
+.usuario-redefinir-senha {
+  margin-top: 2rem;
+}

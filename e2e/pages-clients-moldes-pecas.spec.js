@@ -1,4 +1,5 @@
 const { BASE_URL, runSpec } = require("./support/runner");
+const { waitForText } = require("./support/wait");
 
 runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
   // ── Clients page CRUD ──
@@ -312,23 +313,19 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/pecas`);
     await page.waitForSelector(".clients-table", { timeout: 5000 });
 
-    const editLink = await page.$('a[href*="/edit"]');
-    if (!editLink) throw new Error("Edit link not found");
+    // Scoped to the table: the header's own name also links to /senha/edit.
+    const editLink = page.locator('.clients-table a[href*="/edit"]').first();
+    if ((await editLink.count()) === 0) throw new Error("Edit link not found");
 
     await editLink.click();
-    await page.waitForTimeout(500);
+    await page.waitForURL(/\/pecas\/\d+\/edit/);
 
-    const nomeInput = await page.$("input[name='peca[nome]']");
-    if (!nomeInput) throw new Error("Name input not found");
-
+    const nomeInput = page.locator("input[name='peca[nome]']");
     const currentName = await nomeInput.inputValue();
     await nomeInput.fill(`${currentName} Edited`);
 
     await page.click("input[type='submit']");
-    await page.waitForTimeout(1000);
-
-    const body = await page.textContent("body");
-    if (!body.includes("updated")) throw new Error(`Peca not updated: "${body.slice(0, 200)}"`);
+    await waitForText(page, "Peca updated.");
   });
 
   await test("Pecas page: delete a peca", async () => {
