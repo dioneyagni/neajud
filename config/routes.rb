@@ -51,6 +51,7 @@ Rails.application.routes.draw do
       get :preview
       get :composicao
       get :processamento
+      get :busca_tamanho
       get :download
       post :upload_version
       patch :approve_version

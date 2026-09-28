@@ -44,6 +44,24 @@ class Arquivo < ApplicationRecord
     category == "corte"
   end
 
+  # A search older than this is stale (the job died): the page stops waiting.
+  BUSCA_DE_TAMANHO_EXPIRA = 10.minutes
+
+  # TamanhoAutoAssignJob is looking for this arte's tamanho (Etapa 0.6).
+  # Usage: <% if arquivo.buscando_tamanho? %>Procurando tamanho…<% end %>
+  def buscando_tamanho?
+    buscando_tamanho_desde.present? && buscando_tamanho_desde > BUSCA_DE_TAMANHO_EXPIRA.ago
+  end
+
+  # Queues the automatic tamanho search, unless a tamanho is already set.
+  # Usage: arte.buscar_tamanho_em_fila!
+  def buscar_tamanho_em_fila!
+    return if tamanho_id
+
+    update_column(:buscando_tamanho_desde, Time.current)
+    TamanhoAutoAssignJob.perform_later(id)
+  end
+
   # Permission área (Autorizacao): cortes (DXF) are Catálogo, the rest Artes.
   # Usage: autorizacao.pode?(arquivo.area_de_acesso, :editar)
   def area_de_acesso

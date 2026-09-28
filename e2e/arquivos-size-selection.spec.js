@@ -217,6 +217,11 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       const sizeSectionAfterModelo = page.locator("#size-selection-section");
       await sizeSectionAfterModelo.waitFor({ state: "visible", timeout: 5000 });
 
+      // Etapa 0.6: the tamanho search runs in the queue; "Procurando tamanho…"
+      // must go away by itself (broadcast refresh or the polling safety net).
+      await page.waitForFunction(() => !document.querySelector(".busca-tamanho"), null, { timeout: 60000 })
+        .catch(() => { throw new Error('"Procurando tamanho…" still shown after 60s'); });
+
       // ── Create organized arquivo and organize it ──
       await page.goto(BASE_URL);
       await page.waitForSelector('input[type="file"]', { timeout: 5000 });

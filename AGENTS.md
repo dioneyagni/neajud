@@ -757,6 +757,16 @@ version's status changes):
 - the arquivo page and the pedidos using the arte morph-refresh **only when
   processing ends** — never mid-edit.
 
+**Automatic tamanho search (Etapa 0.6, 1/3):** picking an arte's modelo
+(`update_modelo`) no longer runs `MoldMatchService` in the request (measured up
+to 37 s on dev data): `Arquivo#buscar_tamanho_em_fila!` sets
+`buscando_tamanho_desde` and enqueues `TamanhoAutoAssignJob`, which always
+clears it and `broadcast_refresh`es the arte page (found or not). Meanwhile
+Size Selection shows "Procurando tamanho…" with the `processamento`
+controller polling `GET /arquivos/:uuid/busca_tamanho.json`; a mark older than
+10 minutes counts as over (a dead job never leaves the page waiting).
+`TamanhoAutoAssignJob.matcher` is injectable (`FakeMoldMatcher` in specs).
+
 Gotchas found while building it:
 
 - The worker is a **separate process**: the in-process `async` cable adapter
@@ -837,10 +847,11 @@ The plan renames things; until those stages land, the code keeps its names:
 
 Current code that still differs from the plan — don't copy these patterns into new work:
 
-- **Heavy work still in the request** — uploads are queued since Etapa 0.3, but
-  `MoldMatchService` (in `update_modelo`), the tamanho previews of
+- **Heavy work still in the request** — uploads (Etapa 0.3) and the automatic
+  tamanho search (0.6 1/3) are queued, but the tamanho previews of
   `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
-  (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
+  (`TamanhosController#download`) still run in the request. Target: Etapa 0.6
+  (2/3, 3/3).
 - **No "cliente final"** — the client's own access (seeing only their pedidos
   and artes) needs every query filtered by client. Target: its own etapa
   before the beta.

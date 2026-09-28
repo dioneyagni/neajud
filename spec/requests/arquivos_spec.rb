@@ -278,6 +278,46 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
+  describe "the automatic tamanho search (Etapa 0.6)" do
+    # MoldMatchService took up to 37 s inside this request on dev data.
+    it "update_modelo only queues it and shows Procurando tamanho…" do
+      ActiveJob::Base.queue_adapter = :test
+      arquivo = create(:arquivo, client: create(:client))
+      modelo = create(:modelo, client: arquivo.client)
+      expect {
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }, as: :turbo_stream
+      }.to have_enqueued_job(TamanhoAutoAssignJob).with(arquivo.id)
+      expect(arquivo.reload.buscando_tamanho?).to be true
+      expect(response.body).to include("Procurando tamanho", busca_tamanho_arquivo_path(arquivo, format: :json))
+    ensure
+      ActiveJob::Base.queue_adapter = :inline
+    end
+
+    it "doesn't search when the arte already has a tamanho" do
+      ActiveJob::Base.queue_adapter = :test
+      arquivo = create(:arquivo, tamanho: create(:tamanho, arquivo: create(:arquivo, :corte)))
+      expect {
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: create(:modelo).id }
+      }.not_to have_enqueued_job(TamanhoAutoAssignJob)
+    ensure
+      ActiveJob::Base.queue_adapter = :inline
+    end
+
+    it "busca_tamanho.json says when it is over (the page's polling safety net)" do
+      arquivo = create(:arquivo, buscando_tamanho_desde: Time.current)
+      get busca_tamanho_arquivo_path(arquivo, format: :json)
+      expect(response.parsed_body).to eq("final" => false)
+      arquivo.update_column(:buscando_tamanho_desde, nil)
+      get busca_tamanho_arquivo_path(arquivo, format: :json)
+      expect(response.parsed_body).to eq("final" => true)
+    end
+
+    # A job that died must not leave the page waiting forever.
+    it "treats a search older than 10 minutes as over" do
+      expect(create(:arquivo, buscando_tamanho_desde: 11.minutes.ago).buscando_tamanho?).to be false
+    end
+  end
+
   describe "PATCH /arquivos/:id/update_tamanho" do
     it "assigns a tamanho to an arquivo" do
       arquivo = create(:arquivo)

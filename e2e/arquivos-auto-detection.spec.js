@@ -179,10 +179,21 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         throw new Error(`Setup failed at ${apiOk.step}${apiOk.status ? ": " + apiOk.status : ""}`);
       }
 
-      // Reload to render the post-update state
+      // Etapa 0.6: update_modelo only queues the search (TamanhoAutoAssignJob).
+      // Wait for it to end — the same endpoint the page polls — then reload.
+      // An explicit loop: waitForFunction with an async predicate took the
+      // pending Promise as truthy and returned before the job ran.
+      const buscaTerminou = await page.evaluate(async (uuid) => {
+        for (let i = 0; i < 60; i++) {
+          const r = await fetch(`/arquivos/${uuid}/busca_tamanho.json`, { headers: { Accept: "application/json" } });
+          if ((await r.json()).final) return true;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        return false;
+      }, arteUuid);
+      if (!buscaTerminou) throw new Error("Tamanho search still running after 60s");
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
 
       const body = await page.textContent("body");
 

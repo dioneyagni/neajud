@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show busca_tamanho update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   # Permissions (Etapa 0.5): an arquivo is Artes or, if a corte, Catálogo
@@ -7,7 +7,7 @@ class ArquivosController < ApplicationController
   before_action(only: :index) { exigir!(pode?(:artes, :ver) || pode?(:catalogo, :ver), "artes or catalogo: ver") }
   before_action(only: :create) { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
   before_action(only: :batch_destroy) { exigir!(pode?(:artes, :excluir) || pode?(:catalogo, :excluir), "artes or catalogo: excluir") }
-  before_action(only: %i[show preview composicao processamento version_preview]) { exigir_no_arquivo!(:ver) }
+  before_action(only: %i[show preview composicao processamento busca_tamanho version_preview]) { exigir_no_arquivo!(:ver) }
   before_action(only: %i[update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
@@ -150,7 +150,9 @@ class ArquivosController < ApplicationController
 
     if @arquivo.update(updates)
       @arquivo.reload
-      TamanhoAutoAssignService.call(@arquivo)
+      # Etapa 0.6: the search (up to 37 s) runs in the queue; the page shows
+      # "Procurando tamanho…" and refreshes when it ends.
+      @arquivo.buscar_tamanho_em_fila!
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @arquivo, notice: "Modelo updated." }
@@ -158,6 +160,13 @@ class ArquivosController < ApplicationController
     else
       redirect_to @arquivo, alert: "Could not update modelo: #{@arquivo.errors.full_messages.to_sentence}"
     end
+  end
+
+  # Polling safety net for the tamanho search (processamento_controller.js,
+  # "refresh" mode): the page reloads once it is over.
+  # Usage: GET /arquivos/:uuid/busca_tamanho.json # => { "final": true }
+  def busca_tamanho
+    render json: { final: !@arquivo.buscando_tamanho? }
   end
 
   def update_tamanho
