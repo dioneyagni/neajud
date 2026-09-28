@@ -582,7 +582,7 @@ grid** (`/funcoes`) and creates funções — many workers share one função.
   clientes, artes, catalogo, estoque, lixeira), 0 nenhum · 1 ver · 2 editar
   (create/edit) · 3 excluir; each level includes the lower ones. Lixeira stops
   at 2 = restaurar (`Autorizacao::NIVEL_MAXIMO`). `Funcao#acoes` = special
-  actions (`baixar_producao`, `gerenciar_usuarios`). `Vinculo#acessos_extras`
+  actions (`baixar_producao`, `gerenciar_usuarios`, `aprovar_arte`). `Vinculo#acessos_extras`
   (same shape) can only **raise** a user's levels (UI in 3/4).
 - **Dono** is a system função (`Funcao.dono`): everything, not editable, never
   deleted. Editing funções is dono-only on purpose (it grants permissions).
@@ -604,6 +604,35 @@ grid** (`/funcoes`) and creates funções — many workers share one função.
   controls are hidden by CSS from `<body data-pode-…>` flags in the layout.
 - Tests: `entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: [...])` signs
   in a request spec as a user of such a função.
+
+## Art approval (Etapa 0.5, 4/4)
+
+The client's approval of an arte is a **record, never a gate**: production and
+confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
+
+- `AprovacaoArte` (table `aprovacoes_arte`): one approval of **one version**
+  (`arquivo_version`), registered by a user (action `aprovar_arte`) with the
+  channel the client used (`CANAIS`; "outro" needs `canal_detalhe`), the date,
+  notes and an optional attachment. Cortes are never approved. Cancelled by
+  mistake → `cancelar!` (kept in the history, struck through).
+- `Aprovavel` (in `Arquivo`): `estado_aprovacao` is about the **version in
+  use** (`approved_version`) — a new version waits again
+  (`aprovada_versao_anterior?` tells an older one was approved).
+- ⚠️ **Naming:** `approved_version` / `ArquivoVersion#approved` / the
+  `approve_version` route mean **"the version in use"**, not client approval.
+  The UI says "Usar esta versão" / "Em uso"; keep "Aprovar/Aprovada" for
+  `AprovacaoArte` only.
+- **Attachment** (`AnexoDeAprovacao`): PNG/JPEG/PDF by **first bytes** (no
+  ImageMagick/Ghostscript in the request), ≤ 20 MB, stored at
+  `<STORAGE_BASE>/<arquivo uuid>/aprovacoes/<aprovação uuid>.<ext>` — the path
+  is rebuilt from uuids + a fixed extension, never read from the column;
+  always served as a download (`disposition: "attachment"`).
+- Registered from the arte page ("Client approval" section) or from a pedido
+  (badge + "Registrar aprovação" on each piece); `voltar_para` goes through
+  `url_from`, so it can't redirect to another host.
+- Portuguese plurals the app routes on need an inflection
+  (`config/initializers/inflections.rb`: materiais, funcoes, aprovacoes) —
+  without it `resources :aprovacoes` generated `new_arquivo_aprovaco_path`.
 
 ## Logical deletion (Etapa 0.4)
 
@@ -810,7 +839,8 @@ Current code that still differs from the plan — don't copy these patterns into
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
   use integer ids. Target: UUID on every entity (Etapa 1.1).
-- **No art approval record** yet. Target: Etapa 0.5 (4/4).
+- **Client approval only registered by the team** — "aprovada pelo cliente no
+  sistema" needs the cliente final (its own etapa before the beta).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
   `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).

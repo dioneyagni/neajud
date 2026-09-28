@@ -1,6 +1,7 @@
 ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "material", "materiais"
   inflect.irregular "funcao", "funcoes"
+  inflect.irregular "aprovacao", "aprovacoes"
 end
 
 # These inflection rules are supported but not enabled by default:

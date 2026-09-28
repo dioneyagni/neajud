@@ -1,0 +1,45 @@
+<div class="usuario-pagina aprovacao-pagina">
+  <h2>Register client approval</h2>
+  <p class="auth-intro">
+    <strong><%= @arte.filename %></strong>, version in use
+    <strong>v<%= @arte.approved_version&.version_number %></strong>.
+    It doesn't block production — it records who approved, when and how.
+  </p>
+
+  <% if @aprovacao.errors.any? %>
+    <ul class="auth-errors">
+      <% @aprovacao.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+    </ul>
+  <% end %>
+
+  <%= form_with scope: :aprovacao, url: arquivo_aprovacoes_path(@arte), multipart: true,
+        class: "client-form", data: { turbo: false } do |form| %>
+    <%= hidden_field_tag :voltar_para, params[:voltar_para] %>
+    <fieldset class="aprovacao-canais">
+      <legend>How did the client approve?</legend>
+      <% AprovacaoArte::CANAIS.each do |valor, rotulo| %>
+        <label class="tipo-corte-radio">
+          <%= form.radio_button :canal, valor, checked: @aprovacao.canal == valor %> <%= rotulo %>
+        </label>
+      <% end %>
+    </fieldset>
+    <div class="client-field">
+      <%= form.label :canal_detalhe, "Which channel (when Outro)" %>
+      <%= form.text_field :canal_detalhe, value: @aprovacao.canal_detalhe %>
+    </div>
+    <div class="client-field">
+      <%= form.label :aprovado_em, "Approved on" %>
+      <%= form.date_field :aprovado_em, value: @aprovacao.aprovado_em, required: true %>
+    </div>
+    <div class="client-field">
+      <%= form.label :observacao, "Notes" %>
+      <%= form.text_area :observacao, value: @aprovacao.observacao, rows: 3 %>
+    </div>
+    <div class="client-field">
+      <%= form.label :anexo, "Attachment (optional): print or PDF — PNG, JPEG or PDF, up to 20 MB" %>
+      <%= form.file_field :anexo, accept: ".png,.jpg,.jpeg,.pdf" %>
+    </div>
+    <%= form.submit "Register approval", class: "btn btn-primary" %>
+    <%= link_to "Cancel", voltar_para, class: "btn btn-secondary" %>
+  <% end %>
+</div>

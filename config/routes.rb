@@ -27,7 +27,15 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :aprovacoes, only: [], param: :uuid do
+    member do
+      post :cancelar
+      get :anexo
+    end
+  end
+
   resources :arquivos, only: %i[index create show destroy] do
+    resources :aprovacoes, only: %i[new create]
     member do
       patch :update_time
       patch :update_client

@@ -1,0 +1,42 @@
+<%# Client approval of this arte (Etapa 0.5, 4/4): the state of the version in
+    use and the history of every approval, cancelled ones included. %>
+<div class="stamp-detail-section stamp-detail-section--full" id="aprovacao-section">
+  <h3 class="section-heading-with-action">Client approval
+    <% if pode_acao?(:aprovar_arte) && !arquivo.excluido? && arquivo.approved_version %>
+      <%= link_to "Register approval", new_arquivo_aprovacao_path(arquivo, voltar_para: arquivo_path(arquivo)), class: "btn btn-sm btn-primary" %>
+    <% end %>
+  </h3>
+  <p><%= selo_aprovacao(arquivo) %></p>
+
+  <% if arquivo.aprovacoes_arte.any? %>
+    <table class="time-history-table aprovacao-historico">
+      <thead>
+        <tr><th>Version</th><th>Approved on</th><th>Channel</th><th>Registered by</th><th>Notes</th><th>Attachment</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% arquivo.aprovacoes_arte.each do |aprovacao| %>
+          <tr class="<%= "aprovacao--cancelada" if aprovacao.cancelada? %>">
+            <td>v<%= aprovacao.arquivo_version.version_number %></td>
+            <td><%= l(aprovacao.aprovado_em, format: "%d/%m/%Y") %></td>
+            <td><%= aprovacao.rotulo_canal %></td>
+            <td><%= aprovacao.user.nome %></td>
+            <td><%= aprovacao.observacao %></td>
+            <td>
+              <% if aprovacao.anexo_arquivo.present? %>
+                <%= link_to aprovacao.anexo_nome, anexo_aprovacao_path(aprovacao), data: { turbo: false } %>
+              <% end %>
+            </td>
+            <td>
+              <% if aprovacao.cancelada? %>
+                cancelled by <%= aprovacao.cancelada_por&.nome %> on <%= l(aprovacao.cancelada_em.to_date, format: "%d/%m/%Y") %>
+              <% elsif pode_acao?(:aprovar_arte) %>
+                <%= button_to "Cancel", cancelar_aprovacao_path(aprovacao), method: :post, class: "btn btn-secondary btn-sm",
+                      form: { style: "display: inline-block;" }, data: { turbo_confirm: "Cancel this approval? It stays in the history." } %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

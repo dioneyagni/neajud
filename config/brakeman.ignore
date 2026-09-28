@@ -19,6 +19,10 @@
     {
       "fingerprint": "91c235fedae994b041fc63bda83317f527e8457300deff0095e42d7bffe3c808",
       "note": "TamanhosController#download: the path is tmp/tamanho_extracts/<arquivo.uuid>/tamanho-<id>.dxf \u2014 uuid is SecureRandom (not a permitted param) and id is an integer. It used to include tamanho.nome (free text): a real path traversal, fixed Sep 2026 with a regression spec. The user-typed nome only goes into the Content-Disposition filename."
+    },
+    {
+      "fingerprint": "d27b0d7c81547826d37fce7a35930ea32634266a823caaa1b8c8636c077bacc5",
+      "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb."
     }
   ]
 }

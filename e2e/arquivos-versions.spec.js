@@ -21,11 +21,11 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
     await page.waitForSelector("h2", { timeout: 10000 });
     await page.waitForTimeout(500);
 
-    // Verify version card shows v1 with Approved badge
+    // Verify version card shows v1 with Em uso badge
     const v1Card = page.locator(".version-card").filter({ hasText: "v1" }).first();
     await v1Card.waitFor({ timeout: 5000 });
     const v1Approved = await v1Card.textContent();
-    if (!v1Approved.includes("Approved")) throw new Error("v1 does not show Approved badge");
+    if (!v1Approved.includes("Em uso")) throw new Error("v1 does not show the Em uso badge");
 
     // Upload a new version
     const multiPath = path.join(__dirname, "multi-frame-test.tif");
@@ -52,14 +52,14 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
       throw new Error(`Version upload notice nor v2 card found. Body excerpt: ${body.slice(0, 300)} Details: ${detailsText}`);
     }
 
-    // Verify v2 exists and has Approved badge (auto-approved)
+    // Verify v2 exists and is Em uso (a new version is put in use)
     const v2Card = page.locator(".version-card").filter({ hasText: "v2" }).first();
     await v2Card.waitFor({ timeout: 10000 });
     const v2Text = await v2Card.textContent();
-    if (!v2Text.includes("Approved")) throw new Error("v2 should be auto-approved but Approved badge not found");
+    if (!v2Text.includes("Em uso")) throw new Error("v2 should be in use but the Em uso badge was not found");
   });
 
-  await test("Version: approve a different version", async () => {
+  await test("Version: put a different version in use", async () => {
     // Create a uniquely-named arquivo to avoid cross-test card matching issues
     const uniqueArquivoPath = path.join(__dirname, "e2e-approve-test.tif");
     const { execSync } = require("child_process");
@@ -83,31 +83,28 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
       await versionForm.locator('input[type="submit"]').click();
       await page.locator(".version-card").filter({ hasText: "v2" }).first().waitFor({ timeout: 30000 });
 
-      // Now v2 is auto-approved. Find v1 and click Approve
-      await page.waitForSelector(".version-card", { timeout: 10000 });
-      await page.waitForTimeout(1000);
+      // Wait until v2 finished processing: the end of processing morph-refreshes
+      // the page (Arquivo#broadcast_status_change), and a refresh landing just
+      // after the click below redraws the page without its flash notice (seen
+      // in a --headed run, 28/09/2026). A fixed 1s wait used to hide this race.
+      await page.locator('.version-card:has(strong:text("v2")) .version-status').filter({ hasText: /Processed|Failed/ })
+        .waitFor({ timeout: 45000 });
 
-      const approveBtn = page.locator('button:has-text("Approve")');
-      if (await approveBtn.count() === 0) {
+      // v2 is now the version in use. Put v1 back in use ("Usar esta versão";
+      // "Approve/Approved" became the client approval in Etapa 0.5, 4/4).
+      const usarBtn = page.locator('button:has-text("Usar esta versão")');
+      if (await usarBtn.count() === 0) {
         const allCards = await page.locator(".version-card").allTextContents();
-        throw new Error(`No Approve buttons on page. Cards: ${JSON.stringify(allCards)}`);
+        throw new Error(`No "Usar esta versão" buttons on page. Cards: ${JSON.stringify(allCards)}`);
       }
-      await approveBtn.first().click();
-      // Exact flash text: a bare "approved" would match the v2 card's existing "Approved" badge.
-      await waitForText(page, /Version \d+ approved\./);
+      await usarBtn.first().click();
+      await waitForText(page, /Version \d+ is now in use\./);
 
-      const body = await page.textContent("body");
-      if (!body.includes("approved")) throw new Error("Approve notice not shown");
-
-      // Now v1 should have Approved badge
       const v1Card = page.locator('.version-card:has(strong:text("v1"))').first();
-      const v1After = await v1Card.textContent();
-      if (!v1After.includes("Approved")) throw new Error("v1 should show Approved after approving");
+      if (!(await v1Card.textContent()).includes("Em uso")) throw new Error("v1 should show Em uso after choosing it");
 
-      // v2 should no longer have Approved
       const v2Card = page.locator('.version-card:has(strong:text("v2"))').first();
-      const v2After = await v2Card.textContent();
-      if (v2After.includes("Approved")) throw new Error("v2 should not have Approved after v1 was approved");
+      if ((await v2Card.textContent()).includes("Em uso")) throw new Error("v2 should not be Em uso after v1 was chosen");
     } finally {
       if (fs.existsSync(uniqueArquivoPath)) fs.unlinkSync(uniqueArquivoPath);
     }

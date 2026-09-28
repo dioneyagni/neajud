@@ -87,7 +87,7 @@ class ArquivosController < ApplicationController
     @arquivo.arquivo_versions.update_all(approved: false)
     version.update!(approved: true)
     @arquivo.update!(approved_version_id: version.id)
-    redirect_to @arquivo, notice: "Version #{version.version_number} approved."
+    redirect_to @arquivo, notice: "Version #{version.version_number} is now in use."
   end
 
   def configure_layers

@@ -1,6 +1,7 @@
 class Arquivo < ApplicationRecord
   include Excluivel
   include ReferenciaAtiva
+  include Aprovavel
 
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy
