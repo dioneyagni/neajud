@@ -49,7 +49,7 @@ E2E_SPECS=(
   # data created by earlier ones (arquivos-client-field opens the 29-30 card
   # that arquivos-previews / arquivos-dxf-organization uploaded).
   arquivos-upload arquivos-previews arquivos-versions arquivos-dxf-organization
-  arquivos-client-field arquivos-size-selection
+  arquivos-client-field arquivos-size-selection arquivos-modelo-unlink
   pages-clients-moldes-pecas pages-modelos-materials
   arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte
   movimentos pedidos pedidos-pecas clients modelos materiais moldes lixeira funcoes usuarios aprovacoes

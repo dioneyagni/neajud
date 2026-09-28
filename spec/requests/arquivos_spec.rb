@@ -293,12 +293,48 @@ RSpec.describe "Arquivos", type: :request do
       ActiveJob::Base.queue_adapter = :inline
     end
 
-    it "doesn't search when the arte already has a tamanho" do
+    it "keeps a tamanho that is the new modelo's own, and doesn't search" do
       ActiveJob::Base.queue_adapter = :test
-      arquivo = create(:arquivo, tamanho: create(:tamanho, arquivo: create(:arquivo, :corte)))
+      modelo = create(:modelo, molde: create(:molde))
+      corte = create(:arquivo, :corte, organized: true, molde: modelo.molde).tap { |c| c.modelos << modelo }
+      arquivo = create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: create(:modelo).id }
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }
       }.not_to have_enqueued_job(TamanhoAutoAssignJob)
+      expect(arquivo.reload.tamanho_id).to be_present
+    ensure
+      ActiveJob::Base.queue_adapter = :inline
+    end
+
+    # Regression (28/09/2026): changing 21-24 → 28-29 kept 21-24's tamanho,
+    # because the automatic search never overrides a tamanho.
+    it "changing to another modelo drops the old modelo's tamanho and searches again" do
+      ActiveJob::Base.queue_adapter = :test
+      molde = create(:molde)
+      antigo, novo = create(:modelo, molde: molde, nome: "21-24"), create(:modelo, molde: molde, nome: "28-29")
+      corte_antigo = create(:arquivo, :corte, organized: true, molde: molde).tap { |c| c.modelos << antigo }
+      create(:arquivo, :corte, organized: true, molde: molde).tap { |c| c.modelos << novo }
+      arquivo = create(:arquivo, modelo: antigo, tamanho: create(:tamanho, arquivo: corte_antigo))
+      expect {
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: novo.id }
+      }.to have_enqueued_job(TamanhoAutoAssignJob)
+      expect(arquivo.reload.tamanho_id).to be_nil
+    ensure
+      ActiveJob::Base.queue_adapter = :inline
+    end
+
+    it "unlinking the modelo clears the tamanho and molde too, without searching" do
+      ActiveJob::Base.queue_adapter = :test
+      modelo = create(:modelo, molde: create(:molde))
+      corte = create(:arquivo, :corte, organized: true, molde: modelo.molde).tap { |c| c.modelos << modelo }
+      arquivo = create(:arquivo, modelo: modelo, molde: modelo.molde, tamanho: create(:tamanho, arquivo: corte))
+      get arquivo_path(arquivo)
+      expect(response.body).to include('title="Unlink model"')
+      expect {
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: "" }
+      }.not_to have_enqueued_job(TamanhoAutoAssignJob)
+      expect(arquivo.reload).to have_attributes(modelo_id: nil, molde_id: nil, tamanho_id: nil)
+      expect(flash[:notice]).to eq("Modelo unlinked.")
     ensure
       ActiveJob::Base.queue_adapter = :inline
     end

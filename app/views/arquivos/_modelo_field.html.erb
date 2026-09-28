@@ -70,6 +70,14 @@
         <div class="client-display">
           <span class="client-name-display"><%= @arquivo.modelo.nome %></span>
           <span class="client-responsible-display">(<%= @arquivo.modelo.client.name %><% if @arquivo.modelo.molde %>, <%= @arquivo.modelo.molde.nome %><% end %>)</span>
+          <%# Like the client's: unlinking also clears the tamanho and molde that
+              came with the modelo, to start the choice over. %>
+          <% if pode_editar_arquivo?(@arquivo) %>
+            <%= button_to update_modelo_arquivo_path(@arquivo), method: :patch, params: { modelo_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model",
+                  data: { turbo_confirm: "Unlink the model? The size chosen for it is cleared too." } do %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
+            <% end %>
+          <% end %>
         </div>
       <% else %>
         <span class="client-empty">No model linked</span>

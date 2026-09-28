@@ -147,15 +147,18 @@ class ArquivosController < ApplicationController
     updates = { modelo_id: params[:modelo_id].presence }
     updates[:molde_id] = params[:molde_id].presence if params[:molde_id].present?
     updates[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
+    # Unlink (modelo_id blank): also forget the molde that came with it.
+    updates[:molde_id] = nil if updates[:modelo_id].nil? && !@arquivo.corte?
 
     if @arquivo.update(updates)
       @arquivo.reload
+      @arquivo.descartar_tamanho_fora_do_modelo!
       # Etapa 0.6: the search (up to 37 s) runs in the queue; the page shows
       # "Procurando tamanho…" and refreshes when it ends.
       @arquivo.buscar_tamanho_em_fila!
       respond_to do |format|
         format.turbo_stream
-        format.html { redirect_to @arquivo, notice: "Modelo updated." }
+        format.html { redirect_to @arquivo, notice: updates[:modelo_id] ? "Modelo updated." : "Modelo unlinked." }
       end
     else
       redirect_to @arquivo, alert: "Could not update modelo: #{@arquivo.errors.full_messages.to_sentence}"

@@ -53,10 +53,11 @@ class Arquivo < ApplicationRecord
     buscando_tamanho_desde.present? && buscando_tamanho_desde > BUSCA_DE_TAMANHO_EXPIRA.ago
   end
 
-  # Queues the automatic tamanho search, unless a tamanho is already set.
+  # Queues the automatic tamanho search, unless a tamanho is already set or
+  # there is no modelo to search in (it was just unlinked).
   # Usage: arte.buscar_tamanho_em_fila!
   def buscar_tamanho_em_fila!
-    return if tamanho_id
+    return if tamanho_id || modelo_id.nil?
 
     update_column(:buscando_tamanho_desde, Time.current)
     TamanhoAutoAssignJob.perform_later(id)
@@ -113,6 +114,17 @@ class Arquivo < ApplicationRecord
   def corte_via_modelo
     cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
     (peca_id && cortes.find { |corte| corte.peca_id == peca_id }) || cortes.first
+  end
+
+  # After an arte's modelo changes or is unlinked: a tamanho from a corte that
+  # isn't the new modelo's is dropped — the auto search never overrides a
+  # tamanho, so the old modelo's size used to stay (28/09/2026).
+  # Usage: arte.descartar_tamanho_fora_do_modelo!
+  def descartar_tamanho_fora_do_modelo!
+    return if corte? || tamanho.nil?
+    return if modelo && Arquivo.cortes_do_modelo(modelo).exists?(id: tamanho.arquivo_id)
+
+    update_column(:tamanho_id, nil)
   end
 
   # Like corte_via_modelo, but nil when it would be a guess: the modelo has
