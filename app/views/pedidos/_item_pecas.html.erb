@@ -21,6 +21,14 @@
       <% end %>
       <span class="pedido-peca-nome"><%= peca_row.peca&.nome || "Sem peça" %></span>
       <%= selo_excluido(peca_row.arquivo) %>
+      <% if peca_row.arquivo && !peca_row.arquivo.corte? %>
+        <%# Client approval (Etapa 0.5, 4/4): shown, never blocking. %>
+        <%= selo_aprovacao(peca_row.arquivo, pedido: pedido) %>
+        <% if peca_row.arquivo.estado_aprovacao == :aguardando && pode_acao?(:aprovar_arte) && !peca_row.arquivo.excluido? %>
+          <%= link_to "Registrar aprovação", new_arquivo_aprovacao_path(peca_row.arquivo, voltar_para: resumo_pedido_path(pedido)),
+                class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+        <% end %>
+      <% end %>
       <% if peca_row.estado == :pendente %>
         <span class="pedido-peca-pendente" title="Sem arte: precisa ser completada antes de confirmar o pedido">Pendente</span>
         <% if pedido_editavel?(pedido) && peca_row.peca %>

@@ -2100,6 +2100,43 @@ section {
   cursor: pointer;
 }
 
+/* Etapa 0.5 (4/4): client approval of an arte. */
+.badge-aprovacao {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.badge-aprovacao--aprovada {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.badge-aprovacao--aguardando {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.badge-aprovacao--sem {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.aprovacao--cancelada td {
+  color: #9aa0a6;
+  text-decoration: line-through;
+}
+
+.aprovacao--cancelada td:last-child {
+  text-decoration: none;
+}
+
+.aprovacao-canais {
+  border: 0;
+  padding: 0;
+}
+
 .list-item-link {
   display: grid;
   grid-template-columns: 48px 2fr 1fr 100px 90px 100px;
@@ -2777,4 +2814,28 @@ body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
 
 .usuario-redefinir-senha {
   margin-top: 2rem;
+}
+
+.aprovacao-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.aprovacao-nao-enviada,
+.aprovacao-enviada {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.aprovacao-solicitacoes {
+  color: #5f6368;
+  font-size: 0.85rem;
+  padding-left: 1.2rem;
+}
+
+li.aprovacao--cancelada {
+  color: #9aa0a6;
 }

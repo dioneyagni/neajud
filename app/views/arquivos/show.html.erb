@@ -62,6 +62,7 @@
         <div id="corte-comparison-section">
           <%= render "corte_comparison", arquivo: @arquivo %>
         </div>
+        <%= render "aprovacao", arquivo: @arquivo %>
       <% end %>
 
       <div class="stamp-detail-section">
@@ -191,8 +192,10 @@
           <div class="version-card-body">
             <div class="version-card-header">
               <strong>v<%= version.version_number %></strong>
+              <%# "Em uso", not "Approved": approval means the client's (Etapa 0.5, 4/4).
+                  In code the version in use is still approved_version / approved?. %>
               <% if version.approved? %>
-                <span class="stamp-card-badge badge-processed">Approved</span>
+                <span class="stamp-card-badge badge-processed">Em uso</span>
               <% end %>
             </div>
             <div class="version-card-meta">
@@ -202,7 +205,7 @@
             </div>
             <div class="version-card-actions">
               <% if !version.approved? && pode_editar_arquivo?(@arquivo) %>
-                <%= button_to "Approve", approve_version_arquivo_path(@arquivo, version_id: version.id), method: :patch, class: "btn btn-primary btn-sm" %>
+                <%= button_to "Usar esta versão", approve_version_arquivo_path(@arquivo, version_id: version.id), method: :patch, class: "btn btn-primary btn-sm" %>
               <% end %>
             </div>
           </div>
