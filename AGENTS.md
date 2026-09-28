@@ -672,6 +672,10 @@ vanishing mid-spec, not real failures. Run them one after the other.
   (Sep 2026): `inflect.irregular "funcao", "funcoes"` was added while the dev
   server ran; it kept looking for a table `funcaos` and every page returned
   500 until restarted (RSpec and E2E boot fresh, so they didn't catch it).
+  Same after **testing a migration's rollback** (`db:rollback` + `db:migrate`)
+  with the server up: it can cache the table's columns mid-cycle — creating
+  a user failed with "unknown attribute 'trocar_senha'" although the column
+  existed.
 - Before trusting what `localhost:<port>` shows, check which environment is
   behind it: `tr '\0' '\n' < /proc/$(lsof -t -iTCP:3000 -sTCP:LISTEN)/environ | grep RAILS_ENV`
   (empty = development).
