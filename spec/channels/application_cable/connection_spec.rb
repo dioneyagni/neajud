@@ -10,6 +10,12 @@ RSpec.describe ApplicationCable::Connection, type: :channel do
     expect(connection.current_user).to eq(session.user)
   end
 
+  it "rejects a deactivated user's session" do
+    session = create(:user, desativado_em: Time.current).sessions.create!
+    cookies.signed[:session_id] = session.id
+    expect { connect }.to have_rejected_connection
+  end
+
   it "rejects a connection without a session" do
     expect { connect }.to have_rejected_connection
   end

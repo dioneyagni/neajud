@@ -2,6 +2,14 @@ Rails.application.routes.draw do
   resource :session, only: %i[new create destroy]
   get "configuracao" => "configuracao#new", as: :configuracao
   post "configuracao" => "configuracao#create"
+  resources :usuarios, only: %i[index new create edit update], param: :uuid do
+    member do
+      post :redefinir_senha
+      post :desativar
+      post :reativar
+    end
+  end
+  resource :senha, only: %i[edit update]
   resources :funcoes, only: %i[index create destroy], param: :uuid do
     collection { patch :atualizar }
   end

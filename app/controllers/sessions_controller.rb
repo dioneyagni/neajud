@@ -6,7 +6,10 @@ class SessionsController < ApplicationController
   end
 
   def create
-    if user = User.authenticate_by(params.permit(:email_address, :password))
+    user = User.authenticate_by(params.permit(:email_address, :password))
+    if user && !user.ativo?
+      redirect_to new_session_path, alert: "This account is deactivated. Ask the company owner."
+    elsif user
       start_new_session_for user
       redirect_to after_authentication_url
     else

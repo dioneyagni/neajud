@@ -1,0 +1,19 @@
+<div class="auth-card">
+  <h2>My password</h2>
+  <% if Current.user.trocar_senha? %>
+    <p class="auth-intro">You signed in with a provisional password. Choose your own to continue.</p>
+  <% end %>
+  <%= form_with url: senha_path, method: :patch, class: "client-form" do |form| %>
+    <% unless Current.user.trocar_senha? %>
+      <div class="client-field">
+        <%= form.label :senha_atual, "Current password" %>
+        <%= form.password_field :senha_atual, required: true, autocomplete: "current-password" %>
+      </div>
+    <% end %>
+    <div class="client-field">
+      <%= form.label :nova_senha, "New password" %>
+      <%= form.password_field :nova_senha, required: true, minlength: 8, maxlength: 72, autocomplete: "new-password" %>
+    </div>
+    <%= form.submit "Change password", class: "btn btn-primary" %>
+  <% end %>
+</div>

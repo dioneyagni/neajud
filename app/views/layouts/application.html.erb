@@ -58,12 +58,15 @@
         <% if pode?(:lixeira, :ver) %>
           <%= link_to "Lixeira", lixeira_path, class: "header-nav-link" %>
         <% end %>
+        <% if pode_acao?(:gerenciar_usuarios) %>
+          <%= link_to "Usuários", usuarios_path, class: "header-nav-link" %>
+        <% end %>
         <% if dono? %>
           <%= link_to "Funções", funcoes_path, class: "header-nav-link" %>
         <% end %>
       </nav>
       <div class="header-user">
-        <span class="header-user-nome" title="<%= Current.user.email_address %>"><%= Current.user.nome %></span>
+        <%= link_to Current.user.nome, edit_senha_path, class: "header-user-nome", title: "#{Current.user.email_address} — change my password" %>
         <%= button_to "Sign out", session_path, method: :delete, class: "btn btn-secondary btn-sm", form: { class: "header-user-sair" } %>
       </div>
       <% end %>

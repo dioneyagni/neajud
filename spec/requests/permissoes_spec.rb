@@ -59,6 +59,12 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    it "the Usuários page needs gerenciar_usuarios" do
+      entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: %w[baixar_producao])
+      get usuarios_path
+      expect(response).to have_http_status(:forbidden)
+    end
+
     it "the Funções page is the dono's only, whatever the grid says" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
       get funcoes_path

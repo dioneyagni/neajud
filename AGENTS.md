@@ -546,8 +546,20 @@ Every page requires a signed-in user (Rails 8 authentication generator:
   `/configuracao` (`ConfiguracaoInicialService`: empresa + first user as
   `dono`). Once a user exists the screen redirects to sign in — it must never
   reopen (it would let anyone create a second owner).
-- **No password reset by email.** An owner/admin sets a new one (Etapa 0.5
-  2/3); email recovery comes with the cloud account (Etapa 7.1).
+- **No password reset by email.** On the Usuários page a manager sets a
+  **provisional password** (`User#definir_senha_provisoria!`, sets
+  `trocar_senha`): until the person picks their own at `/senha/edit`,
+  `Authentication#exigir_troca_de_senha` redirects every page there. Anyone
+  changes their own password from their name in the header. Email recovery
+  comes with the cloud account (Etapa 7.1).
+- **Users are deactivated, never deleted** (`User#desativar!`): sign-in is
+  refused, sessions end, and `find_session_by_cookie` / the cable connection
+  only accept `User.ativos`.
+- **Usuários page** (`/usuarios`, action `gerenciar_usuarios`):
+  `CadastroDeUsuarioService` saves name, email, função and acessos extras;
+  `GestaoDeUsuarios` holds the rules — only a dono manages donos or gives the
+  Dono função, nobody gives more than they have, the empresa always keeps an
+  active dono, nobody deactivates themselves.
 - **Who did it:** controllers pass `**autoria` (`{ changed_by: request.remote_ip,
   user: Current.user }`, `ApplicationController`) to every log and to
   `excluir!`/`restaurar!` (fills `deleted_by_id`/`restored_by_id`). Views show
@@ -660,6 +672,10 @@ vanishing mid-spec, not real failures. Run them one after the other.
   (Sep 2026): `inflect.irregular "funcao", "funcoes"` was added while the dev
   server ran; it kept looking for a table `funcaos` and every page returned
   500 until restarted (RSpec and E2E boot fresh, so they didn't catch it).
+  Same after **testing a migration's rollback** (`db:rollback` + `db:migrate`)
+  with the server up: it can cache the table's columns mid-cycle — creating
+  a user failed with "unknown attribute 'trocar_senha'" although the column
+  existed.
 - Before trusting what `localhost:<port>` shows, check which environment is
   behind it: `tr '\0' '\n' < /proc/$(lsof -t -iTCP:3000 -sTCP:LISTEN)/environ | grep RAILS_ENV`
   (empty = development).
@@ -788,8 +804,6 @@ Current code that still differs from the plan — don't copy these patterns into
   `MoldMatchService` (in `update_modelo`), the tamanho previews of
   `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
   (`TamanhosController#download`) still run in the request. Target: Etapa 0.6.
-- **No users page** — only the first dono exists (setup); funções can't be
-  given to anyone yet, and `acessos_extras` has no UI. Target: Etapa 0.5 (3/4).
 - **No "cliente final"** — the client's own access (seeing only their pedidos
   and artes) needs every query filtered by client. Target: its own etapa
   before the beta.

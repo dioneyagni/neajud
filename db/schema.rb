@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_27_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_27_200000) do
   create_table "arquivo_image_metadata", force: :cascade do |t|
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
@@ -385,9 +385,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_140000) do
   create_table "users", force: :cascade do |t|
     t.string "cloud_user_uuid"
     t.datetime "created_at", null: false
+    t.datetime "desativado_em"
+    t.integer "desativado_por_id"
     t.string "email_address", null: false
     t.string "nome", null: false
     t.string "password_digest", null: false
+    t.boolean "trocar_senha", default: false, null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["cloud_user_uuid"], name: "index_users_on_cloud_user_uuid", unique: true

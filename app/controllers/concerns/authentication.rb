@@ -3,6 +3,7 @@ module Authentication
 
   included do
     before_action :require_authentication
+    before_action :exigir_troca_de_senha
     helper_method :authenticated?
   end
 
@@ -25,8 +26,19 @@ module Authentication
       Current.session ||= find_session_by_cookie
     end
 
+    # After a provisional password (Etapa 0.5, 3/4) nothing else opens until
+    # it is changed; signing out stays possible.
+    def exigir_troca_de_senha
+      return unless Current.user&.trocar_senha?
+      return if is_a?(SenhasController) || is_a?(SessionsController)
+
+      redirect_to edit_senha_path, alert: "Choose your own password to continue."
+    end
+
+    # A deactivated user's sessions are destroyed on deactivation; the join
+    # also guards any session created in between.
     def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+      Session.joins(:user).merge(User.ativos).find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
     end
 
     # A new instance has nobody to sign in as yet: send to the first-access
