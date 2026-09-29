@@ -1,6 +1,6 @@
 # Neajud — Instruções de Implementação
 
-Atualizado em 26/09/2026
+Atualizado em 29/09/2026
 
 ## Contexto e visão
 
@@ -24,35 +24,42 @@ O domínio tem duas camadas: o catálogo compartilhado entre empresas e a camada
 
 ```mermaid
 flowchart TD
-    P[Produto<br/>ex: Tênis] --> M[Modelo<br/>categoria: Cano Baixo]
-    M --> MO[Molde<br/>peça física: 21-24]
-    MO --> R[Referência opcional<br/>ex: 24, herda do molde]
-    R --> PA[Parte<br/>lateral, língua, palmilha]
-    PA --> C[Corte<br/>arquivo que atende números]
+    P[Produto<br/>ex: Tênis] --> M[Modelo<br/>categoria: Jogging JGG]
+    M --> MO[Molde do cliente<br/>ex: 002-TNS Furado]
+    MO -. variação de .-> MO0[Molde de base<br/>ex: 001-TNS]
+    MO --> PA[Parte<br/>lateral, língua, palmilha]
+    PA --> C[Corte<br/>arquivo que atende tamanhos]
     C --> A[Arte<br/>uma por corte]
+    A -. marcada com .-> R[Referência + Nome<br/>ex: 20 · Bluey Azul]
     E[Estampa<br/>foto, recorte, PDF] --> A
 ```
 
-De Produto a Corte é catálogo; Estampa e Arte são privadas da empresa e do cliente. Exemplo real: Tênis › Cano Baixo › molde 21-24 › referências 21 e 24 › Lateral, Língua, Palmilha.
+Produto, Modelo e Molde são obrigatórios para organizar; de Produto a Corte é catálogo. Referência e Nome são marcações que agrupam as artes de um molde. Estampa e Arte são privadas da empresa e do cliente. Exemplo real (MKS): Tênis › Tenis [TNS] › molde 001-TNS (e as variações 002-TNS Furado e 003-TNS Velcro) › Lateral, Língua › cortes › artes marcadas "20 · Bluey Azul".
+
+Definido em sessão (29/09/2026); a mesma nomenclatura serve para roupas e acessórios no futuro.
 
 | Termo | No código hoje | Definição |
 | --- | --- | --- |
-| Produto | não existe | Categoria ampla: tênis, chinelo, camisa, moletom, boné |
-| Modelo | não existe; criar | Categoria de estilo: Flip Flop, Slide, Jogging, Cano Baixo, Cano Alto |
-| Molde | `Molde` | Peça física, única ou variação de outro molde (ex: Slin e Unisex; 21-24; NB) |
-| Referência | `Modelo` (renomear para `Referencia`) | Variação comercial sobre um molde, opcional; herda as partes e pode substituir, acrescentar ou remover |
+| Produto | não existe | Categoria ampla, obrigatória: tênis, chinelo, camisa, moletom, boné. Tem a grade de tamanhos individuais |
+| Modelo | `Molde` (vira `Modelo` na Etapa 1.1) | Categoria de estilo, obrigatória, com abreviação: Jogging [JGG], Tenis [TNS], Flip Flop, Slide |
+| Molde | `Modelo` (vira `Molde` na Etapa 1.1) | Forma de um cliente, obrigatória. Código fixo `NNN-ABR` (número sequencial por cliente, somando todas as categorias, + abreviação do modelo) e sufixo livre opcional ("002-TNS Furado"). Pode ser variação de outro molde |
+| Referência | não existe | Agrupador opcional de artes dentro de um molde (ex: 19, 20, Fuel, Elite). Escolhida num select com "criar nova". Não mexe em partes nem cortes |
+| Nome | não existe | Texto da arte que agrupa as artes de uma mesma estampa/cor dentro da referência (ex: "Bluey Azul"). Substitui a ideia de "cor" |
 | Parte | `Peca` | Pedaço do produto: lateral, língua, correia, cabedal, knit |
 | Tamanho | `Tamanho` | Unidade individual da grade do produto: 33, 34, 35... ou P, M, G, GG |
-| Corte | parte de `Molde` (DXF) | Arquivo de uma parte que atende um conjunto de tamanhos, com rótulo opcional (33-34, P) |
+| Corte | `Arquivo` corte (DXF) + `Tamanho` | Arquivo de uma parte que atende um conjunto de tamanhos, com rótulo opcional (33-34, P) |
 | Estampa | não existe | Material de origem do cliente: foto, recorte, arquivo, PDF de instruções |
-| Arte | `Arquivo` | Arquivo de produção derivado da estampa; uma por corte |
+| Arte | `Arquivo` arte | Arquivo de produção derivado da estampa; uma por corte |
 | Processo | não existe | Tipo de trabalho da empresa: sublimação, frequência, bordado, silk |
 
 **Regras do domínio:**
 
-- Mudou a geometria do corte: é um novo molde, possivelmente variação de outro. Mesma geometria com identidade comercial diferente: é uma nova referência.
-- Tamanhos são sempre individuais. O agrupamento (pares como 33-34, ou rótulos como P, M, G) é definido nos cortes: ao subir um corte, marca-se quais tamanhos ele atende.
-- O molde define o agrupamento padrão; a referência herda ou substitui os cortes para agrupar de outro jeito (ex: cliente que trabalha número a número).
+- Mudou o corte de uma parte (um detalhe acrescentado, um furo, um velcro): é um novo molde, variação de outro. Ele herda as partes que não mudou (a Língua do 001-TNS serve ao 002 e ao 003) e troca a sua.
+- O corte é o mesmo e muda só a arte: é outra referência ou outro nome, nunca outro molde.
+- O molde pertence a um cliente; Produto e Modelo são da empresa e compartilhados entre os clientes. O mesmo nome (ex: "Fuel") em clientes diferentes são produtos diferentes.
+- Nome completo da arte, calculado e nunca gravado: `código do molde_referência_nome_parte_tamanho`, ex: `002-TNS_20_Bluey Azul_Lingua_29-30`. Usa só o código fixo do molde (o sufixo é para leitura e pode mudar sem mexer nos nomes); peças vazias são puladas; o nome original do upload continua guardado.
+- O Nome é pré-preenchido a partir do arquivo (sem extensão, sem o número da referência no começo, sem nomes de parte e tamanhos: "19-BLUEY PTO" → "BLUEY PTO"), com sugestões dos nomes já usados na referência. Nomes são comparados sem maiúsculas, acentos e ç/c, para agrupar certo.
+- Tamanhos são sempre individuais. O agrupamento (pares como 33-34, ou rótulos como P, M, G) é definido nos cortes: ao subir um corte, marca-se quais tamanhos ele atende. Um cliente que trabalha número a número usa um molde variação com os cortes agrupados do seu jeito.
 - Na publicação, os cortes de cada parte precisam cobrir todos os tamanhos da grade, sem buracos nem sobreposição.
 - O pedido entra sempre por tamanho individual; a produção encontra o corte que atende aquele tamanho e, dele, a arte.
 - "Contínuo" (impressão corrida, por metro) é um tipo especial de parte, sem tamanho nem corte.
@@ -219,7 +226,7 @@ Dividida em quatro PRs (decidido em 27/09/2026; eram três, a política editáve
 - **4/4 — Aprovação de arte** (concluída em 28/09/2026): registro formal pela equipe (canal, data, observação e anexo opcional — print ou PDF), por versão; nunca bloqueia a produção. **Só existe depois de "Enviar para aprovação"** (decidido antes do merge): sem envio, a arte não mostra selo nem botão; enviada, fica "aguardando" e pode ter a aprovação registrada; uma versão nova volta a "não enviada". Aparece na página da arte (estado + histórico, com cancelamento que fica registrado) e no pedido (selo em cada peça: aprovada, aguardando, ou "confirmado sem aprovação" em pedido confirmado), com "Registrar aprovação" dos dois lugares. Nova ação especial na grade: "Registrar aprovação de arte" (padrão: Admin, Atendimento, Designer). O antigo "Approve/Approved" das versões virou "Usar esta versão/Em uso". "Aprovada pelo cliente no sistema" chega com o cliente final.
 
 Etapa 0.5 concluída em 28/09/2026.
-- **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira etapa própria antes do beta; setores, depois.
+- **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira a Etapa 3.3, antes do beta; setores, depois.
 
 
 **Etapa 0.6 — Trabalho pesado restante fora do request.** A auditoria (Etapa 0.2) achou, além do upload, trabalho pesado que ainda roda no request: o `MoldMatchService` (ImageMagick) ao escolher o modelo de uma arte, as prévias dos tamanhos na organização do DXF e a extração do DXF de um tamanho no primeiro download. Levar para o Solid Queue com o mesmo padrão da Etapa 0.3 (estado visível e atualização da tela por broadcast).
@@ -234,11 +241,26 @@ Etapa 0.6 concluída em 29/09/2026.
 
 A estrutura que é cara de mudar depois: nomes, identificadores e a forma como tamanhos e cortes se relacionam.
 
-**Etapa 1.1 — Hierarquia.** Renomear o model `Modelo` atual para `Referencia` (ele já cumpre esse papel). Criar Produto, o novo Modelo (categoria) e a grade de tamanhos individuais do produto; ligar Modelo (categoria) a Produto e Molde a Modelo. Um molde pode apontar para outro molde do qual é variação. Migrar os dados existentes a partir do mapeamento da planilha de referência (Chinelo, Tênis, com seus modelos, moldes e referências). Na mesma etapa, adicionar coluna `uuid` (única, gerada na criação) onde faltar, mantendo o ID inteiro como chave interna. Rotas e qualquer referência externa passam a usar o UUID. (as duas mudanças mexem nas mesmas rotas e tabelas; separadas, as telas seriam alteradas duas vezes).
+**Etapa 1.1 — Hierarquia.** Três PRs em série (decidido em 29/09/2026):
 
-**Etapa 1.2 — Cortes por tamanho individual.** Substituir faixas fixas (como `29-30.dxf`) por cortes que declaram os tamanhos que atendem, com rótulo opcional. Migrar os arquivos atuais lendo as faixas dos nomes. Validar cobertura completa e sem sobreposição por parte. O pedido passa a entrar por tamanho individual e a resolver o corte e a arte correspondentes.
+- **1/3 — UUID em tudo.** Coluna `uuid` (única, gerada na criação) onde faltar, mantendo o ID inteiro como chave interna. Rotas e qualquer referência externa passam a usar o UUID. Nada muda na tela, só os endereços.
+- **2/3 — Estrutura.** Produto (com a grade de tamanhos individuais) e Modelo (categoria, com abreviação). Troca cruzada de nomes no código: o `Molde` atual vira `Modelo` e o `Modelo` atual vira `Molde`, feita com nomes intermediários. O Molde ganha código fixo `NNN-ABR` (número por cliente, somando todas as categorias: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` e já nasce com `version`, `base_id` e `published_at` (antiga Etapa 1.3). Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio.
+- **3/3 — Migração dos dados.** Mapeamento dos dados atuais, mostrado antes de aplicar, com backup e rollback testado:
 
-**Etapa 1.3 — Colunas de versão e base.** Molde e Referência já nascem com `version`, `base_id` e `published_at`, sem implementar ainda versões imutáveis, herança e alertas (Fase 5). Assim a Fase 5 é acrescentada sem migrar dados.
+| Hoje | Vira |
+| --- | --- |
+| Molde "Tenis Baixo" | Modelo Tenis [TNS] › Produto Tênis |
+| Molde "Jogging" | Modelo Jogging [JGG] › Produto Tênis |
+| Modelo "19-20-25" (MKS) | Molde 001-TNS |
+| Modelo "21-24" (MKS) | Molde 002-TNS, sufixo "Furado", variação do 001 |
+| Modelo "28-29" (MKS) | Molde 003-TNS, sufixo "Velcro", variação do 001 |
+| Modelo "NB Fuel" (GMS) | Molde 001-JGG, sufixo "NB"; artes marcadas na referência Fuel |
+
+As referências 19 e 20 da MKS são criadas depois, pela tela.
+
+**Etapa 1.2 — Cortes por tamanho individual.** Substituir faixas fixas (como `29-30.dxf`) por cortes que declaram os tamanhos que atendem, com rótulo opcional. Migrar os arquivos atuais lendo as faixas dos nomes. Validar cobertura completa e sem sobreposição por parte. O pedido passa a entrar por tamanho individual e por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul), montando sozinho a arte de cada parte e tamanho e o corte correspondente.
+
+**Etapa 1.3 — Colunas de versão e base.** Absorvida pela 1.1 (2/3): o Molde já nasce com `version`, `base_id` e `published_at`. A Referência não é versionada, porque agrupa artes e não faz parte do catálogo.
 
 ## Fase 2 — Operação na nuvem (plano hospedado)
 
@@ -270,9 +292,11 @@ O GitHub produz as versões; a Neajud Cloud as entrega. Os servidores dos client
 
 O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de produção completas da Fase 6.
 
-**Etapa 3.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com nome `<arte> - <peça>`. As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
+**Etapa 3.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com o nome completo calculado da arte (`002-TNS_20_Bluey Azul_Lingua_29-30`). As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
 
 **Etapa 3.2 — Ciclo do pedido.** Definir e implementar rascunho → confirmado → em produção → entregue (tema em aberto no `docs/contexto-claude-code.md`), junto com a decisão sobre tarefas de produção (cortar/imprimir).
+
+**Etapa 3.3 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta, e que faltava na lista (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema", o caso da aprovação que a 0.5 deixou para cá).
 
 ## Fase 4 — Lançamento beta
 
@@ -280,29 +304,30 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
 ## Fase 5 — Catálogo versionado com herança
 
-O catálogo é uma árvore de referências com versões imutáveis. Nesta fase ele é construído dentro de cada instância, com o formato já pronto para ser publicado no catálogo compartilhado da Fase 9.
+O catálogo é uma árvore de moldes (base → variações) com versões imutáveis. Nesta fase ele é construído dentro de cada instância, com o formato já pronto para ser publicado no catálogo compartilhado da Fase 9. Revisada em 29/09/2026: a herança é entre moldes (a variação que muda o corte de uma parte); a Referência agrupa artes e fica fora do versionamento.
 
-**Etapa 5.1 — Versões imutáveis.** Molde e Referência passam a ter versões numeradas. Uma versão publicada nunca muda; editar cria um rascunho, e publicar cria a versão seguinte. Pedidos guardam a versão exata que usaram, e cada arte guarda a versão do corte para o qual foi feita.
+**Etapa 5.1 — Versões imutáveis.** O Molde passa a ter versões numeradas (as colunas já existem desde a 1.1). Uma versão publicada nunca muda; editar cria um rascunho, e publicar cria a versão seguinte. Pedidos guardam a versão exata que usaram, e cada arte guarda a versão do corte para o qual foi feita.
 
-**Etapa 5.2 — Referência com herança.** Uma referência aponta para a versão exata da base (um molde ou outra referência, sem limite de níveis) e guarda só as diferenças. Referência é opcional: um molde pode ser usado diretamente. As diferenças possíveis:
+**Etapa 5.2 — Variação de molde com herança.** Um molde variação aponta para a versão exata da base (outro molde, sem limite de níveis) e guarda só as diferenças. As diferenças possíveis:
 
-- **substituir** uma parte herdada;
+- **substituir** uma parte herdada (a Lateral do 002-TNS Furado);
 - **acrescentar** uma parte nova;
-- **remover** uma parte herdada, como registro explícito e reversível.
+- **remover** uma parte herdada, como registro explícito e reversível;
+- **reagrupar** os cortes de uma parte (pares na base, número a número na variação).
 
-Ao publicar, a composição final (lista resolvida de partes, moldes e tamanhos) é calculada e gravada junto com a versão. Consultas leem esse retrato, nunca percorrem a cadeia.
+Ao publicar, a composição final (lista resolvida de partes, cortes e tamanhos) é calculada e gravada junto com a versão. Consultas leem esse retrato, nunca percorrem a cadeia.
 
-**Etapa 5.3 — Alertas de atualização.** Quando a base publica uma nova versão, cada referência dependente recebe um alerta. Ao adotar:
+**Etapa 5.3 — Alertas de atualização.** Quando a base publica uma nova versão, cada variação dependente recebe um alerta. Ao adotar:
 
 - partes herdadas atualizam sozinhas;
 - partes substituídas aparecem lado a lado ("a base mudou a lateral; manter a sua?");
 - partes novas da base aparecem para o dono decidir.
 
-As atualizações descem um nível por vez: a referência B só é alertada quando A adota e publica. B vê apenas uma informação de que a base original tem atualização pendente na sua fonte.
+As atualizações descem um nível por vez: a variação B só é alertada quando A adota e publica. B vê apenas uma informação de que a base original tem atualização pendente na sua fonte.
 
-**Etapa 5.4 — Visibilidade e linhagem.** Cada molde e referência tem autor (empresa) e visibilidade: público, parceiros convidados ou privado. Derivar exige acesso à versão de origem. Cada referência mostra a linhagem até o molde de origem.
+**Etapa 5.4 — Visibilidade e linhagem.** Cada molde tem autor (empresa) e visibilidade: público, parceiros convidados ou privado. Derivar exige acesso à versão de origem. Cada variação mostra a linhagem até o molde de origem.
 
-**Critérios:** herança resolvida corretamente com substituição, acréscimo e remoção em cadeias de 3 níveis; referência que reagrupa cortes (pares no molde, número a número na referência) resolve o corte certo para cada tamanho; versão publicada não pode ser alterada; alerta gerado para cada dependente direto.
+**Critérios:** herança resolvida corretamente com substituição, acréscimo, remoção e reagrupamento em cadeias de 3 níveis; variação que reagrupa cortes resolve o corte certo para cada tamanho; versão publicada não pode ser alterada; alerta gerado para cada dependente direto.
 
 ## Fase 6 — Estampas e Artes
 
@@ -437,18 +462,19 @@ Lançados juntos, depois da nuvem. O cliente grava uma ISO num pendrive, instala
 
 Uma empresa compartilha com outra qualquer ponto da hierarquia, como uma árvore com caixas de seleção. Quem recebe baixa e usa em produção apenas o que ficou marcado.
 
-**Etapa 9.1 — Catálogo compartilhado.** Moldes e referências públicos ou compartilhados são publicados na nuvem; os servidores guardam os retratos das versões que usam, para trabalhar offline. Rascunhos criados offline são publicados quando houver conexão.
+**Etapa 9.1 — Catálogo compartilhado.** Moldes públicos ou compartilhados são publicados na nuvem; os servidores guardam os retratos das versões que usam, para trabalhar offline. Rascunhos criados offline são publicados quando houver conexão.
 
 **Níveis de partida:**
 
 | Nível | Exemplo | O que vai por padrão |
 | --- | --- | --- |
-| Produto | Chinelo | Todos os modelos, moldes, referências, partes e cortes do produto |
-| Modelo | Cano Baixo | Os moldes 21-24, 19-20 e 28-29, com referências e partes |
-| Molde | 21-24 | O molde, as referências 21 e 24 e suas partes |
-| Referência | 24 | Lateral, Língua e Palmilha da 24 |
-| Parte | Lateral da 24 | Todos os cortes da lateral |
-| Corte | Lateral da 24, corte 33-34 | Só aquele corte, o nível mais granular |
+| Produto | Tênis | Todos os modelos, moldes, partes e cortes do produto |
+| Modelo | Tenis [TNS] | Os moldes 001-TNS, 002-TNS e 003-TNS, com partes e cortes |
+| Molde | 002-TNS Furado | O molde e suas partes (herdadas e próprias) |
+| Parte | Lateral do 002-TNS | Todos os cortes da lateral |
+| Corte | Lateral do 002-TNS, corte 29-30 | Só aquele corte, o nível mais granular |
+
+Referências e nomes agrupam artes; quando artes são marcadas para compartilhar, vão com a sua referência e nome.
 
 **Etapa 9.2 — Compartilhamento como objeto próprio.** Registra quem compartilhou, com qual empresa, o ponto de partida, as exclusões, as artes marcadas, a permissão (baixar e produzir), a política de versões e a política de itens futuros. Nunca altera a visibilidade dos itens de origem. Só se compartilha o que a própria empresa criou.
 
@@ -457,8 +483,8 @@ Uma empresa compartilha com outra qualquer ponto da hierarquia, como uma árvore
 - Ao escolher o ponto de partida, estrutura e cortes abaixo dele vêm marcados; qualquer item pode ser desmarcado.
 - Artes são itens da árvore, sob o corte a que pertencem, e começam desmarcadas. Marcar uma arte ligada à estampa de um cliente mostra um aviso com o nome do cliente.
 - Itens criados depois: quem compartilha escolhe se entram automaticamente, com uma opção para estrutura e cortes e outra para artes. Um item novo dentro de algo desmarcado continua fora.
-- Antes de confirmar, uma pré-visualização mostra o total que será enviado (ex: 2 referências, 6 partes, 66 cortes, 12 artes).
-- Quem recebe vê o caminho até o item como contexto (Tênis › Cano Baixo › 21-24 › 24 › Lateral), mas não os itens vizinhos.
+- Antes de confirmar, uma pré-visualização mostra o total que será enviado (ex: 2 moldes, 6 partes, 66 cortes, 12 artes).
+- Quem recebe vê o caminho até o item como contexto (Tênis › Tenis › 002-TNS › Lateral), mas não os itens vizinhos.
 
 **Etapa 9.4 — Entrega pela nuvem.** A origem publica o item; o servidor de quem recebe baixa uma cópia para produzir offline. Na biblioteca, aparece como "recebido de Empresa X", somente leitura, ligado à parte do catálogo pelo UUID. Nenhuma instância consulta o banco de outra.
 
@@ -485,6 +511,8 @@ Estes itens não devem ser implementados nas fases acima, mas o desenho não pod
 ## Decisões em aberto
 
 - [ ] Permissões do perfil Financeiro.
+- [ ] Moldes sem cliente (base da própria empresa) para compartilhar entre empresas na Fase 9, já que hoje todo molde pertence a um cliente.
+- [ ] Ligação entre o Nome da arte (ex: "Bluey Azul") e a Estampa da Fase 6: o nome pode virar o vínculo com a estampa de origem.
 - [ ] Idioma deste documento no repositório: o AGENTS.md é só em inglês; este documento já está em `docs/` em português (26/09/2026) — traduzir?
 - [ ] Valor da mensalidade, duração do teste grátis e gateway de cobrança (Pix e boleto recorrentes).
 - [ ] Ferramenta de conversão para CDR, e se o formato entra na primeira versão.

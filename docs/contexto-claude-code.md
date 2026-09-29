@@ -22,29 +22,25 @@ Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados 
 4. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação cujos dados já estão no sistema.
 5. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
 
-## Exemplo real do catálogo (planilha de referência)
+## Exemplo real do catálogo
 
-| Produto | Modelo (categoria) | Molde | Referência | Partes | Tamanhos |
+Revisado em 29/09/2026, com os clientes reais (a planilha original misturava molde e referência; a definição vale o que está no glossário do `plano.md`):
+
+| Produto | Modelo (categoria) | Cliente | Molde | Referências (agrupam artes) | Partes |
 | --- | --- | --- | --- | --- | --- |
-| Chinelo | Flip Flop | Slin | — | Correia, Tira | 33-34 ao 39-40 |
-| | | | | Detalhe | P e G |
-| Chinelo | Flip Flop | Unisex | — | Correia, Tira | 33-34 ao 39-40 |
-| | | | | Detalhe | P e G |
-| Chinelo | Slide | mind 1 | — | Cabedal, Palmilha, Soleta | 33-34 ao 43-44 |
-| | | | | Knit | P, M, G |
-| Tênis | Jogging | NB | Fuel, Elite | Cabedal, Forro, Palmilha, Língua | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 21-24 | 21, 24 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 19-20 | 19, 20 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 28-29 | 28, 29 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Alto | 40-41 | 40, 41 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
+| Tênis | Tenis [TNS] | MKS | 001-TNS | 19, 20 (a 19 tem um detalhe na arte) | Lateral, Língua |
+| Tênis | Tenis [TNS] | MKS | 002-TNS Furado (variação do 001) | — | Lateral própria; Língua herdada |
+| Tênis | Tenis [TNS] | MKS | 003-TNS Velcro (variação do 001) | — | Lateral própria; Língua herdada |
+| Tênis | Jogging [JGG] | NESK | 001-JGG DUNN · 002-JGG NB · 003-JGG Olympus | Fuel, Elite (no 002) | Cabedal, Reforço |
+| Tênis | Jogging [JGG] | GMS | 001-JGG NB | Fuel, Elite | Cabedal, Reforço |
 
-Leitura: "—" significa molde usado diretamente, sem referência. Faixas como 33-34 e rótulos como P/M/G são agrupamentos de cortes; no sistema, os tamanhos são guardados um a um e cada corte declara quais atende. A tabela de correspondência (ex: quais números o Knit P atende) é definida no molde e pode ser substituída na referência.
+Leitura: o molde pertence ao cliente e tem código fixo `NNN-ABR` (número sequencial por cliente) mais um sufixo livre. Mudar o corte de uma parte gera um molde variação; mudar só a arte é outra referência ou outro nome. O nome completo de uma arte é calculado: `002-TNS_20_Bluey Azul_Lingua_29-30`. Faixas como 29-30 são agrupamentos de cortes; no sistema, os tamanhos são guardados um a um e cada corte declara quais atende.
 
 ## Casos de uso levantados
 
 **Dono ou admin:** assinar o plano hospedado; instalar a ISO e parear; convidar funcionários (ou criar acesso temporário offline); bloquear ex-funcionário; aprovar ou adiar atualização com rollback; trocar disco de backup; adicionar disco; restaurar numa máquina nova; migrar entre nuvem e local; acessar remotamente com 2FA.
 
-**Catálogo:** cadastrar produto, modelo, molde, partes e grade; subir cortes marcando tamanhos; criar variação de molde; criar referência herdando partes; substituir, acrescentar ou remover parte; reagrupar cortes na referência; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
+**Catálogo:** cadastrar produto, modelo (categoria com abreviação), molde do cliente (código automático + sufixo), partes e grade; subir cortes marcando tamanhos; criar variação de molde que substitui, acrescenta ou remove parte, ou reagrupa cortes; marcar referência e nome nas artes para agrupá-las; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
 
 **Estampas, artes e produção:** criar estampa com material do cliente; criar artes (uma por corte); refazer artes após correção da estampa; lançar pedido por tamanho individual e resolver corte e arte; baixar saídas de produção; excluir e restaurar arte.
 
