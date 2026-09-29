@@ -44,10 +44,11 @@ class CutLayerConfigurationService
     )
   end
 
+  # Etapa 0.6: re-detecting runs in the queue (PreparacaoTamanhosJob).
   def reorganize_failed_dxf
     arquivo = @version.arquivo
     return unless arquivo.extension.downcase == "dxf" && arquivo.organize_error.present?
 
-    DxfOrganizationService.call(arquivo)
+    arquivo.preparar_tamanhos_em_fila!(redetectar: true)
   end
 end

@@ -532,6 +532,45 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
+  describe "preparing a corte's tamanhos in the queue (Etapa 0.6)" do
+    around do |example|
+      anterior = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      example.run
+    ensure
+      ActiveJob::Base.queue_adapter = anterior
+    end
+
+    let(:organizar) do
+      { molde_id: create(:molde).id, peca_id: create(:peca).id, tamanhos: { "0" => { nome: "34", width_mm: 100, height_mm: 50 } } }
+    end
+
+    it "organize saves the choice at once and only queues each size's DXF and preview" do
+      arquivo = create(:arquivo, extension: "dxf")
+      expect {
+        patch organize_arquivo_path(arquivo), params: organizar, as: :turbo_stream
+      }.to have_enqueued_job(PreparacaoTamanhosJob).with(arquivo.id, false)
+      expect(arquivo.reload.tamanhos.pluck(:nome)).to eq([ "34" ])
+      expect(response.body).to include("Preparando os tamanhos", preparacao_tamanhos_arquivo_path(arquivo, format: :json))
+    end
+
+    it "re-detects in the queue when organizing had failed" do
+      arquivo = create(:arquivo, extension: "dxf", organize_error: "file has 1 or more stacked cuts")
+      expect {
+        patch organize_arquivo_path(arquivo), params: organizar
+      }.to have_enqueued_job(PreparacaoTamanhosJob).with(arquivo.id, true)
+    end
+
+    it "preparacao_tamanhos.json says when it is over (the page's polling safety net)" do
+      arquivo = create(:arquivo, :corte, preparando_tamanhos_desde: Time.current)
+      get preparacao_tamanhos_arquivo_path(arquivo, format: :json)
+      expect(response.parsed_body).to eq("final" => false)
+      arquivo.update_column(:preparando_tamanhos_desde, 11.minutes.ago)
+      get preparacao_tamanhos_arquivo_path(arquivo, format: :json)
+      expect(response.parsed_body).to eq("final" => true)
+    end
+  end
+
   describe "PATCH /arquivos/:id/organize" do
     it "marks as organized and creates tamanhos" do
       molde = create(:molde)

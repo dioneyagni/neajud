@@ -26,23 +26,23 @@ RSpec.describe "Tamanhos", type: :request do
       expect(response.headers["Content-Disposition"]).to include("Piloto.dxf")
     end
 
-    # Regression: the extract path used tamanho.nome (free text), so a nome like
-    # "../../x" wrote and served a file outside tmp/tamanho_extracts.
-    it "keeps the extract inside tmp/tamanho_extracts whatever the tamanho nome is" do
+    # Regression (#97): the extract path used tamanho.nome (free text), so a
+    # nome like "../../x" wrote and served a file outside the extracts folder.
+    # Since Etapa 0.6 the extract lives in the version's tamanho_previews/.
+    it "keeps the extract in the version's folder, named by position, whatever the nome is" do
       arquivo = create(:arquivo, extension: "dxf", filename: "corte")
       version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf", original_file: "36 ao 48.dxf")
       arquivo.update!(approved_version_id: version.id)
       FileUtils.mkdir_p(File.join(version.storage_dir, "original"))
       FileUtils.cp(Rails.root.join("spec/fixtures/files/36 ao 48.dxf"), File.join(version.storage_dir, "original", "36 ao 48.dxf"))
       evil = arquivo.tamanhos.create!(nome: "../../../evil", position: 1, width_mm: 1, height_mm: 1)
-      extracts = Rails.root.join("tmp", "tamanho_extracts")
       outside = Rails.root.join("evil.dxf")
 
       get download_tamanho_path(evil)
 
       expect(response).to have_http_status(:success)
       expect(File.exist?(outside)).to be false
-      expect(File.exist?(extracts.join(arquivo.uuid, "tamanho-#{evil.id}.dxf"))).to be true
+      expect(File.exist?(File.join(version.storage_dir, "tamanho_previews", "1.dxf"))).to be true
     ensure
       FileUtils.rm_f(outside)
       FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid)) if arquivo
@@ -141,6 +141,38 @@ RSpec.describe "Tamanhos", type: :request do
       FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid))
       FileUtils.rm_rf(Rails.root.join("tmp", "tamanho_extracts", arquivo.uuid))
       arquivo.destroy!
+    end
+
+    describe "the DXF prepared by PreparacaoTamanhosJob (Etapa 0.6)" do
+      let(:arquivo) { create(:arquivo, extension: "dxf", filename: "corte") }
+      let(:version) do
+        create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf", original_file: "36 ao 48.dxf").tap do |v|
+          arquivo.update!(approved_version_id: v.id)
+          FileUtils.mkdir_p(File.join(v.storage_dir, "original"))
+          FileUtils.cp(Rails.root.join("spec/fixtures/files/36 ao 48.dxf"), v.original_path)
+        end
+      end
+      let(:tamanho) { arquivo.tamanhos.create!(nome: "36", position: 1, width_mm: 1, height_mm: 1) }
+
+      after { FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid)) }
+
+      it "serves the prepared file without extracting again" do
+        caminho = tamanho.dxf_extraido_path(version)
+        FileUtils.mkdir_p(File.dirname(caminho))
+        File.write(caminho, "PREPARED")
+        get download_tamanho_path(tamanho)
+        expect(response.body).to eq("PREPARED")
+      end
+
+      it "extracts again when the prepared file is older than the corte's version" do
+        caminho = tamanho.dxf_extraido_path(version)
+        FileUtils.mkdir_p(File.dirname(caminho))
+        File.write(caminho, "STALE")
+        File.utime(Time.now - 3600, Time.now - 3600, caminho)
+        get download_tamanho_path(tamanho)
+        expect(response.body).not_to eq("STALE")
+        expect(response.body).to include("SECTION")
+      end
     end
   end
 end

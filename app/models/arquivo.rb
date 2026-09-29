@@ -44,13 +44,27 @@ class Arquivo < ApplicationRecord
     category == "corte"
   end
 
-  # A search older than this is stale (the job died): the page stops waiting.
-  BUSCA_DE_TAMANHO_EXPIRA = 10.minutes
+  # A queued task marked longer ago than this is stale (the job died): the
+  # page stops waiting for it.
+  TAREFA_EM_FILA_EXPIRA = 10.minutes
 
   # TamanhoAutoAssignJob is looking for this arte's tamanho (Etapa 0.6).
   # Usage: <% if arquivo.buscando_tamanho? %>Procurando tamanho…<% end %>
   def buscando_tamanho?
-    buscando_tamanho_desde.present? && buscando_tamanho_desde > BUSCA_DE_TAMANHO_EXPIRA.ago
+    marca_recente?(buscando_tamanho_desde)
+  end
+
+  # PreparacaoTamanhosJob is preparing this corte's tamanhos (Etapa 0.6).
+  def preparando_tamanhos?
+    marca_recente?(preparando_tamanhos_desde)
+  end
+
+  # Queues preparing the tamanhos: re-detect them (after a failed organize or
+  # a layer change) or only extract each size's DXF + preview.
+  # Usage: corte.preparar_tamanhos_em_fila!(redetectar: corte.organize_error.present?)
+  def preparar_tamanhos_em_fila!(redetectar:)
+    update_column(:preparando_tamanhos_desde, Time.current)
+    PreparacaoTamanhosJob.perform_later(id, redetectar)
   end
 
   # Queues the automatic tamanho search, unless a tamanho is already set or
@@ -275,6 +289,10 @@ class Arquivo < ApplicationRecord
 
   def destroy_arquivo_with_versions
     update_columns(approved_version_id: nil, tamanho_id: nil, client_id: nil, modelo_id: nil, molde_id: nil, peca_id: nil)
+  end
+
+  def marca_recente?(momento)
+    momento.present? && momento > TAREFA_EM_FILA_EXPIRA.ago
   end
 
   def set_uuid

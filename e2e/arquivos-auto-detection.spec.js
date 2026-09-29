@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const { BASE_URL, runSpec } = require("./support/runner");
+const { waitForQueuedTask } = require("./support/wait");
 const { uploadFileAndWait } = require("./support/upload");
 const { testImagesDir } = require("./support/fixtures");
 
@@ -181,17 +182,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
 
       // Etapa 0.6: update_modelo only queues the search (TamanhoAutoAssignJob).
       // Wait for it to end — the same endpoint the page polls — then reload.
-      // An explicit loop: waitForFunction with an async predicate took the
-      // pending Promise as truthy and returned before the job ran.
-      const buscaTerminou = await page.evaluate(async (uuid) => {
-        for (let i = 0; i < 60; i++) {
-          const r = await fetch(`/arquivos/${uuid}/busca_tamanho.json`, { headers: { Accept: "application/json" } });
-          if ((await r.json()).final) return true;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-        return false;
-      }, arteUuid);
-      if (!buscaTerminou) throw new Error("Tamanho search still running after 60s");
+      await waitForQueuedTask(page, `/arquivos/${arteUuid}/busca_tamanho.json`);
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
 
