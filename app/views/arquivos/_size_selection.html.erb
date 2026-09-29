@@ -14,6 +14,15 @@
     <% end %>
   </h3>
 
+  <% if arquivo.buscando_tamanho? %>
+    <%# Etapa 0.6: TamanhoAutoAssignJob refreshes the page when done; the
+        polling is the safety net for a broadcast lost while connecting. %>
+    <p class="processamento-status badge-processing busca-tamanho"
+       data-controller="processamento" data-processamento-url-value="<%= busca_tamanho_arquivo_path(arquivo, format: :json) %>">
+      Procurando tamanho… o tamanho aparece aqui quando a busca terminar.
+    </p>
+  <% end %>
+
   <% if arquivo.client.present? && arquivo.modelo.present? %>
     <div data-edit-toggle-target="display" class="edit-display" <%= 'style="display:none"'.html_safe unless arquivo.tamanho_id.present? %>>
       <% if arquivo.tamanho.present? %>

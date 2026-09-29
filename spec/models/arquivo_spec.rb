@@ -238,4 +238,43 @@ RSpec.describe Arquivo, type: :model do
       expect(create(:arquivo).resolved_peca).to be_nil
     end
   end
+
+  # Regression (28/09/2026): several modelos share a molde, each with its own
+  # cortes; the molde's first corte was taken as every modelo's corte.
+  describe ".cortes_do_modelo / #corte_via_modelo" do
+    let(:molde) { create(:molde) }
+    let(:lateral) { create(:peca, nome: "Lateral") }
+    let(:lingua) { create(:peca, nome: "Língua") }
+    let(:outro_modelo) { create(:modelo, molde: molde, nome: "21-24") }
+    let(:modelo) { create(:modelo, molde: molde, nome: "28-29") }
+
+    def corte(peca, *modelos)
+      create(:arquivo, :corte, organized: true, molde: molde, peca: peca).tap { |c| modelos.each { |m| c.modelos << m } }
+    end
+
+    it "takes the cortes linked to the modelo, not the whole molde's" do
+      corte(lateral, outro_modelo)
+      meu = corte(lateral, modelo)
+      expect(described_class.cortes_do_modelo(modelo)).to contain_exactly(meu)
+    end
+
+    it "falls back to the molde's cortes when none is linked to the modelo" do
+      solto = create(:arquivo, :corte, organized: true, molde: molde)
+      expect(described_class.cortes_do_modelo(modelo)).to contain_exactly(solto)
+    end
+
+    it "picks the corte of the arte's own peça, else the first" do
+      c_lingua = corte(lingua, modelo)
+      c_lateral = corte(lateral, modelo)
+      expect(create(:arquivo, modelo: modelo, peca: lateral).corte_via_modelo).to eq(c_lateral)
+      expect(create(:arquivo, modelo: modelo).corte_via_modelo).to eq(c_lingua)
+    end
+
+    # Guessing lateral vs língua would assign a wrong size; the user picks it.
+    it "#corte_inequivoco_via_modelo is nil when several cortes and no peça" do
+      corte(lingua, modelo)
+      corte(lateral, modelo)
+      expect(create(:arquivo, modelo: modelo).corte_inequivoco_via_modelo).to be_nil
+    end
+  end
 end

@@ -44,6 +44,25 @@ class Arquivo < ApplicationRecord
     category == "corte"
   end
 
+  # A search older than this is stale (the job died): the page stops waiting.
+  BUSCA_DE_TAMANHO_EXPIRA = 10.minutes
+
+  # TamanhoAutoAssignJob is looking for this arte's tamanho (Etapa 0.6).
+  # Usage: <% if arquivo.buscando_tamanho? %>Procurando tamanho…<% end %>
+  def buscando_tamanho?
+    buscando_tamanho_desde.present? && buscando_tamanho_desde > BUSCA_DE_TAMANHO_EXPIRA.ago
+  end
+
+  # Queues the automatic tamanho search, unless a tamanho is already set or
+  # there is no modelo to search in (it was just unlinked).
+  # Usage: arte.buscar_tamanho_em_fila!
+  def buscar_tamanho_em_fila!
+    return if tamanho_id || modelo_id.nil?
+
+    update_column(:buscando_tamanho_desde, Time.current)
+    TamanhoAutoAssignJob.perform_later(id)
+  end
+
   # Permission área (Autorizacao): cortes (DXF) are Catálogo, the rest Artes.
   # Usage: autorizacao.pode?(arquivo.area_de_acesso, :editar)
   def area_de_acesso
@@ -76,9 +95,45 @@ class Arquivo < ApplicationRecord
     corte&.peca || peca
   end
 
+  # Organized cortes of a modelo: the ones linked to it (arquivo_modelos).
+  # Several modelos share a molde, each with its own cortes (e.g. Tenis Baixo
+  # → 19-20-25, 21-24, 28-29); taking every corte of the molde gave an arte of
+  # 28-29 the tamanho of 21-24's corte (bug found 28/09/2026). Only when no
+  # corte is linked to the modelo, the molde's cortes.
+  # Usage: Arquivo.cortes_do_modelo(arte.modelo)
+  def self.cortes_do_modelo(modelo)
+    return none unless modelo&.molde_id
+
+    organizados = ativos.where(organized: true)
+    ligados = organizados.joins(:arquivo_modelos).where(arquivo_modelos: { modelo_id: modelo.id })
+    ligados.exists? ? ligados : organizados.where(molde_id: modelo.molde_id)
+  end
+
+  # This arte's corte through its modelo: the one of its own peça when it has
+  # one, else the first of the modelo's cortes.
   def corte_via_modelo
-    return nil unless modelo&.molde
-    Arquivo.ativos.where(organized: true, molde_id: modelo.molde_id).first
+    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+    (peca_id && cortes.find { |corte| corte.peca_id == peca_id }) || cortes.first
+  end
+
+  # After an arte's modelo changes or is unlinked: a tamanho from a corte that
+  # isn't the new modelo's is dropped — the auto search never overrides a
+  # tamanho, so the old modelo's size used to stay (28/09/2026).
+  # Usage: arte.descartar_tamanho_fora_do_modelo!
+  def descartar_tamanho_fora_do_modelo!
+    return if corte? || tamanho.nil?
+    return if modelo && Arquivo.cortes_do_modelo(modelo).exists?(id: tamanho.arquivo_id)
+
+    update_column(:tamanho_id, nil)
+  end
+
+  # Like corte_via_modelo, but nil when it would be a guess: the modelo has
+  # several cortes (lateral, língua…) and the arte has no peça to pick one.
+  def corte_inequivoco_via_modelo
+    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+    return cortes.first if cortes.one?
+
+    peca_id && cortes.find { |corte| corte.peca_id == peca_id }
   end
 
   def artes_vinculadas

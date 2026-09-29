@@ -1,7 +1,8 @@
 # Picks a tamanho for an arte right after its modelo is chosen, so the user
 # doesn't have to (019535b). First tries MoldMatchService (outline matching);
-# if nothing matches, falls back to the first tamanho of the organized corte
-# linked through the modelo's molde. Never overrides a tamanho already set.
+# if nothing matches, falls back to the first tamanho of the modelo's corte —
+# only when that corte is certain (Arquivo#corte_inequivoco_via_modelo).
+# Never overrides a tamanho already set.
 #
 # Usage: TamanhoAutoAssignService.call(arte)
 class TamanhoAutoAssignService
@@ -35,8 +36,10 @@ class TamanhoAutoAssignService
     @arte.reload
   end
 
+  # Only when the corte is certain: with several cortes and no peça on the
+  # arte it would be a guess, and the user picks the size instead.
   def assign_first_of_linked_corte
-    first_tamanho = @arte.corte_via_modelo&.tamanhos&.first
+    first_tamanho = @arte.corte_inequivoco_via_modelo&.tamanhos&.first
     @arte.update(tamanho_id: first_tamanho.id) if first_tamanho
   end
 end

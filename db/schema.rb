@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_200000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_160000) do
     t.integer "annotated_seconds"
     t.integer "approved_version_id"
     t.string "batch_id"
+    t.datetime "buscando_tamanho_desde"
     t.string "category"
     t.text "category_notes"
     t.integer "client_id"
