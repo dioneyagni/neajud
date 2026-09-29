@@ -39,14 +39,28 @@ RSpec.describe CutLayerConfigurationService do
     expect(version.cut_layers.reload.first.annotation).to eq("cut")
   end
 
-  it "re-runs DXF organization when it had failed" do
-    arquivo.update!(organize_error: "stacked cuts")
-    expect(DxfOrganizationService).to receive(:call).with(arquivo)
-    described_class.call(version, annotations("0" => { layer_name: "Corte", color: "#FF0000", annotation: "hole" }))
-  end
+  # Etapa 0.6: re-detecting runs in the queue, not in the request.
+  describe "re-running DXF organization" do
+    around do |example|
+      anterior = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      example.run
+    ensure
+      ActiveJob::Base.queue_adapter = anterior
+    end
 
-  it "does not re-run DXF organization when it had succeeded" do
-    expect(DxfOrganizationService).not_to receive(:call)
-    described_class.call(version, annotations("0" => { layer_name: "Corte", color: "#FF0000", annotation: "cut" }))
+    it "queues it (re-detecting) when it had failed" do
+      arquivo.update!(organize_error: "stacked cuts")
+      expect {
+        described_class.call(version, annotations("0" => { layer_name: "Corte", color: "#FF0000", annotation: "hole" }))
+      }.to have_enqueued_job(PreparacaoTamanhosJob).with(arquivo.id, true)
+      expect(arquivo.reload.preparando_tamanhos?).to be true
+    end
+
+    it "doesn't when it had succeeded" do
+      expect {
+        described_class.call(version, annotations("0" => { layer_name: "Corte", color: "#FF0000", annotation: "cut" }))
+      }.not_to have_enqueued_job(PreparacaoTamanhosJob)
+    end
   end
 end

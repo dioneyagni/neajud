@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show busca_tamanho update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show busca_tamanho preparacao_tamanhos update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   # Permissions (Etapa 0.5): an arquivo is Artes or, if a corte, Catálogo
@@ -7,7 +7,7 @@ class ArquivosController < ApplicationController
   before_action(only: :index) { exigir!(pode?(:artes, :ver) || pode?(:catalogo, :ver), "artes or catalogo: ver") }
   before_action(only: :create) { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
   before_action(only: :batch_destroy) { exigir!(pode?(:artes, :excluir) || pode?(:catalogo, :excluir), "artes or catalogo: excluir") }
-  before_action(only: %i[show preview composicao processamento busca_tamanho version_preview]) { exigir_no_arquivo!(:ver) }
+  before_action(only: %i[show preview composicao processamento busca_tamanho preparacao_tamanhos version_preview]) { exigir_no_arquivo!(:ver) }
   before_action(only: %i[update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
@@ -165,11 +165,16 @@ class ArquivosController < ApplicationController
     end
   end
 
-  # Polling safety net for the tamanho search (processamento_controller.js,
-  # "refresh" mode): the page reloads once it is over.
+  # Polling safety nets (processamento_controller.js, "refresh" mode): the
+  # page reloads once the queued task is over.
   # Usage: GET /arquivos/:uuid/busca_tamanho.json # => { "final": true }
   def busca_tamanho
     render json: { final: !@arquivo.buscando_tamanho? }
+  end
+
+  # Usage: GET /arquivos/:uuid/preparacao_tamanhos.json # => { "final": false }
+  def preparacao_tamanhos
+    render json: { final: !@arquivo.preparando_tamanhos? }
   end
 
   def update_tamanho
@@ -301,10 +306,12 @@ class ArquivosController < ApplicationController
 
     TamanhoReplacementService.call(@arquivo, params[:tamanhos]) if params[:tamanhos].respond_to?(:values)
 
+    # Etapa 0.6: the heavy part (re-detection, each size's DXF and preview)
+    # runs in PreparacaoTamanhosJob; the page shows "Preparando os tamanhos…".
     if @arquivo.organize_error.present?
-      DxfOrganizationService.call(@arquivo)
+      @arquivo.preparar_tamanhos_em_fila!(redetectar: true)
     elsif @arquivo.tamanhos.any? && @arquivo.tamanhos.all? { |t| t.preview_file.blank? }
-      DxfOrganizationService.generate_tamanho_previews(@arquivo)
+      @arquivo.preparar_tamanhos_em_fila!(redetectar: false)
     end
 
     respond_to do |format|

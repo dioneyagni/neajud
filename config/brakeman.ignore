@@ -5,10 +5,6 @@
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "668fad5da6f1bf9251ff747154053d38fe98aed876a6b37dd07e73e59bb6fbaf",
-      "note": "Pre-existing: false positive (file access via model attributes)"
-    },
-    {
       "fingerprint": "c1339fb993b064ae9af3d1ffdca196ffdb0f828eb4a8f837356d71c99ff581b9",
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
@@ -17,12 +13,12 @@
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "91c235fedae994b041fc63bda83317f527e8457300deff0095e42d7bffe3c808",
-      "note": "TamanhosController#download: the path is tmp/tamanho_extracts/<arquivo.uuid>/tamanho-<id>.dxf \u2014 uuid is SecureRandom (not a permitted param) and id is an integer. It used to include tamanho.nome (free text): a real path traversal, fixed Sep 2026 with a regression spec. The user-typed nome only goes into the Content-Disposition filename."
-    },
-    {
       "fingerprint": "d27b0d7c81547826d37fce7a35930ea32634266a823caaa1b8c8636c077bacc5",
       "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb."
+    },
+    {
+      "fingerprint": "b1916ad5449a059d2465ab2453d46215a5f8fb805eb656b16a65c331e48e8700",
+      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb."
     }
   ]
 }

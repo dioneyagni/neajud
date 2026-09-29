@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { waitForText } = require("./support/wait");
+const { waitForText, waitForQueuedTask } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { testImagesDir } = require("./support/fixtures");
@@ -118,6 +118,13 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const tamanhoVal = await page.$eval(".tamanho-input", el => el.value);
     if (tamanhoVal !== "Piloto") throw new Error(`Expected "Piloto", got "${tamanhoVal}"`);
+
+    // Etapa 0.6: each size's DXF + preview are prepared in the queue; the
+    // "Preparando os tamanhos…" banner must go away once it is over.
+    const corteUuid = page.url().split("/").pop();
+    await waitForQueuedTask(page, `/arquivos/${corteUuid}/preparacao_tamanhos.json`);
+    await page.reload();
+    if ((await page.locator(".preparacao-tamanhos").count()) !== 0) throw new Error('"Preparando os tamanhos…" still shown after it ended');
 
     // Verify icon is gone on card
     await page.goto(BASE_URL);
@@ -352,8 +359,11 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       const orgSaveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
       if (!orgSaveBtn) throw new Error("Organization save button not found");
       await orgSaveBtn.click();
-      await page.waitForTimeout(1000);
       await page.waitForSelector(".mold-organization-form", { timeout: 10000 });
+
+      // Etapa 0.6: re-detecting (which clears "stacked cuts") runs in the queue.
+      await waitForQueuedTask(page, `/arquivos/${page.url().split("/").pop()}/preparacao_tamanhos.json`);
+      await page.reload();
 
       // Verify error message is gone from show page
       body = await page.textContent("body");

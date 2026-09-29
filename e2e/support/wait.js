@@ -14,4 +14,21 @@ async function waitForText(page, text, timeout = 15000) {
   }
 }
 
-module.exports = { waitForText };
+// Waits until a queued task of an arquivo is over (Etapa 0.6), asking the same
+// JSON endpoint the page polls — e.g. "/arquivos/<uuid>/preparacao_tamanhos.json".
+// An explicit loop: waitForFunction with an async predicate took the pending
+// Promise as truthy and returned at once.
+// Usage: await waitForQueuedTask(page, `/arquivos/${uuid}/preparacao_tamanhos.json`)
+async function waitForQueuedTask(page, jsonPath, timeoutSeconds = 60) {
+  const done = await page.evaluate(async ({ jsonPath, timeoutSeconds }) => {
+    for (let i = 0; i < timeoutSeconds; i++) {
+      const r = await fetch(jsonPath, { headers: { Accept: "application/json" } });
+      if ((await r.json()).final) return true;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return false;
+  }, { jsonPath, timeoutSeconds });
+  if (!done) throw new Error(`Queued task at ${jsonPath} still running after ${timeoutSeconds}s`);
+}
+
+module.exports = { waitForText, waitForQueuedTask };

@@ -227,8 +227,9 @@ Etapa 0.5 concluída em 28/09/2026.
 Dividida em três PRs (decidido em 28/09/2026), um por trabalho pesado, medidos no dev: comparação de moldes até 37 s; extração do DXF ~0,5 s por tamanho.
 
 - **1/3 — Tamanho automático** (concluída em 28/09/2026): ao escolher o modelo, a busca roda na fila; a seção de tamanho mostra "Procurando tamanho…" e o tamanho aparece sozinho quando termina (atualização ao vivo, com consulta periódica de reserva).
-- **2/3 — Prévias dos tamanhos** ao organizar o DXF, na fila.
-- **3/3 — DXF de cada tamanho** gerado logo após organizar (e em versão nova), para o download da produção sair pronto; se pedirem antes, extrai na hora como hoje.
+- **2/3 + 3/3 — Preparar os tamanhos do corte** (juntas num PR, concluídas em 29/09/2026: a prévia e o DXF de cada tamanho saem da mesma extração): organizar o DXF e salvar as camadas só gravam a escolha; um job detecta de novo quando preciso, extrai o DXF de cada tamanho e gera a prévia. A página mostra "Preparando os tamanhos…" e se atualiza ao terminar. O download da produção usa o DXF já pronto; se pedirem antes, extrai na hora no mesmo lugar.
+
+Etapa 0.6 concluída em 29/09/2026.
 ## Fase 1 — Modelo de domínio
 
 A estrutura que é cara de mudar depois: nomes, identificadores e a forma como tamanhos e cortes se relacionam.

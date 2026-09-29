@@ -1,5 +1,13 @@
 <div data-controller="dialog" data-create-title="Register New Mold" data-create-label="Register" data-create-url="<%= moldes_path %>">
   <div id="organize-flash"></div>
+  <% if arquivo.preparando_tamanhos? %>
+    <%# Etapa 0.6: PreparacaoTamanhosJob refreshes the page when done; polling
+        is the safety net for a broadcast lost while connecting. %>
+    <p class="processamento-status badge-processing preparacao-tamanhos"
+       data-controller="processamento" data-processamento-url-value="<%= preparacao_tamanhos_arquivo_path(arquivo, format: :json) %>">
+      Preparando os tamanhos… as prévias e os DXF de cada tamanho aparecem quando terminar.
+    </p>
+  <% end %>
 <%= form_with url: organize_arquivo_path(arquivo), method: :patch, class: "mold-organization-form",
       data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
   <% if !arquivo.organized? %>

@@ -767,6 +767,21 @@ controller polling `GET /arquivos/:uuid/busca_tamanho.json`; a mark older than
 10 minutes counts as over (a dead job never leaves the page waiting).
 `TamanhoAutoAssignJob.matcher` is injectable (`FakeMoldMatcher` in specs).
 
+**Preparing a corte's tamanhos (Etapa 0.6, 2/3 + 3/3):** `organize` and
+`configure_layers` only save what was chosen and call
+`Arquivo#preparar_tamanhos_em_fila!(redetectar:)` → `PreparacaoTamanhosJob`
+(re-detects via `DxfOrganizationService.call` after a failed organize, else
+`generate_tamanho_previews`). Each size's DXF is extracted once, to
+`Tamanho#dxf_extraido_path` (`<version>/tamanho_previews/<position>.dxf`,
+next to its preview), and production's download serves that file — extracting
+it on the spot only if asked before it is ready or older than the version
+(`tmp/tamanho_extracts/` is no longer used). The corte page shows "Preparando
+os tamanhos…" polling `GET /arquivos/:uuid/preparacao_tamanhos.json`; same
+10-minute expiry (`Arquivo::TAREFA_EM_FILA_EXPIRA`). The organizer is
+injectable (`PreparacaoTamanhosJob.organizador`, `FakeOrganizadorDxf`).
+Previews feed the automatic tamanho search: an arte linked while its corte is
+still preparing falls back to dimensions or to picking the size by hand.
+
 Gotchas found while building it:
 
 - The worker is a **separate process**: the in-process `async` cable adapter
@@ -847,11 +862,6 @@ The plan renames things; until those stages land, the code keeps its names:
 
 Current code that still differs from the plan — don't copy these patterns into new work:
 
-- **Heavy work still in the request** — uploads (Etapa 0.3) and the automatic
-  tamanho search (0.6 1/3) are queued, but the tamanho previews of
-  `DxfOrganizationService` (in `organize`) and the per-size DXF extraction
-  (`TamanhosController#download`) still run in the request. Target: Etapa 0.6
-  (2/3, 3/3).
 - **No "cliente final"** — the client's own access (seeing only their pedidos
   and artes) needs every query filtered by client. Target: its own etapa
   before the beta.

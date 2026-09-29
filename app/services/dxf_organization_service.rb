@@ -105,7 +105,7 @@ class DxfOrganizationService
 
     FileUtils.mkdir_p(preview_dir)
 
-    extracted_dxf = File.join(preview_dir, "#{tamanho.position}.dxf")
+    extracted_dxf = tamanho.dxf_extraido_path(version)
     svg_path = File.join(preview_dir, "#{tamanho.position}.svg")
 
     extract_script = Rails.root.join("bin", "extract-tamanho-dxf.js").to_s

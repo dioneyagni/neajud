@@ -5,29 +5,18 @@ class TamanhosController < ApplicationController
   exige :catalogo, :ver, only: :for_cascade
   before_action :set_tamanho, only: %i[download]
 
+  # Production's download of one size (Etapa 0.6, 3/3): normally the DXF that
+  # PreparacaoTamanhosJob already extracted; if asked before it is ready (or
+  # the version changed), extracted now into the same place.
   def download
     arquivo = @tamanho.arquivo
     version = arquivo.approved_version
     raise ActionController::MissingFile unless version && File.exist?(version.original_path.to_s)
 
-    output_dir = Rails.root.join("tmp", "tamanho_extracts", arquivo.uuid)
-    FileUtils.mkdir_p(output_dir)
-    # Named by id, never by nome: nome is free text from the organize form, and
-    # "../../x" as nome used to write and serve a file outside tamanho_extracts.
-    output_path = output_dir.join("tamanho-#{@tamanho.id}.dxf")
+    caminho = @tamanho.dxf_extraido_path(version)
+    extrair_dxf!(version, caminho) unless extraido_em_dia?(caminho, version)
 
-    unless File.exist?(output_path.to_s) && File.mtime(output_path) >= File.mtime(version.original_path)
-      stdout, stderr, status = Open3.capture3(
-        "node", Rails.root.join("bin", "extract-tamanho-dxf.js").to_s,
-        version.original_path.to_s, output_path.to_s, @tamanho.position.to_s
-      )
-      unless status.success?
-        Rails.logger.error "extract-tamanho-dxf.js failed (position=#{@tamanho.position}): #{stderr.strip}"
-        raise "Failed to extract tamanho DXF"
-      end
-    end
-
-    send_file output_path.to_s,
+    send_file caminho,
       type: "application/dxf",
       disposition: "attachment",
       # Corte name + size: on the factory floor a bare "30.dxf" is ambiguous.
@@ -47,6 +36,22 @@ class TamanhosController < ApplicationController
   end
 
   private
+
+  def extraido_em_dia?(caminho, version)
+    File.exist?(caminho) && File.mtime(caminho) >= File.mtime(version.original_path)
+  end
+
+  def extrair_dxf!(version, caminho)
+    FileUtils.mkdir_p(File.dirname(caminho))
+    _stdout, stderr, status = Open3.capture3(
+      "node", Rails.root.join("bin", "extract-tamanho-dxf.js").to_s,
+      version.original_path.to_s, caminho, @tamanho.position.to_s
+    )
+    return if status.success?
+
+    Rails.logger.error "extract-tamanho-dxf.js failed (position=#{@tamanho.position}): #{stderr.strip}"
+    raise "Failed to extract tamanho #{@tamanho.id} (position #{@tamanho.position}) from #{version.original_path}"
+  end
 
   def set_tamanho
     @tamanho = Tamanho.find(params[:id])
