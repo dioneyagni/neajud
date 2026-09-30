@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :molde do
-    sequence(:nome) { |n| "Molde #{n}" }
+    nome { "MyString" }
+    client
   end
 end

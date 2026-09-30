@@ -2,20 +2,20 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   // Uuids, never integer ids (Etapa 1.1): they go straight into the query.
-  static values = { moldeUuid: String, modeloUuid: String, clientUuid: String }
+  static values = { modeloUuid: String, moldeUuid: String, clientUuid: String }
   static targets = ["pecaSelect", "tamanhoSelect", "tamanhoUuid", "saveBtn"]
 
   connect() {
-    if (this.moldeUuidValue) {
+    if (this.modeloUuidValue) {
       this.fetchPecas()
     }
   }
 
   baseParams() {
     const params = new URLSearchParams()
-    params.set("molde_uuid", this.moldeUuidValue)
-    if (this.modeloUuidValue) {
-      params.set("modelo_uuid", this.modeloUuidValue)
+    params.set("modelo_uuid", this.modeloUuidValue)
+    if (this.moldeUuidValue) {
+      params.set("molde_uuid", this.moldeUuidValue)
     }
     if (this.clientUuidValue) {
       params.set("client_uuid", this.clientUuidValue)

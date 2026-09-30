@@ -1,4 +1,4 @@
-# One piece (lateral, língua…) of the modelo an ItemPedido orders.
+# One piece (lateral, língua…) of the molde an ItemPedido orders.
 #   arquivo nil          → :pendente  (no arte yet; blocks confirming the pedido)
 #   incluida true        → :incluida  (goes to production)
 #   incluida false       → :excluida  (unchecked; the pedido goes to production

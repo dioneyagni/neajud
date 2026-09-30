@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -49,14 +49,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
     t.index ["arquivo_version_id"], name: "index_arquivo_image_metadata_on_arquivo_version_id"
   end
 
-  create_table "arquivo_modelos", force: :cascade do |t|
+  create_table "arquivo_moldes", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.datetime "created_at", null: false
-    t.integer "modelo_id", null: false
+    t.integer "molde_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["arquivo_id", "modelo_id"], name: "index_arquivo_modelos_on_arquivo_id_and_modelo_id", unique: true
-    t.index ["arquivo_id"], name: "index_arquivo_modelos_on_arquivo_id"
-    t.index ["modelo_id"], name: "index_arquivo_modelos_on_modelo_id"
+    t.index ["arquivo_id", "molde_id"], name: "index_arquivo_moldes_on_arquivo_id_and_molde_id", unique: true
+    t.index ["arquivo_id"], name: "index_arquivo_moldes_on_arquivo_id"
+    t.index ["molde_id"], name: "index_arquivo_moldes_on_molde_id"
   end
 
   create_table "arquivo_time_logs", force: :cascade do |t|
@@ -97,20 +97,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
     t.integer "arquivo_id", null: false
     t.string "changed_by"
     t.datetime "created_at", null: false
-    t.integer "from_modelo_id"
-    t.string "from_modelo_nome"
+    t.integer "from_molde_id"
+    t.string "from_molde_nome"
     t.integer "peca_id"
     t.integer "pedido_id"
-    t.integer "to_modelo_id"
-    t.string "to_modelo_nome", null: false
+    t.integer "to_molde_id"
+    t.string "to_molde_nome", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_arquivo_vinculo_logs_on_arquivo_id"
-    t.index ["from_modelo_id"], name: "index_arquivo_vinculo_logs_on_from_modelo_id"
+    t.index ["from_molde_id"], name: "index_arquivo_vinculo_logs_on_from_molde_id"
     t.index ["peca_id"], name: "index_arquivo_vinculo_logs_on_peca_id"
     t.index ["pedido_id"], name: "index_arquivo_vinculo_logs_on_pedido_id"
-    t.index ["to_modelo_id"], name: "index_arquivo_vinculo_logs_on_to_modelo_id"
+    t.index ["to_molde_id"], name: "index_arquivo_vinculo_logs_on_to_molde_id"
     t.index ["user_id"], name: "index_arquivo_vinculo_logs_on_user_id"
     t.index ["uuid"], name: "index_arquivo_vinculo_logs_on_uuid", unique: true
   end
@@ -131,8 +131,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
     t.string "filename", null: false
     t.string "mime_type", null: false
     t.integer "modelo_id"
+    t.string "modelo_nome", default: "Novo Modelo"
     t.integer "molde_id"
-    t.string "molde_nome", default: "Novo Molde"
     t.string "organize_error"
     t.boolean "organized", default: false, null: false
     t.integer "peca_id"
@@ -308,56 +308,56 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
     t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end
 
-  create_table "modelo_pecas", force: :cascade do |t|
-    t.datetime "created_at", null: false
+  create_table "modelo_pecas", id: false, force: :cascade do |t|
     t.integer "modelo_id", null: false
+    t.integer "peca_id", null: false
+    t.index ["modelo_id", "peca_id"], name: "index_modelo_pecas_on_modelo_id_and_peca_id", unique: true
+    t.index ["modelo_id"], name: "index_modelo_pecas_on_modelo_id"
+    t.index ["peca_id"], name: "index_modelo_pecas_on_peca_id"
+  end
+
+  create_table "modelos", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
+    t.index ["nome"], name: "index_modelos_on_nome", unique: true
+    t.index ["uuid"], name: "index_modelos_on_uuid", unique: true
+  end
+
+  create_table "molde_pecas", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "molde_id", null: false
     t.boolean "needs_cut", default: true, null: false
     t.integer "peca_id", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
-    t.index ["modelo_id", "peca_id"], name: "index_modelo_pecas_on_modelo_id_and_peca_id", unique: true
-    t.index ["modelo_id"], name: "index_modelo_pecas_on_modelo_id"
-    t.index ["peca_id"], name: "index_modelo_pecas_on_peca_id"
-    t.index ["uuid"], name: "index_modelo_pecas_on_uuid", unique: true
+    t.index ["molde_id", "peca_id"], name: "index_molde_pecas_on_molde_id_and_peca_id", unique: true
+    t.index ["molde_id"], name: "index_molde_pecas_on_molde_id"
+    t.index ["peca_id"], name: "index_molde_pecas_on_peca_id"
+    t.index ["uuid"], name: "index_molde_pecas_on_uuid", unique: true
   end
 
-  create_table "modelos", force: :cascade do |t|
+  create_table "moldes", force: :cascade do |t|
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.integer "molde_id"
+    t.integer "modelo_id"
     t.string "nome", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
-    t.index ["client_id"], name: "index_modelos_on_client_id"
-    t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
-    t.index ["molde_id"], name: "index_modelos_on_molde_id"
-    t.index ["nome", "client_id"], name: "index_modelos_on_nome_and_client_id", unique: true
-    t.index ["uuid"], name: "index_modelos_on_uuid", unique: true
-  end
-
-  create_table "molde_pecas", id: false, force: :cascade do |t|
-    t.integer "molde_id", null: false
-    t.integer "peca_id", null: false
-    t.index ["molde_id", "peca_id"], name: "index_molde_pecas_on_molde_id_and_peca_id", unique: true
-    t.index ["molde_id"], name: "index_molde_pecas_on_molde_id"
-    t.index ["peca_id"], name: "index_molde_pecas_on_peca_id"
-  end
-
-  create_table "moldes", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "deleted_at"
-    t.integer "deleted_by_id"
-    t.string "nome", null: false
-    t.datetime "restored_at"
-    t.integer "restored_by_id"
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.index ["client_id"], name: "index_moldes_on_client_id"
     t.index ["deleted_at"], name: "index_moldes_on_deleted_at"
-    t.index ["nome"], name: "index_moldes_on_nome", unique: true
+    t.index ["modelo_id"], name: "index_moldes_on_modelo_id"
+    t.index ["nome", "client_id"], name: "index_moldes_on_nome_and_client_id", unique: true
     t.index ["uuid"], name: "index_moldes_on_uuid", unique: true
   end
 
@@ -484,14 +484,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
   add_foreign_key "aprovacoes_arte", "arquivos"
   add_foreign_key "aprovacoes_arte", "users"
   add_foreign_key "arquivo_image_metadata", "arquivo_versions"
-  add_foreign_key "arquivo_modelos", "arquivos"
-  add_foreign_key "arquivo_modelos", "modelos"
+  add_foreign_key "arquivo_moldes", "arquivos"
+  add_foreign_key "arquivo_moldes", "moldes"
   add_foreign_key "arquivo_time_logs", "arquivos"
   add_foreign_key "arquivo_time_logs", "users"
   add_foreign_key "arquivo_versions", "arquivos"
   add_foreign_key "arquivo_vinculo_logs", "arquivos"
-  add_foreign_key "arquivo_vinculo_logs", "modelos", column: "from_modelo_id"
-  add_foreign_key "arquivo_vinculo_logs", "modelos", column: "to_modelo_id"
+  add_foreign_key "arquivo_vinculo_logs", "moldes", column: "from_molde_id"
+  add_foreign_key "arquivo_vinculo_logs", "moldes", column: "to_molde_id"
   add_foreign_key "arquivo_vinculo_logs", "pecas"
   add_foreign_key "arquivo_vinculo_logs", "pedidos"
   add_foreign_key "arquivo_vinculo_logs", "users"
@@ -514,10 +514,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
   add_foreign_key "materia_primas", "grupo_materiais"
   add_foreign_key "modelo_pecas", "modelos"
   add_foreign_key "modelo_pecas", "pecas"
-  add_foreign_key "modelos", "clients"
-  add_foreign_key "modelos", "moldes"
   add_foreign_key "molde_pecas", "moldes"
   add_foreign_key "molde_pecas", "pecas"
+  add_foreign_key "moldes", "clients"
+  add_foreign_key "moldes", "modelos"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"

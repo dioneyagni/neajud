@@ -17,7 +17,7 @@ class PedidosController < ApplicationController
 
   def show
     @pedido = Pedido.includes(itens_pedido: {
-      arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { modelo: :molde }, approved_version: :image_metadata ],
+      arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { molde: :modelo }, approved_version: :image_metadata ],
       materia_prima: :grupo_material,
       item_pedido_pecas: [ :peca, { arquivo: :approved_version } ]
     }).find_by!(uuid: params[:uuid])
@@ -64,7 +64,7 @@ class PedidosController < ApplicationController
 
     ItemPedido.transaction do
       item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
-      item.compor_pecas!(ModeloComposicaoService.call(arquivo))
+      item.compor_pecas!(MoldeComposicaoService.call(arquivo))
       item.excluir_pecas!(params[:excluir_arquivos])
 
       grade_params = params[:grade]

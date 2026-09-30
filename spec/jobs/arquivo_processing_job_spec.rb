@@ -453,13 +453,13 @@ RSpec.describe ArquivoProcessingJob do
     end
   end
 
-  # Etapa 0.3: processing is queued, so a modelo may be chosen before the
+  # Etapa 0.3: processing is queued, so a molde may be chosen before the
   # preview exists; the job retries the tamanho auto-assign at the end.
   describe "#assign_tamanho_after_processing" do
-    let(:arte) { create(:arquivo, category: "artes", modelo: create(:modelo)) }
+    let(:arte) { create(:arquivo, category: "artes", molde: create(:molde)) }
     let(:arte_version) { create(:arquivo_version, arquivo: arte).tap { |v| arte.update!(approved_version: v) } }
 
-    it "assigns the tamanho for an arte with modelo and no tamanho" do
+    it "assigns the tamanho for an arte with molde and no tamanho" do
       expect(TamanhoAutoAssignService).to receive(:call).with(arte)
       job.send(:assign_tamanho_after_processing, arte_version)
     end
@@ -470,10 +470,10 @@ RSpec.describe ArquivoProcessingJob do
       job.send(:assign_tamanho_after_processing, arte_version)
     end
 
-    it "skips artes without modelo, with a tamanho, and non-approved versions" do
+    it "skips artes without molde, with a tamanho, and non-approved versions" do
       expect(TamanhoAutoAssignService).not_to receive(:call)
-      sem_modelo = create(:arquivo, category: "artes")
-      job.send(:assign_tamanho_after_processing, create(:arquivo_version, arquivo: sem_modelo).tap { |v| sem_modelo.update!(approved_version: v) })
+      sem_molde = create(:arquivo, category: "artes")
+      job.send(:assign_tamanho_after_processing, create(:arquivo_version, arquivo: sem_molde).tap { |v| sem_molde.update!(approved_version: v) })
       arte_version
       job.send(:assign_tamanho_after_processing, create(:arquivo_version, arquivo: arte))
     end

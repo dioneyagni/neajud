@@ -38,7 +38,7 @@ clean_e2e_artifacts() {
 }
 
 # Single source of truth for which specs run — CI calls this script too, so
-# a spec missing here runs nowhere (moldes.spec.js was silently skipped).
+# a spec missing here runs nowhere (modelos.spec.js was silently skipped).
 # Explicit list (not a glob) keeps the historical run order.
 E2E_SPECS=(
   # autenticacao must run first: it needs the empty database of a new
@@ -49,10 +49,10 @@ E2E_SPECS=(
   # data created by earlier ones (arquivos-client-field opens the 29-30 card
   # that arquivos-previews / arquivos-dxf-organization uploaded).
   arquivos-upload arquivos-previews arquivos-versions arquivos-dxf-organization
-  arquivos-client-field arquivos-size-selection arquivos-modelo-unlink arquivos-dialog-modal
-  pages-clients-moldes-pecas pages-modelos-materials
+  arquivos-client-field arquivos-size-selection arquivos-molde-unlink arquivos-dialog-modal
+  pages-clients-modelos-pecas pages-moldes-materials
   arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte
-  movimentos pedidos pedidos-pecas clients modelos materiais moldes lixeira funcoes usuarios aprovacoes
+  movimentos pedidos pedidos-pecas clients moldes materiais modelos lixeira funcoes usuarios aprovacoes
 )
 for file in e2e/*.spec.js; do
   name="$(basename "$file" .spec.js)"

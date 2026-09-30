@@ -1,11 +1,11 @@
 <%# Choose an existing arte for a pending piece. Groups come from
-    ArteCandidatasService in the agreed order. An arte from another modelo is
+    ArteCandidatasService in the agreed order. An arte from another molde is
     moved only after the "Mover para …?" confirmation (checked server-side too). %>
 <h2>Escolher arte</h2>
 <p class="escolher-arte-contexto">
   Peça <strong><%= @peca_row.peca&.nome || "Sem peça" %></strong>
-  do modelo <strong><%= @modelo.nome %></strong>
-  <span class="escolher-arte-cliente">(<%= @modelo.client.name %>)</span>
+  do molde <strong><%= @molde.nome %></strong>
+  <span class="escolher-arte-cliente">(<%= @molde.client.name %>)</span>
 </p>
 
 <% @grupos.each do |grupo| %>
@@ -16,7 +16,7 @@
     <% else %>
       <div class="escolher-arte-lista">
         <% grupo.artes.each do |arte| %>
-          <% mover = arte.modelo.present? && arte.modelo != @modelo %>
+          <% mover = arte.molde.present? && arte.molde != @molde %>
           <div class="escolher-arte-card" data-arquivo-uuid="<%= arte.uuid %>">
             <% if arte.preview_file.present? %>
               <img class="escolher-arte-thumb" src="<%= preview_arquivo_path(arte) %>" alt="<%= arte.filename %>">
@@ -24,11 +24,11 @@
               <div class="escolher-arte-thumb escolher-arte-thumb--vazio">sem preview</div>
             <% end %>
             <span class="escolher-arte-nome"><%= arte.filename %></span>
-            <span class="escolher-arte-modelo"><%= arte.modelo ? "Modelo: #{arte.modelo.nome}" : "Sem modelo" %></span>
+            <span class="escolher-arte-molde"><%= arte.molde ? "Molde: #{arte.molde.nome}" : "Sem molde" %></span>
             <%= button_to "Usar esta", vincular_arte_pedido_peca_path(@pedido, @peca_row),
                   params: { arquivo_uuid: arte.uuid, confirmar_mudanca: (mover ? "1" : nil) }.compact,
                   class: "btn btn-sm btn-primary",
-                  data: (mover ? { turbo_confirm: "Esta arte está no modelo #{arte.modelo.nome}. Mover para #{@modelo.nome}? A mudança fica registrada." } : {}) %>
+                  data: (mover ? { turbo_confirm: "Esta arte está no molde #{arte.molde.nome}. Mover para #{@molde.nome}? A mudança fica registrada." } : {}) %>
           </div>
         <% end %>
       </div>

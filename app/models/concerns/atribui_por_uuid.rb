@@ -6,8 +6,8 @@
 # Why not keep `client_id` with a uuid value: Rails casts "8f3a…" to the
 # integer 8 without complaint, which would silently link the wrong record.
 #
-# Usage: class Modelo < ApplicationRecord; atribui_por_uuid :client, :molde; end
-#        Modelo.new(nome: "X", client_uuid: params[:client_uuid])
+# Usage: class Molde < ApplicationRecord; atribui_por_uuid :client, :modelo; end
+#        Molde.new(nome: "X", client_uuid: params[:client_uuid])
 module AtribuiPorUuid
   extend ActiveSupport::Concern
 

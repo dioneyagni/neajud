@@ -1,11 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["dialog", "moldeDialog", "pecaDialog", "dialogTitle", "submitBtn"]
+  static targets = ["dialog", "modeloDialog", "pecaDialog", "dialogTitle", "submitBtn"]
 
   connect() {
     this.boundClose = this.backdropClose.bind(this)
-    this.boundCloseMolde = this.backdropCloseMolde.bind(this)
+    this.boundCloseModelo = this.backdropCloseModelo.bind(this)
     this.boundClosePeca = this.backdropClosePeca.bind(this)
   }
 
@@ -17,10 +17,10 @@ export default class extends Controller {
 
   openByName(e) {
     const name = e.params.name
-    if (name === "molde") {
-      this._resetDialogCreate(this.moldeDialogTarget)
-      this.moldeDialogTarget.showModal()
-      this.moldeDialogTarget.addEventListener("click", this.boundCloseMolde)
+    if (name === "modelo") {
+      this._resetDialogCreate(this.modeloDialogTarget)
+      this.modeloDialogTarget.showModal()
+      this.modeloDialogTarget.addEventListener("click", this.boundCloseModelo)
     } else if (name === "peca") {
       this._resetDialogCreate(this.pecaDialogTarget)
       this.pecaDialogTarget.showModal()
@@ -28,9 +28,9 @@ export default class extends Controller {
     }
   }
 
-  closeMolde() {
-    this.moldeDialogTarget.close()
-    this.moldeDialogTarget.removeEventListener("click", this.boundCloseMolde)
+  closeModelo() {
+    this.modeloDialogTarget.close()
+    this.modeloDialogTarget.removeEventListener("click", this.boundCloseModelo)
   }
 
   closePeca() {
@@ -38,9 +38,9 @@ export default class extends Controller {
     this.pecaDialogTarget.removeEventListener("click", this.boundClosePeca)
   }
 
-  backdropCloseMolde(e) {
-    if (e.target !== this.moldeDialogTarget) return
-    this.closeMolde()
+  backdropCloseModelo(e) {
+    if (e.target !== this.modeloDialogTarget) return
+    this.closeModelo()
   }
 
   backdropClosePeca(e) {
@@ -104,7 +104,7 @@ export default class extends Controller {
     this._somenteEdicao(false)
   }
 
-  // Options marked data-somente-edicao (e.g. the modelo's trashed client)
+  // Options marked data-somente-edicao (e.g. the molde's trashed client)
   // only make sense when editing a record that already points at them.
   _somenteEdicao(mostrar) {
     this.dialogTarget.querySelectorAll("[data-somente-edicao]").forEach((el) => {

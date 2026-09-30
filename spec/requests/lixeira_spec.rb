@@ -73,14 +73,14 @@ RSpec.describe "Lixeira", type: :request do
       expect(flash[:alert]).to include("is in the trash", "Lixeira")
     end
 
-    it "does the same for modelos, moldes and peças" do
-      modelo = create(:modelo, nome: "Tenis").tap { |m| m.excluir!(changed_by: "10.0.0.1") }
-      create(:molde, nome: "Sapato").excluir!(changed_by: "10.0.0.1")
+    it "does the same for moldes, modelos and peças" do
+      molde = create(:molde, nome: "Tenis").tap { |m| m.excluir!(changed_by: "10.0.0.1") }
+      create(:modelo, nome: "Sapato").excluir!(changed_by: "10.0.0.1")
       create(:peca, nome: "Solado").excluir!(changed_by: "10.0.0.1")
 
-      post modelos_path, params: { modelo: { nome: "Tenis", client_uuid: modelo.client.uuid } }
+      post moldes_path, params: { molde: { nome: "Tenis", client_uuid: molde.client.uuid } }
       expect(flash[:alert]).to include("is in the trash")
-      post moldes_path, params: { molde: { nome: "Sapato" } }
+      post modelos_path, params: { modelo: { nome: "Sapato" } }
       expect(flash[:alert]).to include("is in the trash")
       post pecas_path, params: { peca: { nome: "Solado" } }
       expect(flash[:alert]).to include("is in the trash")

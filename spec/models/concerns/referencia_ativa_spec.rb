@@ -4,9 +4,9 @@ RSpec.describe ReferenciaAtiva do
   let(:trashed_client) { create(:client, name: "Fagner").tap { |c| c.excluir!(changed_by: "10.0.0.1") } }
 
   it "refuses a new record pointing at a trashed one, naming it and the expected shape" do
-    modelo = build(:modelo, client: trashed_client)
-    expect(modelo).not_to be_valid
-    expect(modelo.errors[:client]).to eq([ "\"Fagner\" (id #{trashed_client.id}) is in the trash; expected an active client" ])
+    molde = build(:molde, client: trashed_client)
+    expect(molde).not_to be_valid
+    expect(molde.errors[:client]).to eq([ "\"Fagner\" (id #{trashed_client.id}) is in the trash; expected an active client" ])
   end
 
   it "refuses changing a reference to a trashed record" do
@@ -16,10 +16,10 @@ RSpec.describe ReferenciaAtiva do
 
   it "keeps rows that already pointed at it valid and editable" do
     client = create(:client)
-    modelo = create(:modelo, client: client)
+    molde = create(:molde, client: client)
     client.excluir!(changed_by: "10.0.0.1")
 
-    expect(modelo.reload.update(nome: "Renamed")).to be true
+    expect(molde.reload.update(nome: "Renamed")).to be true
   end
 
   it "refuses linking a trashed arte to a pedido item" do

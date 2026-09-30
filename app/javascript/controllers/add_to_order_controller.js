@@ -168,7 +168,7 @@ export default class extends Controller {
     }
   }
 
-  // Pieces of the arte's modelo. A response for an arte other than the one
+  // Pieces of the arte's molde. A response for an arte other than the one
   // currently open (modal reopened before it arrived) is dropped.
   _loadPecas() {
     if (!this.hasPecasContainerTarget) return
@@ -177,7 +177,7 @@ export default class extends Controller {
     fetch(`/arquivos/${encodeURIComponent(uuid)}/composicao`, { headers: { "Accept": "application/json" } })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => { if (uuid === this.arteUuidValue) this._renderPecas(data.pecas || []) })
-      .catch(() => { if (uuid === this.arteUuidValue) this._showPecasMessage("Não foi possível carregar as peças do modelo.") })
+      .catch(() => { if (uuid === this.arteUuidValue) this._showPecasMessage("Não foi possível carregar as peças do molde.") })
   }
 
   // A single-piece arte needs no piece picker.
@@ -187,7 +187,7 @@ export default class extends Controller {
     container.hidden = pecas.length < 2
     if (container.hidden) return
     const title = document.createElement("label")
-    title.textContent = "Peças do modelo:"
+    title.textContent = "Peças do molde:"
     const grid = document.createElement("div")
     grid.className = "add-to-order-pecas-grid"
     pecas.forEach(peca => grid.appendChild(this._pecaCard(peca)))

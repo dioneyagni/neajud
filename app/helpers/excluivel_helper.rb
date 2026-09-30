@@ -1,7 +1,7 @@
 module ExcluivelHelper
   # Icon per trashed type that has no preview of its own.
   ICONES_LIXEIRA = {
-    "Client" => "icons/lixeira/client", "Modelo" => "icons/lixeira/modelo", "Molde" => "icons/lixeira/molde",
+    "Client" => "icons/lixeira/client", "Molde" => "icons/lixeira/molde", "Modelo" => "icons/lixeira/modelo",
     "Peca" => "icons/lixeira/peca", "Pedido" => "icons/lixeira/pedido", "Funcao" => "icons/lixeira/funcao"
   }.freeze
 

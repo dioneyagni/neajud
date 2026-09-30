@@ -26,7 +26,7 @@ class TamanhosController < ApplicationController
   end
 
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, molde: Molde.where(uuid: params[:molde_uuid]),
+    scope = Arquivo.ativos.where(organized: true, modelo: Modelo.where(uuid: params[:modelo_uuid]),
                                  peca: Peca.where(uuid: params[:peca_uuid]))
     scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
     arquivo_ids = scope.pluck(:id)

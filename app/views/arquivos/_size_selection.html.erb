@@ -1,9 +1,9 @@
 <div class="stamp-detail-section stamp-detail-section--full" id="size-selection-section"
      data-controller="size-cascade edit-toggle"
-     data-size-cascade-molde-uuid-value="<%= arquivo.modelo&.molde&.uuid %>"
-     data-size-cascade-modelo-uuid-value="<%= arquivo.modelo&.uuid %>"
+     data-size-cascade-modelo-uuid-value="<%= arquivo.molde&.modelo&.uuid %>"
+     data-size-cascade-molde-uuid-value="<%= arquivo.molde&.uuid %>"
      data-size-cascade-client-uuid-value="<%= arquivo.client&.uuid %>"
-      <% unless arquivo.client.present? && arquivo.modelo.present? %>style="display:none"<% end %>>
+      <% unless arquivo.client.present? && arquivo.molde.present? %>style="display:none"<% end %>>
   <h3 class="section-heading-with-action">Size Selection
     <% if arquivo.tamanho_id.present? %>
       <% if pode_editar_arquivo?(arquivo) %>
@@ -23,7 +23,7 @@
     </p>
   <% end %>
 
-  <% if arquivo.client.present? && arquivo.modelo.present? %>
+  <% if arquivo.client.present? && arquivo.molde.present? %>
     <div data-edit-toggle-target="display" class="edit-display" <%= 'style="display:none"'.html_safe unless arquivo.tamanho_id.present? %>>
       <% if arquivo.tamanho.present? %>
         <div class="client-display">

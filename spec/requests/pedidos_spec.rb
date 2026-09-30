@@ -167,11 +167,11 @@ RSpec.describe "Pedidos", type: :request do
       expect(item.grades.find_by(tamanho_nome: "M").quantidade).to eq(2)
     end
 
-    it "stores every piece of the arte's modelo, marking the ones without arte as pending" do
+    it "stores every piece of the arte's molde, marking the ones without arte as pending" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
-      molde = create(:molde).tap { |m| m.pecas << [ lateral, lingua ] }
-      modelo = create(:modelo, molde: molde).tap(&:sync_modelo_pecas!)
-      arte = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
+      modelo = create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] }
+      molde = create(:molde, modelo: modelo).tap(&:sync_molde_pecas!)
+      arte = create(:arquivo, category: "artes", molde: molde, peca: lateral)
 
       post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "_total" => "1" } }
 
@@ -182,9 +182,9 @@ RSpec.describe "Pedidos", type: :request do
 
     it "stores the pieces left unchecked in the modal as excluded" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
-      modelo = create(:modelo, molde: create(:molde).tap { |m| m.pecas << [ lateral, lingua ] })
-      arte_lateral = create(:arquivo, category: "artes", modelo: modelo, peca: lateral)
-      arte_lingua = create(:arquivo, category: "artes", modelo: modelo, peca: lingua)
+      molde = create(:molde, modelo: create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] })
+      arte_lateral = create(:arquivo, category: "artes", molde: molde, peca: lateral)
+      arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua)
 
       post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "_total" => "1" } }
 

@@ -1182,7 +1182,7 @@ section {
 .escolher-arte-cliente,
 .escolher-arte-contagem,
 .escolher-arte-vazio,
-.escolher-arte-modelo {
+.escolher-arte-molde {
   color: #888;
   font-size: 0.85rem;
 }
@@ -1252,7 +1252,7 @@ section {
   pointer-events: none;
 }
 
-/* A move from another modelo in the arte's link history. */
+/* A move from another molde in the arte's link history. */
 .vinculo-history-mudanca td:first-child {
   color: #b45309;
   font-weight: 600;
@@ -1343,7 +1343,7 @@ section {
   font-size: 0.9rem;
 }
 
-/* Pieces of the ordered modelo, side by side (pedidos/_item_pecas). */
+/* Pieces of the ordered molde, side by side (pedidos/_item_pecas). */
 .pedido-item-pecas {
   display: flex;
   flex-wrap: wrap;
@@ -1715,8 +1715,8 @@ section {
   display: none;
 }
 
-/* Molde form */
-.molde-componentes-section {
+/* Modelo form */
+.modelo-componentes-section {
   margin-top: 1.5rem;
 }
 
@@ -2412,7 +2412,7 @@ section {
   min-height: 60px;
 }
 
-/* Pieces of the arte's modelo in the "Adicionar ao Pedido" modal. */
+/* Pieces of the arte's molde in the "Adicionar ao Pedido" modal. */
 .add-to-order-pecas > label {
   display: block;
   font-weight: 600;
@@ -2565,16 +2565,16 @@ section {
   display: none;
 }
 
-/* ── Modelo pecas list ── */
+/* ── Molde pecas list ── */
 
-.modelo-pecas-list {
+.molde-pecas-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
 
-.modelo-peca-row {
+.molde-peca-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2584,7 +2584,7 @@ section {
   border-radius: 8px;
 }
 
-.modelo-peca-info {
+.molde-peca-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -2592,48 +2592,48 @@ section {
   min-width: 0;
 }
 
-.modelo-peca-name {
+.molde-peca-name {
   font-weight: 600;
   font-size: 0.95rem;
   min-width: 80px;
 }
 
-.modelo-peca-status {
+.molde-peca-status {
   font-size: 0.85rem;
 }
 
-.modelo-peca-status--has-corte {
+.molde-peca-status--has-corte {
   color: #2e7d32;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.modelo-peca-status--missing {
+.molde-peca-status--missing {
   color: #c5221f;
   font-weight: 500;
 }
 
-.modelo-peca-status--not-needed {
+.molde-peca-status--not-needed {
   color: #757575;
   font-style: italic;
 }
 
-.modelo-peca-file-link {
+.molde-peca-file-link {
   color: #1a73e8;
   text-decoration: none;
 }
 
-.modelo-peca-file-link:hover {
+.molde-peca-file-link:hover {
   text-decoration: underline;
 }
 
-.modelo-peca-sizes {
+.molde-peca-sizes {
   color: #5f6368;
   font-size: 0.8rem;
 }
 
-.modelo-peca-toggle {
+.molde-peca-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;

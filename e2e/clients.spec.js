@@ -143,7 +143,7 @@ runSpec("Clients E2E Tests", async ({ page, test }) => {
       console.log(`        Body preview: ${body.slice(0, 300)}`);
       throw new Error("Details section not found");
     }
-    if (!body.includes("Modelos")) throw new Error("Modelos section not found");
+    if (!body.includes("Moldes")) throw new Error("Moldes section not found");
     if (!body.includes("Materials")) throw new Error("Materials section not found");
 
     const backLink = await page.$('a[href="/"]');

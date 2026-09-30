@@ -61,7 +61,7 @@ runSpec("Usuários E2E Tests", async ({ page, test }) => {
   // Produção: pedidos ver (+ extra editar), artes/catálogo/estoque ver, no clientes/lixeira/usuários.
   await test("The worker sees only what the função and the extra allow", async () => {
     const links = await navLinks();
-    for (const visivel of ["Moldes", "Materials"]) if (!links.includes(visivel)) throw new Error(`Menu lacks ${visivel}: ${links}`);
+    for (const visivel of ["Modelos", "Materials"]) if (!links.includes(visivel)) throw new Error(`Menu lacks ${visivel}: ${links}`);
     if (!links.some((l) => l.startsWith("Pedidos"))) throw new Error(`Menu lacks Pedidos: ${links}`);
     for (const oculto of ["Clients", "Lixeira", "Usuários", "Funções"]) if (links.includes(oculto)) throw new Error(`Menu shows ${oculto}: ${links}`);
     if ((await page.locator('h3:has-text("Upload New File")').count()) !== 0) throw new Error("Gallery upload shown to a read-only worker");

@@ -25,15 +25,15 @@ class ArquivoProcessingJob < ApplicationJob
 
   private
 
-  # Processing is queued (Etapa 0.3), so a modelo can be chosen for an arte
-  # before its preview exists; update_modelo's MoldMatch then finds nothing.
+  # Processing is queued (Etapa 0.3), so a molde can be chosen for an arte
+  # before its preview exists; update_molde's MoldMatch then finds nothing.
   # Retry once the preview is ready. Skipped when a peça was set explicitly
   # (e.g. "Escolher/Enviar arte"): a match from another peça's corte would
   # change the arte's resolved peça. Never fails the processing.
   def assign_tamanho_after_processing(version)
     arte = version.arquivo
     return unless arte.category == "artes" && arte.approved_version_id == version.id
-    return if arte.tamanho_id || arte.peca_id || arte.modelo_id.nil?
+    return if arte.tamanho_id || arte.peca_id || arte.molde_id.nil?
 
     TamanhoAutoAssignService.call(arte)
   rescue StandardError => e

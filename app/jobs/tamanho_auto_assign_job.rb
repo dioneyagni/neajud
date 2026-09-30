@@ -1,4 +1,4 @@
-# Etapa 0.6 (1/3): finds the arte's tamanho after its modelo is chosen
+# Etapa 0.6 (1/3): finds the arte's tamanho after its molde is chosen
 # (TamanhoAutoAssignService — outline matching with ImageMagick, measured up
 # to 37 s), outside the request. Always clears the "searching" mark and
 # refreshes the open arte page, found or not, so it never stays "Procurando".

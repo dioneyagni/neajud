@@ -3,7 +3,7 @@ class Client < ApplicationRecord
   include Excluivel
 
   has_many :arquivos, dependent: :nullify
-  has_many :modelos, dependent: :destroy
+  has_many :moldes, dependent: :destroy
   has_many :movimento_estoques, dependent: :destroy
   has_many :pedidos, dependent: :restrict_with_error
 

@@ -1,7 +1,7 @@
 const { BASE_URL, runSpec } = require("./support/runner");
 const { waitForText } = require("./support/wait");
 
-runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
+runSpec("Pages E2E: clients, modelos & pecas", async ({ page, test }) => {
   // ── Clients page CRUD ──
 
   await test("Clients page: renders table with clients", async () => {
@@ -187,10 +187,10 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
   });
 
   // ------------------------------------------------------------------
-  // Management Pages: Moldes, Pecas, Modelos
+  // Management Pages: Modelos, Pecas, Moldes
   // ------------------------------------------------------------------
 
-  await test("Moldes page: nav link in header", async () => {
+  await test("Modelos page: nav link in header", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector("header nav", { timeout: 5000 });
 
@@ -198,56 +198,56 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     if (navLinks.length < 2) throw new Error(`Expected at least 2 nav links, got ${navLinks.length}`);
 
     const hrefs = await Promise.all(navLinks.map(l => l.getAttribute("href")));
-    if (!hrefs.includes("/moldes")) throw new Error("Moldes nav link not found");
+    if (!hrefs.includes("/modelos")) throw new Error("Modelos nav link not found");
   });
 
-  await test("Moldes page: index renders with heading", async () => {
-    await page.goto(`${BASE_URL}/moldes`);
+  await test("Modelos page: index renders with heading", async () => {
+    await page.goto(`${BASE_URL}/modelos`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
     const body = await page.textContent("body");
-    if (!body.includes("Moldes")) throw new Error("Moldes heading not found");
+    if (!body.includes("Modelos")) throw new Error("Modelos heading not found");
 
-    const newLink = await page.$('a[href*="/moldes/new"]');
-    if (!newLink) throw new Error("New Molde link not found");
+    const newLink = await page.$('a[href*="/modelos/new"]');
+    if (!newLink) throw new Error("New Modelo link not found");
 
     const backLink = await page.$('a[href="/"]');
     if (!backLink) throw new Error("Back to Gallery link not found");
   });
 
-  async function createMolde(page, nome) {
-    await page.goto(`${BASE_URL}/moldes/new`);
+  async function createModelo(page, nome) {
+    await page.goto(`${BASE_URL}/modelos/new`);
     await page.waitForSelector("h2", { timeout: 5000 });
-    await page.fill("input[name='molde[nome]']", nome);
+    await page.fill("input[name='modelo[nome]']", nome);
     await page.click("input[type='submit']");
     await page.waitForTimeout(1000);
   }
 
-  await test("Moldes page: create a new molde via dedicated page", async () => {
-    const nome = `E2E Molde ${Date.now()}`;
-    await createMolde(page, nome);
+  await test("Modelos page: create a new modelo via dedicated page", async () => {
+    const nome = `E2E Modelo ${Date.now()}`;
+    await createModelo(page, nome);
 
     const body = await page.textContent("body");
-    if (!body.includes(nome)) throw new Error(`Molde page did not show molde name: "${body.slice(0, 200)}"`);
+    if (!body.includes(nome)) throw new Error(`Modelo page did not show modelo name: "${body.slice(0, 200)}"`);
   });
 
-  await test("Moldes page: new page shows peças list", async () => {
-    await page.goto(`${BASE_URL}/moldes/new`);
+  await test("Modelos page: new page shows peças list", async () => {
+    await page.goto(`${BASE_URL}/modelos/new`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
     const body = await page.textContent("body");
     if (!body.includes("Componentes")) throw new Error("Componentes heading not found");
   });
 
-  await test("Moldes page: edit a molde via dedicated page", async () => {
-    await createMolde(page, `E2E Edit ${Date.now()}`);
+  await test("Modelos page: edit a modelo via dedicated page", async () => {
+    await createModelo(page, `E2E Edit ${Date.now()}`);
     const currentUrl = page.url();
 
     // Navigate to edit
     await page.goto(`${currentUrl}/edit`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
-    const nomeInput = await page.$("input[name='molde[nome]']");
+    const nomeInput = await page.$("input[name='modelo[nome]']");
     if (!nomeInput) throw new Error("Name input not found on edit page");
 
     const currentName = await nomeInput.inputValue();
@@ -257,11 +257,11 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes(currentName)) throw new Error(`Molde not updated: "${body.slice(0, 200)}"`);
+    if (!body.includes(currentName)) throw new Error(`Modelo not updated: "${body.slice(0, 200)}"`);
   });
 
-  await test("Moldes page: delete a molde", async () => {
-    await page.goto(`${BASE_URL}/moldes`);
+  await test("Modelos page: delete a modelo", async () => {
+    await page.goto(`${BASE_URL}/modelos`);
     await page.waitForSelector(".clients-table", { timeout: 5000 });
 
     const deleteBtn = await page.$("button.btn-danger");
@@ -273,7 +273,7 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     const body = await page.textContent("body");
     if (!body.includes("moved to the trash")) {
       const status = await page.evaluate(() => document.title);
-      throw new Error(`Molde not deleted — status: "${status}", body: "${body.slice(0, 300)}"`);
+      throw new Error(`Modelo not deleted — status: "${status}", body: "${body.slice(0, 300)}"`);
     }
   });
 

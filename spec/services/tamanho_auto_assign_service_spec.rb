@@ -2,10 +2,10 @@ require "rails_helper"
 require_relative "../support/fake_mold_matcher"
 
 RSpec.describe TamanhoAutoAssignService do
-  let(:molde) { create(:molde) }
-  let(:corte) { create(:arquivo, :corte, organized: true, molde: molde) }
+  let(:modelo) { create(:modelo) }
+  let(:corte) { create(:arquivo, :corte, organized: true, modelo: modelo) }
   let!(:first_tamanho) { create(:tamanho, arquivo: corte, nome: "P", position: 1) }
-  let(:arte) { create(:arquivo, modelo: create(:modelo, molde: molde), molde: molde) }
+  let(:arte) { create(:arquivo, molde: create(:molde, modelo: modelo), modelo: modelo) }
 
   def assign(arte, match: nil)
     described_class.call(arte, matcher: FakeMoldMatcher.new(match))
@@ -26,22 +26,22 @@ RSpec.describe TamanhoAutoAssignService do
     expect(arte.reload.tamanho).to eq(match)
   end
 
-  it "syncs molde_id to the matched corte's molde when they differ" do
-    other_molde = create(:molde)
-    other_corte = create(:arquivo, :corte, organized: true, molde: other_molde)
+  it "syncs modelo_id to the matched corte's modelo when they differ" do
+    other_modelo = create(:modelo)
+    other_corte = create(:arquivo, :corte, organized: true, modelo: other_modelo)
     match = create(:tamanho, arquivo: other_corte)
     assign(arte, match: match)
-    expect(arte.reload.molde_id).to eq(other_molde.id)
+    expect(arte.reload.modelo_id).to eq(other_modelo.id)
   end
 
-  it "falls back to the first tamanho of the corte linked via the modelo's molde" do
+  it "falls back to the first tamanho of the corte linked via the molde's modelo" do
     create(:tamanho, arquivo: corte, nome: "G", position: 2)
     assign(arte, match: nil)
     expect(arte.reload.tamanho).to eq(first_tamanho)
   end
 
   it "leaves tamanho empty when there is no match and no linked corte" do
-    lonely = create(:arquivo, modelo: create(:modelo))
+    lonely = create(:arquivo, molde: create(:molde))
     assign(lonely, match: nil)
     expect(lonely.reload.tamanho_id).to be_nil
   end

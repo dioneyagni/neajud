@@ -4,9 +4,9 @@ RSpec.describe ArteCandidatasService do
   let(:client) { create(:client) }
   let(:lateral) { create(:peca, nome: "Lateral") }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:modelo) { create(:modelo, client: client, nome: "Tênis baixo") }
+  let(:molde) { create(:molde, client: client, nome: "Tênis baixo") }
   let(:pending_row) do
-    item = create(:item_pedido, arquivo: create(:arquivo, client: client, modelo: modelo, peca: lateral))
+    item = create(:item_pedido, arquivo: create(:arquivo, client: client, molde: molde, peca: lateral))
     create(:item_pedido_peca, item_pedido: item, peca: lingua, arquivo: nil)
   end
 
@@ -15,22 +15,22 @@ RSpec.describe ArteCandidatasService do
   end
 
   it "returns the three groups in the agreed order" do
-    expect(described_class.call(pending_row).map(&:chave)).to eq(%i[cliente_sem_peca cliente_sem_modelo sem_cliente])
+    expect(described_class.call(pending_row).map(&:chave)).to eq(%i[cliente_sem_peca cliente_sem_molde sem_cliente])
   end
 
-  it "group 1: client's artes with a modelo but no peça, this modelo first" do
-    other_modelo = create(:modelo, client: client, nome: "AAA outro")
-    of_other = create(:arquivo, client: client, modelo: other_modelo, filename: "a-outro")
-    of_this = create(:arquivo, client: client, modelo: modelo, filename: "z-este")
-    create(:arquivo, client: client, modelo: modelo, peca: lateral)
+  it "group 1: client's artes with a molde but no peça, this molde first" do
+    other_molde = create(:molde, client: client, nome: "AAA outro")
+    of_other = create(:arquivo, client: client, molde: other_molde, filename: "a-outro")
+    of_this = create(:arquivo, client: client, molde: molde, filename: "z-este")
+    create(:arquivo, client: client, molde: molde, peca: lateral)
     expect(groups[:cliente_sem_peca]).to eq([ of_this, of_other ])
   end
 
-  it "group 2: client's artes without modelo, without peça or already on the pending peça" do
+  it "group 2: client's artes without molde, without peça or already on the pending peça" do
     free = create(:arquivo, client: client, filename: "a-livre")
     on_lingua = create(:arquivo, client: client, peca: lingua, filename: "b-lingua")
     create(:arquivo, client: client, peca: lateral)
-    expect(groups[:cliente_sem_modelo]).to eq([ free, on_lingua ])
+    expect(groups[:cliente_sem_molde]).to eq([ free, on_lingua ])
   end
 
   it "never offers an arte that is in the trash" do

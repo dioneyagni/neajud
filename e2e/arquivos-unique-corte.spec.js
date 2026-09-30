@@ -4,15 +4,15 @@ const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 
 runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
-  await test("Unique Corte: rejects duplicate peca for same modelo", async () => {
+  await test("Unique Corte: rejects duplicate peca for same molde", async () => {
     const prefix = "UniqCorte";
     const clientName = `${prefix}Client`;
-    const moldeName = `${prefix}Molde`;
-    const pecaName = `${prefix}Peca`;
     const modeloName = `${prefix}Modelo`;
+    const pecaName = `${prefix}Peca`;
+    const moldeName = `${prefix}Molde`;
     const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
     const dxf2Path = path.join(__dirname, `${prefix}-two.dxf`);
-    let moldeId, pecaId, modeloId, uuid1, uuid2;
+    let modeloId, pecaId, moldeId, uuid1, uuid2;
 
     const assignClient = (uuid, token) => page.evaluate(async ({ token, uuid, clientName }) => {
       const r = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
@@ -27,11 +27,11 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       return res.ok || res.status === 302 ? "ok" : "update_failed";
     }, { token, uuid, clientName });
 
-    const organize = (uuid, token) => page.evaluate(async ({ token, uuid, moldeId, pecaId }) => {
+    const organize = (uuid, token) => page.evaluate(async ({ token, uuid, modeloId, pecaId }) => {
       const body = new URLSearchParams();
       body.append("authenticity_token", token);
       body.append("_method", "patch");
-      body.append("molde_uuid", moldeId);
+      body.append("modelo_uuid", modeloId);
       body.append("peca_uuid", pecaId);
       const res = await fetch(`/arquivos/${uuid}/organize`, {
         method: "POST",
@@ -40,7 +40,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         body
       });
       return res.status;
-    }, { token, uuid, moldeId, pecaId });
+    }, { token, uuid, modeloId, pecaId });
 
     const uploadAndOpen = async (filePath) => {
       await page.goto(BASE_URL);
@@ -67,7 +67,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         return meta?.content || "";
       });
 
-      // ── Create setup: client, molde, peca, modelo ──
+      // ── Create setup: client, modelo, peca, molde ──
       const setup = await page.evaluate(async ({ token, prefix }) => {
         // Create client
         const cBody = new URLSearchParams({ authenticity_token: token, "client[name]": `${prefix}Client`, "client[responsible]": "T" });
@@ -87,61 +87,61 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const peca = pecas.find(x => x.nome === `${prefix}Peca`);
         if (!peca) return "peca_not_found";
 
-        // Create molde with peca linked
+        // Create modelo with peca linked
         const mBody = new URLSearchParams();
         mBody.append("authenticity_token", token);
-        mBody.append("molde[nome]", `${prefix}Molde`);
-        mBody.append("molde[peca_uuids][]", peca.id);
-        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
+        mBody.append("modelo[nome]", `${prefix}Modelo`);
+        mBody.append("modelo[peca_uuids][]", peca.id);
+        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
         await new Promise(r => setTimeout(r, 200));
-        const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
-        const moldes = await mr.json();
-        const molde = moldes.find(x => x.nome === `${prefix}Molde`);
-        if (!molde) return "molde_not_found";
+        const mr = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
+        const modelos = await mr.json();
+        const modelo = modelos.find(x => x.nome === `${prefix}Modelo`);
+        if (!modelo) return "modelo_not_found";
 
-        // Create modelo linked to client + molde
+        // Create molde linked to client + modelo
         const modBody = new URLSearchParams({
           authenticity_token: token,
-          "modelo[nome]": `${prefix}Modelo`,
-          "modelo[client_uuid]": client.id,
-          "modelo[molde_uuid]": molde.id
+          "molde[nome]": `${prefix}Molde`,
+          "molde[client_uuid]": client.id,
+          "molde[modelo_uuid]": modelo.id
         });
-        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
+        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
 
-        return { moldeId: molde.id, pecaId: peca.id, clientId: client.id };
+        return { modeloId: modelo.id, pecaId: peca.id, clientId: client.id };
       }, { token: csrfToken, prefix });
 
       if (typeof setup === "string") throw new Error(`Setup failed at: ${setup}`);
       if (!setup) throw new Error("Setup returned null");
-      moldeId = setup.moldeId;
+      modeloId = setup.modeloId;
       pecaId = setup.pecaId;
 
-      // Get modelo id
-      modeloId = await page.evaluate(async ({ prefix }) => {
-        const r = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
-        const modelos = await r.json();
-        const m = modelos.find(x => x.nome === `${prefix}Modelo`);
+      // Get molde id
+      moldeId = await page.evaluate(async ({ prefix }) => {
+        const r = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
+        const moldes = await r.json();
+        const m = moldes.find(x => x.nome === `${prefix}Molde`);
         return m ? m.id : null;
       }, { prefix });
-      if (!modeloId) throw new Error("Modelo not found");
+      if (!moldeId) throw new Error("Molde not found");
 
-      // ── First DXF: organize + link modelo ──
+      // ── First DXF: organize + link molde ──
       uuid1 = await uploadAndOpen(dxf1Path);
       const csrf1 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
       if (await assignClient(uuid1, csrf1) !== "ok") throw new Error("Failed to assign client to corte1");
       const orgStatus1 = await organize(uuid1, csrf1);
       if (orgStatus1 !== 200) throw new Error(`Failed to organize corte1, got ${orgStatus1}`);
-      const added1 = await page.evaluate(async ({ token, uuid, modeloId }) => {
-        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+      const added1 = await page.evaluate(async ({ token, uuid, moldeId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_molde`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, molde_uuid: moldeId })
         });
         return r.status;
-      }, { token: csrf1, uuid: uuid1, modeloId });
-      if (added1 !== 200) throw new Error(`Failed to link modelo to corte1, got ${added1}`);
+      }, { token: csrf1, uuid: uuid1, moldeId });
+      if (added1 !== 200) throw new Error(`Failed to link molde to corte1, got ${added1}`);
 
-      // ── Second DXF: organize then try to link same modelo ──
+      // ── Second DXF: organize then try to link same molde ──
       uuid2 = await uploadAndOpen(dxf2Path);
       const csrf2 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
       if (await assignClient(uuid2, csrf2) !== "ok") throw new Error("Failed to assign client to corte2");
@@ -156,31 +156,31 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       }, { token: csrf2, uuid: uuid2, pecaId });
       if (!pecaSet) throw new Error("corte2 peca_id not set after organize");
 
-      // Try to link same modelo — should FAIL with alert via turbo_stream
-      const modelAdded2 = await page.evaluate(async ({ token, uuid, modeloId }) => {
-        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+      // Try to link same molde — should FAIL with alert via turbo_stream
+      const modelAdded2 = await page.evaluate(async ({ token, uuid, moldeId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_molde`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, molde_uuid: moldeId })
         });
         const text = await r.text();
         return { status: r.status, body: text };
-      }, { token: csrf2, uuid: uuid2, modeloId });
+      }, { token: csrf2, uuid: uuid2, moldeId });
 
       if (modelAdded2.status !== 200) {
-        throw new Error(`Expected turbo_stream 200 from add_modelo on conflict, got ${modelAdded2.status}`);
+        throw new Error(`Expected turbo_stream 200 from add_molde on conflict, got ${modelAdded2.status}`);
       }
       if (!modelAdded2.body.includes("já possui corte organizado")) {
         throw new Error(`Expected alert in turbo_stream response, got: ${modelAdded2.body.slice(0, 200)}`);
       }
 
-      console.log("  ✓ Unique Corte: duplicate peca+modelo correctly rejected");
+      console.log("  ✓ Unique Corte: duplicate peca+molde correctly rejected");
     } finally {
       // Cleanup
       try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
       try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
-      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
+      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
       try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
       if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);
@@ -192,11 +192,11 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
     const prefix = "UniqCorteOrg";
     const clientName = `${prefix}Client`;
     const pecaName = `${prefix}Peca`;
-    const moldeName = `${prefix}Molde`;
     const modeloName = `${prefix}Modelo`;
+    const moldeName = `${prefix}Molde`;
     const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
     const dxf2Path = path.join(__dirname, `${prefix}-two.dxf`);
-    let moldeId, pecaId, modeloId, uuid1, uuid2;
+    let modeloId, pecaId, moldeId, uuid1, uuid2;
 
     const uploadAndOpen = async (filePath) => {
       await page.goto(BASE_URL);
@@ -237,39 +237,39 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
 
         const mBody = new URLSearchParams();
         mBody.append("authenticity_token", token);
-        mBody.append("molde[nome]", `${prefix}Molde`);
-        mBody.append("molde[peca_uuids][]", peca.id);
-        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
+        mBody.append("modelo[nome]", `${prefix}Modelo`);
+        mBody.append("modelo[peca_uuids][]", peca.id);
+        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
         await new Promise(r => setTimeout(r, 200));
-        const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
-        const moldes = await mr.json();
-        const molde = moldes.find(x => x.nome === `${prefix}Molde`);
-        if (!molde) return "molde_not_found";
+        const mr = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
+        const modelos = await mr.json();
+        const modelo = modelos.find(x => x.nome === `${prefix}Modelo`);
+        if (!modelo) return "modelo_not_found";
 
         const modBody = new URLSearchParams({
           authenticity_token: token,
-          "modelo[nome]": `${prefix}Modelo`,
-          "modelo[client_uuid]": client.id,
-          "modelo[molde_uuid]": molde.id
+          "molde[nome]": `${prefix}Molde`,
+          "molde[client_uuid]": client.id,
+          "molde[modelo_uuid]": modelo.id
         });
-        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
+        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
         await new Promise(r => setTimeout(r, 200));
 
-        return { moldeId: molde.id, pecaId: peca.id, clientId: client.id };
+        return { modeloId: modelo.id, pecaId: peca.id, clientId: client.id };
       }, { token: csrfToken, prefix });
 
       if (typeof setup === "string") throw new Error(`Setup failed at: ${setup}`);
-      moldeId = setup.moldeId;
+      modeloId = setup.modeloId;
       pecaId = setup.pecaId;
-      modeloId = await page.evaluate(async ({ prefix }) => {
-        const r = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
-        const modelos = await r.json();
-        const m = modelos.find(x => x.nome === `${prefix}Modelo`);
+      moldeId = await page.evaluate(async ({ prefix }) => {
+        const r = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
+        const moldes = await r.json();
+        const m = moldes.find(x => x.nome === `${prefix}Molde`);
         return m ? m.id : null;
       }, { prefix });
-      if (!modeloId) throw new Error("Modelo not found");
+      if (!moldeId) throw new Error("Molde not found");
 
-      // ── corte1: organize + link modelo via UI form ──
+      // ── corte1: organize + link molde via UI form ──
       uuid1 = await uploadAndOpen(dxf1Path);
       const csrf1 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
 
@@ -288,26 +288,26 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       }, { token: csrf1, uuid: uuid1, clientName });
       if (clientAssigned !== "ok") throw new Error("Failed to assign client to corte1");
 
-      // Pick molde + peca via UI form, submit organize
-      await page.selectOption('select[name="molde_uuid"]', String(moldeId));
+      // Pick modelo + peca via UI form, submit organize
+      await page.selectOption('select[name="modelo_uuid"]', String(modeloId));
       await page.waitForTimeout(300);
       await page.selectOption('select[name="peca_uuid"]', String(pecaId));
       await page.waitForTimeout(300);
       await page.click('.mold-organization-form button[type="submit"]');
       await page.waitForTimeout(1000);
 
-      // Link modelo via add_modelo (no conflict expected — same peca+modelo)
-      const added1 = await page.evaluate(async ({ token, uuid, modeloId }) => {
-        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+      // Link molde via add_molde (no conflict expected — same peca+molde)
+      const added1 = await page.evaluate(async ({ token, uuid, moldeId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_molde`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, molde_uuid: moldeId })
         });
         return r.status;
-      }, { token: csrf1, uuid: uuid1, modeloId });
-      if (added1 !== 200) throw new Error(`add_modelo corte1 failed: ${added1}`);
+      }, { token: csrf1, uuid: uuid1, moldeId });
+      if (added1 !== 200) throw new Error(`add_molde corte1 failed: ${added1}`);
 
-      // ── corte2: link modelo FIRST, then try organize via UI form ──
+      // ── corte2: link molde FIRST, then try organize via UI form ──
       uuid2 = await uploadAndOpen(dxf2Path);
       const csrf2 = await page.evaluate(() => document.querySelector("meta[name='csrf-token']")?.content || "");
 
@@ -325,22 +325,22 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       }, { token: csrf2, uuid: uuid2, clientName });
       if (clientAssigned2 !== "ok") throw new Error("Failed to assign client to corte2");
 
-      // Link modelo first (no peca yet → no conflict at add_modelo)
-      const added2 = await page.evaluate(async ({ token, uuid, modeloId }) => {
-        const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
+      // Link molde first (no peca yet → no conflict at add_molde)
+      const added2 = await page.evaluate(async ({ token, uuid, moldeId }) => {
+        const r = await fetch(`/arquivos/${uuid}/add_molde`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, molde_uuid: moldeId })
         });
         return r.status;
-      }, { token: csrf2, uuid: uuid2, modeloId });
-      if (added2 !== 200) throw new Error(`add_modelo corte2 failed: ${added2}`);
+      }, { token: csrf2, uuid: uuid2, moldeId });
+      if (added2 !== 200) throw new Error(`add_molde corte2 failed: ${added2}`);
 
-      // Reload to reflect linked modelo, then submit organize with conflicting peca
+      // Reload to reflect linked molde, then submit organize with conflicting peca
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
-      await page.selectOption('select[name="molde_uuid"]', String(moldeId));
+      await page.selectOption('select[name="modelo_uuid"]', String(modeloId));
       await page.waitForTimeout(300);
       await page.selectOption('select[name="peca_uuid"]', String(pecaId));
       await page.waitForTimeout(300);
@@ -361,12 +361,12 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       }, { uuid: uuid2 });
       if (corte2Organized) throw new Error("corte2 should NOT be organized after conflict");
 
-      console.log("  ✓ Unique Corte: organize form shows alert on peca+modelo conflict");
+      console.log("  ✓ Unique Corte: organize form shows alert on peca+molde conflict");
     } finally {
       try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
       try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
-      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
+      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
       try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
       if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);

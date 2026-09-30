@@ -32,7 +32,7 @@ module ArquivosHelper
   def tamanhos_for_arte(arquivo)
     return [] unless arquivo.category == "artes"
 
-    corte = arquivo.corte_via_modelo
+    corte = arquivo.corte_via_molde
     tamanhos = corte&.tamanhos.presence || arquivo.tamanhos
     tamanhos.map { |t| { nome: t.nome } }
   end

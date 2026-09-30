@@ -46,13 +46,13 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
         const post = (url, fields) => fetch(url, { method: "POST", body: form(fields), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
         await post("/pecas", { "peca[nome]": `Peca ${uniq}` });
         const peca = (await (await fetch(`/pecas/search?q=${encodeURIComponent(`Peca ${uniq}`)}`)).json())[0];
-        await post("/moldes", { "molde[nome]": `Molde ${uniq}`, "molde[peca_uuids][]": peca.id });
-        const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Molde ${uniq}`)}`)).json())[0];
+        await post("/modelos", { "modelo[nome]": `Modelo ${uniq}`, "modelo[peca_uuids][]": peca.id });
+        const modelo = (await (await fetch(`/modelos/search?q=${encodeURIComponent(`Modelo ${uniq}`)}`)).json())[0];
         const organized = await post(`/arquivos/${corteUuid}/organize`, {
-          _method: "patch", molde_uuid: molde.id, peca_uuid: peca.id,
+          _method: "patch", modelo_uuid: modelo.id, peca_uuid: peca.id,
           "tamanhos[0][nome]": "34", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
         });
-        const tamanho = (await (await fetch(`/tamanhos/for_cascade?molde_uuid=${molde.id}&peca_uuid=${peca.id}`)).json()).find((t) => t.nome === "34");
+        const tamanho = (await (await fetch(`/tamanhos/for_cascade?modelo_uuid=${modelo.id}&peca_uuid=${peca.id}`)).json()).find((t) => t.nome === "34");
         if (!organized.ok || !tamanho) return false;
         return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_uuid: tamanho.id })).ok;
       }, { token, corteUuid, arteUuid, uniq: UNIQ });

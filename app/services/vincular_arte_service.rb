@@ -1,8 +1,8 @@
 # Completes a pending piece with an existing arte ("Escolher arte"): links
-# the arte to the item's modelo and peça (and client, if it had none), logs
+# the arte to the item's molde and peça (and client, if it had none), logs
 # the link, and fills the same pending peça in every draft pedido of that
-# modelo — the arte now belongs to the modelo for good. Moving an arte out of
-# another modelo requires confirmar_mudanca: true (the user confirmed the
+# molde — the arte now belongs to the molde for good. Moving an arte out of
+# another molde requires confirmar_mudanca: true (the user confirmed the
 # "Mover para …?" prompt); otherwise NaoConfirmado is raised and nothing
 # changes.
 #
@@ -20,15 +20,15 @@ class VincularArteService
     @arte = arte
     @autoria = autoria
     @confirmar_mudanca = confirmar_mudanca
-    @modelo = peca_row.item_pedido.arquivo.modelo
+    @molde = peca_row.item_pedido.arquivo.molde
   end
 
   def call
     validar!
     ActiveRecord::Base.transaction do
-      from_modelo = @arte.modelo
+      from_molde = @arte.molde
       vincular_arte!
-      registrar!(from_modelo)
+      registrar!(from_molde)
       preencher_pendencias!
     end
     @arte
@@ -39,35 +39,35 @@ class VincularArteService
   def validar!
     raise Recusado, "Piece #{@peca_row.id} is not pending (it already has arte #{@peca_row.arquivo&.filename.inspect})" if @peca_row.arquivo
     # A nil peca_id would match every unknown-peça pending row below.
-    raise Recusado, "Piece #{@peca_row.id} has no peça; only pieces of the modelo can be completed" unless @peca_row.peca
-    raise Recusado, "Arte #{@arte.filename.inspect} is not a candidate for peça #{@peca_row.peca&.nome.inspect} of modelo #{@modelo&.nome.inspect}" unless ArteCandidatasService.new(@peca_row).candidata?(@arte)
+    raise Recusado, "Piece #{@peca_row.id} has no peça; only pieces of the molde can be completed" unless @peca_row.peca
+    raise Recusado, "Arte #{@arte.filename.inspect} is not a candidate for peça #{@peca_row.peca&.nome.inspect} of molde #{@molde&.nome.inspect}" unless ArteCandidatasService.new(@peca_row).candidata?(@arte)
     return unless mudanca? && !@confirmar_mudanca
 
-    raise NaoConfirmado, "Arte #{@arte.filename.inspect} is in modelo #{@arte.modelo.nome.inspect}; confirm moving it to #{@modelo.nome.inspect}"
+    raise NaoConfirmado, "Arte #{@arte.filename.inspect} is in molde #{@arte.molde.nome.inspect}; confirm moving it to #{@molde.nome.inspect}"
   end
 
   def mudanca?
-    @arte.modelo_id.present? && @arte.modelo_id != @modelo.id
+    @arte.molde_id.present? && @arte.molde_id != @molde.id
   end
 
   def vincular_arte!
-    @arte.update!(modelo: @modelo, peca: @peca_row.peca, client_id: @arte.client_id || @modelo.client_id)
+    @arte.update!(molde: @molde, peca: @peca_row.peca, client_id: @arte.client_id || @molde.client_id)
   end
 
-  def registrar!(from_modelo)
+  def registrar!(from_molde)
     @arte.vinculo_logs.create!(
-      from_modelo: from_modelo == @modelo ? nil : from_modelo,
-      from_modelo_nome: from_modelo == @modelo ? nil : from_modelo&.nome,
-      to_modelo: @modelo, to_modelo_nome: @modelo.nome,
+      from_molde: from_molde == @molde ? nil : from_molde,
+      from_molde_nome: from_molde == @molde ? nil : from_molde&.nome,
+      to_molde: @molde, to_molde_nome: @molde.nome,
       peca: @peca_row.peca, pedido: @peca_row.item_pedido.pedido, **@autoria
     )
   end
 
-  # This row plus the same pending peça in other draft pedidos of the modelo.
+  # This row plus the same pending peça in other draft pedidos of the molde.
   def preencher_pendencias!
     ItemPedidoPeca.pendentes.where(peca_id: @peca_row.peca_id)
                   .joins(item_pedido: [ :pedido, :arquivo ])
-                  .where(pedidos: { status: "rascunho" }, arquivos: { modelo_id: @modelo.id })
+                  .where(pedidos: { status: "rascunho" }, arquivos: { molde_id: @molde.id })
                   .update_all(arquivo_id: @arte.id, incluida: true, updated_at: Time.current)
   end
 end
