@@ -486,12 +486,12 @@ log or the console, the UI just never updates.
 
 ```erb
 <%# WRONG — #size-selection-section missing → update_modelo's stream does nothing %>
-<% if arquivo.tamanho&.arquivo&.organize_error.present? %>
-  <%= render "size_selection", arquivo: arquivo %>
+<% if @arquivo.tamanho&.arquivo&.organize_error.present? %>
+  <%= render "size_selection", arquivo: @arquivo %>
 <% end %>
 
 <%# RIGHT — always rendered; the partial hides itself until client + modelo exist %>
-<%= render "size_selection", arquivo: arquivo %>
+<%= render "size_selection", arquivo: @arquivo %>
 ```
 
 Regression history: `019535b` gated Size Selection like the WRONG example, so
@@ -567,7 +567,7 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 - **Action Cable** rejects connections without a session cookie
   (`ApplicationCable::Connection`).
 - **Tests:** request specs sign in as a dono automatically
-  (`spec/support/autenticacao.rb`, `usuario_logado`); tag a group
+  (`spec/support/autenticacao.rb`, `@usuario_logado`); tag a group
   `sem_login: true` to test signed-out behavior. E2E specs start signed in
   (`e2e/support/sessao.js`, called by `runSpec`); `autenticacao.spec.js` runs
   **first** in `E2E_SPECS` because it needs the empty database to exercise the
@@ -653,7 +653,7 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   used (a pedido's arte, a modelo's client), with `selo_excluido(record)` (the
   "excluído em" badge). So every **listing, picker, search and JSON endpoint**
   must say `.ativos` explicitly — `Client.ativos.order(:name)`,
-  `molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
+  `@molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
   show page stay unscoped. When you add a query that feeds a list or a
   `<select>`, add `.ativos`.
 - **Counts on index pages** use `Model.contagem_ativos(as: "x_count")` (Arel),
