@@ -49,20 +49,43 @@ Definido em sessão (29/09/2026); a mesma nomenclatura serve para roupas e acess
 | Tamanho | `Tamanho` | Unidade individual da grade do produto: 33, 34, 35... ou P, M, G, GG |
 | Corte | `Arquivo` corte (DXF) + `Tamanho` | Arquivo de uma parte que atende um conjunto de tamanhos, com rótulo opcional (33-34, P) |
 | Estampa | não existe | Material de origem do cliente: foto, recorte, arquivo, PDF de instruções |
-| Arte | `Arquivo` arte | Arquivo de produção derivado da estampa; uma por corte |
+| Arte | `Arquivo` arte | Arquivo de produção derivado da estampa; uma por corte + referência + nome |
+| Etiqueta DTF | não existe | Arte sem corte, numerada (`DTF-863`), com grade P/M/G ou numérica; cada tamanho tem a medida do arquivo |
+| Estampa corrida | não existe | Módulo que o RIP repete ao longo do tecido (`CR-4114`); pedida em metros lineares sobre um material |
+| Cor lisa | não existe | Cor desenvolvida para casar com um material de referência (`Amarelo v42`), com material e cliente opcionais; pedida em metros como tecido liso |
 | Processo | não existe | Tipo de trabalho da empresa: sublimação, frequência, bordado, silk |
 
-**Regras do domínio:**
+**Regras do domínio** (respondidas uma a uma com o dono em 29 e 30/09/2026):
 
-- Mudou o corte de uma parte (um detalhe acrescentado, um furo, um velcro): é um novo molde, variação de outro. Ele herda as partes que não mudou (a Língua do 001-TNS serve ao 002 e ao 003) e troca a sua.
+*Catálogo oficial e molde*
+
+- Produto, Modelo (categoria, com abreviação) e a grade de tamanhos são **fixos, oficiais do Neajud**, iguais para todas as empresas (é o que garante a paridade entre elas e o compartilhamento da Fase 9). São configurados numa área de super-admin do Neajud, a mesma dos preços dos planos (Fase 7); até ela existir, a lista vem junto com o sistema, mantida pelo Neajud. A empresa não cria nem edita categorias; pede ao Neajud. Cada categoria pertence a um único produto, com abreviação única.
+- O molde pertence a um cliente e escolhe **o intervalo da grade** que usa (ex: 001-TNS do 24 ao 34). As **partes são do molde**: cada forma tem as suas.
+- Código do molde `NNN-ABR`: o número é sequencial por cliente, somando todas as categorias, e **nunca é reutilizado** (nem depois de excluir). O número é fixo; a abreviação acompanha a categoria (movido para Jogging, o 002-TNS vira 002-JGG). Sufixo livre ("Furado").
+- Mudou o corte de uma parte (um detalhe, um furo, um velcro): é um novo molde, **variação de outro** (campo único `variacao_de`; na Fase 5 ele ganha a versão da base). Até a herança da Fase 5, um corte que serve a vários moldes (a Língua do 001, 002 e 003-TNS) continua ligado a todos eles, como hoje.
 - O corte é o mesmo e muda só a arte: é outra referência ou outro nome, nunca outro molde.
-- O molde pertence a um cliente; Produto e Modelo são da empresa e compartilhados entre os clientes. O mesmo nome (ex: "Fuel") em clientes diferentes são produtos diferentes.
-- Nome completo da arte, calculado e nunca gravado: `código do molde_referência_nome_parte_tamanho`, ex: `002-TNS_20_Bluey Azul_Lingua_29-30`. Usa só o código fixo do molde (o sufixo é para leitura e pode mudar sem mexer nos nomes); peças vazias são puladas; o nome original do upload continua guardado.
-- O Nome é pré-preenchido a partir do arquivo (sem extensão, sem o número da referência no começo, sem nomes de parte e tamanhos: "19-BLUEY PTO" → "BLUEY PTO"), com sugestões dos nomes já usados na referência. Nomes são comparados sem maiúsculas, acentos e ç/c, para agrupar certo.
-- Tamanhos são sempre individuais. O agrupamento (pares como 33-34, ou rótulos como P, M, G) é definido nos cortes: ao subir um corte, marca-se quais tamanhos ele atende. Um cliente que trabalha número a número usa um molde variação com os cortes agrupados do seu jeito.
-- Na publicação, os cortes de cada parte precisam cobrir todos os tamanhos da grade, sem buracos nem sobreposição.
-- O pedido entra sempre por tamanho individual; a produção encontra o corte que atende aquele tamanho e, dele, a arte.
-- "Contínuo" (impressão corrida, por metro) é um tipo especial de parte, sem tamanho nem corte.
+
+*Referência, nome e arte*
+
+- **Cada molde tem as suas referências** (o "20" do 001-TNS e o "20" do 002-TNS são registros diferentes). O mesmo nome em clientes diferentes são produtos diferentes.
+- **Uma arte por corte + referência + nome**, sem exceção; trocar a arte é subir uma nova versão dela.
+- Nome completo da arte, calculado e nunca gravado: `código do molde_referência_nome_parte_tamanho`, ex: `001-TNS_19_Bluey Azul_Lateral_29-30`. Com acento na tela; **sem acento no arquivo baixado**. Peças vazias são puladas; o nome original do upload continua guardado.
+- O Nome é pré-preenchido a partir do arquivo ("19-BLUEY PTO" → "BLUEY PTO"), com sugestões dos nomes já usados na referência, comparados sem maiúsculas, acentos e ç/c.
+
+*Tamanhos e grade*
+
+- Tamanhos são sempre individuais. O agrupamento é definido na **organização do DXF**: cada tamanho do corte declara os números que atende e tem um rótulo, que é o que entra no nome da arte (o par "29-30"). Em **grades furadas** o agrupamento muda com a quantidade de cortes (29-30 num molde, 30-31 em outro): o sistema deduz os casos óbvios, oferece um mecanismo de agrupamento para os complexos e, se nada servir, a pessoa digita.
+- **P/M/G sem padrão travado**: num corte (ex: o Knit de um slide), cada molde define quais números o P, o M e o G atendem. P/M/G também é uma **grade própria** nos trabalhos sem corte (DTF), em que cada tamanho é uma medida largura × altura lida do arquivo.
+- Os cortes de cada parte cobrem **o intervalo do molde**, sem buracos nem sobreposição.
+- O pedido de calçado entra sempre por tamanho individual; a produção encontra o corte que atende aquele tamanho e, dele, a arte.
+
+*Trabalhos sem corte (decidido em 30/09/2026; todos entram no beta, Fase 3)*
+
+- **Etiqueta DTF**, **estampa corrida** (contínuo) e **cor lisa** não têm molde nem corte. Os dois primeiros têm a marcação **"entra no catálogo"**: desmarcada (padrão), o trabalho é só do cliente dele, que é obrigatório; marcada, fica aberto a todos os clientes da empresa (a "coleção geral"), e o cliente passa a ser opcional.
+- A numeração que hoje é feita à mão passa a ser automática e nunca reutilizada: `DTF-863` (por etiqueta, compartilhado pelos tamanhos), `CR-4114` (estampa corrida) e `Amarelo v42` (variação por nome de cor). Na migração, os números atuais são preservados a partir do nome dos arquivos.
+
+*Arte e processo*
+
 - A Arte tem um arquivo de origem (PSD, CDR, AI, PNG, TIFF, JPG) e saídas de produção (TIFF em ultra resolução e JPG compactado para bitmaps, PDF para vetores).
 - Cada empresa acrescenta sua camada de processo sobre as partes do catálogo, referenciando a parte pelo UUID.
 
@@ -178,7 +201,7 @@ A nuvem é lançada primeiro; o servidor local sai depois, junto com o launcher 
 | 0 | Fundações | Caro mudar depois que houver dados de clientes reais |
 | 1 | Modelo de domínio | Idem: renomear, UUID e tamanhos individuais antes dos dados reais |
 | 2 | Operação na nuvem | O produto principal é o plano hospedado |
-| 3 | Pronto para o beta | O que o chão de fábrica precisa no primeiro dia |
+| 3 | Pronto para o beta | O que o chão de fábrica precisa no primeiro dia, incluindo DTF, estampa corrida e cor lisa |
 | 4 | Lançamento beta | 2 ou 3 clientes, começando pela sublimação |
 | 5 | Catálogo versionado com herança | Acrescentado sem migração destrutiva sobre as colunas da Fase 1 |
 | 6 | Estampas e Artes | Depois do beta |
@@ -244,7 +267,7 @@ A estrutura que é cara de mudar depois: nomes, identificadores e a forma como t
 **Etapa 1.1 — Hierarquia.** Três PRs em série (decidido em 29/09/2026):
 
 - **1/3 — UUID em tudo.** Coluna `uuid` (única, gerada na criação) onde faltar, mantendo o ID inteiro como chave interna. Rotas e qualquer referência externa passam a usar o UUID. Nada muda na tela, só os endereços.
-- **2/3 — Estrutura.** Produto (com a grade de tamanhos individuais) e Modelo (categoria, com abreviação). Troca cruzada de nomes no código: o `Molde` atual vira `Modelo` e o `Modelo` atual vira `Molde`, feita com nomes intermediários. O Molde ganha código fixo `NNN-ABR` (número por cliente, somando todas as categorias: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` e já nasce com `version`, `base_id` e `published_at` (antiga Etapa 1.3). Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio.
+- **2/3 — Estrutura.** Produto (com a grade de tamanhos individuais) e Modelo (categoria, com abreviação), vindos da lista oficial do Neajud que acompanha o sistema (a empresa não os edita). O molde escolhe o intervalo da grade que usa e tem as suas partes. Troca cruzada de nomes no código: o `Molde` atual vira `Modelo` e o `Modelo` atual vira `Molde`, feita com nomes intermediários. O Molde ganha código fixo `NNN-ABR` (número por cliente, somando todas as categorias: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` e já nasce com `version`, `base_id` e `published_at` (antiga Etapa 1.3). Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio, e a trava de uma arte por corte + referência + nome.
 - **3/3 — Migração dos dados.** Mapeamento dos dados atuais, mostrado antes de aplicar, com backup e rollback testado:
 
 | Hoje | Vira |
@@ -258,7 +281,7 @@ A estrutura que é cara de mudar depois: nomes, identificadores e a forma como t
 
 As referências 19 e 20 da MKS são criadas depois, pela tela.
 
-**Etapa 1.2 — Cortes por tamanho individual.** Substituir faixas fixas (como `29-30.dxf`) por cortes que declaram os tamanhos que atendem, com rótulo opcional. Migrar os arquivos atuais lendo as faixas dos nomes. Validar cobertura completa e sem sobreposição por parte. O pedido passa a entrar por tamanho individual e por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul), montando sozinho a arte de cada parte e tamanho e o corte correspondente.
+**Etapa 1.2 — Cortes por tamanho individual.** Cada tamanho de um corte declara os números que atende e tem um rótulo (o par "29-30"), definido na organização do DXF: o sistema deduz os agrupamentos óbvios, oferece um mecanismo de agrupamento para as grades furadas (29-30 em um molde, 30-31 em outro) e, se nada servir, a pessoa digita. Migrar os cortes atuais (hoje os tamanhos têm um número só, o maior do par: "30" vira "29-30"). Validar cobertura do intervalo do molde, sem buracos nem sobreposição por parte. O pedido de calçado passa a entrar por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul) e tamanho individual, montando sozinho a arte e o corte de cada parte. O item do pedido passa a ter um tipo (calçado agora; DTF, estampa corrida e cor lisa na Fase 3). Pedidos antigos ficam só para leitura: dá para ver e baixar a produção, mas não editar.
 
 **Etapa 1.3 — Colunas de versão e base.** Absorvida pela 1.1 (2/3): o Molde já nasce com `version`, `base_id` e `published_at`. A Referência não é versionada, porque agrupa artes e não faz parte do catálogo.
 
@@ -290,13 +313,23 @@ O GitHub produz as versões; a Neajud Cloud as entrega. Os servidores dos client
 
 ## Fase 3 — Pronto para o beta
 
-O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de produção completas da Fase 6.
+O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de produção completas da Fase 6. Decidido em 30/09/2026: além do calçado com corte, o beta já tem **etiquetas DTF, estampa corrida e cor lisa** (regras em "Trabalhos sem corte", no glossário). Ordem sugerida: 3.4 → 3.5 → 3.6 → 3.7 → 3.8, e as demais quando couberem.
 
-**Etapa 3.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com o nome completo calculado da arte (`002-TNS_20_Bluey Azul_Lingua_29-30`). As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
+**Etapa 3.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com o nome completo calculado da arte (`002-TNS_20_Bluey Azul_Lingua_29-30`, sem acento no arquivo). As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
 
-**Etapa 3.2 — Ciclo do pedido.** Definir e implementar rascunho → confirmado → em produção → entregue (tema em aberto no `docs/contexto-claude-code.md`), junto com a decisão sobre tarefas de produção (cortar/imprimir).
+**Etapa 3.2 — Ciclo do pedido e etapas de produção.** Rascunho → confirmado → em produção → entregue, com as etapas de produção de cada tipo de item: calçado (imprimir, cortar), DTF em rolo (imprimir) ou cortado (imprimir → cortar), estampa corrida e cor lisa (imprimir no papel → transferir para o tecido; a transferência espera o material quando ele falta).
 
-**Etapa 3.3 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta, e que faltava na lista (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema", o caso da aprovação que a 0.5 deixou para cá).
+**Etapa 3.3 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
+
+**Etapa 3.4 — Estoque e materiais.** Estoque da empresa (hoje só existe estoque por cliente); o papel de transferência como material, com a sua largura; preço por metro no cadastro de materiais. Baixa automática na confirmação do pedido (tecido do cliente ou da empresa, e o papel); sem saldo, avisa e marca "aguardando material", sem bloquear, porque a impressão no papel pode ser adiantada.
+
+**Etapa 3.5 — Parâmetros e preços do dono.** Largura do filme DTF (60 cm), margem das bordas (1,5 cm), espaçamento padrão, fileiras extras, preço geral por metro do DTF (ex: R$ 120), preço da impressão da estampa corrida e da cor lisa por metro linear (igual para qualquer largura), custo único do corte por unidade, metragem mínima e o padrão de "cobrar excedente". Preços acordados por cliente (por metro e/ou por unidade de cada tamanho) valem antes dos gerais. "Cobrar excedente" segue a cascata dono → cliente → pedido. Nova ação na grade de Funções: "aprovar pedido abaixo do mínimo".
+
+**Etapa 3.6 — Numeração automática e "entra no catálogo".** Sequências por empresa que nunca reutilizam números: `DTF-863`, `CR-4114`, e a variação por nome de cor (`Amarelo v42`). Na migração, os números atuais são lidos do nome dos arquivos e as sequências continuam do maior (as etiquetas de uma mesma família ficam com o primeiro número e guardam os antigos como código antigo pesquisável). Marcação "entra no catálogo" para etiquetas DTF e estampas corridas.
+
+**Etapa 3.7 — DTF.** Etiqueta com grade P/M/G ou numérica; a medida de cada tamanho é lida do arquivo; espaçamento sugerido opcional por arte. Pedido por etiqueta e tamanho, entrega em rolo ou cortada (por pedido). Encaixe estimado na largura útil do filme, testando a rotação de 90° de cada etiqueta; a quantidade real completa as fileiras e soma as fileiras extras, e o excedente vai sempre para o cliente. Cobrança alternada no pedido entre metro (sempre a metragem total) e quantidade (preço por unidade calculado do preço por metro, arredondado para cima; o excedente é cobrado ou não conforme a cascata); o corte é cobrado sobre tudo o que foi cortado. O preço editado no pedido nunca apaga o sugerido, para medir o desconto por pedido, por cliente e no total. O RIP monta a folha.
+
+**Etapa 3.8 — Estampa corrida e cor lisa.** Estampa corrida: só o módulo é guardado (o RIP monta a repetição); pedido em metros lineares, na largura do tecido (editável no pedido), sobre um material da empresa ou do cliente; preço da impressão por metro linear, mais o tecido (preço do cadastro) quando o material é da empresa; metragem mínima, com aprovação de quem tem a ação na grade abaixo dela. Cor lisa: cada versão é uma cor própria (nome base + variação, material, cliente opcional, arquivo de referência 5 × 5 cm) e todas continuam valendo; é pedida como tecido liso, com as mesmas regras da estampa corrida. Só a cor final é cadastrada (as tentativas do desenvolvimento ficam fora).
 
 ## Fase 4 — Lançamento beta
 
@@ -339,7 +372,7 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 **Etapa 6.3 — Origem e saídas.** A Arte tem um arquivo de origem (PSD, CDR, AI, PNG, TIFF, JPG) e saídas de produção geradas para o seu corte: TIFF em ultra resolução e JPG compactado para bitmaps, PDF para vetores. As saídas são geradas em job, nunca no request.
 
-**Etapa 6.4 — Camada de processo.** Criar o conceito de Processo (sublimação, frequência, bordado, silk). Artes, tempos e materiais pertencem a um processo e referenciam a parte do catálogo pelo UUID. Separar do código o que hoje é específico de sublimação.
+**Etapa 6.4 — Camada de processo.** Criar o conceito de Processo (sublimação, frequência, bordado, silk). Artes, tempos e materiais pertencem a um processo e referenciam a parte do catálogo pelo UUID. Separar do código o que hoje é específico de sublimação. O DTF (Etapa 3.7) entra antes, como o primeiro trabalho fora do calçado com corte; aqui ele passa a ser um processo como os outros.
 
 **Segurança de arquivos:**
 
@@ -350,7 +383,7 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 ## Fase 7 — Nuvem: contas, cobrança e suporte
 
-A Neajud Cloud é um app Rails separado (`neajud-cloud`). Sem ela, o servidor continua funcionando; perde apenas os recursos de nuvem.
+A Neajud Cloud é um app Rails separado (`neajud-cloud`). Sem ela, o servidor continua funcionando; perde apenas os recursos de nuvem. É também onde fica a área de super-admin do Neajud: preços dos planos e o catálogo oficial (produtos, modelos com abreviação e grade), que até lá vem junto com o sistema.
 
 **Etapa 7.1 — Identidades.** Todos os usuários têm conta na nuvem. Na nuvem, o login acontece na Neajud Cloud e a pessoa é enviada à instância da empresa já autenticada; o admin convida por e-mail e o funcionário cria a própria senha. Isso substitui o login local de cada instância (Etapa 0.5), mantendo pessoa, vínculo e perfis.
 
