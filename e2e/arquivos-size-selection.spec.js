@@ -6,7 +6,7 @@ const { uploadFileAndWait } = require("./support/upload");
 runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
   // ── Size Selection (Arte arquivos) ──
 
-  await test("Size Selection: in DOM but hidden when arte has client and no modelo", async () => {
+  await test("Size Selection: in DOM but hidden when arte has client and no molde", async () => {
     const arteSizePath = path.join(__dirname, `e2e-size-arte-${Date.now()}.tif`);
     if (!fs.existsSync(arteSizePath)) {
       const { execSync } = require("child_process");
@@ -71,12 +71,12 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Must exist so update_modelo's turbo stream has a target to replace
+      // Must exist so update_molde's turbo stream has a target to replace
       const sectionInDOM = await page.evaluate(() => !!document.querySelector("#size-selection-section"));
       if (!sectionInDOM) throw new Error("Size Selection section should be in DOM (turbo stream target) for arte files");
 
       const visible = await page.locator("#size-selection-section").isVisible();
-      if (visible) throw new Error("Size Selection should stay hidden until a modelo is selected");
+      if (visible) throw new Error("Size Selection should stay hidden until a molde is selected");
     } finally {
       await page.evaluate(async ({ clientId, arteUuid }) => {
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
@@ -90,7 +90,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
 
 
 
-  await test("Size Selection: appears after picking modelo and shows the linked tamanho in mm", async () => {
+  await test("Size Selection: appears after picking molde and shows the linked tamanho in mm", async () => {
     const artePath = path.join(__dirname, "e2e-comp-arte.tif");
     if (!fs.existsSync(artePath)) {
       const { execSync } = require("child_process");
@@ -107,8 +107,8 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
     let orgUuid = null;
     let clientName = null;
     let pecaId = null;
-    let moldeId = null;
     let modeloId = null;
+    let moldeId = null;
 
     try {
       // ── Upload arte arquivo ──
@@ -156,7 +156,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       await option.click();
       await page.waitForTimeout(1500);
 
-      // ── Create peca, molde, modelo ──
+      // ── Create peca, modelo, molde ──
       const chain = await page.evaluate(async ({ token, clientName }) => {
         await fetch("/pecas", {
           method: "POST",
@@ -167,55 +167,55 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const pecas = await pecaRes.json();
         if (!pecas[0]) return null;
 
-        const moldeBody = new URLSearchParams();
-        moldeBody.append("authenticity_token", token);
-        moldeBody.append("molde[nome]", "Comp Molde");
-        moldeBody.append("molde[peca_uuids][]", pecas[0].id);
-        await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
-        const moldeRes = await fetch("/moldes/search?q=Comp Molde");
-        const moldes = await moldeRes.json();
-        if (!moldes[0]) return null;
+        const modeloBody = new URLSearchParams();
+        modeloBody.append("authenticity_token", token);
+        modeloBody.append("modelo[nome]", "Comp Modelo");
+        modeloBody.append("modelo[peca_uuids][]", pecas[0].id);
+        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modeloBody });
+        const modeloRes = await fetch("/modelos/search?q=Comp Modelo");
+        const modelos = await modeloRes.json();
+        if (!modelos[0]) return null;
 
         const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
         const clients = await clientRes.json();
         if (!clients[0]) return null;
 
-        await fetch("/modelos", {
+        await fetch("/moldes", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             authenticity_token: token,
-            "modelo[nome]": "Comp Modelo",
-            "modelo[client_uuid]": clients[0].id,
-            "modelo[molde_uuid]": moldes[0].id
+            "molde[nome]": "Comp Molde",
+            "molde[client_uuid]": clients[0].id,
+            "molde[modelo_uuid]": modelos[0].id
           })
         });
 
-        return { moldeId: moldes[0].id, pecaId: pecas[0].id };
+        return { modeloId: modelos[0].id, pecaId: pecas[0].id };
       }, { token: csrf, clientName });
-      if (!chain) throw new Error("Failed to create peca/molde/modelo chain");
-      moldeId = chain.moldeId;
+      if (!chain) throw new Error("Failed to create peca/modelo/molde chain");
+      modeloId = chain.modeloId;
       pecaId = chain.pecaId;
 
-      // ── Assign modelo via combobox ──
-      const modelEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Model" }).locator(".btn-edit").first();
+      // ── Assign molde via combobox ──
+      const modelEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Mold" }).locator(".btn-edit").first();
       await modelEditBtn.click();
       await page.waitForTimeout(300);
 
-      const modelInput = await page.$(".stamp-detail-section[id='modelo-field-section'] .combobox-input");
+      const modelInput = await page.$(".stamp-detail-section[id='molde-field-section'] .combobox-input");
       if (!modelInput) throw new Error("Model combobox input not found");
       await modelInput.focus();
-      await modelInput.fill("Comp Modelo");
+      await modelInput.fill("Comp Molde");
       await page.waitForTimeout(800);
 
-      const modelOption = page.locator(".combobox-option").filter({ hasText: "Comp Modelo" }).first();
-      await modelOption.waitFor({ timeout: 5000 });
-      await modelOption.click();
+      const moldeption = page.locator(".combobox-option").filter({ hasText: "Comp Molde" }).first();
+      await moldeption.waitFor({ timeout: 5000 });
+      await moldeption.click();
       await page.waitForTimeout(1500);
 
       // Regression (019535b): turbo stream must reveal the section without reload
-      const sizeSectionAfterModelo = page.locator("#size-selection-section");
-      await sizeSectionAfterModelo.waitFor({ state: "visible", timeout: 5000 });
+      const sizeSectionAfterMolde = page.locator("#size-selection-section");
+      await sizeSectionAfterMolde.waitFor({ state: "visible", timeout: 5000 });
 
       // Etapa 0.6: the tamanho search runs in the queue; "Procurando tamanho…"
       // must go away by itself (broadcast refresh or the polling safety net).
@@ -260,7 +260,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const body = new URLSearchParams();
         body.append("authenticity_token", token);
         body.append("_method", "patch");
-        body.append("molde_uuid", chain.moldeId);
+        body.append("modelo_uuid", chain.modeloId);
         body.append("peca_uuid", chain.pecaId);
         body.append("tamanhos[0][nome]", "99");
         body.append("tamanhos[0][width_mm]", "150");
@@ -284,13 +284,13 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Find the organized arquivo's tamanho id via the correct molde/peca
-      const tamanhoId = await page.evaluate(async ({ token, moldeId, pecaId }) => {
-        const r = await fetch(`/tamanhos/for_cascade?molde_uuid=${moldeId}&peca_uuid=${pecaId}`);
+      // Find the organized arquivo's tamanho id via the correct modelo/peca
+      const tamanhoId = await page.evaluate(async ({ token, modeloId, pecaId }) => {
+        const r = await fetch(`/tamanhos/for_cascade?modelo_uuid=${modeloId}&peca_uuid=${pecaId}`);
         const all = await r.json();
         const found = all.find(t => t.nome === "99");
         return found ? found.id : null;
-      }, { token: csrf, moldeId, pecaId });
+      }, { token: csrf, modeloId, pecaId });
 
       if (!tamanhoId) throw new Error("Tamanho '99' not found via for_cascade API");
 
@@ -344,14 +344,14 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
 
     } finally {
       // Cleanup DB records
-      await page.evaluate(async ({ pecaId, moldeId, clientName, arteUuid, orgUuid }) => {
-        // Find modelo and client IDs
-        let modeloId = null;
+      await page.evaluate(async ({ pecaId, modeloId, clientName, arteUuid, orgUuid }) => {
+        // Find molde and client IDs
+        let moldeId = null;
         let clientId = null;
         try {
-          const mr = await fetch("/modelos/search?q=Comp Modelo");
-          const modelos = await mr.json();
-          if (modelos[0]) modeloId = modelos[0].id;
+          const mr = await fetch("/moldes/search?q=Comp Molde");
+          const moldes = await mr.json();
+          if (moldes[0]) moldeId = moldes[0].id;
         } catch (_) {}
         try {
           const cr = await fetch("/clients/search?q=" + encodeURIComponent(clientName || ""));
@@ -359,14 +359,14 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
           if (clients[0]) clientId = clients[0].id;
         } catch (_) {}
         // Delete in reverse dependency order
-        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
-        // Delete molde after peca (no hard dep via models since we already removed modelo)
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
+        try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
+        // Delete modelo after peca (no hard dep via models since we already removed molde)
+        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
         try { if (orgUuid) await fetch(`/arquivos/${orgUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}
-      }, { pecaId, moldeId, clientName, arteUuid, orgUuid }).catch(() => {});
+      }, { pecaId, modeloId, clientName, arteUuid, orgUuid }).catch(() => {});
       // Cleanup local files
       if (fs.existsSync(artePath)) fs.unlinkSync(artePath);
       if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);

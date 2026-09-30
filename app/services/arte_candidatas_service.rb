@@ -1,12 +1,12 @@
 # Artes that can fill a pending piece of a pedido item, in the order the user
 # asked for:
-#   1. do cliente, sem peça — this modelo's first, then other modelos of the
+#   1. do cliente, sem peça — this molde's first, then other moldes of the
 #      same client (choosing one of those moves it, after confirmation);
-#   2. do cliente, sem modelo;
+#   2. do cliente, sem molde;
 #   3. sem cliente.
 # Artes already printed on another peça are left out: linking them would not
 # change the peça they resolve to. An arte whose resolved peça is the pending
-# one (e.g. no modelo yet) is a candidate.
+# one (e.g. no molde yet) is a candidate.
 #
 # Usage: ArteCandidatasService.call(peca_row)
 #   # => [#<Grupo chave=:cliente_sem_peca titulo="…" artes=[…]>, …]
@@ -19,16 +19,16 @@ class ArteCandidatasService
 
   def initialize(peca_row)
     @peca = peca_row.peca
-    @modelo = peca_row.item_pedido.arquivo.modelo
-    @client_id = @modelo&.client_id
+    @molde = peca_row.item_pedido.arquivo.molde
+    @client_id = @molde&.client_id
   end
 
   def call
-    return [] unless @modelo
+    return [] unless @molde
 
     [
       Grupo.new(chave: :cliente_sem_peca, titulo: "Do cliente, sem peça", artes: cliente_sem_peca),
-      Grupo.new(chave: :cliente_sem_modelo, titulo: "Do cliente, sem modelo", artes: cliente_sem_modelo),
+      Grupo.new(chave: :cliente_sem_molde, titulo: "Do cliente, sem molde", artes: cliente_sem_molde),
       Grupo.new(chave: :sem_cliente, titulo: "Sem cliente", artes: sem_cliente)
     ]
   end
@@ -41,16 +41,16 @@ class ArteCandidatasService
   private
 
   def artes
-    Arquivo.ativos.where(category: "artes").includes(:modelo, :approved_version, :peca, tamanho: { arquivo: :peca })
+    Arquivo.ativos.where(category: "artes").includes(:molde, :approved_version, :peca, tamanho: { arquivo: :peca })
   end
 
   def cliente_sem_peca
-    artes.where(client_id: @client_id).where.not(modelo_id: nil).sem_peca_resolvida
-         .sort_by { |arte| [ arte.modelo_id == @modelo.id ? 0 : 1, arte.modelo.nome, arte.filename ] }
+    artes.where(client_id: @client_id).where.not(molde_id: nil).sem_peca_resolvida
+         .sort_by { |arte| [ arte.molde_id == @molde.id ? 0 : 1, arte.molde.nome, arte.filename ] }
   end
 
-  def cliente_sem_modelo
-    livres(artes.where(client_id: @client_id, modelo_id: nil))
+  def cliente_sem_molde
+    livres(artes.where(client_id: @client_id, molde_id: nil))
   end
 
   def sem_cliente

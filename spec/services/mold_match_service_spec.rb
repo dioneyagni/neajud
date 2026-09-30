@@ -31,9 +31,9 @@ RSpec.describe MoldMatchService do
     arte
   end
 
-  def corte_with_tamanhos(molde_id:, tamanhos: [], preview_filename: "corte.png")
+  def corte_with_tamanhos(modelo_id:, tamanhos: [], preview_filename: "corte.png")
     corte = create(:arquivo, category: "corte", extension: "dxf", organized: true,
-      molde_id: molde_id)
+      modelo_id: modelo_id)
     version = create(:arquivo_version, arquivo: corte, version_number: 1, approved: true,
       extension: "png", filename: "corte")
     preview = create_fake_png(300, 200, preview_filename)
@@ -70,7 +70,7 @@ RSpec.describe MoldMatchService do
     end
 
     context "when there are no candidate cortes" do
-      it "returns nil when arte has no modelo.molde and no client" do
+      it "returns nil when arte has no molde.modelo and no client" do
         arte = arte_with_preview
         expect(described_class.call(arte)).to be_nil
       end
@@ -78,15 +78,15 @@ RSpec.describe MoldMatchService do
 
     context "when all candidate cortes are filtered by dimension prefilter" do
       it "returns nil when all cortes have incompatible aspect ratios" do
-        molde = create(:molde)
+        modelo = create(:modelo)
         client = create(:client)
         arte = arte_with_preview
         arte.update!(client_id: client.id)
-        modelo = create(:modelo, molde: molde, client: client)
-        arte.update!(modelo_id: modelo.id)
+        molde = create(:molde, modelo: modelo, client: client)
+        arte.update!(molde_id: molde.id)
         arte.reload
 
-        corte_with_tamanhos(molde_id: molde.id, preview_filename: "corte-bad-ratio.png",
+        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-bad-ratio.png",
           tamanhos: [
             { nome: "T1", width_mm: 500, height_mm: 10 }
           ])
@@ -95,40 +95,40 @@ RSpec.describe MoldMatchService do
       end
     end
 
-    # Regression (28/09/2026): a molde shared by several modelos, each with its
-    # own corte. An arte of modelo 28-29 got the tamanho of 21-24's corte,
-    # which matched better — it must only look at its modelo's cortes.
-    context "when the molde is shared by several modelos" do
-      it "only considers the cortes linked to the arte's modelo" do
-        molde = create(:molde)
+    # Regression (28/09/2026): a modelo shared by several moldes, each with its
+    # own corte. An arte of molde 28-29 got the tamanho of 21-24's corte,
+    # which matched better — it must only look at its molde's cortes.
+    context "when the modelo is shared by several moldes" do
+      it "only considers the cortes linked to the arte's molde" do
+        modelo = create(:modelo)
         client = create(:client)
-        outro_modelo = create(:modelo, molde: molde, client: client, nome: "21-24")
-        modelo = create(:modelo, molde: molde, client: client, nome: "28-29")
+        outro_molde = create(:molde, modelo: modelo, client: client, nome: "21-24")
+        molde = create(:molde, modelo: modelo, client: client, nome: "28-29")
         arte = arte_with_preview
-        arte.update!(client_id: client.id, modelo_id: modelo.id)
+        arte.update!(client_id: client.id, molde_id: molde.id)
 
-        do_outro = corte_with_tamanhos(molde_id: molde.id, preview_filename: "outro.png",
+        do_outro = corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "outro.png",
           tamanhos: [ { nome: "Exato do outro", width_mm: 100, height_mm: 50 } ])
-        do_outro.modelos << outro_modelo
-        do_meu = corte_with_tamanhos(molde_id: molde.id, preview_filename: "meu.png",
-          tamanhos: [ { nome: "Do meu modelo", width_mm: 106, height_mm: 53 } ])
-        do_meu.modelos << modelo
+        do_outro.moldes << outro_molde
+        do_meu = corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "meu.png",
+          tamanhos: [ { nome: "Do meu molde", width_mm: 106, height_mm: 53 } ])
+        do_meu.moldes << molde
 
-        expect(described_class.call(arte.reload).nome).to eq("Do meu modelo")
+        expect(described_class.call(arte.reload).nome).to eq("Do meu molde")
       end
     end
 
     context "when dimensions match" do
       it "returns the tamanho with closest dimensions" do
-        molde = create(:molde)
+        modelo = create(:modelo)
         client = create(:client)
         arte = arte_with_preview
         arte.update!(client_id: client.id)
-        modelo = create(:modelo, molde: molde, client: client)
-        arte.update!(modelo_id: modelo.id)
+        molde = create(:molde, modelo: modelo, client: client)
+        arte.update!(molde_id: molde.id)
         arte.reload
 
-        corte_with_tamanhos(molde_id: molde.id, preview_filename: "corte-dims.png",
+        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-dims.png",
           tamanhos: [
             { nome: "Far", width_mm: 500, height_mm: 500 },
             { nome: "Close", width_mm: 100, height_mm: 50 },
@@ -143,17 +143,17 @@ RSpec.describe MoldMatchService do
 
     context "when dimension match threshold is exceeded" do
       it "falls back to contour matching" do
-        molde = create(:molde)
+        modelo = create(:modelo)
         client = create(:client)
         arte = arte_with_preview
         arte.update!(client_id: client.id)
-        modelo = create(:modelo, molde: molde, client: client)
-        arte.update!(modelo_id: modelo.id)
+        molde = create(:molde, modelo: modelo, client: client)
+        arte.update!(molde_id: molde.id)
         arte.reload
 
         t_preview = arte.preview_file
 
-        corte_with_tamanhos(molde_id: molde.id, preview_filename: "corte-contour-fallback.png",
+        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-contour-fallback.png",
           tamanhos: [
             { nome: "ContourMatch", width_mm: 200, height_mm: 100,
               preview_file: t_preview }
@@ -165,18 +165,18 @@ RSpec.describe MoldMatchService do
       end
     end
 
-    context "when no modelo.molde but client has moldes" do
+    context "when no molde.modelo but client has modelos" do
       it "finds corticales via client-level fallback" do
         client = create(:client)
-        molde = create(:molde)
-        create(:modelo, molde: molde, client: client)
+        modelo = create(:modelo)
+        create(:molde, modelo: modelo, client: client)
 
         arte = arte_with_preview
         arte.update!(client_id: client.id)
         arte.reload
 
         t_preview = arte.preview_file
-        corte_with_tamanhos(molde_id: molde.id, preview_filename: "corte-client-fallback.png",
+        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-client-fallback.png",
           tamanhos: [
             { nome: "ClientFallback", width_mm: 100, height_mm: 50,
               preview_file: t_preview }
@@ -190,17 +190,17 @@ RSpec.describe MoldMatchService do
 
     context "mold-level contour comparison" do
       it "rejects cortes whose full outline is too different from arte outline" do
-        molde = create(:molde)
+        modelo = create(:modelo)
         client = create(:client)
         arte = arte_with_preview
         arte.update!(client_id: client.id)
-        modelo = create(:modelo, molde: molde, client: client)
-        arte.update!(modelo_id: modelo.id)
+        molde = create(:molde, modelo: modelo, client: client)
+        arte.update!(molde_id: molde.id)
         arte.reload
 
         t_preview = arte.preview_file
 
-        corte_with_tamanhos(molde_id: molde.id, preview_filename: "corte-bad-mold.png",
+        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-bad-mold.png",
           tamanhos: [
             { nome: "OnlyChoice", width_mm: 100, height_mm: 50,
               preview_file: t_preview }

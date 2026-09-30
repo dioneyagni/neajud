@@ -7,9 +7,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
   let(:arte) { create(:arquivo, category: "artes") }
   let(:corte) { create(:arquivo, :corte) }
   let(:client) { create(:client) }
-  let(:molde) { create(:molde) }
-  let(:peca) { create(:peca) }
   let(:modelo) { create(:modelo) }
+  let(:peca) { create(:peca) }
+  let(:molde) { create(:molde) }
   let(:pedido) { create(:pedido) }
   let(:tamanho) { create(:tamanho, arquivo: corte) }
 
@@ -28,9 +28,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "open a corte (Catálogo)", "catalogo", 1, -> { get arquivo_path(corte) } ],
     [ "change a corte's cut type (Catálogo)", "catalogo", 2, -> { patch update_tipo_corte_arquivo_path(corte), params: { tipo_corte: "apenas_corte" } } ],
     [ "trash a corte (Catálogo)", "catalogo", 3, -> { delete arquivo_path(corte) } ],
-    [ "list moldes", "catalogo", 1, -> { get moldes_path } ],
+    [ "list modelos", "catalogo", 1, -> { get modelos_path } ],
     [ "register a peça", "catalogo", 2, -> { post pecas_path, params: { peca: { nome: "Nova" } } } ],
-    [ "trash a modelo", "catalogo", 3, -> { delete modelo_path(modelo) } ],
+    [ "trash a molde", "catalogo", 3, -> { delete molde_path(molde) } ],
     [ "list materials", "estoque", 1, -> { get materiais_path } ],
     [ "open the new movement form", "estoque", 2, -> { get new_movimento_path } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],
@@ -106,7 +106,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       get pedidos_path
       nav = response.body[/<nav class="header-nav">.*?<\/nav>/m]
       expect(nav).to include("Pedidos")
-      expect(nav).not_to include("Clients", "Moldes", "Materials", "Lixeira", "Funções")
+      expect(nav).not_to include("Clients", "Modelos", "Materials", "Lixeira", "Funções")
     end
 
     it "read-only users see no create/edit/delete buttons" do

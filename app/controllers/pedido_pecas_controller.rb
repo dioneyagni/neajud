@@ -10,7 +10,7 @@ class PedidoPecasController < ApplicationController
 
   # Usage: GET /pedidos/:pedido_uuid/pecas/:id/escolher_arte
   def escolher_arte
-    @modelo = @peca_row.item_pedido.arquivo.modelo
+    @molde = @peca_row.item_pedido.arquivo.molde
     @grupos = ArteCandidatasService.call(@peca_row)
   end
 
@@ -25,14 +25,14 @@ class PedidoPecasController < ApplicationController
   end
 
   # Uploads a new arte straight into the pending piece: created with the
-  # modelo's client (ArquivoUploadService), then linked like a chosen one.
+  # molde's client (ArquivoUploadService), then linked like a chosen one.
   # Usage: POST /pedidos/:pedido_uuid/pecas/:id/enviar_arte (original_file)
   def enviar_arte
     erro = enviar_arte_error(params[:original_file])
     return redirect_to resumo_pedido_path(@pedido), alert: erro if erro
 
     arte = ArquivoUploadService.call(params[:original_file], remote_ip: request.remote_ip,
-                                                             arquivo: Arquivo.new(client_id: @peca_row.item_pedido.arquivo.modelo.client_id))
+                                                             arquivo: Arquivo.new(client_id: @peca_row.item_pedido.arquivo.molde.client_id))
     return redirect_to resumo_pedido_path(@pedido), alert: "Upload failed: #{arte.errors.full_messages.to_sentence}" unless arte.persisted?
 
     VincularArteService.call(@peca_row, arte, **autoria)

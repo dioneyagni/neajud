@@ -1,4 +1,4 @@
-<div data-controller="dialog" data-create-title="Register New Mold" data-create-label="Register" data-create-url="<%= moldes_path %>">
+<div data-controller="dialog" data-create-title="Register New Model" data-create-label="Register" data-create-url="<%= modelos_path %>">
   <div id="organize-flash"></div>
   <% if arquivo.preparando_tamanhos? %>
     <%# Etapa 0.6: PreparacaoTamanhosJob refreshes the page when done; polling
@@ -12,7 +12,7 @@
       data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
   <% if !arquivo.organized? %>
     <div class="mold-organization-alert">
-      ⚠ This DXF file is not organized yet. Set the mold, piece, and sizes below.
+      ⚠ This DXF file is not organized yet. Set the model, piece, and sizes below.
     </div>
   <% end %>
   <% if arquivo.organize_error.present? %>
@@ -22,19 +22,19 @@
   <% end %>
 
   <%
-    linked_molde_id = arquivo.molde_id || arquivo.modelos.find { |m| m.molde_id.present? }&.molde_id
-    linked_molde = Molde.find_by(id: linked_molde_id) if linked_molde_id
-    initial_pecas = if linked_molde_id
-                      linked_molde&.pecas&.ativos&.order(:nome)&.to_a || []
+    linked_modelo_id = arquivo.modelo_id || arquivo.moldes.find { |m| m.modelo_id.present? }&.modelo_id
+    linked_modelo = Modelo.find_by(id: linked_modelo_id) if linked_modelo_id
+    initial_pecas = if linked_modelo_id
+                      linked_modelo&.pecas&.ativos&.order(:nome)&.to_a || []
                     else
                       Peca.ativos.order(:nome).to_a
                     end
 
-    modelo_ids = arquivo.modelos.pluck(:id)
-    occupied_peca_ids = if arquivo.corte? && modelo_ids.any?
+    molde_ids = arquivo.moldes.pluck(:id)
+    occupied_peca_ids = if arquivo.corte? && molde_ids.any?
                           Arquivo.ativos.where(category: "corte", organized: true)
-                                 .joins(:arquivo_modelos)
-                                 .where(arquivo_modelos: { modelo_id: modelo_ids })
+                                 .joins(:arquivo_moldes)
+                                 .where(arquivo_moldes: { molde_id: molde_ids })
                                  .where.not(id: arquivo.id)
                                  .pluck(:peca_id)
                                  .to_set
@@ -45,33 +45,33 @@
 
   <div class="mold-organization-fields"
        data-controller="mold-org-cascade"
-       data-mold-org-cascade-molde-uuid-value="<%= linked_molde&.uuid %>">
+       data-mold-org-cascade-modelo-uuid-value="<%= linked_modelo&.uuid %>">
     <div class="mold-field">
-      <label for="molde_uuid">Mold</label>
+      <label for="modelo_uuid">Model</label>
       <% if arquivo.organized? %>
-        <span class="field-display" data-edit-toggle-target="display"><%= arquivo.molde&.nome || arquivo.molde_nome %></span>
+        <span class="field-display" data-edit-toggle-target="display"><%= arquivo.modelo&.nome || arquivo.modelo_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="molde_uuid" id="molde_uuid"
-                  data-mold-org-cascade-target="moldeSelect"
-                  data-action="change->mold-org-cascade#onMoldeChange"
-                  data-original-value="<%= arquivo.molde&.uuid %>">
-            <option value="">Select a mold...</option>
-            <% Molde.ativos.order(:nome).each do |m| %>
-              <option value="<%= m.uuid %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
+          <select name="modelo_uuid" id="modelo_uuid"
+                  data-mold-org-cascade-target="modeloSelect"
+                  data-action="change->mold-org-cascade#onModeloChange"
+                  data-original-value="<%= arquivo.modelo&.uuid %>">
+            <option value="">Select a model...</option>
+            <% Modelo.ativos.order(:nome).each do |m| %>
+              <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
-          <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="modelo" style="margin-top: 0.25rem">+ Register new model</button>
         </span>
       <% else %>
-        <select name="molde_uuid" id="molde_uuid"
-                data-mold-org-cascade-target="moldeSelect"
-                data-action="change->mold-org-cascade#onMoldeChange">
-          <option value="">Select a mold...</option>
-          <% Molde.ativos.order(:nome).each do |m| %>
-            <option value="<%= m.uuid %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
+        <select name="modelo_uuid" id="modelo_uuid"
+                data-mold-org-cascade-target="modeloSelect"
+                data-action="change->mold-org-cascade#onModeloChange">
+          <option value="">Select a model...</option>
+          <% Modelo.ativos.order(:nome).each do |m| %>
+            <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>
-        <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="modelo" style="margin-top: 0.25rem">+ Register new model</button>
       <% end %>
     </div>
     <div class="mold-field">
@@ -169,17 +169,17 @@
   </div>
 <% end %>
 
-  <dialog data-dialog-target="moldeDialog" class="client-dialog" id="molde_dialog_org">
-    <form action="<%= moldes_path %>" method="post" class="client-form">
+  <dialog data-dialog-target="modeloDialog" class="client-dialog" id="modelo_dialog_org">
+    <form action="<%= modelos_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
       <input type="hidden" name="arquivo_uuid" value="<%= arquivo.uuid %>">
-      <h4 data-dialog-target="dialogTitle">Register New Mold</h4>
+      <h4 data-dialog-target="dialogTitle">Register New Model</h4>
       <div class="client-field">
-        <label for="molde_nome_dialog_org">Name</label>
-        <input type="text" name="molde[nome]" id="molde_nome_dialog_org" data-dialog-field="nome" required>
+        <label for="modelo_nome_dialog_org">Name</label>
+        <input type="text" name="modelo[nome]" id="modelo_nome_dialog_org" data-dialog-field="nome" required>
       </div>
       <div class="client-dialog-actions">
-        <button type="button" data-action="click->dialog#closeMolde" class="btn btn-secondary">Cancel</button>
+        <button type="button" data-action="click->dialog#closeModelo" class="btn btn-secondary">Cancel</button>
         <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
       </div>
     </form>

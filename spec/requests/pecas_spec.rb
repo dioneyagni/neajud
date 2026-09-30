@@ -43,14 +43,14 @@ RSpec.describe "Pecas", type: :request do
       expect(response.body).to include("Register New Peça")
     end
 
-    it "redirects to edit molde when molde_id is present" do
-      molde = create(:molde, nome: "Sapato")
+    it "redirects to edit modelo when modelo_id is present" do
+      modelo = create(:modelo, nome: "Sapato")
 
-      post pecas_path, params: { peca: { nome: "Solado" }, molde_uuid: molde.uuid }
+      post pecas_path, params: { peca: { nome: "Solado" }, modelo_uuid: modelo.uuid }
 
-      expect(response).to redirect_to(edit_molde_path(molde))
-      molde.reload
-      expect(molde.pecas.pluck(:nome)).to include("Solado")
+      expect(response).to redirect_to(edit_modelo_path(modelo))
+      modelo.reload
+      expect(modelo.pecas.pluck(:nome)).to include("Solado")
     end
   end
 
@@ -68,14 +68,14 @@ RSpec.describe "Pecas", type: :request do
   end
 
   describe "GET /pecas/for_cascade" do
-    it "returns pecas for a given molde and client" do
-      molde = create(:molde, nome: "Sapato")
+    it "returns pecas for a given modelo and client" do
+      modelo = create(:modelo, nome: "Sapato")
       peca = create(:peca, nome: "Solado")
-      molde.pecas << peca
+      modelo.pecas << peca
       client = create(:client, name: "Test Client", responsible: "John")
-      create(:arquivo, molde: molde, peca: peca, client: client, organized: true)
+      create(:arquivo, modelo: modelo, peca: peca, client: client, organized: true)
 
-      get for_cascade_pecas_path(molde_uuid: molde.uuid, client_uuid: client.uuid)
+      get for_cascade_pecas_path(modelo_uuid: modelo.uuid, client_uuid: client.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
@@ -84,12 +84,12 @@ RSpec.describe "Pecas", type: :request do
     end
 
     it "returns pecas from organized arquivos regardless of tipo_corte" do
-      molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca, nome: "Solado")
-      molde.pecas << peca
-      create(:arquivo, tipo_corte: "apenas_corte", molde: molde, peca: peca, organized: true)
+      modelo.pecas << peca
+      create(:arquivo, tipo_corte: "apenas_corte", modelo: modelo, peca: peca, organized: true)
 
-      get for_cascade_pecas_path(molde_uuid: molde.uuid)
+      get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
@@ -98,11 +98,11 @@ RSpec.describe "Pecas", type: :request do
     end
 
     it "returns empty array when no organized arquivos exist" do
-      molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      molde.pecas << peca
+      modelo.pecas << peca
 
-      get for_cascade_pecas_path(molde_uuid: molde.uuid)
+      get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)

@@ -1,0 +1,8 @@
+<%= turbo_stream.replace "molde-field-section" do %>
+  <%= render "molde_field" %>
+<% end %>
+<% if alert %>
+  <%= turbo_stream.update "molde-flash" do %>
+    <p class="alert flash-notice" data-controller="flash"><%= alert %></p>
+  <% end %>
+<% end %>

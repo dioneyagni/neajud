@@ -8,7 +8,7 @@ class LixeiraController < ApplicationController
   # Route segment => model. Also the whitelist for #restaurar's :tipo.
   TIPOS = {
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
-    "modelos" => Modelo, "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao
+    "moldes" => Molde, "modelos" => Modelo, "pecas" => Peca, "funcoes" => Funcao
   }.freeze
 
   def index

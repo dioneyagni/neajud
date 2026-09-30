@@ -15,7 +15,7 @@ Rails.application.routes.draw do
   end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|modelos|moldes|pecas|funcoes/ }
+       constraints: { tipo: /arquivos|pedidos|clients|moldes|modelos|pecas|funcoes/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do
@@ -43,11 +43,11 @@ Rails.application.routes.draw do
     member do
       patch :update_time
       patch :update_client
-      patch :update_modelo
+      patch :update_molde
       patch :update_tamanho
       patch :update_tipo_corte
-      post :add_modelo
-      delete :remove_modelo
+      post :add_molde
+      delete :remove_molde
       get :preview
       get :composicao
       get :processamento
@@ -71,7 +71,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :moldes, only: %i[index show new create edit update destroy] do
+  resources :modelos, only: %i[index show new create edit update destroy] do
     collection do
       get :search
     end
@@ -87,7 +87,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :modelos, only: %i[index show create update destroy] do
+  resources :moldes, only: %i[index show create update destroy] do
     collection do
       get :search
       get :for_client

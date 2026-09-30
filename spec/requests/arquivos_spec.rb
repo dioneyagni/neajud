@@ -41,17 +41,17 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     # Regression: 019535b only rendered Size Selection when the corte had an
-    # organize_error, so selecting client + modelo never showed the size.
-    it "renders Size Selection with the linked tamanho dimensions for an arte with client + modelo" do
+    # organize_error, so selecting client + molde never showed the size.
+    it "renders Size Selection with the linked tamanho dimensions for an arte with client + molde" do
       tamanho = create(:tamanho, nome: "M", width_mm: 150.0, height_mm: 250.0)
-      arquivo = create(:arquivo, client: create(:client), modelo: create(:modelo), tamanho: tamanho)
+      arquivo = create(:arquivo, client: create(:client), molde: create(:molde), tamanho: tamanho)
       get arquivo_path(arquivo)
       expect(response.body).to include('id="size-selection-section"')
       expect(response.body).to include("→ M")
       expect(response.body).to include("150.0×250.0 mm")
     end
 
-    it "keeps the Size Selection placeholder hidden for an arte without modelo" do
+    it "keeps the Size Selection placeholder hidden for an arte without molde" do
       arquivo = create(:arquivo, client: create(:client))
       get arquivo_path(arquivo)
       expect(response.body).to match(/id="size-selection-section"[^>]*style="display:none"/m)
@@ -252,26 +252,26 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
-  describe "PATCH /arquivos/:id/update_modelo" do
-    it "assigns modelo, molde and peca to an arquivo" do
-      modelo = create(:modelo)
+  describe "PATCH /arquivos/:id/update_molde" do
+    it "assigns molde, modelo and peca to an arquivo" do
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
       arquivo = create(:arquivo)
 
-      patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid, molde_uuid: molde.uuid, peca_uuid: peca.uuid }
+      patch update_molde_arquivo_path(arquivo), params: { molde_uuid: molde.uuid, modelo_uuid: modelo.uuid, peca_uuid: peca.uuid }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
-      expect(arquivo.modelo_id).to eq(modelo.id)
       expect(arquivo.molde_id).to eq(molde.id)
+      expect(arquivo.modelo_id).to eq(modelo.id)
       expect(arquivo.peca_id).to eq(peca.id)
     end
 
     it "responds with turbo stream when requested" do
-      modelo = create(:modelo)
+      molde = create(:molde)
       arquivo = create(:arquivo)
 
-      patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
+      patch update_molde_arquivo_path(arquivo), params: { molde_uuid: molde.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("<turbo-stream")
@@ -280,12 +280,12 @@ RSpec.describe "Arquivos", type: :request do
 
   describe "the automatic tamanho search (Etapa 0.6)" do
     # MoldMatchService took up to 37 s inside this request on dev data.
-    it "update_modelo only queues it and shows Procurando tamanho…" do
+    it "update_molde only queues it and shows Procurando tamanho…" do
       ActiveJob::Base.queue_adapter = :test
       arquivo = create(:arquivo, client: create(:client))
-      modelo = create(:modelo, client: arquivo.client)
+      molde = create(:molde, client: arquivo.client)
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
+        patch update_molde_arquivo_path(arquivo), params: { molde_uuid: molde.uuid }, as: :turbo_stream
       }.to have_enqueued_job(TamanhoAutoAssignJob).with(arquivo.id)
       expect(arquivo.reload.buscando_tamanho?).to be true
       expect(response.body).to include("Procurando tamanho", busca_tamanho_arquivo_path(arquivo, format: :json))
@@ -293,13 +293,13 @@ RSpec.describe "Arquivos", type: :request do
       ActiveJob::Base.queue_adapter = :inline
     end
 
-    it "keeps a tamanho that is the new modelo's own, and doesn't search" do
+    it "keeps a tamanho that is the new molde's own, and doesn't search" do
       ActiveJob::Base.queue_adapter = :test
-      modelo = create(:modelo, molde: create(:molde))
-      corte = create(:arquivo, :corte, organized: true, molde: modelo.molde).tap { |c| c.modelos << modelo }
+      molde = create(:molde, modelo: create(:modelo))
+      corte = create(:arquivo, :corte, organized: true, modelo: molde.modelo).tap { |c| c.moldes << molde }
       arquivo = create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }
+        patch update_molde_arquivo_path(arquivo), params: { molde_uuid: molde.uuid }
       }.not_to have_enqueued_job(TamanhoAutoAssignJob)
       expect(arquivo.reload.tamanho_id).to be_present
     ensure
@@ -308,33 +308,33 @@ RSpec.describe "Arquivos", type: :request do
 
     # Regression (28/09/2026): changing 21-24 → 28-29 kept 21-24's tamanho,
     # because the automatic search never overrides a tamanho.
-    it "changing to another modelo drops the old modelo's tamanho and searches again" do
+    it "changing to another molde drops the old molde's tamanho and searches again" do
       ActiveJob::Base.queue_adapter = :test
-      molde = create(:molde)
-      antigo, novo = create(:modelo, molde: molde, nome: "21-24"), create(:modelo, molde: molde, nome: "28-29")
-      corte_antigo = create(:arquivo, :corte, organized: true, molde: molde).tap { |c| c.modelos << antigo }
-      create(:arquivo, :corte, organized: true, molde: molde).tap { |c| c.modelos << novo }
-      arquivo = create(:arquivo, modelo: antigo, tamanho: create(:tamanho, arquivo: corte_antigo))
+      modelo = create(:modelo)
+      antigo, novo = create(:molde, modelo: modelo, nome: "21-24"), create(:molde, modelo: modelo, nome: "28-29")
+      corte_antigo = create(:arquivo, :corte, organized: true, modelo: modelo).tap { |c| c.moldes << antigo }
+      create(:arquivo, :corte, organized: true, modelo: modelo).tap { |c| c.moldes << novo }
+      arquivo = create(:arquivo, molde: antigo, tamanho: create(:tamanho, arquivo: corte_antigo))
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: novo.uuid }
+        patch update_molde_arquivo_path(arquivo), params: { molde_uuid: novo.uuid }
       }.to have_enqueued_job(TamanhoAutoAssignJob)
       expect(arquivo.reload.tamanho_id).to be_nil
     ensure
       ActiveJob::Base.queue_adapter = :inline
     end
 
-    it "unlinking the modelo clears the tamanho and molde too, without searching" do
+    it "unlinking the molde clears the tamanho and modelo too, without searching" do
       ActiveJob::Base.queue_adapter = :test
-      modelo = create(:modelo, molde: create(:molde))
-      corte = create(:arquivo, :corte, organized: true, molde: modelo.molde).tap { |c| c.modelos << modelo }
-      arquivo = create(:arquivo, modelo: modelo, molde: modelo.molde, tamanho: create(:tamanho, arquivo: corte))
+      molde = create(:molde, modelo: create(:modelo))
+      corte = create(:arquivo, :corte, organized: true, modelo: molde.modelo).tap { |c| c.moldes << molde }
+      arquivo = create(:arquivo, molde: molde, modelo: molde.modelo, tamanho: create(:tamanho, arquivo: corte))
       get arquivo_path(arquivo)
-      expect(response.body).to include('title="Unlink model"')
+      expect(response.body).to include('title="Unlink mold"')
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: "" }
+        patch update_molde_arquivo_path(arquivo), params: { molde_uuid: "" }
       }.not_to have_enqueued_job(TamanhoAutoAssignJob)
-      expect(arquivo.reload).to have_attributes(modelo_id: nil, molde_id: nil, tamanho_id: nil)
-      expect(flash[:notice]).to eq("Modelo unlinked.")
+      expect(arquivo.reload).to have_attributes(molde_id: nil, modelo_id: nil, tamanho_id: nil)
+      expect(flash[:notice]).to eq("Molde unlinked.")
     ensure
       ActiveJob::Base.queue_adapter = :inline
     end
@@ -542,7 +542,7 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     let(:organizar) do
-      { molde_uuid: create(:molde).uuid, peca_uuid: create(:peca).uuid, tamanhos: { "0" => { nome: "34", width_mm: 100, height_mm: 50 } } }
+      { modelo_uuid: create(:modelo).uuid, peca_uuid: create(:peca).uuid, tamanhos: { "0" => { nome: "34", width_mm: 100, height_mm: 50 } } }
     end
 
     it "organize saves the choice at once and only queues each size's DXF and preview" do
@@ -573,14 +573,14 @@ RSpec.describe "Arquivos", type: :request do
 
   describe "PATCH /arquivos/:id/organize" do
     it "marks as organized and creates tamanhos" do
-      molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
       arquivo = create(:arquivo, extension: "dxf")
 
       patch organize_arquivo_path(arquivo), params: {
-        molde_uuid: molde.uuid,
+        modelo_uuid: modelo.uuid,
         peca_uuid: peca.uuid,
-        molde_nome: "Test Molde",
+        modelo_nome: "Test Modelo",
         peca_nome: "Test Peca",
         tamanhos: {
           "0" => { nome: "Size A", width_mm: 100, height_mm: 50 }
@@ -594,12 +594,12 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     it "responds with turbo stream when requested" do
-      molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
       arquivo = create(:arquivo, extension: "dxf")
 
       patch organize_arquivo_path(arquivo), params: {
-        molde_uuid: molde.uuid,
+        modelo_uuid: modelo.uuid,
         peca_uuid: peca.uuid,
         tamanhos: { "0" => { nome: "Size A", width_mm: 100, height_mm: 50 } }
       }, as: :turbo_stream
@@ -608,19 +608,19 @@ RSpec.describe "Arquivos", type: :request do
       expect(response.body).to include("<turbo-stream")
     end
 
-    it "allows organize when peca taken but arquivo has no linked modelos" do
-      modelo = create(:modelo)
+    it "allows organize when peca taken but arquivo has no linked moldes" do
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      create(:molde_peca, molde: molde, peca: peca)
+      create(:modelo_peca, modelo: modelo, peca: peca)
 
-      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
-      corte1.modelos << modelo
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
+      corte1.moldes << molde
 
       corte2 = create(:arquivo, :corte)
 
       patch organize_arquivo_path(corte2), params: {
-        molde_uuid: molde.uuid,
+        modelo_uuid: modelo.uuid,
         peca_uuid: peca.uuid
       }
       expect(response).to redirect_to(arquivo_path(corte2))
@@ -629,20 +629,20 @@ RSpec.describe "Arquivos", type: :request do
       expect(corte2.organized).to be true
     end
 
-    it "rejects organize when peca already used and arquivo already has the modelo linked" do
-      modelo = create(:modelo)
+    it "rejects organize when peca already used and arquivo already has the molde linked" do
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      create(:molde_peca, molde: molde, peca: peca)
+      create(:modelo_peca, modelo: modelo, peca: peca)
 
-      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
-      corte1.modelos << modelo
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
+      corte1.moldes << molde
 
       corte2 = create(:arquivo, :corte)
-      corte2.modelos << modelo
+      corte2.moldes << molde
 
       patch organize_arquivo_path(corte2), params: {
-        molde_uuid: molde.uuid,
+        modelo_uuid: modelo.uuid,
         peca_uuid: peca.uuid
       }
       expect(response).to redirect_to(arquivo_path(corte2))
@@ -653,19 +653,19 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     it "rejects organize via turbo_stream when peca already used" do
-      modelo = create(:modelo)
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      create(:molde_peca, molde: molde, peca: peca)
+      create(:modelo_peca, modelo: modelo, peca: peca)
 
-      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
-      corte1.modelos << modelo
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
+      corte1.moldes << molde
 
       corte2 = create(:arquivo, :corte)
-      corte2.modelos << modelo
+      corte2.moldes << molde
 
       patch organize_arquivo_path(corte2), params: {
-        molde_uuid: molde.uuid,
+        modelo_uuid: modelo.uuid,
         peca_uuid: peca.uuid
       }, as: :turbo_stream
       expect(response).to have_http_status(:success)
@@ -677,61 +677,61 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
-  describe "POST /arquivos/:id/add_modelo" do
-    it "rejects when peca already taken for the modelo" do
-      modelo = create(:modelo)
+  describe "POST /arquivos/:id/add_molde" do
+    it "rejects when peca already taken for the molde" do
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      create(:molde_peca, molde: molde, peca: peca)
+      create(:modelo_peca, modelo: modelo, peca: peca)
 
-      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
-      corte1.modelos << modelo
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
+      corte1.moldes << molde
 
-      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
 
-      post add_modelo_arquivo_path(corte2), params: { modelo_uuid: modelo.uuid }
+      post add_molde_arquivo_path(corte2), params: { molde_uuid: molde.uuid }
       expect(response).to redirect_to(arquivo_path(corte2))
       follow_redirect!
       expect(response.body).to include("já possui corte organizado")
     end
 
-    it "adds modelo when no conflict" do
-      modelo = create(:modelo)
+    it "adds molde when no conflict" do
+      molde = create(:molde)
       corte = create(:arquivo, :corte)
 
-      post add_modelo_arquivo_path(corte), params: { modelo_uuid: modelo.uuid }
+      post add_molde_arquivo_path(corte), params: { molde_uuid: molde.uuid }
       expect(response).to redirect_to(arquivo_path(corte))
-      expect(corte.reload.modelos).to include(modelo)
+      expect(corte.reload.moldes).to include(molde)
     end
 
-    it "rejects via turbo_stream when peca already taken for the modelo" do
-      modelo = create(:modelo)
+    it "rejects via turbo_stream when peca already taken for the molde" do
       molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      create(:molde_peca, molde: molde, peca: peca)
+      create(:modelo_peca, modelo: modelo, peca: peca)
 
-      corte1 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
-      corte1.modelos << modelo
+      corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
+      corte1.moldes << molde
 
-      corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
+      corte2 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
 
-      post add_modelo_arquivo_path(corte2), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
+      post add_molde_arquivo_path(corte2), params: { molde_uuid: molde.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("já possui corte organizado")
-      expect(response.body).to include('id="modelo-flash"')
-      expect(corte2.reload.modelos).not_to include(modelo)
+      expect(response.body).to include('id="molde-flash"')
+      expect(corte2.reload.moldes).not_to include(molde)
     end
 
-    it "adds modelo via turbo_stream when no conflict" do
-      modelo = create(:modelo)
+    it "adds molde via turbo_stream when no conflict" do
+      molde = create(:molde)
       corte = create(:arquivo, :corte)
 
-      post add_modelo_arquivo_path(corte), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
+      post add_molde_arquivo_path(corte), params: { molde_uuid: molde.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
-      expect(response.body).to include('id="modelo-field-section"')
-      expect(corte.reload.modelos).to include(modelo)
+      expect(response.body).to include('id="molde-field-section"')
+      expect(corte.reload.moldes).to include(molde)
     end
   end
 
@@ -870,10 +870,10 @@ RSpec.describe "Arquivos", type: :request do
   describe "GET /arquivos/:id/composicao" do
     let(:lateral) { create(:peca, nome: "Lateral") }
     let(:lingua) { create(:peca, nome: "Língua") }
-    let(:modelo) { create(:modelo, molde: create(:molde).tap { |m| m.pecas << [ lateral, lingua ] }) }
+    let(:molde) { create(:molde, modelo: create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] }) }
 
-    it "lists every piece of the arte's modelo, pending ones without arte" do
-      arte = create(:arquivo, modelo: modelo, peca: lateral, filename: "lateral-azul")
+    it "lists every piece of the arte's molde, pending ones without arte" do
+      arte = create(:arquivo, molde: molde, peca: lateral, filename: "lateral-azul")
       get composicao_arquivo_path(arte)
       expect(response).to have_http_status(:success)
       expect(response.parsed_body["pecas"]).to eq([
@@ -885,7 +885,7 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     it "links the preview of pieces that have one" do
-      arte = create(:arquivo, modelo: modelo, peca: lateral)
+      arte = create(:arquivo, molde: molde, peca: lateral)
       create(:arquivo_version, arquivo: arte, preview_file: "/tmp/p.png").tap { |v| arte.update!(approved_version: v) }
       get composicao_arquivo_path(arte)
       expect(response.parsed_body["pecas"].first["preview_url"]).to eq(preview_arquivo_path(arte))

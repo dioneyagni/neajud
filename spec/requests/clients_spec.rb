@@ -67,11 +67,11 @@ RSpec.describe "Clients", type: :request do
   end
 
   describe "DELETE /clients/:id" do
-    # Etapa 0.4: used to destroy the client's modelos and stock movements too.
-    it "moves the client to the trash and leaves its modelos, stock and arquivos alone" do
+    # Etapa 0.4: used to destroy the client's moldes and stock movements too.
+    it "moves the client to the trash and leaves its moldes, stock and arquivos alone" do
       client = create(:client, name: "ToDelete", responsible: "Resp")
       arquivo = create(:arquivo, client: client)
-      modelo = create(:modelo, client: client)
+      molde = create(:molde, client: client)
       materia_prima = MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"),
                                            cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "100g")
       movimento = MovimentoEstoque.create!(client: client, materia_prima: materia_prima, tipo: "entrada", quantidade: 5)
@@ -81,7 +81,7 @@ RSpec.describe "Clients", type: :request do
       expect(response).to redirect_to(arquivos_path)
       expect(client.reload).to be_excluido
       expect(arquivo.reload.client_id).to eq(client.id)
-      expect(Modelo.exists?(modelo.id)).to be true
+      expect(Molde.exists?(molde.id)).to be true
       expect(MovimentoEstoque.exists?(movimento.id)).to be true
     end
 
@@ -101,7 +101,7 @@ RSpec.describe "Clients", type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Show Corp")
       expect(response.body).to include("Details")
-      expect(response.body).to include("Modelos")
+      expect(response.body).to include("Moldes")
     end
 
     it "returns 404 for nonexistent client" do

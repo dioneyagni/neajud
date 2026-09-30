@@ -7,7 +7,7 @@
     </div>
   <% end %>
 
-  <%= hidden_field_tag :molde_uuid, @molde_uuid if @molde_uuid.present? %>
+  <%= hidden_field_tag :modelo_uuid, @modelo_uuid if @modelo_uuid.present? %>
 
   <div class="client-field">
     <%= f.label :nome, "Name" %>
@@ -16,7 +16,7 @@
 
   <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
     <%= f.submit "Register Peça", class: "btn btn-primary" %>
-    <%= link_to "Cancel", @molde_uuid.present? ? edit_molde_path(@molde_uuid) : pecas_path, class: "btn btn-secondary" %>
+    <%= link_to "Cancel", @modelo_uuid.present? ? edit_modelo_path(@modelo_uuid) : pecas_path, class: "btn btn-secondary" %>
   </div>
 <% end %>
 

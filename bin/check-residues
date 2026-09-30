@@ -76,7 +76,7 @@ tmp_debug_findings.map! { |f| f.delete_prefix("#{RAILS_ROOT}/") }
 db_record_findings = []
 query = <<~RUBY
   findings = []
-  %w[Client Molde Peca Modelo].each do |klass|
+  %w[Client Modelo Peca Molde].each do |klass|
     klass.constantize.all.each do |r|
       name = r.respond_to?(:name) ? r.name : r.nome
       next unless name.to_s.match?(/^Debug/)

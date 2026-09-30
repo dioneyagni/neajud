@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show busca_tamanho preparacao_tamanhos update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show busca_tamanho preparacao_tamanhos update_time update_client update_molde update_tamanho update_tipo_corte add_molde remove_molde preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   # Permissions (Etapa 0.5): an arquivo is Artes or, if a corte, Catálogo
@@ -8,7 +8,7 @@ class ArquivosController < ApplicationController
   before_action(only: :create) { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
   before_action(only: :batch_destroy) { exigir!(pode?(:artes, :excluir) || pode?(:catalogo, :excluir), "artes or catalogo: excluir") }
   before_action(only: %i[show preview composicao processamento busca_tamanho preparacao_tamanhos version_preview]) { exigir_no_arquivo!(:ver) }
-  before_action(only: %i[update_time update_client update_modelo update_tamanho update_tipo_corte add_modelo remove_modelo
+  before_action(only: %i[update_time update_client update_molde update_tamanho update_tipo_corte add_molde remove_molde
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
   exige_acao :baixar_producao, only: :download
@@ -101,12 +101,12 @@ class ArquivosController < ApplicationController
     redirect_to @arquivo, notice: "Layer configuration saved."
   end
 
-  def add_modelo
-    modelo = Modelo.ativos.por_uuid!(params[:modelo_uuid])
+  def add_molde
+    molde = Molde.ativos.por_uuid!(params[:molde_uuid])
     if @arquivo.corte? && @arquivo.organized? && @arquivo.peca_id.present?
-      conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, modelo: modelo)
+      conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, molde: molde)
       if conflict && conflict.id != @arquivo.id
-        flash.now[:alert] = "Peça \"#{@arquivo.peca.nome}\" já possui corte organizado para este modelo."
+        flash.now[:alert] = "Peça \"#{@arquivo.peca.nome}\" já possui corte organizado para este molde."
         respond_to do |format|
           format.turbo_stream
           format.html { redirect_to @arquivo, alert: flash.now[:alert] }
@@ -114,21 +114,21 @@ class ArquivosController < ApplicationController
         return
       end
     end
-    unless @arquivo.modelos.include?(modelo)
-      @arquivo.modelos << modelo
+    unless @arquivo.moldes.include?(molde)
+      @arquivo.moldes << molde
     end
     respond_to do |format|
       format.turbo_stream
-      format.html { redirect_to @arquivo, notice: "Modelo added." }
+      format.html { redirect_to @arquivo, notice: "Molde added." }
     end
   end
 
-  def remove_modelo
-    modelo = @arquivo.modelos.por_uuid!(params[:modelo_uuid])
-    @arquivo.modelos.delete(modelo)
+  def remove_molde
+    molde = @arquivo.moldes.por_uuid!(params[:molde_uuid])
+    @arquivo.moldes.delete(molde)
     respond_to do |format|
       format.turbo_stream
-      format.html { redirect_to @arquivo, notice: "Modelo removed." }
+      format.html { redirect_to @arquivo, notice: "Molde removed." }
     end
   end
 
@@ -143,25 +143,25 @@ class ArquivosController < ApplicationController
     end
   end
 
-  def update_modelo
-    updates = { modelo_uuid: params[:modelo_uuid] }
-    updates[:molde_uuid] = params[:molde_uuid] if params[:molde_uuid].present?
+  def update_molde
+    updates = { molde_uuid: params[:molde_uuid] }
+    updates[:modelo_uuid] = params[:modelo_uuid] if params[:modelo_uuid].present?
     updates[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
-    # Unlink (modelo_uuid blank): also forget the molde that came with it.
-    updates[:molde_id] = nil if params[:modelo_uuid].blank? && !@arquivo.corte?
+    # Unlink (molde_uuid blank): also forget the modelo that came with it.
+    updates[:modelo_id] = nil if params[:molde_uuid].blank? && !@arquivo.corte?
 
     if @arquivo.update(updates)
       @arquivo.reload
-      @arquivo.descartar_tamanho_fora_do_modelo!
+      @arquivo.descartar_tamanho_fora_do_molde!
       # Etapa 0.6: the search (up to 37 s) runs in the queue; the page shows
       # "Procurando tamanho…" and refreshes when it ends.
       @arquivo.buscar_tamanho_em_fila!
       respond_to do |format|
         format.turbo_stream
-        format.html { redirect_to @arquivo, notice: params[:modelo_uuid].present? ? "Modelo updated." : "Modelo unlinked." }
+        format.html { redirect_to @arquivo, notice: params[:molde_uuid].present? ? "Molde updated." : "Molde unlinked." }
       end
     else
-      redirect_to @arquivo, alert: "Could not update modelo: #{@arquivo.errors.full_messages.to_sentence}"
+      redirect_to @arquivo, alert: "Could not update molde: #{@arquivo.errors.full_messages.to_sentence}"
     end
   end
 
@@ -230,11 +230,11 @@ class ArquivosController < ApplicationController
     head :not_found
   end
 
-  # Pieces of this arte's modelo (see ModeloComposicaoService), for the
+  # Pieces of this arte's molde (see MoldeComposicaoService), for the
   # "Adicionar ao Pedido" modal to list before the item is created.
   # Usage: GET /arquivos/:uuid/composicao → { pecas: [{ peca_nome:, arquivo_uuid:, … }] }
   def composicao
-    slots = ModeloComposicaoService.call(@arquivo)
+    slots = MoldeComposicaoService.call(@arquivo)
     render json: { pecas: slots.map { |slot| composicao_slot_json(slot) } }
   end
 
@@ -274,19 +274,19 @@ class ArquivosController < ApplicationController
 
   def organize
     update_attrs = { organized: true }
-    update_attrs[:molde_uuid] = params[:molde_uuid] if params[:molde_uuid].present?
+    update_attrs[:modelo_uuid] = params[:modelo_uuid] if params[:modelo_uuid].present?
     update_attrs[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
-    update_attrs[:molde_nome] = params[:molde_nome].presence if params[:molde_nome].present?
+    update_attrs[:modelo_nome] = params[:modelo_nome].presence if params[:modelo_nome].present?
     update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
 
     peca_id = Peca.por_uuid!(params[:peca_uuid]).id if params[:peca_uuid].present?
     if peca_id && @arquivo.corte?
-      conflicting = @arquivo.modelos.any? { |m|
-        c = Arquivo.conflicting_corte(peca_id: peca_id, modelo: m)
+      conflicting = @arquivo.moldes.any? { |m|
+        c = Arquivo.conflicting_corte(peca_id: peca_id, molde: m)
         c && c.id != @arquivo.id
       }
       if conflicting
-        flash.now[:alert] = "Esta peça já possui um corte organizado para este modelo."
+        flash.now[:alert] = "Esta peça já possui um corte organizado para este molde."
         respond_to do |format|
           format.turbo_stream
           format.html { redirect_to @arquivo, alert: flash.now[:alert] }
@@ -403,7 +403,7 @@ class ArquivosController < ApplicationController
     per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
     @page = [ params[:page].to_i, 1 ].max
 
-    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).includes(:client, :tamanhos, approved_version: :image_metadata, modelo: :molde).order(created_at: :desc)
+    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).includes(:client, :tamanhos, approved_version: :image_metadata, molde: :modelo).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil
     @page = @page.clamp(1, [ @total_pages, 1 ].max)

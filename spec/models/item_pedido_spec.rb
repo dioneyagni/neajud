@@ -53,8 +53,8 @@ RSpec.describe ItemPedido, type: :model do
       item = create(:item_pedido)
       lateral, lingua = create(:peca), create(:peca)
       slots = [
-        ModeloComposicaoService::Slot.new(peca: lateral, arquivo: item.arquivo),
-        ModeloComposicaoService::Slot.new(peca: lingua, arquivo: nil)
+        MoldeComposicaoService::Slot.new(peca: lateral, arquivo: item.arquivo),
+        MoldeComposicaoService::Slot.new(peca: lingua, arquivo: nil)
       ]
       item.compor_pecas!(slots)
       rows = item.item_pedido_pecas.reload

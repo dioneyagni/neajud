@@ -30,7 +30,7 @@
   <div class="stamp-detail-info">
     <div class="stamp-detail-grid">
       <%= render "client_field" %>
-      <%= render "modelo_field" %>
+      <%= render "molde_field" %>
 
       <% if @arquivo.category == "corte" && @arquivo.approved_version&.cut_layers&.any? %>
         <div class="stamp-detail-section stamp-detail-section--full">
@@ -54,9 +54,9 @@
       <% end %>
 
       <% if @arquivo.category == "artes" %>
-        <%# Always rendered: update_client/update_modelo turbo streams replace
+        <%# Always rendered: update_client/update_molde turbo streams replace
             #size-selection-section, so it must exist in the DOM. The partial
-            hides itself until client + modelo are set. Regression of 019535b,
+            hides itself until client + molde are set. Regression of 019535b,
             which gated it on organize_error and made the size vanish. %>
         <%= render "size_selection", arquivo: @arquivo %>
         <div id="corte-comparison-section">

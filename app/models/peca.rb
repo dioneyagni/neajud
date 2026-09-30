@@ -5,8 +5,8 @@ class Peca < ApplicationRecord
   has_many :arquivos, dependent: :nullify
   has_many :item_pedido_pecas, dependent: :nullify
   has_many :arquivo_vinculo_logs, dependent: :nullify
-  has_many :molde_pecas, dependent: :delete_all
-  has_many :moldes, through: :molde_pecas
+  has_many :modelo_pecas, dependent: :delete_all
+  has_many :modelos, through: :modelo_pecas
 
   validates :nome, presence: true, uniqueness: { case_sensitive: false }
 

@@ -1,28 +1,28 @@
 const { BASE_URL, runSpec } = require("./support/runner");
 
-runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => {
-  await test("Modelos page: nav link in header", async () => {
+runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
+  await test("Moldes page: nav link in header", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector("header nav", { timeout: 5000 });
 
     const navLinks = await page.$$(".header-nav-link");
     const hrefs = await Promise.all(navLinks.map(l => l.getAttribute("href")));
-    if (!hrefs.includes("/modelos")) throw new Error("Modelos nav link not found");
+    if (!hrefs.includes("/moldes")) throw new Error("Moldes nav link not found");
   });
 
-  await test("Modelos page: index renders with heading", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
+  await test("Moldes page: index renders with heading", async () => {
+    await page.goto(`${BASE_URL}/moldes`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
     const body = await page.textContent("body");
-    if (!body.includes("Modelos")) throw new Error("Modelos heading not found");
+    if (!body.includes("Moldes")) throw new Error("Moldes heading not found");
 
     const newBtn = await page.$("button.btn-primary");
-    if (!newBtn) throw new Error("New Modelo button not found");
+    if (!newBtn) throw new Error("New Molde button not found");
   });
 
-  await test("Modelos page: create a new modelo via dialog", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
+  await test("Moldes page: create a new molde via dialog", async () => {
+    await page.goto(`${BASE_URL}/moldes`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
     const newBtn = await page.$("button.btn-primary");
@@ -33,12 +33,12 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     if (!dialog) throw new Error("Dialog did not open");
 
     const title = await dialog.$eval("h4", el => el.textContent);
-    if (title !== "Register New Modelo") throw new Error(`Wrong dialog title: ${title}`);
+    if (title !== "Register New Molde") throw new Error(`Wrong dialog title: ${title}`);
 
-    const nomeInput = await dialog.$("#modelo_nome_dialog");
-    await nomeInput.fill(`E2E Modelo ${Date.now()}`);
+    const nomeInput = await dialog.$("#molde_nome_dialog");
+    await nomeInput.fill(`E2E Molde ${Date.now()}`);
 
-    const clientSelect = await dialog.$("#modelo_client_uuid_dialog");
+    const clientSelect = await dialog.$("#molde_client_uuid_dialog");
     const clientOptions = await clientSelect.$$("option");
     if (clientOptions.length < 2) throw new Error(`Not enough client options: ${clientOptions.length}`);
     await clientSelect.selectOption({ index: 1 });
@@ -48,11 +48,11 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("registered")) throw new Error(`Modelo not registered: "${body.slice(0, 200)}"`);
+    if (!body.includes("registered")) throw new Error(`Molde not registered: "${body.slice(0, 200)}"`);
   });
 
-  await test("Modelos page: edit a modelo via dialog", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
+  await test("Moldes page: edit a molde via dialog", async () => {
+    await page.goto(`${BASE_URL}/moldes`);
     await page.waitForSelector(".clients-table", { timeout: 5000 });
 
     const editBtn = await page.$("button[data-action='click->dialog#edit']");
@@ -64,7 +64,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     const dialog = await page.$("dialog[open]");
     if (!dialog) throw new Error("Edit dialog did not open");
 
-    const nomeInput = await dialog.$("#modelo_nome_dialog");
+    const nomeInput = await dialog.$("#molde_nome_dialog");
     const currentName = await nomeInput.inputValue();
 
     await nomeInput.fill(`${currentName} Edited`);
@@ -74,11 +74,11 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("updated")) throw new Error(`Modelo not updated: "${body.slice(0, 200)}"`);
+    if (!body.includes("updated")) throw new Error(`Molde not updated: "${body.slice(0, 200)}"`);
   });
 
-  await test("Modelos page: delete a modelo", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
+  await test("Moldes page: delete a molde", async () => {
+    await page.goto(`${BASE_URL}/moldes`);
     await page.waitForSelector(".clients-table", { timeout: 5000 });
 
     const deleteBtn = await page.$("button.btn-danger");
@@ -90,77 +90,77 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     await page.waitForTimeout(1000);
 
     const body = await page.textContent("body");
-    if (!body.includes("moved to the trash")) throw new Error(`Modelo not deleted: "${body.slice(0, 200)}"`);
+    if (!body.includes("moved to the trash")) throw new Error(`Molde not deleted: "${body.slice(0, 200)}"`);
   });
 
   // ── Self-contained Show Page Tests ──
   // Each creates its own data so it can run independently of other sections.
 
-  await test("Moldes page: show page renders with details", async () => {
+  await test("Modelos page: show page renders with details", async () => {
     const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
-    const moldeName = `Show Test Molde ${Date.now()}`;
+    const modeloName = `Show Test Modelo ${Date.now()}`;
 
     await page.evaluate(async ({ name, csrf }) => {
-      await fetch("/moldes", {
+      await fetch("/modelos", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": name })
+        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": name })
       });
-    }, { name: moldeName, csrf: token });
+    }, { name: modeloName, csrf: token });
     await page.waitForTimeout(500);
 
-    const molde = await page.evaluate(async (name) => {
-      const r = await fetch(`/moldes/search?q=${encodeURIComponent(name)}`);
+    const modelo = await page.evaluate(async (name) => {
+      const r = await fetch(`/modelos/search?q=${encodeURIComponent(name)}`);
       const list = await r.json();
       return list[0] || null;
-    }, moldeName);
-    if (!molde) throw new Error(`Molde "${moldeName}" not found`);
+    }, modeloName);
+    if (!modelo) throw new Error(`Modelo "${modeloName}" not found`);
 
-    await page.goto(`${BASE_URL}/moldes/${molde.id}`);
+    await page.goto(`${BASE_URL}/modelos/${modelo.id}`);
     await page.waitForSelector("h2", { timeout: 5000 });
     const body = await page.textContent("body");
-    if (!body.includes(moldeName)) throw new Error(`Show page missing molde name`);
+    if (!body.includes(modeloName)) throw new Error(`Show page missing modelo name`);
     if (!body.includes("Details")) throw new Error("Show page missing Details section");
   });
 
-  await test("Modelos page: show page renders with details", async () => {
+  await test("Moldes page: show page renders with details", async () => {
     const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
 
     const clientName = `Show Test Client ${Date.now()}`;
-    const moldeName = `Show Test Molde ${Date.now()}`;
     const modeloName = `Show Test Modelo ${Date.now()}`;
+    const moldeName = `Show Test Molde ${Date.now()}`;
 
-    const ids = await page.evaluate(async ({ csrf, clientName, moldeName, modeloName }) => {
+    const ids = await page.evaluate(async ({ csrf, clientName, modeloName, moldeName }) => {
       await fetch("/clients", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: csrf, "client[name]": clientName, "client[responsible]": "Tester" })
       });
-      await fetch("/moldes", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName })
-      });
-      const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
-      const clients = await clientRes.json();
-      const moldeRes = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
-      const moldes = await moldeRes.json();
-      if (!clients[0] || !moldes[0]) return null;
       await fetch("/modelos", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_uuid]": clients[0].id, "modelo[molde_uuid]": moldes[0].id })
+        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName })
       });
+      const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
+      const clients = await clientRes.json();
       const modeloRes = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
       const modelos = await modeloRes.json();
-      return modelos[0]?.id || null;
-    }, { csrf: token, clientName, moldeName, modeloName });
-    if (!ids) throw new Error("Failed to create test data for modelos show");
+      if (!clients[0] || !modelos[0]) return null;
+      await fetch("/moldes", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName, "molde[client_uuid]": clients[0].id, "molde[modelo_uuid]": modelos[0].id })
+      });
+      const moldeRes = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
+      const moldes = await moldeRes.json();
+      return moldes[0]?.id || null;
+    }, { csrf: token, clientName, modeloName, moldeName });
+    if (!ids) throw new Error("Failed to create test data for moldes show");
 
-    await page.goto(`${BASE_URL}/modelos/${ids}`);
+    await page.goto(`${BASE_URL}/moldes/${ids}`);
     await page.waitForSelector("h2", { timeout: 5000 });
     const body = await page.textContent("body");
-    if (!body.includes(modeloName)) throw new Error(`Show page missing modelo name`);
+    if (!body.includes(moldeName)) throw new Error(`Show page missing molde name`);
     if (!body.includes("Details")) throw new Error("Show page missing Details section");
     if (!body.includes("Cortes")) throw new Error("Show page missing Cortes section");
   });
@@ -186,7 +186,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     const body = await page.textContent("body");
     if (!body.includes(clientName)) throw new Error(`Show page missing client name`);
     if (!body.includes("Details")) throw new Error("Show page missing Details section");
-    if (!body.includes("Modelos")) throw new Error("Show page missing Modelos section");
+    if (!body.includes("Moldes")) throw new Error("Show page missing Moldes section");
     if (!body.includes("Arquivos")) throw new Error("Show page missing Arquivos section");
   });
 

@@ -82,7 +82,7 @@
         <% end %>
       </div>
 
-      <% corte = item.arquivo.corte || item.arquivo.corte_via_modelo %>
+      <% corte = item.arquivo.corte || item.arquivo.corte_via_molde %>
       <% if corte %>
         <div class="pedido-item-corte">
           Corte: <%= link_to corte.filename, corte %> <%= selo_excluido(corte) %>

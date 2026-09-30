@@ -305,9 +305,9 @@ Key files:
 - `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
 - `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
 
-## Pedido items are made of the modelo's pieces
+## Pedido items are made of the molde's pieces
 
-Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its modelo
+Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its molde
 (e.g. lateral + língua of a tênis). The arte → peça link is
 `Arquivo#resolved_peca`: the corte's peça (via tamanho), else the arte's own
 `peca_id` (SQL mirror: `Arquivo.sem_peca_resolvida`).
@@ -324,16 +324,16 @@ grade at total 0 is refused outright. All blockers come from
 `PedidoBloqueiosService` (`Pedido#bloqueios_confirmacao`), which feeds the
 server guard, the pending box on the pedido page and the list badge.
 
-- `ModeloComposicaoService` builds the pieces (modelo_pecas, else the molde's
+- `MoldeComposicaoService` builds the pieces (molde_pecas, else the modelo's
   pieces, read-only); the added arte always wins its own peça.
 - `Pedido#pecas_para_produzir` (`ProducaoPedidoService`) is the **only** place
   production reads from — peça × tamanho over checked pieces.
 - A pending piece is completed by choosing an existing arte
-  (`ArteCandidatasService`: client's artes without peça → without modelo →
+  (`ArteCandidatasService`: client's artes without peça → without molde →
   without client) or uploading one (`ArquivoUploadService`); both link via
   `VincularArteService`, which logs to `arquivo_vinculo_logs` ("Histórico de
   vínculos" on the arte page) and fills the same pending peça in every draft
-  pedido of the modelo. Moving an arte out of another modelo requires an
+  pedido of the molde. Moving an arte out of another molde requires an
   explicit confirmation, enforced server-side.
 - E2E coverage: `e2e/pedidos-pecas.spec.js`.
 
@@ -485,17 +485,17 @@ a silent no-op whenever the condition was false at page load: no error in the
 log or the console, the UI just never updates.
 
 ```erb
-<%# WRONG — #size-selection-section missing → update_modelo's stream does nothing %>
+<%# WRONG — #size-selection-section missing → update_molde's stream does nothing %>
 <% if @arquivo.tamanho&.arquivo&.organize_error.present? %>
   <%= render "size_selection", arquivo: @arquivo %>
 <% end %>
 
-<%# RIGHT — always rendered; the partial hides itself until client + modelo exist %>
+<%# RIGHT — always rendered; the partial hides itself until client + molde exist %>
 <%= render "size_selection", arquivo: @arquivo %>
 ```
 
 Regression history: `019535b` gated Size Selection like the WRONG example, so
-picking a client + modelo on an arte stopped showing the size (fixed in #75).
+picking a client + molde on an arte stopped showing the size (fixed in #75).
 Test it with E2E: trigger the action, then assert the target became visible
 *without* a reload.
 
@@ -642,7 +642,7 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   solicitacoes) —
   without it `resources :aprovacoes` generated `new_arquivo_aprovaco_path`.
 
-## Public identifiers are uuids (Etapa 1.1, 1/2)
+## Public identifiers are uuids (Etapa 1.1, 1/5)
 
 The integer id is the internal key only; nothing that leaves the server
 carries it (a guessable sequence would let the future cliente final reach
@@ -655,38 +655,38 @@ addressed by tamanho name inside their item — don't need one).
   (also on a relation: `@arquivo.arquivo_versions.por_uuid!(…)`). An integer
   id answers 404.
 - **JSON:** `id` is the record's uuid (`{ id: c.uuid, name: … }`); a reference
-  to another record is `<assoc>_uuid` (`molde_uuid`).
+  to another record is `<assoc>_uuid` (`modelo_uuid`).
 - **Forms and fetch params:** name them `<assoc>_uuid` (`client_uuid`,
-  `modelo[molde_uuid]`, `molde[peca_uuids][]`), never `<assoc>_id` with a uuid
+  `molde[modelo_uuid]`, `modelo[peca_uuids][]`), never `<assoc>_id` with a uuid
   inside: Rails casts `"8f3a…"` to the integer 8 and links the wrong record
-  silently. Models declare `atribui_por_uuid :client, :molde`
-  (`AtribuiPorUuid`) so `Modelo.new(client_uuid: …)` works; blank unlinks, an
+  silently. Models declare `atribui_por_uuid :client, :modelo`
+  (`AtribuiPorUuid`) so `Molde.new(client_uuid: …)` works; blank unlinks, an
   unknown uuid raises `RecordNotFound`. Filters use a subquery:
-  `where(molde: Molde.where(uuid: params[:molde_uuid]))`.
+  `where(modelo: Modelo.where(uuid: params[:modelo_uuid]))`.
 - Tests: `spec/requests/uuid_publico_spec.rb` checks pages, JSON endpoints and
   forms; add a row when you add an endpoint.
 
 ## Logical deletion (Etapa 0.4)
 
-Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Modelo`,
-`Molde`, `Peca` and `Pedido` include `Excluivel` (`app/models/concerns/excluivel.rb`):
+Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Molde`,
+`Modelo`, `Peca` and `Pedido` include `Excluivel` (`app/models/concerns/excluivel.rb`):
 `excluir!(changed_by:)` / `restaurar!(changed_by:)` set `deleted_at` / `restored_at`
 and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
 
 - **No `default_scope`.** A trashed record must keep showing where it is already
-  used (a pedido's arte, a modelo's client), with `selo_excluido(record)` (the
+  used (a pedido's arte, a molde's client), with `selo_excluido(record)` (the
   "excluído em" badge). So every **listing, picker, search and JSON endpoint**
   must say `.ativos` explicitly — `Client.ativos.order(:name)`,
-  `@molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
+  `@modelo.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
   show page stay unscoped. When you add a query that feeds a list or a
   `<select>`, add `.ativos`.
 - **Counts on index pages** use `Model.contagem_ativos(as: "x_count")` (Arel),
   not `COUNT(DISTINCT table.id)`, so trashed children aren't counted.
 - **New references to trashed records are refused** by `ReferenciaAtiva`
-  (`recusa_excluido :client, :modelo` on the referencing model). Rows that
+  (`recusa_excluido :client, :molde` on the referencing model). Rows that
   already pointed at the record stay valid. A controller that assigns a
   reference must report the validation error, not raise.
-- **No cascade.** Trashing a client leaves its modelos, stock and arquivos as
+- **No cascade.** Trashing a client leaves its moldes, stock and arquivos as
   they are. `dependent:` options on these models only matter for internal hard
   deletes (tests, future "empty trash").
 - **Files stay** in `storage/stamps/<uuid>` for trashed arquivos.
@@ -696,8 +696,8 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   `Pedido#editavel?`); a draft that uses a trashed arte or corte can't be
   confirmed (`PedidoBloqueiosService` `:arquivo_excluido`).
 - Still physical on purpose: removing an item / zeroing a size of a **draft**
-  pedido, unlinking a corte from a modelo, and derived data rebuilt by
-  reprocessing (tamanhos, cut layers, `modelo_pecas` sync).
+  pedido, unlinking a corte from a molde, and derived data rebuilt by
+  reprocessing (tamanhos, cut layers, `molde_pecas` sync).
 
 ## Guard: never run bin/e2e with the wrong RAILS_ENV
 
@@ -781,8 +781,8 @@ version's status changes):
 - the arquivo page and the pedidos using the arte morph-refresh **only when
   processing ends** — never mid-edit.
 
-**Automatic tamanho search (Etapa 0.6, 1/3):** picking an arte's modelo
-(`update_modelo`) no longer runs `MoldMatchService` in the request (measured up
+**Automatic tamanho search (Etapa 0.6, 1/3):** picking an arte's molde
+(`update_molde`) no longer runs `MoldMatchService` in the request (measured up
 to 37 s on dev data): `Arquivo#buscar_tamanho_em_fila!` sets
 `buscando_tamanho_desde` and enqueues `TamanhoAutoAssignJob`, which always
 clears it and `broadcast_refresh`es the arte page (found or not). Meanwhile
@@ -841,7 +841,7 @@ before the app can be used. `CorMaterial` names are capped to
 Historical note (Sep 2026): db/seeds.rb used to create demo Clients
 ("Fagner", "Lipe") plus a fixed list of GrupoMaterial/CorMaterial names.
 E2E specs hardcoded those names — removing the seed meant giving
-`e2e/{clients,modelos,materiais,movimentos,pedidos}.spec.js` their own
+`e2e/{clients,moldes,materiais,movimentos,pedidos}.spec.js` their own
 `ensureGrupo`/`ensureCor`/`ensureClient`-style setup instead, so each test
 provisions what it needs through the app's own endpoints rather than
 assuming global fixtures.
@@ -860,7 +860,7 @@ assuming global fixtures.
 - `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs. A new
   `e2e/*.spec.js` must be added there; the script aborts if any spec file is
   unlisted (before Sep 2026 CI ran only `arquivos.spec.js` and
-  `moldes.spec.js` ran nowhere).
+  `moldes.spec.js` ran nowhere; since Etapa 1.1 (2/5) that file is `modelos.spec.js`).
 - The former `e2e/arquivos.spec.js` is split into `arquivos-*.spec.js` and
   `pages-*.spec.js` (contiguous chunks, original order). They share one test
   DB, truncated once per `bin/e2e` run, and some reuse earlier files' data —
@@ -874,10 +874,10 @@ The plan renames things; until those stages land, the code keeps its names:
 
 | docs/plano.md | Code today |
 |---|---|
-| Produto | doesn't exist yet (Etapa 1.1, 2/2) |
-| Modelo (categoria, e.g. Jogging [JGG]) | `Molde` (becomes `Modelo` in Etapa 1.1) |
-| Molde (the client's form, e.g. 002-TNS Furado) | `Modelo` (becomes `Molde` in Etapa 1.1) — **the two names swap** |
-| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 2/2); not catalog, not versioned |
+| Produto | doesn't exist yet (Etapa 1.1, 3/5) |
+| Modelo (categoria, e.g. Jogging [JGG]) | `Modelo` (was `Molde` until Etapa 1.1, 2/5) |
+| Molde (the client's form, e.g. 002-TNS Furado) | `Molde` (was `Modelo` until Etapa 1.1, 2/5) — the names swapped in migration `TrocaMoldeModelo` |
+| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 5/5); not catalog, not versioned |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
 | Arte | `Arquivo` with `category: "artes"` |

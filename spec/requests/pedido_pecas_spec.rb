@@ -3,18 +3,18 @@ require "rails_helper"
 RSpec.describe "PedidoPecas", type: :request do
   let(:client) { create(:client) }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:modelo) { create(:modelo, client: client, nome: "Tênis baixo") }
+  let(:molde) { create(:molde, client: client, nome: "Tênis baixo") }
   let(:pedido) { create(:pedido) }
-  let(:item) { create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, client: client, modelo: modelo)) }
+  let(:item) { create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, client: client, molde: molde)) }
   let!(:pending_row) { create(:item_pedido_peca, item_pedido: item, peca: lingua, arquivo: nil) }
 
   describe "GET escolher_arte" do
-    it "lists the candidate groups; artes from another modelo ask to confirm the move" do
+    it "lists the candidate groups; artes from another molde ask to confirm the move" do
       free = create(:arquivo, client: client, filename: "livre")
-      other = create(:arquivo, client: client, modelo: create(:modelo, client: client, nome: "Outro"), filename: "de-outro")
+      other = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"), filename: "de-outro")
       get escolher_arte_pedido_peca_path(pedido, pending_row)
       html = Nokogiri::HTML(response.body)
-      expect(html.css(".escolher-arte-grupo").map { |g| g["data-grupo"] }).to eq(%w[cliente_sem_peca cliente_sem_modelo sem_cliente])
+      expect(html.css(".escolher-arte-grupo").map { |g| g["data-grupo"] }).to eq(%w[cliente_sem_peca cliente_sem_molde sem_cliente])
       move_form = html.at_css(".escolher-arte-card[data-arquivo-uuid='#{other.uuid}'] form")
       expect(move_form.at_css("input[name='confirmar_mudanca'][value='1']")).to be_present
       expect(move_form.at_css("button")["data-turbo-confirm"]).to include("Outro", "Tênis baixo")
@@ -45,7 +45,7 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "sends a move back to the picker without the confirmation, changing nothing" do
-      arte = create(:arquivo, client: client, modelo: create(:modelo, client: client, nome: "Outro"))
+      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
       post vincular_arte_pedido_peca_path(pedido, pending_row), params: { arquivo_uuid: arte.uuid }
       expect(response).to redirect_to(escolher_arte_pedido_peca_path(pedido, pending_row))
       expect(flash[:alert]).to include("confirm")
@@ -53,10 +53,10 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "moves and logs with the confirmation" do
-      arte = create(:arquivo, client: client, modelo: create(:modelo, client: client, nome: "Outro"))
+      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
       post vincular_arte_pedido_peca_path(pedido, pending_row), params: { arquivo_uuid: arte.uuid, confirmar_mudanca: "1" }
-      expect(arte.reload.modelo).to eq(modelo)
-      expect(arte.vinculo_logs.sole.from_modelo_nome).to eq("Outro")
+      expect(arte.reload.molde).to eq(molde)
+      expect(arte.vinculo_logs.sole.from_molde_nome).to eq("Outro")
     end
   end
 
@@ -70,7 +70,7 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "shows the link history on the arte page, marking moves" do
-      arte = create(:arquivo, client: client, modelo: create(:modelo, client: client, nome: "Outro"))
+      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
       VincularArteService.call(pending_row, arte, changed_by: "10.0.0.1", confirmar_mudanca: true)
       get arquivo_path(arte)
       row = Nokogiri::HTML(response.body).at_css("#vinculo-history-section tbody tr")
@@ -89,19 +89,19 @@ RSpec.describe "PedidoPecas", type: :request do
 
     after { Arquivo.where(filename: "02-no_spot").find_each { |a| FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, a.uuid)) } }
 
-    it "creates the arte with the modelo's client, links it to the piece and returns to the pedido" do
+    it "creates the arte with the molde's client, links it to the piece and returns to the pedido" do
       expect { post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: tif } }.to change(Arquivo, :count).by(1)
       arte = Arquivo.find_by!(filename: "02-no_spot")
-      expect([ arte.client, arte.modelo, arte.peca, arte.category ]).to eq([ client, modelo, lingua, "artes" ])
+      expect([ arte.client, arte.molde, arte.peca, arte.category ]).to eq([ client, molde, lingua, "artes" ])
       expect(pending_row.reload.arquivo).to eq(arte)
-      expect(arte.vinculo_logs.sole.to_modelo_nome).to eq("Tênis baixo")
+      expect(arte.vinculo_logs.sole.to_molde_nome).to eq("Tênis baixo")
       expect(arte.vinculo_logs.sole.user).to eq(@usuario_logado)
       expect(response).to redirect_to(resumo_pedido_path(pedido))
       expect(flash[:notice]).to include("02-no_spot", "Língua")
     end
 
     it "fills the same pending piece in other draft pedidos too" do
-      other_item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, client: client, modelo: modelo))
+      other_item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, client: client, molde: molde))
       other_row = create(:item_pedido_peca, item_pedido: other_item, peca: lingua, arquivo: nil)
       post enviar_arte_pedido_peca_path(pedido, pending_row), params: { original_file: tif }
       expect(other_row.reload.arquivo&.filename).to eq("02-no_spot")

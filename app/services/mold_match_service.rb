@@ -32,15 +32,15 @@ class MoldMatchService
   private
 
   def candidate_cortes
-    # The modelo's own cortes, not every corte of its molde (Arquivo.cortes_do_modelo).
-    if @arte.modelo&.molde
-      do_modelo = Arquivo.cortes_do_modelo(@arte.modelo).to_a
-      return do_modelo if do_modelo.any?
+    # The molde's own cortes, not every corte of its modelo (Arquivo.cortes_do_molde).
+    if @arte.molde&.modelo
+      do_molde = Arquivo.cortes_do_molde(@arte.molde).to_a
+      return do_molde if do_molde.any?
     end
 
     if @arte.client
-      molde_ids = Modelo.ativos.where(client_id: @arte.client_id).distinct.pluck(:molde_id).compact
-      by_client = Arquivo.ativos.where(organized: true, molde_id: molde_ids).to_a
+      modelo_ids = Molde.ativos.where(client_id: @arte.client_id).distinct.pluck(:modelo_id).compact
+      by_client = Arquivo.ativos.where(organized: true, modelo_id: modelo_ids).to_a
       return by_client if by_client.any?
     end
 

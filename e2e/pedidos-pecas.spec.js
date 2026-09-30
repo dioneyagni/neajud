@@ -5,10 +5,10 @@ const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { imageHasVisiblePixels } = require("./support/pixels");
 
-// "Adicionar ao Pedido" lists every piece of the arte's modelo: checked
+// "Adicionar ao Pedido" lists every piece of the arte's molde: checked
 // pieces go to production, unchecked ones are excluded, and pieces without
 // arte are pending (no checkbox).
-runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", async ({ page, test }) => {
+runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", async ({ page, test }) => {
   const UNIQ = `PP${Date.now()}`;
   const names = { lateral: `Lateral ${UNIQ}`, lingua: `Lingua ${UNIQ}` };
   const tempFiles = [];
@@ -42,44 +42,44 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     }, { searchUrl, key, value });
   }
 
-  // Peças + molde with both + client + modelo, through the app's own endpoints.
-  async function setupModelo() {
+  // Peças + modelo with both + client + molde, through the app's own endpoints.
+  async function setupMolde() {
     await page.goto(BASE_URL);
     for (const nome of Object.values(names)) await postForm("/pecas", [[ "peca[nome]", nome ]]);
     const pecaIds = {
       lateral: await findId(`/pecas/search?q=${encodeURIComponent(names.lateral)}`, "nome", names.lateral),
       lingua: await findId(`/pecas/search?q=${encodeURIComponent(names.lingua)}`, "nome", names.lingua),
     };
-    const moldeNome = `Molde ${UNIQ}`;
-    await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[peca_uuids][]", pecaIds.lateral ], [ "molde[peca_uuids][]", pecaIds.lingua ]]);
-    const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "nome", moldeNome);
+    const modeloNome = `Modelo ${UNIQ}`;
+    await postForm("/modelos", [[ "modelo[nome]", modeloNome ], [ "modelo[peca_uuids][]", pecaIds.lateral ], [ "modelo[peca_uuids][]", pecaIds.lingua ]]);
+    const modeloId = await findId(`/modelos/search?q=${encodeURIComponent(modeloNome)}`, "nome", modeloNome);
     const clientName = `Cliente ${UNIQ}`;
     await postForm("/clients", [[ "client[name]", clientName ], [ "client[responsible]", "E2E" ]]);
     const clientId = await findId(`/clients/search?q=${encodeURIComponent(clientName)}`, "name", clientName);
-    const modeloNome = `Modelo ${UNIQ}`;
-    await postForm("/modelos", [[ "modelo[nome]", modeloNome ], [ "modelo[client_uuid]", clientId ], [ "modelo[molde_uuid]", moldeId ]]);
-    const modeloId = await findId(`/modelos/search?q=${encodeURIComponent(modeloNome)}`, "nome", modeloNome);
-    if (!pecaIds.lateral || !pecaIds.lingua || !moldeId || !modeloId) {
-      throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, moldeId, clientId, modeloId })}`);
+    const moldeNome = `Molde ${UNIQ}`;
+    await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[client_uuid]", clientId ], [ "molde[modelo_uuid]", modeloId ]]);
+    const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "nome", moldeNome);
+    if (!pecaIds.lateral || !pecaIds.lingua || !modeloId || !moldeId) {
+      throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, modeloId, clientId, moldeId })}`);
     }
-    return { pecaIds, modeloId, moldeId, clientId };
+    return { pecaIds, moldeId, modeloId, clientId };
   }
 
   function cardFor(file) {
     return page.locator(".stamp-card").filter({ hasText: path.basename(file, ".tif") }).first();
   }
 
-  // Uploads the arte and links it to the modelo + peça (update_modelo).
-  async function uploadArte(file, modeloId, pecaId) {
+  // Uploads the arte and links it to the molde + peça (update_molde).
+  async function uploadArte(file, moldeId, pecaId) {
     await page.goto(BASE_URL);
     await uploadFileAndWait(page, file);
     const href = await cardFor(file).locator("a").first().getAttribute("href");
     const uuid = href.split("/").pop();
-    if (modeloId) {
-      const fields = [[ "_method", "patch" ], [ "modelo_uuid", modeloId ]];
+    if (moldeId) {
+      const fields = [[ "_method", "patch" ], [ "molde_uuid", moldeId ]];
       if (pecaId) fields.push([ "peca_uuid", pecaId ]);
-      const status = await postForm(`/arquivos/${uuid}/update_modelo`, fields);
-      if (status >= 400) throw new Error(`update_modelo failed for ${uuid}: HTTP ${status}`);
+      const status = await postForm(`/arquivos/${uuid}/update_molde`, fields);
+      if (status >= 400) throw new Error(`update_molde failed for ${uuid}: HTTP ${status}`);
     }
     return uuid;
   }
@@ -144,9 +144,9 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     return page.locator("turbo-frame#pedido-producao tbody tr").filter({ hasText: nome });
   }
 
-  let modelo;
+  let molde;
   let pedidoUuid;
-  let outroModeloNome;
+  let outroMoldeNome;
   let outroUuid;
   const lateralFile = makeArte("lateral", "red");
   const linguaFile = makeArte("lingua", "blue");
@@ -157,9 +157,9 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
   let linguaUuid;
 
   try {
-    await test("Setup: modelo with Lateral + Língua and a Lateral arte", async () => {
-      modelo = await setupModelo();
-      await uploadArte(lateralFile, modelo.modeloId, modelo.pecaIds.lateral);
+    await test("Setup: molde with Lateral + Língua and a Lateral arte", async () => {
+      molde = await setupMolde();
+      await uploadArte(lateralFile, molde.moldeId, molde.pecaIds.lateral);
     });
 
     await test("Modal lists both pieces; the one without arte is pending, without checkbox", async () => {
@@ -203,7 +203,7 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     });
 
     await test("Unchecking a piece dims it and is sent as excluded on submit", async () => {
-      linguaUuid = await uploadArte(linguaFile, modelo.modeloId, modelo.pecaIds.lingua);
+      linguaUuid = await uploadArte(linguaFile, molde.moldeId, molde.pecaIds.lingua);
       await openModalFor(lateralFile);
       const lingua = pecaCard(names.lingua);
       await lingua.locator(".add-to-order-peca-check").waitFor({ timeout: 5000 });
@@ -287,26 +287,26 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       if (status !== "rascunho") throw new Error(`Pedido should stay rascunho, got ${status}`);
     });
 
-    await test("Setup: another modelo of the same client with an arte without peça", async () => {
-      outroModeloNome = `Outro ${UNIQ}`;
+    await test("Setup: another molde of the same client with an arte without peça", async () => {
+      outroMoldeNome = `Outro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/modelos", [[ "modelo[nome]", outroModeloNome ], [ "modelo[client_uuid]", modelo.clientId ], [ "modelo[molde_uuid]", modelo.moldeId ]]);
-      const outroId = await findId(`/modelos/search?q=${encodeURIComponent(outroModeloNome)}`, "nome", outroModeloNome);
-      if (!outroId) throw new Error("Could not create the second modelo");
+      await postForm("/moldes", [[ "molde[nome]", outroMoldeNome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
+      const outroId = await findId(`/moldes/search?q=${encodeURIComponent(outroMoldeNome)}`, "nome", outroMoldeNome);
+      if (!outroId) throw new Error("Could not create the second molde");
       outroUuid = await uploadArte(outroFile, outroId, null);
       // Group 1 is "the client's artes": give it the same client.
-      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_uuid", modelo.clientId ]]);
+      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_uuid", molde.clientId ]]);
       if (status >= 400) throw new Error(`update_client failed: HTTP ${status}`);
     });
 
-    await test("'Escolher arte' opens the picker with the three groups; the other modelo's arte is in group 1", async () => {
+    await test("'Escolher arte' opens the picker with the three groups; the other molde's arte is in group 1", async () => {
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       await pedidoPeca(0, names.lingua).locator("a.pedido-peca-escolher").click();
       await page.locator(".escolher-arte-grupo").first().waitFor({ timeout: 5000 });
       const grupos = await page.locator(".escolher-arte-grupo").evaluateAll((els) => els.map((e) => e.dataset.grupo));
-      if (JSON.stringify(grupos) !== JSON.stringify([ "cliente_sem_peca", "cliente_sem_modelo", "sem_cliente" ])) throw new Error(`Groups ${grupos}`);
+      if (JSON.stringify(grupos) !== JSON.stringify([ "cliente_sem_peca", "cliente_sem_molde", "sem_cliente" ])) throw new Error(`Groups ${grupos}`);
       const card = page.locator(`.escolher-arte-grupo[data-grupo="cliente_sem_peca"] .escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
-      if (!(await card.innerText()).includes(outroModeloNome)) throw new Error("Group 1 should list the other modelo's arte with its modelo");
+      if (!(await card.innerText()).includes(outroMoldeNome)) throw new Error("Group 1 should list the other molde's arte with its molde");
       const src = await card.locator("img").getAttribute("src");
       if (!(await imageHasVisiblePixels(page, src))) throw new Error("Candidate preview has no visible pixels");
     });
@@ -316,7 +316,7 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       page.once("dialog", (d) => { prompt = d.message(); });
       const card = page.locator(`.escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
       await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`), card.locator("button").click() ]);
-      if (!prompt.includes(outroModeloNome) || !prompt.includes("Mover para")) throw new Error(`Unexpected confirm prompt: "${prompt}"`);
+      if (!prompt.includes(outroMoldeNome) || !prompt.includes("Mover para")) throw new Error(`Unexpected confirm prompt: "${prompt}"`);
       await expectPedidoPeca(pedidoPeca(0, names.lingua), "incluida", true);
       if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
       // These artes have no corte (no tamanho chosen), so the new rule still blocks Confirmar.
@@ -331,19 +331,19 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await page.goto(`${BASE_URL}/arquivos/${outroUuid}`);
       const row = page.locator("#vinculo-history-section tbody tr").first();
       const cells = (await row.locator("td").allInnerTexts()).map((t) => t.trim());
-      if (cells[0] !== outroModeloNome || cells[1] !== `Modelo ${UNIQ}` || cells[2] !== names.lingua) {
+      if (cells[0] !== outroMoldeNome || cells[1] !== `Molde ${UNIQ}` || cells[2] !== names.lingua) {
         throw new Error(`History row ${JSON.stringify(cells)}`);
       }
       if (!(await row.getAttribute("class")).includes("vinculo-history-mudanca")) throw new Error("Move should be highlighted");
     });
 
-    await test("Setup: a third modelo whose Língua has no arte, added to the pedido", async () => {
+    await test("Setup: a third molde whose Língua has no arte, added to the pedido", async () => {
       const nome = `Terceiro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/modelos", [[ "modelo[nome]", nome ], [ "modelo[client_uuid]", modelo.clientId ], [ "modelo[molde_uuid]", modelo.moldeId ]]);
-      const terceiroId = await findId(`/modelos/search?q=${encodeURIComponent(nome)}`, "nome", nome);
-      if (!terceiroId) throw new Error("Could not create the third modelo");
-      await uploadArte(terceiroFile, terceiroId, modelo.pecaIds.lateral);
+      await postForm("/moldes", [[ "molde[nome]", nome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
+      const terceiroId = await findId(`/moldes/search?q=${encodeURIComponent(nome)}`, "nome", nome);
+      if (!terceiroId) throw new Error("Could not create the third molde");
+      await uploadArte(terceiroFile, terceiroId, molde.pecaIds.lateral);
       await openModalFor(terceiroFile);
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
       const uuid = await submitModal();
@@ -378,7 +378,7 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       await page.locator(".add-to-order-footer .btn-secondary").click();
     });
 
-    await test("An arte without modelo shows no piece picker", async () => {
+    await test("An arte without molde shows no piece picker", async () => {
       await uploadArte(loneFile, null, null);
       await openModalFor(loneFile);
       await page.waitForFunction(() => {

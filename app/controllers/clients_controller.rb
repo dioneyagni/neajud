@@ -5,19 +5,19 @@ class ClientsController < ApplicationController
   before_action :set_client, only: %i[show update destroy]
 
   def index
-    @clients = Client.ativos.left_joins(:modelos, :arquivos)
-                     .select(Client.arel_table[Arel.star], Modelo.contagem_ativos(as: "modelos_count"), Arquivo.contagem_ativos(as: "arquivos_count"))
+    @clients = Client.ativos.left_joins(:moldes, :arquivos)
+                     .select(Client.arel_table[Arel.star], Molde.contagem_ativos(as: "moldes_count"), Arquivo.contagem_ativos(as: "arquivos_count"))
                      .group(:id)
                      .order(:name)
   end
 
   def show
-    @modelos = @client.modelos.ativos.order(:nome)
-    @arquivos_by_modelo = {}
-    @modelos.each do |modelo|
-      direct = Arquivo.ativos.where(client_id: @client.id, modelo_id: modelo.id, category: "artes")
-      via_join_ids = modelo.vinculated_arquivos.ativos.where(client_id: @client.id, category: "artes").select(:id)
-      @arquivos_by_modelo[modelo] = direct.or(Arquivo.where(id: via_join_ids))
+    @moldes = @client.moldes.ativos.order(:nome)
+    @arquivos_by_molde = {}
+    @moldes.each do |molde|
+      direct = Arquivo.ativos.where(client_id: @client.id, molde_id: molde.id, category: "artes")
+      via_join_ids = molde.vinculated_arquivos.ativos.where(client_id: @client.id, category: "artes").select(:id)
+      @arquivos_by_molde[molde] = direct.or(Arquivo.where(id: via_join_ids))
                                         .includes(approved_version: :image_metadata)
                                         .order(created_at: :desc)
                                         .limit(20)

@@ -1,103 +1,74 @@
 class ModelosController < ApplicationController
-  exige :catalogo, :ver, only: %i[index show search for_client]
-  exige :catalogo, :editar, only: %i[create update update_peca_config]
+  exige :catalogo, :ver, only: %i[index show search pecas]
+  exige :catalogo, :editar, only: %i[new create edit update]
   exige :catalogo, :excluir, only: :destroy
-  before_action :set_modelo, only: %i[show update destroy update_peca_config]
+  before_action :set_modelo, only: %i[show edit update destroy pecas]
 
   def index
     @modelos = Modelo.ativos.left_joins(:arquivos)
-                      .includes(:client, :molde)
-                      .select(Modelo.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
-                      .group(:id)
-                      .order(:nome)
-    # Active clients plus a listed modelo's own client even if trashed: the
-    # edit dialog's required select had no option for it, so saving that
-    # modelo was silently blocked by the browser (29/09/2026).
-    # Trashed ones last, and only while editing (data-somente-edicao, see
-    # dialog_controller.js): a new modelo can't be created for them.
-    @clientes_para_escolher = Client.ativos.or(Client.where(id: @modelos.map(&:client_id)))
-                                    .order(Arel.sql("deleted_at IS NOT NULL"), :name)
+                    .includes(:pecas)
+                    .select(Modelo.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
+                    .group(:id)
+                    .order(:nome)
   end
 
   def show
-    if @modelo.molde_id.present?
-      @modelo.sync_modelo_pecas! if @modelo.modelo_pecas.empty?
-
-      via_join_ids = @modelo.vinculated_arquivos.ativos.where(organized: true, molde_id: @modelo.molde_id, client_id: @modelo.client_id).select(:id)
-      @organized_arquivos = Arquivo.ativos.where(organized: true, molde_id: @modelo.molde_id, modelo_id: @modelo.id, client_id: @modelo.client_id)
-                               .or(Arquivo.where(id: via_join_ids))
-                               .includes(:peca, :tamanhos, approved_version: :image_metadata)
-                               .order(:peca_id)
-      @grouped_by_peca = @organized_arquivos.group_by(&:peca)
-
-      @modelo_pecas = @modelo.modelo_pecas.includes(:peca).order("pecas.nome")
-      organized = @organized_arquivos
-      @modelo_pecas.each do |mp|
-        mp.define_singleton_method(:corte_arquivo) do
-          organized.find { |a| a.peca_id == mp.peca_id }
-        end
-      end
-    else
-      @organized_arquivos = []
-      @grouped_by_peca = {}
-      @modelo_pecas = []
-    end
+    @arquivos = @modelo.arquivos.ativos.includes(approved_version: :image_metadata).order(created_at: :desc)
   end
 
-  def update_peca_config
-    mp = @modelo.modelo_pecas.por_uuid!(params[:modelo_peca_uuid])
-    mp.update!(needs_cut: params[:needs_cut] == "true")
+  def new
+    @modelo = Modelo.new
+    @pecas = pecas_para_escolher
+  end
 
-    redirect_to modelo_path(@modelo), notice: "Piece configuration updated."
+  def edit
+    @pecas = pecas_para_escolher
+  end
+
+  def pecas
+    render json: @modelo.pecas.ativos.order(:nome).map { |p| { id: p.uuid, nome: p.nome } }
   end
 
   def search
     modelos = Modelo.ativos.search(params[:q]).limit(10)
-    render json: modelos.map { |m| { id: m.uuid, nome: m.nome, client_name: m.client.name } }
-  end
-
-  def for_client
-    modelos = Modelo.ativos.where(client: Client.where(uuid: params[:client_uuid])).includes(:molde).search(params[:q]).order(:nome)
-    render json: modelos.map { |m| { id: m.uuid, nome: m.nome, molde_uuid: m.molde&.uuid } }
+    render json: modelos.map { |m| { id: m.uuid, nome: m.nome } }
   end
 
   def create
-    existing = Modelo.where(client: Client.where(uuid: modelo_params[:client_uuid]))
-                     .where("LOWER(nome) = ?", modelo_params[:nome].downcase).first
+    existing = Modelo.where("LOWER(nome) = ?", modelo_params[:nome].downcase).first
     if existing&.excluido?
-      return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
+      return redirect_to modelos_path, alert: existing.aviso_na_lixeira
     end
     if existing
       assign_modelo_to_arquivo(existing) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, alert: "Modelo \"#{existing.nome}\" already exists for this client."
+      redirect_to modelos_path, alert: "Modelo \"#{existing.nome}\" already exists."
       return
     end
 
     @modelo = Modelo.new(modelo_params)
     if @modelo.save
-      @modelo.sync_modelo_pecas! if @modelo.molde_id.present?
+      atribuir_pecas
       assign_modelo_to_arquivo(@modelo) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, notice: "Modelo registered."
+      redirect_to modelo_path(@modelo), notice: "Modelo registered."
     else
-      redirect_back fallback_location: arquivos_path, alert: @modelo.errors.full_messages.join(", ")
+      @pecas = pecas_para_escolher
+      render :new, status: :unprocessable_entity
     end
   end
 
   def update
-    molde_anterior = @modelo.molde_id
-
     if @modelo.update(modelo_params)
-      molde_changed = @modelo.molde_id != molde_anterior
-      @modelo.sync_modelo_pecas! if molde_changed && @modelo.molde_id.present?
-      redirect_back fallback_location: arquivos_path, notice: "Modelo updated."
+      atribuir_pecas
+      redirect_to modelo_path(@modelo), notice: "Modelo updated."
     else
-      redirect_back fallback_location: arquivos_path, alert: @modelo.errors.full_messages.join(", ")
+      @pecas = pecas_para_escolher
+      render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
     @modelo.excluir!(**autoria)
-    redirect_back fallback_location: arquivos_path, notice: "Modelo moved to the trash."
+    redirect_to modelos_path, notice: "Modelo moved to the trash."
   end
 
   private
@@ -106,18 +77,27 @@ class ModelosController < ApplicationController
     @modelo = Modelo.por_uuid!(params[:id])
   end
 
+  # Active peças, plus any trashed one this modelo already has: leaving it out
+  # of the checkboxes would silently unlink it on save.
+  def pecas_para_escolher
+    Peca.ativos.or(Peca.where(id: @modelo&.peca_ids)).order(:nome)
+  end
+
   def modelo_params
-    params.require(:modelo).permit(:nome, :client_uuid, :molde_uuid)
+    params.require(:modelo).permit(:nome)
+  end
+
+  # The form lists the chosen peças by uuid; when none is sent the list is
+  # left as it is (same as before the uuids, Etapa 1.1).
+  def atribuir_pecas
+    uuids = params.dig(:modelo, :peca_uuids)
+    return unless uuids
+
+    @modelo.pecas = Peca.where(uuid: Array(uuids).compact_blank)
   end
 
   def assign_modelo_to_arquivo(modelo)
     arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
-    return unless arquivo
-
-    if arquivo.corte?
-      arquivo.modelos << modelo unless arquivo.modelos.include?(modelo)
-    else
-      arquivo.update(modelo_id: modelo.id)
-    end
+    arquivo&.update(modelo_id: modelo.id)
   end
 end

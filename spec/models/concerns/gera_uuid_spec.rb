@@ -7,11 +7,11 @@ RSpec.describe GeraUuid do
   # ones (arquivos, pedidos, users…) are covered by their own specs.
   entidades = {
     client: -> { FactoryBot.create(:client) },
-    modelo: -> { FactoryBot.create(:modelo) },
     molde: -> { FactoryBot.create(:molde) },
+    modelo: -> { FactoryBot.create(:modelo) },
     peca: -> { FactoryBot.create(:peca) },
     tamanho: -> { FactoryBot.create(:tamanho) },
-    modelo_peca: -> { FactoryBot.create(:modelo_peca) },
+    molde_peca: -> { FactoryBot.create(:molde_peca) },
     item_pedido_peca: -> { FactoryBot.create(:item_pedido_peca) },
     grupo_material: -> { GrupoMaterial.create!(nome: "Grupo #{SecureRandom.hex(3)}") },
     cor_material: -> { CorMaterial.create!(nome: "Cor #{SecureRandom.hex(3)}") },

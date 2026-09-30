@@ -1,6 +1,6 @@
 # Logical deletion (Etapa 0.4, docs/plano.md): the row stays, deleted_at marks
 # it. No default_scope on purpose — records already in use (a pedido's arte, a
-# modelo's client) must keep showing, with an "excluído em" badge; listings
+# molde's client) must keep showing, with an "excluído em" badge; listings
 # and pickers opt in with `ativos`. Associating a deleted record to a new one
 # is refused by ReferenciaAtiva.
 #
@@ -22,7 +22,7 @@ module Excluivel
     # For index pages that count children with a LEFT JOIN + GROUP BY: counts
     # only the ones not in the trash. Arel, not an SQL string, so no
     # interpolation reaches .select (Brakeman stays at 0 warnings).
-    # Usage: Client.left_joins(:modelos).select(Client.arel_table[Arel.star], Modelo.contagem_ativos(as: "modelos_count"))
+    # Usage: Client.left_joins(:moldes).select(Client.arel_table[Arel.star], Molde.contagem_ativos(as: "moldes_count"))
     def contagem_ativos(as:)
       id_se_ativo = Arel::Nodes::Case.new.when(arel_table[:deleted_at].eq(nil)).then(arel_table[:id])
       Arel::Nodes::Count.new([ id_se_ativo ], true).as(as)

@@ -74,13 +74,13 @@ RSpec.describe "Tamanhos", type: :request do
   end
 
   describe "GET /tamanhos/for_cascade" do
-    it "returns tamanhos as JSON for given molde_id and peca_id" do
-      molde = create(:molde)
+    it "returns tamanhos as JSON for given modelo_id and peca_id" do
+      modelo = create(:modelo)
       peca = create(:peca)
-      arquivo = create(:arquivo, organized: true, molde: molde, peca: peca)
+      arquivo = create(:arquivo, organized: true, modelo: modelo, peca: peca)
       tamanho = create(:tamanho, arquivo: arquivo, nome: "G", position: 1, width_mm: 100, height_mm: 50)
 
-      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
+      get for_cascade_tamanhos_path, params: { modelo_uuid: modelo.uuid, peca_uuid: peca.uuid }
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json).to be_an(Array)
@@ -88,19 +88,19 @@ RSpec.describe "Tamanhos", type: :request do
     end
 
     it "returns empty array when no matching tamanhos" do
-      get for_cascade_tamanhos_path, params: { molde_id: 99999, peca_id: 99999 }
+      get for_cascade_tamanhos_path, params: { modelo_id: 99999, peca_id: 99999 }
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json).to eq([])
     end
 
     it "returns tamanhos from organized arquivos regardless of tipo_corte" do
-      molde = create(:molde)
+      modelo = create(:modelo)
       peca = create(:peca)
-      arquivo = create(:arquivo, tipo_corte: "apenas_corte", organized: true, molde: molde, peca: peca)
+      arquivo = create(:arquivo, tipo_corte: "apenas_corte", organized: true, modelo: modelo, peca: peca)
       create(:tamanho, arquivo: arquivo, nome: "G", position: 1)
 
-      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
+      get for_cascade_tamanhos_path, params: { modelo_uuid: modelo.uuid, peca_uuid: peca.uuid }
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)

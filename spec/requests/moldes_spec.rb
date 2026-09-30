@@ -3,143 +3,187 @@ require "rails_helper"
 RSpec.describe "Moldes", type: :request do
   describe "GET /moldes" do
     it "renders the index page" do
-      create(:molde, nome: "Sapato")
+      client = create(:client, name: "Test Client", responsible: "John")
+      create(:molde, nome: "Air Max", client: client)
 
       get moldes_path
 
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Sapato")
+      expect(response.body).to include("Air Max")
     end
   end
 
   describe "GET /moldes/:id" do
     it "renders the show page" do
-      molde = create(:molde, nome: "Sapato")
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde, nome: "Air Max", client: client)
 
       get molde_path(molde)
 
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Sapato")
+      expect(response.body).to include("Air Max")
+    end
+
+    it "renders molde_pecas with corte status when modelo has pecas" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      modelo = create(:modelo)
+      peca1 = create(:peca, nome: "Frente")
+      peca2 = create(:peca, nome: "Costa")
+      ModeloPeca.create!(modelo: modelo, peca: peca1)
+      ModeloPeca.create!(modelo: modelo, peca: peca2)
+
+      molde = create(:molde, nome: "Camisa", client: client, modelo: modelo)
+      molde.sync_molde_pecas!
+
+      corte = create(:arquivo, :corte, filename: "frente.dxf", client: client, molde: molde,
+                     modelo: modelo, peca: peca1, organized: true)
+
+      get molde_path(molde)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Frente")
+      expect(response.body).to include("Costa")
+      expect(response.body).to include("frente.dxf")
+      expect(response.body).to include("Corte ausente")
+    end
+
+    it "auto-syncs molde_pecas when modelo assigned but no records exist" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      modelo = create(:modelo)
+      peca = create(:peca, nome: "Manga")
+      ModeloPeca.create!(modelo: modelo, peca: peca)
+
+      molde = create(:molde, nome: "Regata", client: client, modelo: modelo)
+      expect(molde.molde_pecas.count).to eq(0)
+
+      get molde_path(molde)
+
+      expect(response).to have_http_status(:success)
+      expect(molde.reload.molde_pecas.count).to eq(1)
     end
   end
 
-  describe "GET /moldes/new" do
-    it "renders the new page" do
-      get new_molde_path
+  describe "PATCH /moldes/:id/update_peca_config" do
+    it "toggles needs_cut for a molde_peca" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      modelo = create(:modelo)
+      peca = create(:peca, nome: "Frente")
+      ModeloPeca.create!(modelo: modelo, peca: peca)
 
-      expect(response).to have_http_status(:success)
-      expect(response.body).to include("Register New Molde")
-      expect(response.body).to include("Componentes")
-    end
-  end
+      molde = create(:molde, nome: "Camisa", client: client, modelo: modelo)
+      molde.sync_molde_pecas!
+      mp = molde.molde_pecas.first
 
-  describe "GET /moldes/:id/edit" do
-    it "renders the edit page" do
-      molde = create(:molde, nome: "Sapato")
+      expect(mp.needs_cut).to be true
 
-      get edit_molde_path(molde)
+      patch update_peca_config_molde_path(molde), params: { molde_peca_uuid: mp.uuid, needs_cut: "false" }
 
-      expect(response).to have_http_status(:success)
-      expect(response.body).to include("Edit Molde")
-    end
-
-    # Leaving a trashed peça out of the checkboxes would unlink it on save.
-    it "lists active peças plus the trashed ones this molde already has" do
-      linked = create(:peca, nome: "Linked trashed")
-      create(:peca, nome: "Other trashed").excluir!(changed_by: "10.0.0.1")
-      molde = create(:molde).tap { |m| m.pecas << linked }
-      linked.excluir!(changed_by: "10.0.0.1")
-
-      get edit_molde_path(molde)
-
-      expect(response.body).to include("Linked trashed")
-      expect(response.body).not_to include("Other trashed")
+      expect(response).to redirect_to(molde_path(molde))
+      expect(mp.reload.needs_cut).to be false
     end
   end
 
   describe "POST /moldes" do
     it "creates a molde with valid params" do
+      client = create(:client, name: "Test Client", responsible: "John")
+
       expect {
-        post moldes_path, params: { molde: { nome: "Sapato" } }
+        post moldes_path, params: { molde: { nome: "Air Max", client_uuid: client.uuid } }
       }.to change(Molde, :count).by(1)
 
-      expect(Molde.last.nome).to eq("Sapato")
-    end
-
-    it "links the peças listed by uuid" do
-      lateral = create(:peca, nome: "Lateral")
-      post moldes_path, params: { molde: { nome: "Tenis", peca_uuids: [ lateral.uuid ] } }
-      expect(Molde.last.pecas).to eq([ lateral ])
-    end
-
-    it "redirects to molde show page on success" do
-      post moldes_path, params: { molde: { nome: "Chinelo" } }
-
-      expect(response).to redirect_to(molde_path(Molde.last))
-    end
-
-    it "renders new on validation failure" do
-      post moldes_path, params: { molde: { nome: "" } }
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(response.body).to include("Register New Molde")
+      expect(Molde.last.nome).to eq("Air Max")
     end
   end
 
   describe "GET /moldes/search" do
     it "returns matching moldes as JSON" do
-      create(:molde, nome: "Sapato")
+      client = create(:client, name: "Test Client", responsible: "John")
+      create(:molde, nome: "Air Max", client: client)
 
-      get search_moldes_path, params: { q: "Sap" }
+      get search_moldes_path, params: { q: "Air" }
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("Sapato")
+      expect(json.first["nome"]).to eq("Air Max")
     end
   end
 
-  describe "GET /moldes/:id/pecas" do
-    it "returns pecas for a molde" do
-      molde = create(:molde, nome: "Sapato")
-      peca = create(:peca, nome: "Solado")
-      molde.pecas << peca
+  # Regression (29/09/2026): a molde whose client went to the trash had no
+  # option in the edit dialog's required select, so saving it was silently
+  # blocked by the browser.
+  it "offers a listed molde's trashed client in the edit dialog, marked" do
+    client = create(:client, name: "Cliente Antigo")
+    create(:molde, client: client)
+    client.excluir!(changed_by: "10.0.0.1")
+    create(:client, name: "Outro Na Lixeira", deleted_at: 1.day.ago)
+    get moldes_path
+    expect(response.body).to include("Cliente Antigo (in the trash)")
+    expect(response.body).not_to include("Outro Na Lixeira")
+  end
 
-      get pecas_molde_path(molde)
+  describe "GET /moldes/for_client" do
+    it "returns moldes for a given client" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      create(:molde, nome: "Air Max", client: client)
+
+      get for_client_moldes_path(client_uuid: client.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("Solado")
     end
   end
 
   describe "PATCH /moldes/:id" do
     it "updates a molde" do
-      molde = create(:molde, nome: "Sapato")
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde, nome: "Air Max", client: client)
 
-      patch molde_path(molde), params: { molde: { nome: "Chinelo" } }
+      patch molde_path(molde), params: { molde: { nome: "Air Max 2" } }
 
       molde.reload
-      expect(molde.nome).to eq("Chinelo")
+      expect(molde.nome).to eq("Air Max 2")
     end
 
-    it "replaces the peças with the ones listed by uuid" do
-      molde = create(:molde).tap { |m| m.pecas << create(:peca, nome: "Lateral") }
-      lingua = create(:peca, nome: "Língua")
-      patch molde_path(molde), params: { molde: { nome: molde.nome, peca_uuids: [ "", lingua.uuid ] } }
-      expect(molde.reload.pecas).to eq([ lingua ])
+    # Regression (Etapa 1.1, 1/2): the "modelo changed?" check ran before the
+    # new modelo was assigned, so it was always false and the pieces kept the
+    # old modelo's list (the show page only syncs an empty list).
+    it "rebuilds the pieces from the new modelo when the modelo changes" do
+      antigo = create(:modelo).tap { |m| m.pecas << create(:peca, nome: "Lateral") }
+      novo = create(:modelo).tap { |m| m.pecas << create(:peca, nome: "Cabedal") }
+      molde = create(:molde, modelo: antigo).tap(&:sync_molde_pecas!)
+
+      patch molde_path(molde), params: { molde: { modelo_uuid: novo.uuid } }
+
+      expect(molde.reload.modelo).to eq(novo)
+      expect(molde.molde_pecas.map { |mp| mp.peca.nome }).to eq([ "Cabedal" ])
     end
   end
 
   describe "DELETE /moldes/:id" do
-    it "moves the molde to the trash, keeping its peças" do
-      molde = create(:molde, nome: "Sapato")
-      molde.pecas << create(:peca)
+    it "moves the molde to the trash" do
+      client = create(:client, name: "Test Client", responsible: "John")
+      molde = create(:molde, nome: "Air Max", client: client)
 
       expect { delete molde_path(molde) }.not_to change(Molde, :count)
       expect(molde.reload).to be_excluido
-      expect(molde.pecas.count).to eq(1)
+    end
+
+    # Regression (29/09/2026): the arte page's combobox appended "?q=" to a URL
+    # that already had "?client_id=", and for_client ignored q anyway.
+    it "for_client filters by the typed text" do
+      client = create(:client)
+      create(:molde, client: client, nome: "001-JGG INF")
+      create(:molde, client: client, nome: "002-JGG NB")
+      get for_client_moldes_path(client_uuid: client.uuid, q: "inf")
+      expect(response.parsed_body.map { |m| m["nome"] }).to eq([ "001-JGG INF" ])
+    end
+
+    it "hides trashed moldes from for_client" do
+      molde = create(:molde, deleted_at: 1.day.ago)
+      get for_client_moldes_path(client_id: molde.client_id)
+      expect(response.parsed_body).to eq([])
     end
   end
 end

@@ -11,8 +11,8 @@ class ItemPedido < ApplicationRecord
   has_many :grades, class_name: "ItemPedidoGrade", dependent: :destroy
   has_many :item_pedido_pecas, -> { order(:position) }, dependent: :destroy
 
-  # Stores one row per piece of the ordered modelo.
-  # Usage: item.compor_pecas!(ModeloComposicaoService.call(arte))
+  # Stores one row per piece of the ordered molde.
+  # Usage: item.compor_pecas!(MoldeComposicaoService.call(arte))
   def compor_pecas!(slots)
     slots.each_with_index do |slot, position|
       item_pedido_pecas.create!(peca: slot.peca, arquivo: slot.arquivo, position: position)

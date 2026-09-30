@@ -10,9 +10,9 @@ RSpec.describe "Public identifiers are uuids", type: :request do
   describe "pages addressed by uuid, not by integer id" do
     {
       "client" => [ :client, ->(r) { "/clients/#{r}" } ],
-      "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ],
+      "modelo" => [ :modelo, ->(r) { "/modelos/#{r}" } ],
       "peça (edit)" => [ :peca, ->(r) { "/pecas/#{r}/edit" } ],
-      "modelo" => [ :modelo, ->(r) { "/modelos/#{r}" } ]
+      "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
         registro = create(factory)
@@ -30,7 +30,7 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     end
 
     it "opens a pedido's pending piece by its uuid" do
-      item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, modelo: create(:modelo)))
+      item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, molde: create(:molde)))
       linha = create(:item_pedido_peca, item_pedido: item, arquivo: nil)
       get "/pedidos/#{item.pedido.uuid}/pecas/#{linha.uuid}/escolher_arte"
       expect(response).to have_http_status(:ok)
@@ -41,13 +41,13 @@ RSpec.describe "Public identifiers are uuids", type: :request do
 
   describe "JSON endpoints answer uuids in id" do
     let(:client) { create(:client, name: "Cliente Uuid") }
-    let(:molde) { create(:molde, nome: "Molde Uuid") }
+    let(:modelo) { create(:modelo, nome: "Modelo Uuid") }
     let(:peca) { create(:peca, nome: "Peça Uuid") }
 
     before do
-      molde.pecas << peca
-      create(:modelo, nome: "Modelo Uuid", client: client, molde: molde)
-      corte = create(:arquivo, :corte, organized: true, molde: molde, peca: peca, client: client)
+      modelo.pecas << peca
+      create(:molde, nome: "Molde Uuid", client: client, modelo: modelo)
+      corte = create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca, client: client)
       create(:tamanho, arquivo: corte, nome: "33-34")
       grupo = GrupoMaterial.create!(nome: "Grupo Uuid")
       cor = CorMaterial.create!(nome: "Azul")
@@ -63,10 +63,10 @@ RSpec.describe "Public identifiers are uuids", type: :request do
 
     it "for every search and cascade endpoint" do
       caminhos = [
-        "/clients/search?q=Uuid", "/moldes/search?q=Uuid", "/pecas/search?q=Uuid", "/modelos/search?q=Uuid",
-        "/moldes/#{molde.uuid}/pecas", "/modelos/for_client?client_uuid=#{client.uuid}",
-        "/pecas/for_cascade?molde_uuid=#{molde.uuid}&client_uuid=#{client.uuid}",
-        "/tamanhos/for_cascade?molde_uuid=#{molde.uuid}&peca_uuid=#{peca.uuid}",
+        "/clients/search?q=Uuid", "/modelos/search?q=Uuid", "/pecas/search?q=Uuid", "/moldes/search?q=Uuid",
+        "/modelos/#{modelo.uuid}/pecas", "/moldes/for_client?client_uuid=#{client.uuid}",
+        "/pecas/for_cascade?modelo_uuid=#{modelo.uuid}&client_uuid=#{client.uuid}",
+        "/tamanhos/for_cascade?modelo_uuid=#{modelo.uuid}&peca_uuid=#{peca.uuid}",
         "/materiais/grupos?q=Uuid", "/materiais/cores", "/materiais/search?client_uuid=#{client.uuid}"
       ]
       caminhos.each do |caminho|
@@ -76,18 +76,18 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       end
     end
 
-    it "points a modelo at its molde by uuid" do
-      get "/modelos/for_client?client_uuid=#{client.uuid}"
-      expect(JSON.parse(response.body).first["molde_uuid"]).to eq(molde.uuid)
+    it "points a molde at its modelo by uuid" do
+      get "/moldes/for_client?client_uuid=#{client.uuid}"
+      expect(JSON.parse(response.body).first["modelo_uuid"]).to eq(modelo.uuid)
     end
   end
 
   describe "forms send uuids" do
-    it "lists the modelo dialog's clients and moldes by uuid" do
+    it "lists the molde dialog's clients and modelos by uuid" do
       client = create(:client)
-      molde = create(:molde)
-      get modelos_path
-      expect(response.body).to include(%(<option value="#{client.uuid}">), %(<option value="#{molde.uuid}">))
+      modelo = create(:modelo)
+      get moldes_path
+      expect(response.body).to include(%(<option value="#{client.uuid}">), %(<option value="#{modelo.uuid}">))
     end
   end
 end

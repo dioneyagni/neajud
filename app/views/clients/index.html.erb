@@ -32,7 +32,7 @@
         <tr>
           <th>Name</th>
           <th>Responsible</th>
-          <th>Modelos</th>
+          <th>Moldes</th>
           <th>Arquivos</th>
           <th>Actions</th>
         </tr>
@@ -42,7 +42,7 @@
           <tr>
             <td><%= link_to client.name, client_path(client) %></td>
             <td><%= client.responsible %></td>
-            <td><%= client.modelos_count %></td>
+            <td><%= client.moldes_count %></td>
             <td><%= client.arquivos_count %></td>
             <td class="clients-table-actions">
               <% if pode?(:clientes, :editar) %>

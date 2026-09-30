@@ -1,5 +1,5 @@
 <%# Links made from a pedido's pending piece ("Escolher arte"), newest first.
-    A row with "De" filled is a move from another modelo the user confirmed. %>
+    A row with "De" filled is a move from another molde the user confirmed. %>
 <% if logs.any? %>
   <div class="stamp-detail-section stamp-detail-section--full" id="vinculo-history-section">
     <h3>Histórico de vínculos</h3>
@@ -17,8 +17,8 @@
       <tbody>
         <% logs.each do |log| %>
           <tr class="<%= "vinculo-history-mudanca" if log.mudanca? %>">
-            <td><%= log.from_modelo_nome || "—" %></td>
-            <td><%= log.to_modelo_nome %></td>
+            <td><%= log.from_molde_nome || "—" %></td>
+            <td><%= log.to_molde_nome %></td>
             <td><%= log.peca&.nome || "—" %></td>
             <td><%= log.pedido ? link_to(log.pedido.uuid.first(8), pedido_path(log.pedido)) : "—" %></td>
             <td><%= autor_do_log(log) %></td>

@@ -6,10 +6,12 @@
       <div class="stamp-detail-section">
         <h3>Details</h3>
         <dl class="detail-grid">
-          <dt>Client</dt>
-          <dd><%= @modelo.client.name %></dd>
-          <dt>Molde</dt>
-          <dd><%= @modelo.molde&.nome || "—" %></dd>
+          <dt>Name</dt>
+          <dd><%= @modelo.nome %></dd>
+          <dt>Peças</dt>
+          <dd><%= @modelo.pecas.pluck(:nome).join(", ").presence || "—" %></dd>
+          <dt>Arquivos</dt>
+          <dd><%= @modelo.arquivos.count %></dd>
         </dl>
       </div>
 
@@ -17,66 +19,21 @@
         <h3>Actions</h3>
         <div style="display: flex; gap: 0.5rem;">
           <%= link_to "All Modelos", modelos_path, class: "btn btn-secondary" %>
-          <%= link_to "Client", client_path(@modelo.client), class: "btn btn-secondary" %>
+          <%= link_to "All Moldes", moldes_path, class: "btn btn-secondary" %>
         </div>
       </div>
 
       <div class="stamp-detail-section stamp-detail-section--full">
-        <h3>Cortes (Organized Cuts)</h3>
-
-        <% if @modelo.molde.present? %>
-          <h4 style="margin-top: 0.75rem; color: var(--text-muted);">Molde: <%= @modelo.molde.nome %></h4>
-
-          <% if @modelo_pecas.any? %>
-            <div class="modelo-pecas-list">
-              <% @modelo_pecas.each do |mp| %>
-                <div class="modelo-peca-row" data-controller="toggle-switch">
-                  <div class="modelo-peca-info">
-                    <span class="modelo-peca-name"><%= mp.peca.nome %></span>
-
-                    <% if mp.needs_cut %>
-                      <% if mp.corte_arquivo %>
-                        <span class="modelo-peca-status modelo-peca-status--has-corte">
-                          <%= link_to mp.corte_arquivo.filename, arquivo_path(mp.corte_arquivo), class: "modelo-peca-file-link" %>
-                          <% if mp.corte_arquivo.tamanhos.any? %>
-                            <span class="modelo-peca-sizes">
-                              <%= mp.corte_arquivo.tamanhos.map { |t| t.nome }.join(", ") %>
-                            </span>
-                          <% end %>
-                        </span>
-                      <% else %>
-                        <span class="modelo-peca-status modelo-peca-status--missing">
-                          Corte ausente
-                        </span>
-                      <% end %>
-                    <% else %>
-                      <span class="modelo-peca-status modelo-peca-status--not-needed">
-                        Não corta
-                      </span>
-                    <% end %>
-                  </div>
-
-                  <div class="modelo-peca-toggle">
-                    <span class="toggle-label"><%= mp.needs_cut ? "Cortar" : "Não corta" %></span>
-                    <label class="toggle-switch">
-                      <input type="checkbox" <%= "checked" if mp.needs_cut %>
-                             data-action="change->toggle-switch#onChange"
-                             data-url="<%= update_peca_config_modelo_path(@modelo, modelo_peca_uuid: mp.uuid) %>">
-                      <span class="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% else %>
-            <p class="gallery-empty" style="margin-top: 0.75rem">
-              No organized cuts for this mold yet.
-            </p>
-          <% end %>
+        <h3>Arquivos</h3>
+        <% if @arquivos.any? %>
+          <%= turbo_stream_from "arquivos" %>
+          <div class="gallery">
+            <% @arquivos.each do |arquivo| %>
+              <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
+            <% end %>
+          </div>
         <% else %>
-          <p class="gallery-empty" style="margin-top: 0.75rem">
-            This modelo has no mold assigned.
-          </p>
+          <p class="gallery-empty" style="margin-top: 0.75rem">No arquivos for this model yet.</p>
         <% end %>
       </div>
     </div>

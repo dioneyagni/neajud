@@ -1,158 +1,100 @@
-const { BASE_URL, runSpec } = require("./support/runner");
+const { BASE_URL, runSpec } = require("./support/runner")
+
+const createModelo = async (page, nome) => {
+  await page.goto(`${BASE_URL}/modelos/new`)
+  await page.waitForSelector("h2", { timeout: 5000 })
+  await page.fill("input[name='modelo[nome]']", nome)
+  await page.click("input[type='submit']")
+  await page.waitForTimeout(1500)
+}
 
 runSpec("Modelos E2E Tests", async ({ page, test }) => {
-  const UNIQ = `M${Date.now()}`;
 
+  await test("nav link", async () => {
+    await page.goto(BASE_URL + "/")
+    const hrefs = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("nav a")).map(a => a.href)
+    )
+    if (!hrefs.some(h => h.includes("/modelos"))) throw Error("missing nav link")
+  })
 
-  await test("Modelos page loads", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
-    const body = await page.textContent("body");
-    if (!body.includes("Modelos")) throw new Error("Page heading not found");
-  });
+  await test("index heading", async () => {
+    await page.goto(`${BASE_URL}/modelos`)
+    await page.waitForSelector("h2")
+    const b = await page.textContent("body")
+    if (!b.includes("Modelos")) throw Error("heading not found")
+  })
 
-  await test("New Modelo button opens dialog", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
-    await page.click('button:has-text("New Modelo")');
-    await page.waitForTimeout(300);
+  await test("create modelo", async () => {
+    const nome = "E2E Test " + Date.now()
+    await createModelo(page, nome)
+    const b = await page.textContent("body")
+    if (!b.includes(nome)) throw Error("name not found after creation")
+  })
 
-    const dialog = page.locator("dialog.client-dialog");
-    const isOpen = await dialog.evaluate((el) => el.open);
-    if (!isOpen) throw new Error("Dialog did not open");
-  });
+  await test("new page Componentes section", async () => {
+    await page.goto(`${BASE_URL}/modelos/new`)
+    await page.waitForSelector("h2")
+    const b = await page.textContent("body")
+    if (!b.includes("Componentes")) throw Error("no Componentes heading")
+    const input = await page.$(".componentes-input")
+    if (!input) throw Error("no componentes input")
+  })
 
-  await test("Create a new modelo via dialog", async () => {
-    // Client has no seed data (see AGENTS.md) — provision one so the
-    // dropdown has something to select.
-    const modeloClientName = `Modelo Dialog Client ${UNIQ}`;
-    await page.goto(BASE_URL);
-    const setupCsrf = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
-    await page.evaluate(async ({ csrf, name }) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrf },
-        body: new URLSearchParams({ "client[name]": name, "client[responsible]": "Tester" })
-      });
-    }, { csrf: setupCsrf, name: modeloClientName });
+  await test("add componente via combobox", async () => {
+    // Ensure a peca exists
+    await page.goto(`${BASE_URL}/pecas/new`)
+    await page.waitForSelector("h2", { timeout: 5000 })
+    await page.fill("input[name='peca[nome]']", "ComponenteTest")
+    await page.click("input[type='submit']")
+    await page.waitForTimeout(1000)
 
-    await page.goto(`${BASE_URL}/modelos`);
-    await page.click('button:has-text("New Modelo")');
-    await page.waitForTimeout(300);
+    // Go to new modelo page
+    await page.goto(`${BASE_URL}/modelos/new`)
+    await page.waitForSelector("h2")
 
-    await page.fill('input[name="modelo[nome]"]', `E2E Modelo ${UNIQ}`);
+    // Type in combobox
+    const input = await page.$(".componentes-input")
+    await input.fill("Componente")
+    await page.waitForTimeout(600)
 
-    // Select the client just provisioned above
-    const clientSelect = page.locator('select[name="modelo[client_uuid]"]');
-    const options = await clientSelect.locator("option").allTextContents();
-    const clientOption = options.find((o) => o.includes(modeloClientName));
-    if (!clientOption) throw new Error(`Client "${modeloClientName}" not found in dropdown`);
-    await clientSelect.selectOption({ label: clientOption });
+    // Wait for results dropdown
+    try {
+      await page.waitForSelector(".combobox-results--open", { timeout: 3000 })
+    } catch (_) {}
 
-    await page.click('button[data-dialog-target="submitBtn"]:has-text("Register")');
-
-    await page.waitForURL("**/modelos", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes(`E2E Modelo ${UNIQ}`)) {
-      throw new Error(`New modelo not found in table. Body preview: ${body.slice(0, 300)}`);
-    }
-  });
-
-  await test("Edit modelo via dialog", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
-
-    const editBtn = page.locator('button:has-text("Edit")').first();
-    await editBtn.click();
-    await page.waitForTimeout(300);
-
-    const title = await page.locator('[data-dialog-target="dialogTitle"]').textContent();
-    if (!title.includes("Edit")) throw new Error(`Dialog title not 'Edit', got "${title}"`);
-
-    await page.fill('input[name="modelo[nome]"]', `Edited Modelo ${UNIQ}`);
-    await page.click('button[data-dialog-target="submitBtn"]:has-text("Update")');
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes(`Edited Modelo ${UNIQ}`)) {
-      throw new Error("Edited modelo name not found");
-    }
-  });
-
-  await test("Modelo show page displays details", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
-    await page.waitForSelector(".clients-table", { timeout: 5000 });
-
-    const showLink = page.locator('a:has-text("Show")').first();
-    const exists = await showLink.count();
-    if (exists === 0) {
-      console.log("        No modelo to show — skipping");
-      return;
-    }
-    await showLink.click();
-    await page.waitForLoadState("networkidle");
-
-    const body = await page.textContent("body");
-    if (!body.includes("Details")) {
-      console.log(`        URL: ${page.url()}`);
-      console.log(`        Body preview: ${body.slice(0, 300)}`);
-      throw new Error("Details section not found");
-    }
-    const backLink = page.locator('a:has-text("All Modelos")');
-    const backExists = await backLink.count();
-    if (backExists === 0) throw new Error("All Modelos link not found");
-  });
-
-  await test("Modelo show: pecas list with toggle appears when molde has pecas", async () => {
-    const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
-    const ts = Date.now();
-    const clientName = `Peca Toggle Client ${ts}`;
-    const moldeName = `Peca Toggle Molde ${ts}`;
-    const modeloName = `Peca Toggle Modelo ${ts}`;
-
-    const modeloId = await page.evaluate(async ({ csrf, clientName, moldeName, modeloName }) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "client[name]": clientName, "client[responsible]": "Tester" })
-      });
-      const cr = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
-      const clients = await cr.json();
-      if (!clients[0]) return null;
-
-      await fetch("/moldes", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName })
-      });
-      const mr = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
-      const moldes = await mr.json();
-      if (!moldes[0]) return null;
-
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_uuid]": clients[0].id, "modelo[molde_uuid]": moldes[0].id })
-      });
-      const mdr = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
-      const modelos = await mdr.json();
-      return modelos[0]?.id || null;
-    }, { csrf: token, clientName, moldeName, modeloName });
-    if (!modeloId) throw new Error("Failed to create modelo with molde");
-
-    await page.goto(`${BASE_URL}/modelos/${modeloId}`);
-    await page.waitForSelector("h2", { timeout: 5000 });
-
-    const body = await page.textContent("body");
-    if (!body.includes("Cortes")) throw new Error("Cortes section not found");
-    if (!body.includes("No organized cuts") && !body.includes("Toggle")) {
-      if (!body.includes("No organized cuts")) {
-        throw new Error("Expected 'No organized cuts' message when molde has no pecas configured");
-      }
+    // Click the option
+    const opt = await page.$(".combobox-option[data-nome]")
+    if (opt) {
+      await opt.click()
+      await page.waitForTimeout(300)
     }
 
-    const toggleSwitches = await page.$$(".toggle-switch");
-    if (toggleSwitches.length === 0) {
-      console.log("        No toggle switches found — molde may have no pecas");
-    }
-  });
-});
+    // Check item was added to list
+    const items = await page.$$(".componentes-lista li")
+    if (items.length === 0) throw Error("no componentes were added to the list")
+
+    // Submit form
+    await page.fill("input[name='modelo[nome]']", "Modelo Combo " + Date.now())
+    await page.click("input[type='submit']")
+    await page.waitForTimeout(1500)
+
+    const b = await page.textContent("body")
+    if (!b.includes("Modelo registered")) throw Error("modelo was not created")
+  })
+
+  await test("edit modelo", async () => {
+    await createModelo(page, "E2E Edit " + Date.now())
+    const url = page.url()
+    await page.goto(url + "/edit")
+    await page.waitForSelector("h2")
+    const inp = await page.$("input[name='modelo[nome]']")
+    const val = await inp.inputValue()
+    await inp.fill(val + " Edited")
+    await page.click("input[type='submit']")
+    await page.waitForTimeout(1500)
+    const b = await page.textContent("body")
+    if (!b.includes(val + " Edited")) throw Error("name not updated")
+  })
+
+})

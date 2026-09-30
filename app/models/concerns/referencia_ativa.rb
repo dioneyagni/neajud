@@ -3,9 +3,9 @@
 # already pointed at it before the deletion stay valid and editable.
 #
 # Usage:
-#   class Modelo < ApplicationRecord
+#   class Molde < ApplicationRecord
 #     include ReferenciaAtiva
-#     recusa_excluido :client, :molde
+#     recusa_excluido :client, :modelo
 #   end
 module ReferenciaAtiva
   extend ActiveSupport::Concern

@@ -40,7 +40,7 @@ Definido em sessão (29/09/2026); a mesma nomenclatura serve para roupas e acess
 
 | Termo | No código hoje | Definição |
 | --- | --- | --- |
-| Produto | não existe | Categoria ampla, obrigatória: tênis, chinelo, camisa, moletom, boné. Tem a grade de tamanhos individuais |
+| Produto | não existe | Categoria ampla, obrigatória: calçado, camisa, banner (lista oficial na Etapa 1.1, 3/5). Tem a grade de tamanhos individuais |
 | Modelo | `Molde` (vira `Modelo` na Etapa 1.1) | Categoria de estilo, obrigatória, com abreviação: Jogging [JGG], Tenis [TNS], Flip Flop, Slide |
 | Molde | `Modelo` (vira `Molde` na Etapa 1.1) | Forma de um cliente, obrigatória. Código fixo `NNN-ABR` (número sequencial por cliente, somando todas as categorias, + abreviação do modelo) e sufixo livre opcional ("002-TNS Furado"). Pode ser variação de outro molde |
 | Referência | não existe | Agrupador opcional de artes dentro de um molde (ex: 19, 20, Fuel, Elite). Escolhida num select com "criar nova". Não mexe em partes nem cortes |
@@ -273,12 +273,23 @@ Etapa 0.6 concluída em 29/09/2026.
 
 A estrutura que é cara de mudar depois: nomes, identificadores e a forma como tamanhos e cortes se relacionam.
 
-**Etapa 1.1 — Hierarquia.** Dois PRs em série (decidido em 29/09/2026; revisto em 30/09/2026).
+**Etapa 1.1 — Hierarquia.** Cinco PRs em série (decidido em 29/09/2026; revisto em 30/09/2026: a estrutura virou quatro PRs para a troca de nomes não carregar regras novas).
 
 **Sem migração de dados (decidido em 30/09/2026):** o beta começa com o banco vazio e cada cliente sobe tudo de novo (clientes, moldes, cortes, artes, pedidos, estoque). As migrações da Fase 1 só mudam o esquema, sem preservar os dados atuais, que são amostras; antes de aplicá-las no desenvolvimento, `bin/dev-backup`.
 
-- **1/2 — UUID em tudo.** Coluna `uuid` (única, gerada na criação) onde faltar, mantendo o ID inteiro como chave interna. Rotas e qualquer referência externa passam a usar o UUID. Nada muda na tela, só os endereços. Concluída em 30/09/2026: "referência externa" é tudo o que sai do servidor (URLs, JSON, valores de formulário), e o id inteiro responde 404; parâmetros com o sufixo `_uuid` (convenção no AGENTS.md).
-- **2/2 — Estrutura.** Produto (com a grade de tamanhos individuais) e Modelo (categoria, com abreviação), vindos da lista oficial do Neajud que acompanha o sistema (a empresa não os edita). O molde escolhe o intervalo da grade que usa e tem as suas partes. Troca cruzada de nomes no código: o `Molde` atual vira `Modelo` e o `Modelo` atual vira `Molde`, feita com nomes intermediários. O Molde ganha código fixo `NNN-ABR` (número por cliente, somando todas as categorias: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` e já nasce com `version`, `base_id` e `published_at` (antiga Etapa 1.3). Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio, e a trava de uma arte por corte + referência + nome.
+- **1/5 — UUID em tudo.** Coluna `uuid` (única, gerada na criação) onde faltar, mantendo o ID inteiro como chave interna. Rotas e qualquer referência externa passam a usar o UUID. Nada muda na tela, só os endereços. Concluída em 30/09/2026: "referência externa" é tudo o que sai do servidor (URLs, JSON, valores de formulário), e o id inteiro responde 404; parâmetros com o sufixo `_uuid` (convenção no AGENTS.md).
+- **2/5 — Troca de nomes.** O `Molde` atual (categoria) vira `Modelo` e o `Modelo` atual (forma do cliente) vira `Molde` em tabelas, colunas, classes, rotas, telas, JS e testes, com nomes intermediários na migração. Sem mudança de comportamento: os testes existentes, renomeados, continuam passando.
+- **3/5 — Catálogo oficial.** Produto (com a grade de tamanhos individuais) e Modelo (categoria, com abreviação), vindos da lista oficial do Neajud em `config/catalogo_oficial.yml` (decidido em 30/09/2026): uuids fixos iguais em todas as empresas, carregada no deploy e no `db:prepare` por uma tarefa que pode rodar de novo sem duplicar; item que sai da lista vai para a lixeira; a empresa só vê, não edita; na Fase 7 a área de super-admin substitui o arquivo. Lista inicial:
+
+  | Produto | Grade | Modelos |
+  | --- | --- | --- |
+  | Calçado | 18 a 46, número a número | Tenis [TNS], Jogging [JGG], Bota [BT], Calce Fácil [CLCF], Chuteira [CHT], Chinelo [CHN], Slide [SLD] |
+  | Camisa | PP, P, M, G, GG, XG (numerações depois) | Camisa [CMS] |
+  | Banner | sem grade (a medida vem com os trabalhos sem corte, Fase 2) | Banner [BNN] |
+
+  O molde escolhe o intervalo da grade que usa. **As partes são só do molde**: a categoria deixa de ter peças; as Peças continuam uma lista da empresa (Lateral, Língua…), e cada molde escolhe as suas e marca "corta/não corta".
+- **4/5 — Código do molde.** Código fixo `NNN-ABR` (número por cliente, somando todas as categorias, nunca reutilizado: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` (a variação nasce com as partes da base copiadas; a herança de verdade é a Fase 5) e as colunas `version`, `base_id` e `published_at` (antiga Etapa 1.3).
+- **5/5 — Referência e Nome.** Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio, e a trava de uma arte por corte + referência + nome.
 
 Exemplo de como os dados reais ficam na nova estrutura (serve de roteiro para os testes; não é migrado):
 
@@ -299,7 +310,7 @@ As referências 19 e 20 da MKS são criadas pela tela.
 - **2/3 — Arte por tamanho.** A arte passa a ter um arquivo por tamanho do corte, com o **agrupamento no upload** e a tela de conferência (regras do domínio); um card por arte na galeria, os tamanhos na página dela. DTF, estampa corrida e cor lisa reaproveitam esse agrupamento na Fase 2.
 - **3/3 — Pedido novo.** O pedido passa a ter um tipo, **um por pedido** (decidido em 30/09/2026): calçado agora; DTF e tecido (estampa corrida e cor lisa juntas, no mesmo pedido) na Fase 2. Tipos diferentes são pedidos separados. O pedido de calçado entra por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul) e tamanho individual, montando sozinho a arte e o corte de cada parte. Um tamanho pedido cuja arte não tem o arquivo daquele tamanho é uma **pendência que bloqueia a confirmação**, como a peça sem arte de hoje (decidido em 30/09/2026).
 
-**Etapa 1.3 — Colunas de versão e base.** Absorvida pela 1.1 (2/2): o Molde já nasce com `version`, `base_id` e `published_at`. A Referência não é versionada, porque agrupa artes e não faz parte do catálogo.
+**Etapa 1.3 — Colunas de versão e base.** Absorvida pela 1.1 (4/5): o Molde já nasce com `version`, `base_id` e `published_at`. A Referência não é versionada, porque agrupa artes e não faz parte do catálogo.
 
 ## Fase 2 — Pronto para o beta
 

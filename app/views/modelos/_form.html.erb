@@ -1,9 +1,9 @@
-<h2><%= molde.new_record? ? "Register New Molde" : "Edit Molde" %></h2>
+<h2><%= modelo.new_record? ? "Register New Modelo" : "Edit Modelo" %></h2>
 
-<%= form_with model: molde, local: true, class: "molde-form" do |f| %>
-  <% if molde.errors.any? %>
+<%= form_with model: modelo, local: true, class: "modelo-form" do |f| %>
+  <% if modelo.errors.any? %>
     <div class="flash flash--error">
-      <%= molde.errors.full_messages.join(", ") %>
+      <%= modelo.errors.full_messages.join(", ") %>
     </div>
   <% end %>
 
@@ -12,10 +12,10 @@
     <%= f.text_field :nome, required: true, autofocus: true %>
   </div>
 
-  <div class="molde-componentes-section"
+  <div class="modelo-componentes-section"
        data-controller="componentes"
        data-componentes-search-url-value="<%= search_pecas_path %>"
-       data-componentes-register-url-value="<%= new_peca_path(molde_uuid: molde.uuid) %>">
+       data-componentes-register-url-value="<%= new_peca_path(modelo_uuid: modelo.uuid) %>">
     <h3>Componentes</h3>
 
     <div class="componentes-buscar">
@@ -27,10 +27,10 @@
     </div>
 
     <ul class="componentes-lista" data-componentes-target="lista">
-      <% molde.pecas.each do |peca| %>
+      <% modelo.pecas.each do |peca| %>
         <li data-peca-id="<%= peca.uuid %>">
           <span class="componente-nome"><%= peca.nome %></span>
-          <input type="hidden" name="molde[peca_uuids][]" value="<%= peca.uuid %>">
+          <input type="hidden" name="modelo[peca_uuids][]" value="<%= peca.uuid %>">
           <button type="button" class="btn btn-danger btn-sm" data-action="click->componentes#remove">&times;</button>
         </li>
       <% end %>
@@ -39,18 +39,18 @@
     <template data-componentes-target="model">
       <li>
         <span class="componente-nome"></span>
-        <input type="hidden" name="molde[peca_uuids][]" value="">
+        <input type="hidden" name="modelo[peca_uuids][]" value="">
         <button type="button" class="btn btn-danger btn-sm" data-action="click->componentes#remove">&times;</button>
       </li>
     </template>
   </div>
 
   <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-    <%= f.submit molde.new_record? ? "Register Molde" : "Update Molde", class: "btn btn-primary" %>
-    <%= link_to "Cancel", moldes_path, class: "btn btn-secondary" %>
+    <%= f.submit modelo.new_record? ? "Register Modelo" : "Update Modelo", class: "btn btn-primary" %>
+    <%= link_to "Cancel", modelos_path, class: "btn btn-secondary" %>
   </div>
 <% end %>
 
 <div class="back-link-wrapper">
-  <%= link_to "Back to Moldes", moldes_path, class: "back-link" %>
+  <%= link_to "Back to Modelos", modelos_path, class: "back-link" %>
 </div>

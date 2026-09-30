@@ -51,9 +51,9 @@ RSpec.describe Excluivel do
 
   describe ".contagem_ativos" do
     it "counts only active children in a LEFT JOIN + GROUP BY" do
-      create(:modelo, client: client, nome: "Ativo")
-      create(:modelo, client: client, nome: "Na lixeira", deleted_at: 1.day.ago)
-      row = Client.left_joins(:modelos).select(Client.arel_table[Arel.star], Modelo.contagem_ativos(as: "n")).group(:id).find(client.id)
+      create(:molde, client: client, nome: "Ativo")
+      create(:molde, client: client, nome: "Na lixeira", deleted_at: 1.day.ago)
+      row = Client.left_joins(:moldes).select(Client.arel_table[Arel.star], Molde.contagem_ativos(as: "n")).group(:id).find(client.id)
       expect(row.n).to eq(1)
     end
   end

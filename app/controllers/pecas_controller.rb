@@ -6,7 +6,7 @@ class PecasController < ApplicationController
 
   def index
     @pecas = Peca.ativos.left_joins(:arquivos)
-                  .includes(:moldes)
+                  .includes(:modelos)
                   .select(Peca.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
                   .group(:id)
                   .order(:nome)
@@ -14,7 +14,7 @@ class PecasController < ApplicationController
 
   def new
     @peca = Peca.new
-    @molde_uuid = params[:molde_uuid]
+    @modelo_uuid = params[:modelo_uuid]
   end
 
   def search
@@ -23,7 +23,7 @@ class PecasController < ApplicationController
   end
 
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, molde: Molde.where(uuid: params[:molde_uuid]))
+    scope = Arquivo.ativos.where(organized: true, modelo: Modelo.where(uuid: params[:modelo_uuid]))
     scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
     peca_ids = scope.distinct.pluck(:peca_id)
     pecas = Peca.ativos.where(id: peca_ids).order(:nome)
@@ -44,15 +44,15 @@ class PecasController < ApplicationController
     @peca = Peca.new(peca_params)
     if @peca.save
       assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
-      if params[:molde_uuid].present?
-        molde = Molde.ativos.por_uuid!(params[:molde_uuid])
-        molde.pecas << @peca
-        redirect_to edit_molde_path(molde), notice: "Peça added to molde."
+      if params[:modelo_uuid].present?
+        modelo = Modelo.ativos.por_uuid!(params[:modelo_uuid])
+        modelo.pecas << @peca
+        redirect_to edit_modelo_path(modelo), notice: "Peça added to modelo."
       else
         redirect_to pecas_path, notice: "Piece registered."
       end
     else
-      @molde_uuid = params[:molde_uuid]
+      @modelo_uuid = params[:modelo_uuid]
       render :new, status: :unprocessable_entity
     end
   end

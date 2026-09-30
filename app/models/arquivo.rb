@@ -7,18 +7,18 @@ class Arquivo < ApplicationRecord
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy
   has_many :tamanhos, dependent: :destroy
-  has_many :arquivo_modelos, dependent: :destroy
-  has_many :modelos, through: :arquivo_modelos
+  has_many :arquivo_moldes, dependent: :destroy
+  has_many :moldes, through: :arquivo_moldes
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :restrict_with_error
   has_many :item_pedido_pecas, dependent: :restrict_with_error
   has_many :vinculo_logs, -> { order(created_at: :desc) }, class_name: "ArquivoVinculoLog", dependent: :destroy
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
-  belongs_to :molde, optional: true
-  belongs_to :peca, optional: true
   belongs_to :modelo, optional: true
+  belongs_to :peca, optional: true
+  belongs_to :molde, optional: true
   belongs_to :tamanho, optional: true
-  atribui_por_uuid :client, :molde, :peca, :modelo, :tamanho
+  atribui_por_uuid :client, :modelo, :peca, :molde, :tamanho
   has_one :corte, through: :tamanho, source: :arquivo
 
   before_validation :set_default_tipo_corte
@@ -26,13 +26,13 @@ class Arquivo < ApplicationRecord
   before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
-  recusa_excluido :client, :modelo, :molde, :peca
+  recusa_excluido :client, :molde, :modelo, :peca
   validates :filename, presence: true
   validates :extension, presence: true
   validates :mime_type, presence: true
   validates :category, inclusion: { in: FileCategory.keys }, allow_nil: true
   validates :tipo_corte, inclusion: { in: %w[apenas_corte corte_estampa] }, if: :corte?
-  validate :peca_modelo_uniqueness_for_organized_corte
+  validate :peca_molde_uniqueness_for_organized_corte
 
   SUPPORTED_EXTENSIONS = FileCategory.extensions
 
@@ -68,10 +68,10 @@ class Arquivo < ApplicationRecord
   end
 
   # Queues the automatic tamanho search, unless a tamanho is already set or
-  # there is no modelo to search in (it was just unlinked).
+  # there is no molde to search in (it was just unlinked).
   # Usage: arte.buscar_tamanho_em_fila!
   def buscar_tamanho_em_fila!
-    return if tamanho_id || modelo_id.nil?
+    return if tamanho_id || molde_id.nil?
 
     update_column(:buscando_tamanho_desde, Time.current)
     TamanhoAutoAssignJob.perform_later(id)
@@ -109,42 +109,42 @@ class Arquivo < ApplicationRecord
     corte&.peca || peca
   end
 
-  # Organized cortes of a modelo: the ones linked to it (arquivo_modelos).
-  # Several modelos share a molde, each with its own cortes (e.g. Tenis Baixo
-  # → 19-20-25, 21-24, 28-29); taking every corte of the molde gave an arte of
+  # Organized cortes of a molde: the ones linked to it (arquivo_moldes).
+  # Several moldes share a modelo, each with its own cortes (e.g. Tenis Baixo
+  # → 19-20-25, 21-24, 28-29); taking every corte of the modelo gave an arte of
   # 28-29 the tamanho of 21-24's corte (bug found 28/09/2026). Only when no
-  # corte is linked to the modelo, the molde's cortes.
-  # Usage: Arquivo.cortes_do_modelo(arte.modelo)
-  def self.cortes_do_modelo(modelo)
-    return none unless modelo&.molde_id
+  # corte is linked to the molde, the modelo's cortes.
+  # Usage: Arquivo.cortes_do_molde(arte.molde)
+  def self.cortes_do_molde(molde)
+    return none unless molde&.modelo_id
 
     organizados = ativos.where(organized: true)
-    ligados = organizados.joins(:arquivo_modelos).where(arquivo_modelos: { modelo_id: modelo.id })
-    ligados.exists? ? ligados : organizados.where(molde_id: modelo.molde_id)
+    ligados = organizados.joins(:arquivo_moldes).where(arquivo_moldes: { molde_id: molde.id })
+    ligados.exists? ? ligados : organizados.where(modelo_id: molde.modelo_id)
   end
 
-  # This arte's corte through its modelo: the one of its own peça when it has
-  # one, else the first of the modelo's cortes.
-  def corte_via_modelo
-    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+  # This arte's corte through its molde: the one of its own peça when it has
+  # one, else the first of the molde's cortes.
+  def corte_via_molde
+    cortes = Arquivo.cortes_do_molde(molde).order(:id).to_a
     (peca_id && cortes.find { |corte| corte.peca_id == peca_id }) || cortes.first
   end
 
-  # After an arte's modelo changes or is unlinked: a tamanho from a corte that
-  # isn't the new modelo's is dropped — the auto search never overrides a
-  # tamanho, so the old modelo's size used to stay (28/09/2026).
-  # Usage: arte.descartar_tamanho_fora_do_modelo!
-  def descartar_tamanho_fora_do_modelo!
+  # After an arte's molde changes or is unlinked: a tamanho from a corte that
+  # isn't the new molde's is dropped — the auto search never overrides a
+  # tamanho, so the old molde's size used to stay (28/09/2026).
+  # Usage: arte.descartar_tamanho_fora_do_molde!
+  def descartar_tamanho_fora_do_molde!
     return if corte? || tamanho.nil?
-    return if modelo && Arquivo.cortes_do_modelo(modelo).exists?(id: tamanho.arquivo_id)
+    return if molde && Arquivo.cortes_do_molde(molde).exists?(id: tamanho.arquivo_id)
 
     update_column(:tamanho_id, nil)
   end
 
-  # Like corte_via_modelo, but nil when it would be a guess: the modelo has
+  # Like corte_via_molde, but nil when it would be a guess: the molde has
   # several cortes (lateral, língua…) and the arte has no peça to pick one.
-  def corte_inequivoco_via_modelo
-    cortes = Arquivo.cortes_do_modelo(modelo).order(:id).to_a
+  def corte_inequivoco_via_molde
+    cortes = Arquivo.cortes_do_molde(molde).order(:id).to_a
     return cortes.first if cortes.one?
 
     peca_id && cortes.find { |corte| corte.peca_id == peca_id }
@@ -200,26 +200,26 @@ class Arquivo < ApplicationRecord
     approved_version&.original_path
   end
 
-  # Organized cortes already claiming `peca_id` for any of `modelo_ids` — the
-  # shared query behind conflicting_corte and peca_occupied_for_modelos?, so
+  # Organized cortes already claiming `peca_id` for any of `molde_ids` — the
+  # shared query behind conflicting_corte and peca_occupied_for_moldes?, so
   # both stay in sync with what "already taken" means (AGENTS.md: no
   # duplication).
-  def self.organized_corte_claiming(peca_id:, modelo_ids:)
+  def self.organized_corte_claiming(peca_id:, molde_ids:)
     Arquivo.ativos.where(category: "corte", organized: true, peca_id: peca_id)
-           .joins(:arquivo_modelos)
-           .where(arquivo_modelos: { modelo_id: modelo_ids })
+           .joins(:arquivo_moldes)
+           .where(arquivo_moldes: { molde_id: molde_ids })
   end
 
-  def self.conflicting_corte(peca_id:, modelo:)
-    return nil unless peca_id.present? && modelo.present?
-    organized_corte_claiming(peca_id: peca_id, modelo_ids: modelo.id).first
+  def self.conflicting_corte(peca_id:, molde:)
+    return nil unless peca_id.present? && molde.present?
+    organized_corte_claiming(peca_id: peca_id, molde_ids: molde.id).first
   end
 
-  def peca_occupied_for_modelos?(peca_id: self.peca_id)
+  def peca_occupied_for_moldes?(peca_id: self.peca_id)
     return false unless corte? && peca_id.present?
-    modelo_ids = modelos.pluck(:id)
-    return false if modelo_ids.empty?
-    Arquivo.organized_corte_claiming(peca_id: peca_id, modelo_ids: modelo_ids)
+    molde_ids = moldes.pluck(:id)
+    return false if molde_ids.empty?
+    Arquivo.organized_corte_claiming(peca_id: peca_id, molde_ids: molde_ids)
            .where.not(id: id)
            .exists?
   end
@@ -268,10 +268,10 @@ class Arquivo < ApplicationRecord
     Arquivo.where(tamanho_id: tamanhos.pluck(:id)).where.not(id: id)
   end
 
-  def peca_modelo_uniqueness_for_organized_corte
+  def peca_molde_uniqueness_for_organized_corte
     return unless corte? && organized? && peca_id.present?
-    return unless peca_occupied_for_modelos?
-    errors.add(:peca_id, "já está em uso por outro corte para este modelo")
+    return unless peca_occupied_for_moldes?
+    errors.add(:peca_id, "já está em uso por outro corte para este molde")
   end
 
   def set_default_tipo_corte
@@ -283,7 +283,7 @@ class Arquivo < ApplicationRecord
   end
 
   def destroy_arquivo_with_versions
-    update_columns(approved_version_id: nil, tamanho_id: nil, client_id: nil, modelo_id: nil, molde_id: nil, peca_id: nil)
+    update_columns(approved_version_id: nil, tamanho_id: nil, client_id: nil, molde_id: nil, modelo_id: nil, peca_id: nil)
   end
 
   def marca_recente?(momento)
