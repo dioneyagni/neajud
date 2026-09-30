@@ -36,7 +36,7 @@
             <td>
               <% if t.id != arquivo.tamanho_id && pode_editar_arquivo?(arquivo) %>
                 <%= button_to "Select", update_tamanho_arquivo_path(arquivo),
-                      params: { tamanho_id: t.id }, method: :patch,
+                      params: { tamanho_uuid: t.uuid }, method: :patch,
                       class: "btn btn-sm btn-primary" %>
               <% end %>
             </td>

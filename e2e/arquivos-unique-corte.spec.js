@@ -22,7 +22,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       const res = await fetch(`/arquivos/${uuid}/update_client`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+        body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_uuid: c.id })
       });
       return res.ok || res.status === 302 ? "ok" : "update_failed";
     }, { token, uuid, clientName });
@@ -31,8 +31,8 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       const body = new URLSearchParams();
       body.append("authenticity_token", token);
       body.append("_method", "patch");
-      body.append("molde_id", moldeId);
-      body.append("peca_id", pecaId);
+      body.append("molde_uuid", moldeId);
+      body.append("peca_uuid", pecaId);
       const res = await fetch(`/arquivos/${uuid}/organize`, {
         method: "POST",
         redirect: "manual",
@@ -91,7 +91,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const mBody = new URLSearchParams();
         mBody.append("authenticity_token", token);
         mBody.append("molde[nome]", `${prefix}Molde`);
-        mBody.append("molde[peca_ids][]", peca.id);
+        mBody.append("molde[peca_uuids][]", peca.id);
         await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
         await new Promise(r => setTimeout(r, 200));
         const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
@@ -103,8 +103,8 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const modBody = new URLSearchParams({
           authenticity_token: token,
           "modelo[nome]": `${prefix}Modelo`,
-          "modelo[client_id]": client.id,
-          "modelo[molde_id]": molde.id
+          "modelo[client_uuid]": client.id,
+          "modelo[molde_uuid]": molde.id
         });
         await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
 
@@ -135,7 +135,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
         });
         return r.status;
       }, { token: csrf1, uuid: uuid1, modeloId });
@@ -161,7 +161,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
         });
         const text = await r.text();
         return { status: r.status, body: text };
@@ -238,7 +238,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const mBody = new URLSearchParams();
         mBody.append("authenticity_token", token);
         mBody.append("molde[nome]", `${prefix}Molde`);
-        mBody.append("molde[peca_ids][]", peca.id);
+        mBody.append("molde[peca_uuids][]", peca.id);
         await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
         await new Promise(r => setTimeout(r, 200));
         const mr = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
@@ -249,8 +249,8 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const modBody = new URLSearchParams({
           authenticity_token: token,
           "modelo[nome]": `${prefix}Modelo`,
-          "modelo[client_id]": client.id,
-          "modelo[molde_id]": molde.id
+          "modelo[client_uuid]": client.id,
+          "modelo[molde_uuid]": molde.id
         });
         await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modBody });
         await new Promise(r => setTimeout(r, 200));
@@ -282,16 +282,16 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const res = await fetch(`/arquivos/${uuid}/update_client`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_uuid: c.id })
         });
         return res.ok || res.status === 302 ? "ok" : "failed";
       }, { token: csrf1, uuid: uuid1, clientName });
       if (clientAssigned !== "ok") throw new Error("Failed to assign client to corte1");
 
       // Pick molde + peca via UI form, submit organize
-      await page.selectOption('select[name="molde_id"]', String(moldeId));
+      await page.selectOption('select[name="molde_uuid"]', String(moldeId));
       await page.waitForTimeout(300);
-      await page.selectOption('select[name="peca_id"]', String(pecaId));
+      await page.selectOption('select[name="peca_uuid"]', String(pecaId));
       await page.waitForTimeout(300);
       await page.click('.mold-organization-form button[type="submit"]');
       await page.waitForTimeout(1000);
@@ -301,7 +301,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
         });
         return r.status;
       }, { token: csrf1, uuid: uuid1, modeloId });
@@ -319,7 +319,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const res = await fetch(`/arquivos/${uuid}/update_client`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: c.id })
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_uuid: c.id })
         });
         return res.ok || res.status === 302 ? "ok" : "failed";
       }, { token: csrf2, uuid: uuid2, clientName });
@@ -330,7 +330,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const r = await fetch(`/arquivos/${uuid}/add_modelo`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, modelo_id: modeloId })
+          body: new URLSearchParams({ authenticity_token: token, modelo_uuid: modeloId })
         });
         return r.status;
       }, { token: csrf2, uuid: uuid2, modeloId });
@@ -340,9 +340,9 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
-      await page.selectOption('select[name="molde_id"]', String(moldeId));
+      await page.selectOption('select[name="molde_uuid"]', String(moldeId));
       await page.waitForTimeout(300);
-      await page.selectOption('select[name="peca_id"]', String(pecaId));
+      await page.selectOption('select[name="peca_uuid"]', String(pecaId));
       await page.waitForTimeout(300);
       await page.click('.mold-organization-form button[type="submit"]');
 

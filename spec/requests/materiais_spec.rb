@@ -13,10 +13,10 @@ RSpec.describe "Materiais", type: :request do
       expect {
         post materiais_path, params: {
           movimento_estoque: {
-            client_id: client.id,
+            client_uuid: client.uuid,
             tipo: "entrada",
-            grupo_material_id: grupo.id,
-            cor_material_id: cor.id,
+            grupo_material_uuid: grupo.uuid,
+            cor_material_uuid: cor.uuid,
             largura: "1,40",
             gramatura: "100g",
             quantidade: "10",
@@ -34,10 +34,10 @@ RSpec.describe "Materiais", type: :request do
     it "normalizes comma to period in largura and valor" do
       post materiais_path, params: {
         movimento_estoque: {
-          client_id: client.id,
+          client_uuid: client.uuid,
           tipo: "entrada",
-          grupo_material_id: grupo.id,
-          cor_material_id: cor.id,
+          grupo_material_uuid: grupo.uuid,
+          cor_material_uuid: cor.uuid,
           largura: "1,40",
           gramatura: "100g",
           quantidade: "5",
@@ -61,10 +61,10 @@ RSpec.describe "Materiais", type: :request do
       expect {
         post materiais_path, params: {
           movimento_estoque: {
-            client_id: client.id,
+            client_uuid: client.uuid,
             tipo: "entrada",
-            grupo_material_id: grupo.id,
-            cor_material_id: cor.id,
+            grupo_material_uuid: grupo.uuid,
+            cor_material_uuid: cor.uuid,
             largura: "1.40",
             gramatura: "100g",
             quantidade: "3",
@@ -78,8 +78,8 @@ RSpec.describe "Materiais", type: :request do
     it "renders new with alert when required fields are missing" do
       post materiais_path, params: {
         movimento_estoque: {
-          client_id: "", tipo: "", grupo_material_id: "",
-          cor_material_id: "", largura: "", gramatura: "",
+          client_uuid: "", tipo: "", grupo_material_uuid: "",
+          cor_material_uuid: "", largura: "", gramatura: "",
           quantidade: ""
         }
       }
@@ -91,10 +91,10 @@ RSpec.describe "Materiais", type: :request do
     it "creates saida movement" do
       post materiais_path, params: {
         movimento_estoque: {
-          client_id: client.id,
+          client_uuid: client.uuid,
           tipo: "saida",
-          grupo_material_id: grupo.id,
-          cor_material_id: cor.id,
+          grupo_material_uuid: grupo.uuid,
+          cor_material_uuid: cor.uuid,
           largura: "1.40",
           gramatura: "100g",
           quantidade: "2.5",

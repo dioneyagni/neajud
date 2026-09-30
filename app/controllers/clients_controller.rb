@@ -35,7 +35,7 @@ class ClientsController < ApplicationController
 
   def search
     clients = Client.ativos.search(params[:q]).limit(10)
-    render json: clients.map { |c| { id: c.id, name: c.name, responsible: c.responsible } }
+    render json: clients.map { |c| { id: c.uuid, name: c.name, responsible: c.responsible } }
   end
 
   def create
@@ -74,7 +74,7 @@ class ClientsController < ApplicationController
   private
 
   def set_client
-    @client = Client.find(params[:id])
+    @client = Client.por_uuid!(params[:id])
   end
 
   def client_params

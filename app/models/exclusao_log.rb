@@ -2,6 +2,7 @@
 # copied so /lixeira history stays readable; changed_by is the IP until
 # Etapa 0.5 brings users (then deleted_by_id/restored_by_id take over).
 class ExclusaoLog < ApplicationRecord
+  include GeraUuid
   ACOES = %w[excluido restaurado].freeze
 
   belongs_to :registro, polymorphic: true

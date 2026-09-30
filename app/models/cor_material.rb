@@ -1,4 +1,5 @@
 class CorMaterial < ApplicationRecord
+  include GeraUuid
   COLOR_HEX = {
     "Branco" => "#FFFFFF",
     "Bege" => "#F5F5DC",

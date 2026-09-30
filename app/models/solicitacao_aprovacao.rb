@@ -11,8 +11,4 @@ class SolicitacaoAprovacao < ApplicationRecord
 
   belongs_to :user
   recusa_excluido :arquivo
-
-  def to_param
-    uuid
-  end
 end

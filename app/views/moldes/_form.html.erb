@@ -15,7 +15,7 @@
   <div class="molde-componentes-section"
        data-controller="componentes"
        data-componentes-search-url-value="<%= search_pecas_path %>"
-       data-componentes-register-url-value="<%= new_peca_path(molde_id: molde.id) %>">
+       data-componentes-register-url-value="<%= new_peca_path(molde_uuid: molde.uuid) %>">
     <h3>Componentes</h3>
 
     <div class="componentes-buscar">
@@ -28,9 +28,9 @@
 
     <ul class="componentes-lista" data-componentes-target="lista">
       <% molde.pecas.each do |peca| %>
-        <li data-peca-id="<%= peca.id %>">
+        <li data-peca-id="<%= peca.uuid %>">
           <span class="componente-nome"><%= peca.nome %></span>
-          <input type="hidden" name="molde[peca_ids][]" value="<%= peca.id %>">
+          <input type="hidden" name="molde[peca_uuids][]" value="<%= peca.uuid %>">
           <button type="button" class="btn btn-danger btn-sm" data-action="click->componentes#remove">&times;</button>
         </li>
       <% end %>
@@ -39,7 +39,7 @@
     <template data-componentes-target="model">
       <li>
         <span class="componente-nome"></span>
-        <input type="hidden" name="molde[peca_ids][]" value="">
+        <input type="hidden" name="molde[peca_uuids][]" value="">
         <button type="button" class="btn btn-danger btn-sm" data-action="click->componentes#remove">&times;</button>
       </li>
     </template>

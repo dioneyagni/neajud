@@ -25,10 +25,6 @@ class AprovacaoArte < ApplicationRecord
   validates :canal_detalhe, presence: { message: "is required when the channel is Outro" }, if: -> { canal == "outro" }
   validates :aprovado_em, presence: true
 
-  def to_param
-    uuid
-  end
-
   # Usage: aprovacao.rotulo_canal # => "WhatsApp" / "Outro: Instagram"
   def rotulo_canal
     canal == "outro" ? "Outro: #{canal_detalhe}" : CANAIS.fetch(canal)

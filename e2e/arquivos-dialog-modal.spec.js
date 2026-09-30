@@ -32,7 +32,7 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
         body: new URLSearchParams({ authenticity_token: token, ...fields }) });
       await post("/clients", { "client[name]": `Dialog Client ${uniq}`, "client[responsible]": "T" });
       const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(`Dialog Client ${uniq}`)}`)).json())[0];
-      return (await post(`/arquivos/${uuid}/update_client`, { _method: "patch", client_id: client.id })).ok;
+      return (await post(`/arquivos/${uuid}/update_client`, { _method: "patch", client_uuid: client.id })).ok;
     }, { uuid: arteUuid, uniq: UNIQ });
     if (!ok) throw new Error("Could not link a client to the arte");
   });
@@ -71,7 +71,7 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
       secao.locator(".combobox-input").fill("Dialog")
     ]);
     const url = new URL(requisicao.url());
-    if (!url.searchParams.get("client_id") || url.searchParams.get("client_id").includes("?")) throw new Error(`Malformed search URL: ${requisicao.url()}`);
+    if (!url.searchParams.get("client_uuid") || url.searchParams.get("client_uuid").includes("?")) throw new Error(`Malformed search URL: ${requisicao.url()}`);
     await secao.locator(".combobox-option").filter({ hasText: modeloName }).first().waitFor();
   });
 
@@ -93,14 +93,14 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
     const linha = page.locator(".clients-table tbody tr").filter({ hasText: modeloName });
     await linha.locator("button:has-text('Edit')").click();
     const dialogo = page.locator("dialog[open]");
-    const valor = await dialogo.locator("#modelo_client_id_dialog").inputValue();
+    const valor = await dialogo.locator("#modelo_client_uuid_dialog").inputValue();
     if (valor !== String(trashed)) throw new Error(`Client select is "${valor}", expected the trashed client ${trashed}`);
     await dialogo.locator("#modelo_nome_dialog").fill(`${modeloName} Editado`);
     await dialogo.locator("button[type='submit']").click();
     await waitForText(page, "Modelo updated.");
 
     await page.click("button:has-text('New Modelo')");
-    const oferecido = await page.locator(`dialog[open] #modelo_client_id_dialog option[value="${trashed}"]`).evaluate((o) => !o.hidden && !o.disabled);
+    const oferecido = await page.locator(`dialog[open] #modelo_client_uuid_dialog option[value="${trashed}"]`).evaluate((o) => !o.hidden && !o.disabled);
     if (oferecido) throw new Error("The trashed client is offered when creating a modelo");
   });
 });

@@ -1,4 +1,5 @@
 class MateriaPrima < ApplicationRecord
+  include GeraUuid
   belongs_to :grupo_material
   belongs_to :cor_material
   has_many :movimento_estoques, dependent: :restrict_with_error

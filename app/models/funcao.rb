@@ -25,10 +25,6 @@ class Funcao < ApplicationRecord
   validate :grade_valida
   validate :dono_imutavel, on: :update
 
-  def to_param
-    uuid
-  end
-
   # Idempotent: an existing função of the same name is left as it is.
   # Usage: Funcao.criar_padrao!
   def self.criar_padrao!

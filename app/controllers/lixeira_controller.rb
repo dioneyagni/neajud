@@ -15,7 +15,7 @@ class LixeiraController < ApplicationController
     @excluidos_por_tipo = TIPOS.transform_values { |model| model.excluidos.includes(exclusao_logs: :user).order(deleted_at: :desc) }
   end
 
-  # Usage: POST /lixeira/clients/12/restaurar
+  # Usage: POST /lixeira/clients/<uuid>/restaurar
   def restaurar
     registro = registro_excluido
     registro.restaurar!(**autoria)
@@ -24,10 +24,8 @@ class LixeiraController < ApplicationController
 
   private
 
-  # Arquivos and pedidos are addressed by uuid everywhere else; the rest by id.
   def registro_excluido
     model = TIPOS.fetch(params[:tipo]) { raise ActionController::RoutingError, "Unknown trash type #{params[:tipo].inspect}; expected one of #{TIPOS.keys.join(", ")}" }
-    chave = model.column_names.include?("uuid") ? :uuid : :id
-    model.excluidos.find_by!(chave => params[:id])
+    model.excluidos.por_uuid!(params[:id])
   end
 end

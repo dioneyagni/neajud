@@ -60,22 +60,22 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         await fetch("/moldes", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold", "molde[peca_ids][]": pecaId || "" })
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "AutoDetectMold", "molde[peca_uuids][]": pecaId || "" })
         });
       }, csrf);
 
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
 
-      await page.selectOption('select[name="molde_id"]', { label: "AutoDetectMold" });
-      await page.selectOption('select[name="peca_id"]', { label: "AutoDetectPiece" });
+      await page.selectOption('select[name="molde_uuid"]', { label: "AutoDetectMold" });
+      await page.selectOption('select[name="peca_uuid"]', { label: "AutoDetectPiece" });
 
       const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
       if (!saveBtn) throw new Error("Save button not found on mold organization form");
       await saveBtn.click();
       await page.waitForTimeout(1500);
 
-      // Get the molde_id from the organized DXF page
+      // Get the molde uuid from the organized DXF page
       dxfUuid = await page.evaluate(() => {
         const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
         return m ? m[1] : null;
@@ -137,7 +137,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         if (!client) return { ok: false, step: "find client" };
 
         // Assign client to arte
-        const cf = new URLSearchParams({ authenticity_token: token, client_id: client.id });
+        const cf = new URLSearchParams({ authenticity_token: token, client_uuid: client.id });
         const cr = await fetch(`/arquivos/${arteUuid}/update_client`, {
           method: "PATCH",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -152,8 +152,8 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
           body: new URLSearchParams({
             authenticity_token: token,
             "modelo[nome]": "AutoDetectModel",
-            "modelo[client_id]": client.id,
-            "modelo[molde_id]": moldeId
+            "modelo[client_uuid]": client.id,
+            "modelo[molde_uuid]": moldeId
           })
         });
         if (!mr.ok) return { ok: false, step: "create modelo", status: mr.status };
@@ -165,7 +165,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         if (!modelo) return { ok: false, step: "find modelo" };
 
         // Assign modelo to arte via update_modelo (triggers MoldMatchService)
-        const mf = new URLSearchParams({ authenticity_token: token, modelo_id: modelo.id });
+        const mf = new URLSearchParams({ authenticity_token: token, modelo_uuid: modelo.id });
         const mur = await fetch(`/arquivos/${arteUuid}/update_modelo`, {
           method: "PATCH",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

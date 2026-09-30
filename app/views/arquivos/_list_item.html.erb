@@ -36,7 +36,7 @@
             data-add-to-order-arte-uuid="<%= arquivo.uuid %>"
             data-add-to-order-arte-filename="<%= arquivo.filename %>"
             data-add-to-order-arte-client="<%= arquivo.client&.name %>"
-            data-add-to-order-arte-client-id="<%= arquivo.client_id %>"
+            data-add-to-order-arte-client-uuid="<%= arquivo.client&.uuid %>"
             data-add-to-order-arte-preview="<%= arquivo.preview_file.present? ? preview_arquivo_path(arquivo) : "" %>"
             data-add-to-order-tamanhos="<%= tamanhos_for_arte(arquivo).to_json %>"
             title="Adicionar ao Pedido">

@@ -234,10 +234,15 @@ runSpec("Movimentos E2E Tests", async ({ page, test, consoleErrors }) => {
     const isOpen = await dialog.evaluate((el) => el.open);
     if (!isOpen) throw new Error("Dialog did not open");
 
-    // Centered in viewport
+    // Centered in viewport. Measured against the root's clientWidth/Height:
+    // a modal dialog is centered in the area without the page scrollbar, and
+    // innerWidth counts it — with --headed on a small window (945px in WSLg)
+    // and enough colors to wrap the swatches, the page scrolls and the check
+    // failed by exactly the scrollbar's 15px (Etapa 1.1 run, 30/09/2026).
     const box = await dialog.evaluate((el) => {
       const r = el.getBoundingClientRect();
-      return { left: r.left, right: window.innerWidth - r.right, top: r.top, bottom: window.innerHeight - r.bottom };
+      const root = document.documentElement;
+      return { left: r.left, right: root.clientWidth - r.right, top: r.top, bottom: root.clientHeight - r.bottom };
     });
     if (Math.abs(box.left - box.right) > 5) throw new Error(`Dialog not horizontally centered: ${JSON.stringify(box)}`);
 

@@ -1,28 +1,30 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
+  // Option values are uuids (Etapa 1.1): /moldes/<uuid>/pecas answers
+  // { id: <peca uuid>, nome }.
   static targets = ["moldeSelect", "pecaSelect"]
 
   connect() {
-    const moldeId = this.moldeSelectTarget.value
-    if (moldeId) {
-      this.fetchPecas(moldeId)
+    const moldeUuid = this.moldeSelectTarget.value
+    if (moldeUuid) {
+      this.fetchPecas(moldeUuid)
     }
   }
 
   onMoldeChange() {
-    const moldeId = this.moldeSelectTarget.value
+    const moldeUuid = this.moldeSelectTarget.value
 
-    if (!moldeId) {
+    if (!moldeUuid) {
       this.fetchAllPecas()
       return
     }
 
-    this.fetchPecas(moldeId)
+    this.fetchPecas(moldeUuid)
   }
 
-  fetchPecas(moldeId) {
-    fetch(`/moldes/${moldeId}/pecas`)
+  fetchPecas(moldeUuid) {
+    fetch(`/moldes/${moldeUuid}/pecas`)
       .then(r => r.json())
       .then(pecas => {
         const current = this.pecaSelectTarget.dataset.originalValue || ""

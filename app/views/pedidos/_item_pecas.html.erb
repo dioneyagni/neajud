@@ -9,7 +9,7 @@
      data-item-pecas-url-value="<%= alternar_peca_pedido_path(pedido, id: item.uuid) %>"
      data-item-pecas-producao-url-value="<%= producao_pedido_path(pedido) %>">
   <% pecas.each do |peca_row| %>
-    <div class="pedido-peca pedido-peca--<%= peca_row.estado %>" data-peca-id="<%= peca_row.id %>">
+    <div class="pedido-peca pedido-peca--<%= peca_row.estado %>" data-peca-uuid="<%= peca_row.uuid %>">
       <% if peca_row.arquivo && (peca_row.arquivo.pending? || peca_row.arquivo.processing?) %>
         <%# Queued processing (Etapa 0.3): reload the page once the arte is ready. %>
         <div class="pedido-peca-thumb pedido-peca-thumb--empty"

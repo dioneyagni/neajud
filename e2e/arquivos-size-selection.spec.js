@@ -60,7 +60,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const res = await fetch(`/arquivos/${uuid}/update_client`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clientId })
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_uuid: clientId })
         });
         return res.ok;
       }, { token: csrf, clientId });
@@ -170,7 +170,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const moldeBody = new URLSearchParams();
         moldeBody.append("authenticity_token", token);
         moldeBody.append("molde[nome]", "Comp Molde");
-        moldeBody.append("molde[peca_ids][]", pecas[0].id);
+        moldeBody.append("molde[peca_uuids][]", pecas[0].id);
         await fetch("/moldes", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: moldeBody });
         const moldeRes = await fetch("/moldes/search?q=Comp Molde");
         const moldes = await moldeRes.json();
@@ -186,8 +186,8 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
           body: new URLSearchParams({
             authenticity_token: token,
             "modelo[nome]": "Comp Modelo",
-            "modelo[client_id]": clients[0].id,
-            "modelo[molde_id]": moldes[0].id
+            "modelo[client_uuid]": clients[0].id,
+            "modelo[molde_uuid]": moldes[0].id
           })
         });
 
@@ -248,7 +248,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const res = await fetch(`/arquivos/${uuid}/update_client`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_id: clients[0].id })
+          body: new URLSearchParams({ authenticity_token: token, _method: "patch", client_uuid: clients[0].id })
         });
         return res.ok;
       }, { token: orgCsrf, clientName });
@@ -260,8 +260,8 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const body = new URLSearchParams();
         body.append("authenticity_token", token);
         body.append("_method", "patch");
-        body.append("molde_id", chain.moldeId);
-        body.append("peca_id", chain.pecaId);
+        body.append("molde_uuid", chain.moldeId);
+        body.append("peca_uuid", chain.pecaId);
         body.append("tamanhos[0][nome]", "99");
         body.append("tamanhos[0][width_mm]", "150");
         body.append("tamanhos[0][height_mm]", "250");
@@ -286,7 +286,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
 
       // Find the organized arquivo's tamanho id via the correct molde/peca
       const tamanhoId = await page.evaluate(async ({ token, moldeId, pecaId }) => {
-        const r = await fetch(`/tamanhos/for_cascade?molde_id=${moldeId}&peca_id=${pecaId}`);
+        const r = await fetch(`/tamanhos/for_cascade?molde_uuid=${moldeId}&peca_uuid=${pecaId}`);
         const all = await r.json();
         const found = all.find(t => t.nome === "99");
         return found ? found.id : null;
@@ -297,7 +297,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       // Set tamanho via API
       const setResult = await page.evaluate(async ({ token, tamanhoId }) => {
         const uuid = window.location.pathname.split("/").pop();
-        const body = new URLSearchParams({ authenticity_token: token, _method: "patch", tamanho_id: tamanhoId });
+        const body = new URLSearchParams({ authenticity_token: token, _method: "patch", tamanho_uuid: tamanhoId });
         const r = await fetch(`/arquivos/${uuid}/update_tamanho`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

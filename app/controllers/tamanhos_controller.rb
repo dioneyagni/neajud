@@ -26,12 +26,13 @@ class TamanhosController < ApplicationController
   end
 
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, molde_id: params[:molde_id], peca_id: params[:peca_id])
-    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+    scope = Arquivo.ativos.where(organized: true, molde: Molde.where(uuid: params[:molde_uuid]),
+                                 peca: Peca.where(uuid: params[:peca_uuid]))
+    scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
     arquivo_ids = scope.pluck(:id)
     tamanhos = Tamanho.where(arquivo_id: arquivo_ids).order(:nome)
     render json: tamanhos.map { |t|
-      { id: t.id, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }
+      { id: t.uuid, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }
     }
   end
 
@@ -50,10 +51,10 @@ class TamanhosController < ApplicationController
     return if status.success?
 
     Rails.logger.error "extract-tamanho-dxf.js failed (position=#{@tamanho.position}): #{stderr.strip}"
-    raise "Failed to extract tamanho #{@tamanho.id} (position #{@tamanho.position}) from #{version.original_path}"
+    raise "Failed to extract tamanho #{@tamanho.uuid} (position #{@tamanho.position}) from #{version.original_path}"
   end
 
   def set_tamanho
-    @tamanho = Tamanho.find(params[:id])
+    @tamanho = Tamanho.por_uuid!(params[:id])
   end
 end

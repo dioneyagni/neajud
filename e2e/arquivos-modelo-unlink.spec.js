@@ -29,10 +29,10 @@ runSpec("Arquivos E2E: unlink model", async ({ page, test }) => {
         body: new URLSearchParams({ authenticity_token: token, ...fields }) });
       await post("/clients", { "client[name]": `Unlink Client ${uniq}`, "client[responsible]": "T" });
       const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(`Unlink Client ${uniq}`)}`)).json())[0];
-      await post("/modelos", { "modelo[nome]": `Unlink Modelo ${uniq}`, "modelo[client_id]": client.id });
+      await post("/modelos", { "modelo[nome]": `Unlink Modelo ${uniq}`, "modelo[client_uuid]": client.id });
       const modelo = (await (await fetch(`/modelos/search?q=${encodeURIComponent(`Unlink Modelo ${uniq}`)}`)).json())[0];
-      const c = await post(`/arquivos/${uuid}/update_client`, { _method: "patch", client_id: client.id });
-      const m = await post(`/arquivos/${uuid}/update_modelo`, { _method: "patch", modelo_id: modelo.id });
+      const c = await post(`/arquivos/${uuid}/update_client`, { _method: "patch", client_uuid: client.id });
+      const m = await post(`/arquivos/${uuid}/update_modelo`, { _method: "patch", modelo_uuid: modelo.id });
       return c.ok && m.ok;
     }, { uuid: arteUuid, uniq: UNIQ });
     if (!ok) throw new Error("Could not link client and model to the arte");

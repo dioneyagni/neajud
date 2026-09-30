@@ -14,20 +14,20 @@ class PecasController < ApplicationController
 
   def new
     @peca = Peca.new
-    @molde_id = params[:molde_id]
+    @molde_uuid = params[:molde_uuid]
   end
 
   def search
     pecas = Peca.ativos.search(params[:q]).limit(10)
-    render json: pecas.map { |p| { id: p.id, nome: p.nome } }
+    render json: pecas.map { |p| { id: p.uuid, nome: p.nome } }
   end
 
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, molde_id: params[:molde_id])
-    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+    scope = Arquivo.ativos.where(organized: true, molde: Molde.where(uuid: params[:molde_uuid]))
+    scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
     peca_ids = scope.distinct.pluck(:peca_id)
     pecas = Peca.ativos.where(id: peca_ids).order(:nome)
-    render json: pecas.map { |p| { id: p.id, nome: p.nome } }
+    render json: pecas.map { |p| { id: p.uuid, nome: p.nome } }
   end
 
   def create
@@ -44,14 +44,15 @@ class PecasController < ApplicationController
     @peca = Peca.new(peca_params)
     if @peca.save
       assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
-      if params[:molde_id].present?
-        Molde.ativos.find(params[:molde_id]).pecas << @peca
-        redirect_to edit_molde_path(params[:molde_id]), notice: "Peça added to molde."
+      if params[:molde_uuid].present?
+        molde = Molde.ativos.por_uuid!(params[:molde_uuid])
+        molde.pecas << @peca
+        redirect_to edit_molde_path(molde), notice: "Peça added to molde."
       else
         redirect_to pecas_path, notice: "Piece registered."
       end
     else
-      @molde_id = params[:molde_id]
+      @molde_uuid = params[:molde_uuid]
       render :new, status: :unprocessable_entity
     end
   end
@@ -75,7 +76,7 @@ class PecasController < ApplicationController
   private
 
   def set_peca
-    @peca = Peca.find(params[:id])
+    @peca = Peca.por_uuid!(params[:id])
   end
 
   def assign_peca_to_arquivo(peca)

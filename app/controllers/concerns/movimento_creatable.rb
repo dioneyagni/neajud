@@ -6,7 +6,7 @@ module MovimentoCreatable
   def movimento_build
     normalize_decimal_separator
     load_form_data
-    @movimento = MovimentoEstoque.new(movimento_params.except(:grupo_material_id, :cor_material_id, :largura, :gramatura))
+    @movimento = MovimentoEstoque.new(movimento_params.except(:grupo_material_uuid, :cor_material_uuid, :largura, :gramatura))
   end
 
   def movimento_save
@@ -36,34 +36,36 @@ module MovimentoCreatable
   end
 
   def populate_selected_values
-    @selected_cor_id = movimento_params[:cor_material_id]
-    @selected_grupo_id = movimento_params[:grupo_material_id]
+    @selected_cor_uuid = movimento_params[:cor_material_uuid]
+    @selected_grupo_uuid = movimento_params[:grupo_material_uuid]
     @largura_val = movimento_params[:largura]
     @gramatura_val = movimento_params[:gramatura]&.sub(/g\z/, "")
-    @selected_client_nome = Client.find_by(id: @movimento.client_id)&.name
-    @selected_grupo_nome = GrupoMaterial.find_by(id: @selected_grupo_id)&.nome
+    @selected_client_nome = @movimento.client&.name
+    @selected_grupo_nome = grupo_escolhido&.nome
   end
 
   def movimento_params
-    params.require(:movimento_estoque).permit(:client_id, :tipo, :quantidade, :valor,
-                                              :grupo_material_id, :cor_material_id, :largura, :gramatura)
+    params.require(:movimento_estoque).permit(:client_uuid, :tipo, :quantidade, :valor,
+                                              :grupo_material_uuid, :cor_material_uuid, :largura, :gramatura)
   end
 
+  def grupo_escolhido
+    GrupoMaterial.find_by(uuid: movimento_params[:grupo_material_uuid].to_s)
+  end
+
+  def cor_escolhida
+    CorMaterial.find_by(uuid: movimento_params[:cor_material_uuid].to_s)
+  end
+
+  # Unknown group/color uuids leave the reference nil, so the new material
+  # fails validation and the form shows "Invalid material".
   def find_or_create_materia_prima
-    mp = MateriaPrima.find_by(
-      grupo_material_id: movimento_params[:grupo_material_id],
-      cor_material_id: movimento_params[:cor_material_id],
-      largura: movimento_params[:largura],
-      gramatura: movimento_params[:gramatura]
-    )
+    atributos = { grupo_material: grupo_escolhido, cor_material: cor_escolhida,
+                  largura: movimento_params[:largura], gramatura: movimento_params[:gramatura] }
+    mp = MateriaPrima.find_by(atributos)
     return mp if mp
 
-    mp = MateriaPrima.new(
-      grupo_material_id: movimento_params[:grupo_material_id],
-      cor_material_id: movimento_params[:cor_material_id],
-      largura: movimento_params[:largura],
-      gramatura: movimento_params[:gramatura]
-    )
+    mp = MateriaPrima.new(atributos)
     mp.save ? mp : nil
   end
 end

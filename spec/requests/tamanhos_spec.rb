@@ -80,7 +80,7 @@ RSpec.describe "Tamanhos", type: :request do
       arquivo = create(:arquivo, organized: true, molde: molde, peca: peca)
       tamanho = create(:tamanho, arquivo: arquivo, nome: "G", position: 1, width_mm: 100, height_mm: 50)
 
-      get for_cascade_tamanhos_path, params: { molde_id: molde.id, peca_id: peca.id }
+      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json).to be_an(Array)
@@ -100,7 +100,7 @@ RSpec.describe "Tamanhos", type: :request do
       arquivo = create(:arquivo, tipo_corte: "apenas_corte", organized: true, molde: molde, peca: peca)
       create(:tamanho, arquivo: arquivo, nome: "G", position: 1)
 
-      get for_cascade_tamanhos_path, params: { molde_id: molde.id, peca_id: peca.id }
+      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)

@@ -318,7 +318,8 @@ runSpec("Pages E2E: clients, moldes & pecas", async ({ page, test }) => {
     if ((await editLink.count()) === 0) throw new Error("Edit link not found");
 
     await editLink.click();
-    await page.waitForURL(/\/pecas\/\d+\/edit/);
+    // Etapa 1.1: peças are addressed by uuid, never by the integer id.
+    await page.waitForURL(/\/pecas\/[0-9a-f-]{36}\/edit/);
 
     const nomeInput = page.locator("input[name='peca[nome]']");
     const currentName = await nomeInput.inputValue();

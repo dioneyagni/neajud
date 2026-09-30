@@ -41,10 +41,10 @@ runSpec("Arquivos E2E: DXF mold organization & overlap", async ({ page, test }) 
     if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
 
     // Verify mold and piece selects exist
-    const moldeSelect = await page.$('select[name="molde_id"]');
+    const moldeSelect = await page.$('select[name="molde_uuid"]');
     if (!moldeSelect) throw new Error("Molde select not found");
 
-    const pecaSelect = await page.$('select[name="peca_id"]');
+    const pecaSelect = await page.$('select[name="peca_uuid"]');
     if (!pecaSelect) throw new Error("Piece select not found");
 
     // Verify tamanho rows
@@ -82,7 +82,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
       await fetch("/moldes", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis", "molde[peca_ids][]": pecaId || "" })
+        body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "Tênis", "molde[peca_uuids][]": pecaId || "" })
       });
     }, csrf);
 
@@ -96,8 +96,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(500);
 
     // Select molde and peca from dropdowns
-    await page.selectOption('select[name="molde_id"]', { label: "Tênis" });
-    await page.selectOption('select[name="peca_id"]', { label: "Cabedal" });
+    await page.selectOption('select[name="molde_uuid"]', { label: "Tênis" });
+    await page.selectOption('select[name="peca_uuid"]', { label: "Cabedal" });
 
     // Change tamanho name
     const tamanhoInput = await page.$(".tamanho-input");

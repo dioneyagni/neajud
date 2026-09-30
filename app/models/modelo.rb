@@ -1,9 +1,11 @@
 class Modelo < ApplicationRecord
+  include GeraUuid
   include Excluivel
   include ReferenciaAtiva
 
   belongs_to :client
   belongs_to :molde, optional: true
+  atribui_por_uuid :client, :molde
   has_many :arquivos, dependent: :nullify
   has_many :arquivo_modelos, dependent: :destroy
   has_many :vinculated_arquivos, through: :arquivo_modelos, source: :arquivo
@@ -39,9 +41,5 @@ class Modelo < ApplicationRecord
     end
 
     modelo_pecas.where.not(peca_id: molde_peca_ids).delete_all
-  end
-
-  def to_param
-    id.to_s
   end
 end

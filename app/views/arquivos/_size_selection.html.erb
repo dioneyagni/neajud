@@ -1,8 +1,8 @@
 <div class="stamp-detail-section stamp-detail-section--full" id="size-selection-section"
      data-controller="size-cascade edit-toggle"
-     data-size-cascade-molde-id-value="<%= arquivo.modelo&.molde_id %>"
-     data-size-cascade-modelo-id-value="<%= arquivo.modelo_id %>"
-     data-size-cascade-client-id-value="<%= arquivo.client_id %>"
+     data-size-cascade-molde-uuid-value="<%= arquivo.modelo&.molde&.uuid %>"
+     data-size-cascade-modelo-uuid-value="<%= arquivo.modelo&.uuid %>"
+     data-size-cascade-client-uuid-value="<%= arquivo.client&.uuid %>"
       <% unless arquivo.client.present? && arquivo.modelo.present? %>style="display:none"<% end %>>
   <h3 class="section-heading-with-action">Size Selection
     <% if arquivo.tamanho_id.present? %>
@@ -62,7 +62,7 @@
 
       <%= form_with url: update_tamanho_arquivo_path(arquivo), method: :patch,
             data: { turbo_stream: true } do |f| %>
-        <input type="hidden" name="tamanho_id" value="" data-size-cascade-target="tamanhoId">
+        <input type="hidden" name="tamanho_uuid" value="" data-size-cascade-target="tamanhoUuid">
         <div class="edit-actions" style="margin-top: 0.75rem;">
           <button type="submit" class="btn-icon btn-confirm" data-size-cascade-target="saveBtn" disabled title="Save Size">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_140000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -105,12 +105,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "to_modelo_nome", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_arquivo_vinculo_logs_on_arquivo_id"
     t.index ["from_modelo_id"], name: "index_arquivo_vinculo_logs_on_from_modelo_id"
     t.index ["peca_id"], name: "index_arquivo_vinculo_logs_on_peca_id"
     t.index ["pedido_id"], name: "index_arquivo_vinculo_logs_on_pedido_id"
     t.index ["to_modelo_id"], name: "index_arquivo_vinculo_logs_on_to_modelo_id"
     t.index ["user_id"], name: "index_arquivo_vinculo_logs_on_user_id"
+    t.index ["uuid"], name: "index_arquivo_vinculo_logs_on_uuid", unique: true
   end
 
   create_table "arquivos", force: :cascade do |t|
@@ -173,14 +175,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["deleted_at"], name: "index_clients_on_deleted_at"
+    t.index ["uuid"], name: "index_clients_on_uuid", unique: true
   end
 
   create_table "cor_materiais", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "nome", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["nome"], name: "index_cor_materiais_on_nome", unique: true
+    t.index ["uuid"], name: "index_cor_materiais_on_uuid", unique: true
   end
 
   create_table "cut_layers", force: :cascade do |t|
@@ -194,8 +200,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.decimal "perimeter_mm", precision: 10, scale: 2
     t.integer "position"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.decimal "width_mm", precision: 10, scale: 2
     t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
+    t.index ["uuid"], name: "index_cut_layers_on_uuid", unique: true
   end
 
   create_table "empresas", force: :cascade do |t|
@@ -215,8 +223,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "registro_type", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.string "uuid", null: false
     t.index ["registro_type", "registro_id"], name: "index_exclusao_logs_on_registro"
     t.index ["user_id"], name: "index_exclusao_logs_on_user_id"
+    t.index ["uuid"], name: "index_exclusao_logs_on_uuid", unique: true
   end
 
   create_table "funcoes", force: :cascade do |t|
@@ -240,7 +250,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "created_at", null: false
     t.string "nome", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
+    t.index ["uuid"], name: "index_grupo_materiais_on_uuid", unique: true
   end
 
   create_table "item_pedido_pecas", force: :cascade do |t|
@@ -251,10 +263,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.integer "peca_id"
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_item_pedido_pecas_on_arquivo_id"
     t.index ["item_pedido_id", "peca_id"], name: "index_item_pedido_pecas_on_item_pedido_id_and_peca_id", unique: true
     t.index ["item_pedido_id"], name: "index_item_pedido_pecas_on_item_pedido_id"
     t.index ["peca_id"], name: "index_item_pedido_pecas_on_peca_id"
+    t.index ["uuid"], name: "index_item_pedido_pecas_on_uuid", unique: true
   end
 
   create_table "itens_pedido", force: :cascade do |t|
@@ -287,9 +301,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.integer "grupo_material_id", null: false
     t.string "largura", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
     t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura"], name: "idx_materia_primas_composite", unique: true
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
+    t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end
 
   create_table "modelo_pecas", force: :cascade do |t|
@@ -298,9 +314,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.boolean "needs_cut", default: true, null: false
     t.integer "peca_id", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["modelo_id", "peca_id"], name: "index_modelo_pecas_on_modelo_id_and_peca_id", unique: true
     t.index ["modelo_id"], name: "index_modelo_pecas_on_modelo_id"
     t.index ["peca_id"], name: "index_modelo_pecas_on_peca_id"
+    t.index ["uuid"], name: "index_modelo_pecas_on_uuid", unique: true
   end
 
   create_table "modelos", force: :cascade do |t|
@@ -313,10 +331,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["client_id"], name: "index_modelos_on_client_id"
     t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
     t.index ["molde_id"], name: "index_modelos_on_molde_id"
     t.index ["nome", "client_id"], name: "index_modelos_on_nome_and_client_id", unique: true
+    t.index ["uuid"], name: "index_modelos_on_uuid", unique: true
   end
 
   create_table "molde_pecas", id: false, force: :cascade do |t|
@@ -335,8 +355,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["deleted_at"], name: "index_moldes_on_deleted_at"
     t.index ["nome"], name: "index_moldes_on_nome", unique: true
+    t.index ["uuid"], name: "index_moldes_on_uuid", unique: true
   end
 
   create_table "movimento_estoques", force: :cascade do |t|
@@ -346,10 +368,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.decimal "quantidade", default: "0.0", null: false
     t.string "tipo", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.decimal "valor", precision: 10, scale: 2
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
+    t.index ["uuid"], name: "index_movimento_estoques_on_uuid", unique: true
   end
 
   create_table "pecas", force: :cascade do |t|
@@ -360,8 +384,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.index ["deleted_at"], name: "index_pecas_on_deleted_at"
     t.index ["nome"], name: "index_pecas_on_nome", unique: true
+    t.index ["uuid"], name: "index_pecas_on_uuid", unique: true
   end
 
   create_table "pedidos", force: :cascade do |t|
@@ -417,8 +443,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "preview_file"
     t.decimal "total_line_mm"
     t.datetime "updated_at", null: false
+    t.string "uuid", null: false
     t.decimal "width_mm", precision: 10, scale: 2
     t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
+    t.index ["uuid"], name: "index_tamanhos_on_uuid", unique: true
   end
 
   create_table "users", force: :cascade do |t|

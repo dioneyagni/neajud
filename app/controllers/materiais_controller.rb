@@ -13,8 +13,8 @@ class MateriaisController < ApplicationController
 
   def new
     load_form_data
-    @movimento = MovimentoEstoque.new(client_id: params[:client_id])
-    @selected_client_nome = Client.find_by(id: params[:client_id])&.name
+    @movimento = MovimentoEstoque.new(client: Client.find_by(uuid: params[:client_uuid].to_s))
+    @selected_client_nome = @movimento.client&.name
   end
 
   def create
@@ -24,7 +24,7 @@ class MateriaisController < ApplicationController
 
   def grupos
     grupos = params[:q].present? ? GrupoMaterial.search(params[:q]) : GrupoMaterial.order(:nome)
-    render json: grupos.limit(10).map { |g| { id: g.id, nome: g.nome } }
+    render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome } }
   end
 
   def create_grupo
@@ -32,7 +32,7 @@ class MateriaisController < ApplicationController
   end
 
   def cores
-    render json: CorMaterial.order(:nome).map { |c| { id: c.id, nome: c.nome } }
+    render json: CorMaterial.order(:nome).map { |c| { id: c.uuid, nome: c.nome } }
   end
 
   def create_cor
@@ -42,8 +42,8 @@ class MateriaisController < ApplicationController
   def search
     materiais = MateriaPrima.includes(:grupo_material, :cor_material)
 
-    if params[:client_id].present?
-      client_material_ids = MovimentoEstoque.where(client_id: params[:client_id])
+    if params[:client_uuid].present?
+      client_material_ids = MovimentoEstoque.where(client: Client.where(uuid: params[:client_uuid]))
         .distinct.pluck(:materia_prima_id)
       materiais = materiais.where(id: client_material_ids)
     end
@@ -55,7 +55,7 @@ class MateriaisController < ApplicationController
         .where("grupo_materiais.nome LIKE ? OR cor_materiais.nome LIKE ? OR materia_primas.largura LIKE ? OR materia_primas.gramatura LIKE ?", q, q, q, q)
     end
     render json: materiais.limit(20).map { |m|
-      { id: m.id, nome_completo: m.nome_completo, saldo: m.saldo }
+      { id: m.uuid, nome_completo: m.nome_completo, saldo: m.saldo }
     }
   end
 

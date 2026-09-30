@@ -23,8 +23,9 @@
 
   <%
     linked_molde_id = arquivo.molde_id || arquivo.modelos.find { |m| m.molde_id.present? }&.molde_id
+    linked_molde = Molde.find_by(id: linked_molde_id) if linked_molde_id
     initial_pecas = if linked_molde_id
-                      Molde.find_by(id: linked_molde_id)&.pecas&.ativos&.order(:nome)&.to_a || []
+                      linked_molde&.pecas&.ativos&.order(:nome)&.to_a || []
                     else
                       Peca.ativos.order(:nome).to_a
                     end
@@ -44,56 +45,56 @@
 
   <div class="mold-organization-fields"
        data-controller="mold-org-cascade"
-       data-mold-org-cascade-molde-id-value="<%= linked_molde_id %>">
+       data-mold-org-cascade-molde-uuid-value="<%= linked_molde&.uuid %>">
     <div class="mold-field">
-      <label for="molde_id">Mold</label>
+      <label for="molde_uuid">Mold</label>
       <% if arquivo.organized? %>
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.molde&.nome || arquivo.molde_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="molde_id" id="molde_id"
+          <select name="molde_uuid" id="molde_uuid"
                   data-mold-org-cascade-target="moldeSelect"
                   data-action="change->mold-org-cascade#onMoldeChange"
-                  data-original-value="<%= arquivo.molde_id %>">
+                  data-original-value="<%= arquivo.molde&.uuid %>">
             <option value="">Select a mold...</option>
             <% Molde.ativos.order(:nome).each do |m| %>
-              <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
+              <option value="<%= m.uuid %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
         </span>
       <% else %>
-        <select name="molde_id" id="molde_id"
+        <select name="molde_uuid" id="molde_uuid"
                 data-mold-org-cascade-target="moldeSelect"
                 data-action="change->mold-org-cascade#onMoldeChange">
           <option value="">Select a mold...</option>
           <% Molde.ativos.order(:nome).each do |m| %>
-            <option value="<%= m.id %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
+            <option value="<%= m.uuid %>" <%= "selected" if linked_molde_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="molde" style="margin-top: 0.25rem">+ Register new mold</button>
       <% end %>
     </div>
     <div class="mold-field">
-      <label for="peca_id">Piece</label>
+      <label for="peca_uuid">Piece</label>
       <% if arquivo.organized? %>
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.peca&.nome || arquivo.peca_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
-          <select name="peca_id" id="peca_id"
+          <select name="peca_uuid" id="peca_uuid"
                   data-mold-org-cascade-target="pecaSelect"
-                  data-original-value="<%= arquivo.peca_id %>">
+                  data-original-value="<%= arquivo.peca&.uuid %>">
             <option value="">Select a piece...</option>
             <% initial_pecas.each do |p| %>
-              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
+              <option value="<%= p.uuid %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
             <% end %>
           </select>
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
         </span>
       <% else %>
-          <select name="peca_id" id="peca_id"
+          <select name="peca_uuid" id="peca_uuid"
                   data-mold-org-cascade-target="pecaSelect">
             <option value="">Select a piece...</option>
             <% initial_pecas.each do |p| %>
-              <option value="<%= p.id %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
+              <option value="<%= p.uuid %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
             <% end %>
           </select>
         <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
@@ -116,7 +117,7 @@
     <div class="edit-display" data-edit-toggle-target="display">
       <div class="tamanho-list tamanho-list--readonly">
         <% arquivo.tamanhos.each_with_index do |t, idx| %>
-          <div class="tamanho-row" data-tamanho-id="<%= t.id %>">
+          <div class="tamanho-row" data-tamanho-uuid="<%= t.uuid %>">
             <span class="tamanho-indicator"><%= idx + 1 %>.</span>
             <span class="tamanho-nome"><%= t.nome %></span>
             <span class="tamanho-measurements">

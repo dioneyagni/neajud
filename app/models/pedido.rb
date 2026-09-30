@@ -1,4 +1,5 @@
 class Pedido < ApplicationRecord
+  include GeraUuid
   include Excluivel
   include ReferenciaAtiva
 
@@ -7,17 +8,10 @@ class Pedido < ApplicationRecord
   has_many :arquivo_vinculo_logs, dependent: :nullify
 
   recusa_excluido :client
-  validates :uuid, uniqueness: true
   validates :status, presence: true, inclusion: { in: %w[rascunho confirmado cancelado] }
-
-  before_validation :generate_uuid, on: :create
 
   scope :rascunhos, -> { where(status: "rascunho") }
   scope :confirmados, -> { where(status: "confirmado") }
-
-  def to_param
-    uuid
-  end
 
   def rotulo_lixeira
     "Pedido #{uuid.first(8)}"
@@ -46,11 +40,5 @@ class Pedido < ApplicationRecord
   # Usage: pedido.bloqueios_confirmacao.map(&:descricao)
   def bloqueios_confirmacao
     PedidoBloqueiosService.call(self)
-  end
-
-  private
-
-  def generate_uuid
-    self.uuid ||= SecureRandom.uuid
   end
 end

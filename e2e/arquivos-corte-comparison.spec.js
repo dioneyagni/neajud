@@ -57,7 +57,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         await fetch("/moldes", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold", "molde[peca_ids][]": pecaId || "" })
+          body: new URLSearchParams({ authenticity_token: token, "molde[nome]": "CorteCompMold", "molde[peca_uuids][]": pecaId || "" })
         });
       }, csrf);
 
@@ -74,8 +74,8 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         displays.forEach(el => el.style.display = "none");
       });
 
-      await page.selectOption('select[name="molde_id"]', { label: "CorteCompMold" });
-      await page.selectOption('select[name="peca_id"]', { label: "CorteCompPiece" });
+      await page.selectOption('select[name="molde_uuid"]', { label: "CorteCompMold" });
+      await page.selectOption('select[name="peca_uuid"]', { label: "CorteCompPiece" });
 
       const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
       if (!saveBtn) throw new Error("Save button not found on mold organization form");
@@ -86,7 +86,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
       const tamanhos = await page.evaluate(() => {
         const rows = document.querySelectorAll(".tamanho-list--readonly .tamanho-row");
         return Array.from(rows).map(row => ({
-          id: row.getAttribute("data-tamanho-id"),
+          id: row.getAttribute("data-tamanho-uuid"),
           nome: (row.querySelector(".tamanho-nome")?.textContent || "").trim()
         }));
       });
@@ -135,7 +135,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         // Assign client to arte
         const arteUuid = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/)?.[1];
         if (!arteUuid) return { ok: false, step: "uuid" };
-        const cf = new URLSearchParams({ authenticity_token: token, client_id: client.id });
+        const cf = new URLSearchParams({ authenticity_token: token, client_uuid: client.id });
         const cr = await fetch(`/arquivos/${arteUuid}/update_client`, {
           method: "PATCH",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -143,7 +143,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         });
         if (!cr.ok && cr.status !== 302) return { ok: false, step: "update client", status: cr.status };
 
-        const tf = new URLSearchParams({ authenticity_token: token, tamanho_id: tamanhoId });
+        const tf = new URLSearchParams({ authenticity_token: token, tamanho_uuid: tamanhoId });
         const tr = await fetch(`/arquivos/${arteUuid}/update_tamanho`, {
           method: "PATCH",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

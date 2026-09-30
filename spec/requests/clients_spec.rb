@@ -135,7 +135,7 @@ RSpec.describe "Clients", type: :request do
     it "assigns a client to an arquivo" do
       client = create(:client, name: "Test Client", responsible: "Test Resp")
       arquivo = create(:arquivo)
-      patch update_client_arquivo_path(arquivo), params: { client_id: client.id }
+      patch update_client_arquivo_path(arquivo), params: { client_uuid: client.uuid }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.client_id).to eq(client.id)
@@ -144,7 +144,7 @@ RSpec.describe "Clients", type: :request do
     it "unlinks a client from an arquivo" do
       client = create(:client, name: "Test Client", responsible: "Test Resp")
       arquivo = create(:arquivo, client: client)
-      patch update_client_arquivo_path(arquivo), params: { client_id: "" }
+      patch update_client_arquivo_path(arquivo), params: { client_uuid: "" }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.client_id).to be_nil
@@ -153,7 +153,7 @@ RSpec.describe "Clients", type: :request do
     it "responds with turbo stream when requested" do
       client = create(:client, name: "Turbo Client", responsible: "Turbo Resp")
       arquivo = create(:arquivo)
-      patch update_client_arquivo_path(arquivo), params: { client_id: client.id }, as: :turbo_stream
+      patch update_client_arquivo_path(arquivo), params: { client_uuid: client.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("<turbo-stream")

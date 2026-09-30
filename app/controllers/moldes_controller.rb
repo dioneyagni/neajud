@@ -26,12 +26,12 @@ class MoldesController < ApplicationController
   end
 
   def pecas
-    render json: @molde.pecas.ativos.order(:nome).map { |p| { id: p.id, nome: p.nome } }
+    render json: @molde.pecas.ativos.order(:nome).map { |p| { id: p.uuid, nome: p.nome } }
   end
 
   def search
     moldes = Molde.ativos.search(params[:q]).limit(10)
-    render json: moldes.map { |m| { id: m.id, nome: m.nome } }
+    render json: moldes.map { |m| { id: m.uuid, nome: m.nome } }
   end
 
   def create
@@ -47,7 +47,7 @@ class MoldesController < ApplicationController
 
     @molde = Molde.new(molde_params)
     if @molde.save
-      @molde.peca_ids = params[:molde][:peca_ids].reject(&:blank?) if params[:molde][:peca_ids]
+      atribuir_pecas
       assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
       redirect_to molde_path(@molde), notice: "Molde registered."
     else
@@ -58,7 +58,7 @@ class MoldesController < ApplicationController
 
   def update
     if @molde.update(molde_params)
-      @molde.peca_ids = params[:molde][:peca_ids].reject(&:blank?) if params[:molde][:peca_ids]
+      atribuir_pecas
       redirect_to molde_path(@molde), notice: "Molde updated."
     else
       @pecas = pecas_para_escolher
@@ -74,7 +74,7 @@ class MoldesController < ApplicationController
   private
 
   def set_molde
-    @molde = Molde.find(params[:id])
+    @molde = Molde.por_uuid!(params[:id])
   end
 
   # Active peças, plus any trashed one this molde already has: leaving it out
@@ -84,7 +84,16 @@ class MoldesController < ApplicationController
   end
 
   def molde_params
-    params.require(:molde).permit(:nome, peca_ids: [])
+    params.require(:molde).permit(:nome)
+  end
+
+  # The form lists the chosen peças by uuid; when none is sent the list is
+  # left as it is (same as before the uuids, Etapa 1.1).
+  def atribuir_pecas
+    uuids = params.dig(:molde, :peca_uuids)
+    return unless uuids
+
+    @molde.pecas = Peca.where(uuid: Array(uuids).compact_blank)
   end
 
   def assign_molde_to_arquivo(molde)
