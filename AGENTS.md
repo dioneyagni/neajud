@@ -242,7 +242,7 @@ Never merge, force-push to `main`, or delete branches you didn't create.
 
 ⚠️ **Branch protection is not enabled**: the repo is private (since 26/09/2026) and
 GitHub Free doesn't offer branch protection for private repos (needs GitHub Team —
-see Etapa 2.5 in `docs/plano.md`). The discipline is manual: never merge with red CI.
+see Etapa 3.5 in `docs/plano.md`). The discipline is manual: never merge with red CI.
 
 Before every push, run the **Pre-commit** command from the Commands section.
 
@@ -486,12 +486,12 @@ log or the console, the UI just never updates.
 
 ```erb
 <%# WRONG — #size-selection-section missing → update_modelo's stream does nothing %>
-<% if @arquivo.tamanho&.arquivo&.organize_error.present? %>
-  <%= render "size_selection", arquivo: @arquivo %>
+<% if arquivo.tamanho&.arquivo&.organize_error.present? %>
+  <%= render "size_selection", arquivo: arquivo %>
 <% end %>
 
 <%# RIGHT — always rendered; the partial hides itself until client + modelo exist %>
-<%= render "size_selection", arquivo: @arquivo %>
+<%= render "size_selection", arquivo: arquivo %>
 ```
 
 Regression history: `019535b` gated Size Selection like the WRONG example, so
@@ -538,7 +538,7 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 `SessionsController#new/create` and the first-access setup are public.
 
 - **Model:** `User` (the plan's "pessoa"; name chosen in session) +
-  `Empresa` (**one per instance** — docs/plano.md Etapa 2.1; `Empresa.atual`)
+  `Empresa` (**one per instance** — docs/plano.md Etapa 3.1; `Empresa.atual`)
   + `Vinculo` (user × empresa × **one `Funcao`** + `acessos_extras`). New
   tables get a `uuid` via the `GeraUuid` concern; `users.cloud_user_uuid`
   links to the future Neajud Cloud account (Etapa 7.1).
@@ -567,7 +567,7 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 - **Action Cable** rejects connections without a session cookie
   (`ApplicationCable::Connection`).
 - **Tests:** request specs sign in as a dono automatically
-  (`spec/support/autenticacao.rb`, `@usuario_logado`); tag a group
+  (`spec/support/autenticacao.rb`, `usuario_logado`); tag a group
   `sem_login: true` to test signed-out behavior. E2E specs start signed in
   (`e2e/support/sessao.js`, called by `runSpec`); `autenticacao.spec.js` runs
   **first** in `E2E_SPECS` because it needs the empty database to exercise the
@@ -653,7 +653,7 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   used (a pedido's arte, a modelo's client), with `selo_excluido(record)` (the
   "excluído em" badge). So every **listing, picker, search and JSON endpoint**
   must say `.ativos` explicitly — `Client.ativos.order(:name)`,
-  `@molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
+  `molde.pecas.ativos`, `Arquivo.ativos.where(...)`. Lookups by id/uuid for a
   show page stay unscoped. When you add a query that feeds a list or a
   `<select>`, add `.ativos`.
 - **Counts on index pages** use `Model.contagem_ativos(as: "x_count")` (Arel),
@@ -864,7 +864,7 @@ The plan renames things; until those stages land, the code keeps its names:
 Current code that still differs from the plan — don't copy these patterns into new work:
 
 - **No "cliente final"** — the client's own access (seeing only their pedidos
-  and artes) needs every query filtered by client. Target: Etapa 3.8, before
+  and artes) needs every query filtered by client. Target: Etapa 2.8, before
   the beta.
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients

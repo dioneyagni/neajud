@@ -84,9 +84,9 @@ Definido em sessão (29/09/2026); a mesma nomenclatura serve para roupas e acess
   O sistema deduz o tipo pelo nome dos tamanhos ("34-35", "P", "24-25-26") ou pela quantidade e sequência deles (de 2 em 2 terminando em par = Par; em ímpar = Ímpar) e já preenche os campos; em P/M/G e Furada, uma coluna de rótulo entra antes do campo de tamanho. Se não deduzir, a pessoa escolhe o tipo e preenche.
 - **P/M/G sem padrão travado**: num corte (ex: o Knit de um slide), cada molde define quais números o P, o M e o G atendem. P/M/G também é uma **grade própria** nos trabalhos sem corte (DTF), em que cada tamanho é uma medida largura × altura lida do arquivo.
 - Os cortes de cada parte cobrem **o intervalo do molde**, sem buracos nem sobreposição.
-- O pedido de calçado entra sempre por tamanho individual; a produção encontra o corte que atende aquele tamanho e, dele, a arte.
+- O pedido de calçado entra sempre por tamanho individual; a produção encontra o corte que atende aquele tamanho e, dele, o arquivo da arte naquele tamanho. Sem esse arquivo, o pedido não confirma (pendência).
 
-*Trabalhos sem corte (decidido em 30/09/2026; todos entram no beta, Fase 3)*
+*Trabalhos sem corte (decidido em 30/09/2026; todos entram no beta, Fase 2)*
 
 - **Etiqueta DTF**, **estampa corrida** (contínuo) e **cor lisa** não têm molde nem corte. Os dois primeiros têm a marcação **"entra no catálogo"**: desmarcada (padrão), o trabalho é só do cliente dele, que é obrigatório; marcada, fica aberto a todos os clientes da empresa (a "coleção geral"), e o cliente passa a ser opcional. A cor lisa **entra no catálogo por padrão**.
 - **Família da cor lisa, automática** (decidido em 30/09/2026): a pessoa sobe só o arquivo (com qualquer nome) e escolhe o material; o sistema mede a cor média (CMYK convertido pelo perfil ICC, como nas prévias) e acha a família pelo tom, com luminosidade e saturação separando bordô e marrom de vermelho e laranja, e branco, cinza e preto das cores. As famílias e as faixas são **fixas, do Neajud** (como o catálogo oficial). O nome sai sozinho, `Amarelo v43`: a sequência conta **por família, na instância**, sem olhar o material. Medido nas amostras: amarelos em 84–101°, laranjas em 42–48°, azul em 271°, bordô em 11° com luminosidade 24.
@@ -208,8 +208,8 @@ A nuvem é lançada primeiro; o servidor local sai depois, junto com o launcher 
 | --- | --- | --- |
 | 0 | Fundações | Caro mudar depois que houver dados de clientes reais |
 | 1 | Modelo de domínio | Idem: renomear, UUID e tamanhos individuais antes dos dados reais |
-| 2 | Operação na nuvem | O produto principal é o plano hospedado |
-| 3 | Pronto para o beta | O que o chão de fábrica precisa no primeiro dia, incluindo DTF, estampa corrida e cor lisa |
+| 2 | Pronto para o beta | O que o chão de fábrica precisa no primeiro dia, incluindo DTF, estampa corrida e cor lisa; não depende da nuvem |
+| 3 | Operação na nuvem | O produto principal é o plano hospedado; montada logo antes do beta, para não manter infraestrutura sem cliente (ordem trocada em 30/09/2026) |
 | 4 | Lançamento beta | 2 ou 3 clientes, começando pela sublimação |
 | 5 | Catálogo versionado com herança | Acrescentado sem migração destrutiva sobre as colunas da Fase 1 |
 | 6 | Estampas e Artes | Depois do beta |
@@ -258,7 +258,7 @@ Dividida em quatro PRs (decidido em 27/09/2026; eram três, a política editáve
 
 Etapa 0.5 concluída em 28/09/2026.
 
-- **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira a Etapa 3.8, antes do beta; setores, depois.
+- **Fora da 0.5:** o cliente final (vínculo ligado a um Cliente, tudo filtrado por ele) vira a Etapa 2.8, antes do beta; setores, depois.
 
 **Etapa 0.6 — Trabalho pesado restante fora do request.** A auditoria (Etapa 0.2) achou, além do upload, trabalho pesado que ainda roda no request: o `MoldMatchService` (ImageMagick) ao escolher o modelo de uma arte, as prévias dos tamanhos na organização do DXF e a extração do DXF de um tamanho no primeiro download. Levar para o Solid Queue com o mesmo padrão da Etapa 0.3 (estado visível e atualização da tela por broadcast).
 
@@ -293,29 +293,53 @@ Exemplo de como os dados reais ficam na nova estrutura (serve de roteiro para os
 
 As referências 19 e 20 da MKS são criadas pela tela.
 
-**Etapa 1.2 — Cortes por tamanho individual.** Cada tamanho de um corte declara os números que atende e tem um rótulo (o par "29-30"), definido na organização do DXF pelo tipo de grade do corte (Par, Ímpar, P/M/G ou Furada, com dedução automática; regras do domínio). Casos reais para testar a dedução (os cortes atuais são amostras, não são migrados): um só número por tamanho é o **último** do par ("24, 26…34" = Par 23-24…33-34; "35, 37…43" = Ímpar 34-35…42-43); nomes escritos ("34-35", "24-25-26") ficam como estão; o que não deduz ("Size 1") a pessoa preenche. Validar cobertura do intervalo do molde, sem buracos nem sobreposição por parte. O pedido de calçado passa a entrar por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul) e tamanho individual, montando sozinho a arte e o corte de cada parte. O pedido passa a ter um tipo, **um por pedido** (decidido em 30/09/2026): calçado agora; DTF e tecido (estampa corrida e cor lisa juntas, no mesmo pedido) na Fase 3. Tipos diferentes são pedidos separados. A arte passa a ter um arquivo por tamanho do corte, com o **agrupamento no upload** e a tela de conferência (regras do domínio); DTF, estampa corrida e cor lisa reaproveitam esse agrupamento na Fase 3.
+**Etapa 1.2 — Cortes por tamanho individual.** Três PRs em série (decidido em 30/09/2026):
+
+- **1/3 — Tipo de grade e tamanhos.** Cada tamanho de um corte declara os números que atende e tem um rótulo (o par "29-30"), definido na organização do DXF pelo tipo de grade do corte (Par, Ímpar, P/M/G ou Furada, com dedução automática; regras do domínio). Validar cobertura do intervalo do molde, sem buracos nem sobreposição por parte. Casos reais para testar a dedução (os cortes atuais são amostras, não são migrados): um só número por tamanho é o **último** do par ("24, 26…34" = Par 23-24…33-34; "35, 37…43" = Ímpar 34-35…42-43); nomes escritos ("34-35", "24-25-26") ficam como estão; o que não deduz ("Size 1") a pessoa preenche.
+- **2/3 — Arte por tamanho.** A arte passa a ter um arquivo por tamanho do corte, com o **agrupamento no upload** e a tela de conferência (regras do domínio); um card por arte na galeria, os tamanhos na página dela. DTF, estampa corrida e cor lisa reaproveitam esse agrupamento na Fase 2.
+- **3/3 — Pedido novo.** O pedido passa a ter um tipo, **um por pedido** (decidido em 30/09/2026): calçado agora; DTF e tecido (estampa corrida e cor lisa juntas, no mesmo pedido) na Fase 2. Tipos diferentes são pedidos separados. O pedido de calçado entra por molde + referência + nome (ex: 001-TNS · 20 · Bluey Azul) e tamanho individual, montando sozinho a arte e o corte de cada parte. Um tamanho pedido cuja arte não tem o arquivo daquele tamanho é uma **pendência que bloqueia a confirmação**, como a peça sem arte de hoje (decidido em 30/09/2026).
 
 **Etapa 1.3 — Colunas de versão e base.** Absorvida pela 1.1 (2/2): o Molde já nasce com `version`, `base_id` e `published_at`. A Referência não é versionada, porque agrupa artes e não faz parte do catálogo.
 
-## Fase 2 — Operação na nuvem (plano hospedado)
+## Fase 2 — Pronto para o beta
+
+O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de produção completas da Fase 6. Decidido em 30/09/2026: além do calçado com corte, o beta já tem **etiquetas DTF, estampa corrida e cor lisa** (regras em "Trabalhos sem corte", no glossário). As etapas estão na ordem de execução (revista em 30/09/2026): as etapas de produção (2.2) vêm antes do DTF e do tecido, que as usam; o cliente final fica por último, porque filtra as consultas de todos os tipos de pedido.
+
+**Etapa 2.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com o nome completo calculado da arte (`002-TNS_20_Bluey Azul_Lingua_29-30`, sem acento no arquivo). As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
+
+**Etapa 2.2 — Ciclo do pedido e etapas de produção.** Rascunho → confirmado → em produção → entregue, com as etapas de produção de cada tipo de item: calçado (imprimir, cortar), DTF em rolo (imprimir) ou cortado (imprimir → cortar), estampa corrida e cor lisa (imprimir no papel → transferir para o tecido; a transferência espera o material quando ele falta).
+
+**Etapa 2.3 — Estoque e materiais.** Estoque da empresa (hoje só existe estoque por cliente); o papel de transferência como material, com a sua largura; preço por metro no cadastro de materiais. Baixa automática na confirmação do pedido (tecido do cliente ou da empresa, e o papel); sem saldo, avisa e marca "aguardando material", sem bloquear, porque a impressão no papel pode ser adiantada.
+
+**Etapa 2.4 — Parâmetros e preços do dono.** Largura do filme DTF (60 cm), margem das bordas (1,5 cm), espaçamento padrão, fileiras extras, preço geral por metro do DTF (ex: R$ 120), preço da impressão por metro linear, **o mesmo para estampa corrida e cor lisa** (igual para qualquer largura), custo único do corte por unidade, metragem mínima dos pedidos de tecido e o padrão de "cobrar excedente". Preços acordados por cliente (por metro e/ou por unidade de cada tamanho) valem antes dos gerais. "Cobrar excedente" segue a cascata dono → cliente → pedido. Nova ação na grade de Funções: "aprovar pedido abaixo do mínimo".
+
+**Etapa 2.5 — Numeração automática e "entra no catálogo".** Sequências por empresa que nunca reutilizam números: `DTF-863`, `CR-4114`, e a variação por família de cor (`Amarelo v42`, família reconhecida pelo tom do arquivo). Cada empresa começa do 1, sem migrar os números atuais (o primeiro cliente sobe os arquivos em ordem; o número antigo fica no nome original do upload, pesquisável). Os tamanhos de uma etiqueta chegam juntos pelo agrupamento no upload. Marcação "entra no catálogo" para etiquetas DTF e estampas corridas (desmarcada por padrão) e cores lisas (marcada por padrão).
+
+**Etapa 2.6 — DTF.** Etiqueta com grade P/M/G ou numérica; a medida de cada tamanho é lida do arquivo; espaçamento sugerido opcional por arte. Pedido por etiqueta e tamanho, entrega em rolo ou cortada (por pedido). Encaixe estimado na largura útil do filme, testando a rotação de 90° de cada etiqueta; a quantidade real completa as fileiras e soma as fileiras extras (sem metragem mínima: o mínimo é uma fileira cheia), e o excedente vai sempre para o cliente. Cobrança alternada no pedido entre metro (sempre a metragem total) e quantidade (preço por unidade calculado do preço por metro, arredondado para cima; o excedente é cobrado ou não conforme a cascata); o corte é cobrado sobre tudo o que foi cortado. O preço editado no pedido nunca apaga o sugerido, para medir o desconto por pedido, por cliente e no total. O RIP monta a folha.
+
+**Etapa 2.7 — Estampa corrida e cor lisa.** Estampa corrida: só o módulo é guardado (o RIP monta a repetição); pedido em metros lineares, na largura do tecido (editável no pedido), sobre um material da empresa ou do cliente; preço da impressão por metro linear, mais o tecido (preço do cadastro) quando o material é da empresa; metragem mínima, com aprovação de quem tem a ação na grade abaixo dela. Cor lisa: cada versão é uma cor própria (família reconhecida pelo tom + variação, material, cliente opcional, arquivo de referência 5 × 5 cm) e todas continuam valendo; é pedida como tecido liso, com as mesmas regras da estampa corrida. Só a cor final é cadastrada (as tentativas do desenvolvimento ficam fora).
+
+**Etapa 2.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
+
+## Fase 3 — Operação na nuvem (plano hospedado)
 
 Cada cliente hospedado roda seu próprio Neajud Server; o servidor local (Fase 8) vem depois e roda o mesmo código. Nada de sistema multiempresa com `company_id` nas tabelas.
 
-**Etapa 2.1 — Instância por cliente.** Um container por cliente, com SQLite e `storage/` próprios, criado automaticamente na assinatura. Endereço por cliente (ex: `empresa.neajud.com`). Deploy com Kamal.
+**Etapa 3.1 — Instância por cliente.** Um container por cliente, com SQLite e `storage/` próprios, criado automaticamente na assinatura. Endereço por cliente (ex: `empresa.neajud.com`). Deploy com Kamal.
 
-**Etapa 2.2 — Limites por cliente.** Número máximo de jobs de processamento simultâneos, e memória e CPU limitadas por container, para um cliente não travar os outros.
+**Etapa 3.2 — Limites por cliente.** Número máximo de jobs de processamento simultâneos, e memória e CPU limitadas por container, para um cliente não travar os outros.
 
-**Etapa 2.3 — Armazenamento.** Franquia de armazenamento por plano, com cobrança do volume excedente. Versões antigas de arquivos podem ir para armazenamento mais barato (S3 compatível), sem deixar de existir.
+**Etapa 3.3 — Armazenamento.** Franquia de armazenamento por plano, com cobrança do volume excedente. Versões antigas de arquivos podem ir para armazenamento mais barato (S3 compatível), sem deixar de existir.
 
-**Etapa 2.4 — Backup.** Snapshots restic de cada instância em armazenamento separado, no mesmo formato do backup em disco do servidor local (Etapa 8.7). Backup diário com restauração testada antes do beta.
+**Etapa 3.4 — Backup.** Snapshots restic de cada instância em armazenamento separado, no mesmo formato do backup em disco do servidor local (Etapa 8.7). Backup diário com restauração testada antes do beta.
 
 O GitHub produz as versões; a Neajud Cloud as entrega. Os servidores dos clientes nunca buscam nada direto no GitHub.
 
-**Etapa 2.5 — Versionamento.** Versão semântica num único arquivo `VERSION`; release-please mantém o PR de release e o CHANGELOG a partir dos commits. Merge só com CI verde. Proteger a `main` no GitHub (bloquear merge com CI vermelho e push direto) exige o plano GitHub Team em repositório privado; até contratar, a regra é disciplina manual, como descrito no AGENTS.md.
+**Etapa 3.5 — Versionamento.** Versão semântica num único arquivo `VERSION`; release-please mantém o PR de release e o CHANGELOG a partir dos commits. Merge só com CI verde. Proteger a `main` no GitHub (bloquear merge com CI vermelho e push direto) exige o plano GitHub Team em repositório privado; até contratar, a regra é disciplina manual, como descrito no AGENTS.md.
 
-**Etapa 2.6 — Workflow de release.** Ao criar a tag: testes e verificações de segurança; imagem Docker publicada no GHCR privado; assinatura com cosign; pacote offline (imagem + manifesto assinado) anexado à Release; aviso à nuvem registrando a versão no canal beta. A promoção de beta para estável é manual, no painel da nuvem. O GHCR mantém só as últimas versões.
+**Etapa 3.6 — Workflow de release.** Ao criar a tag: testes e verificações de segurança; imagem Docker publicada no GHCR privado; assinatura com cosign; pacote offline (imagem + manifesto assinado) anexado à Release; aviso à nuvem registrando a versão no canal beta. A promoção de beta para estável é manual, no painel da nuvem. O GHCR mantém só as últimas versões.
 
-**Etapa 2.7 — Cobrança manual.** No início, a cobrança é feita fora do sistema; a cobrança automática vem na Fase 7.
+**Etapa 3.7 — Cobrança manual.** No início, a cobrança é feita fora do sistema; a cobrança automática vem na Fase 7.
 
 **Requisitos:**
 
@@ -323,29 +347,9 @@ O GitHub produz as versões; a Neajud Cloud as entrega. Os servidores dos client
 - Uploads retomáveis desde o início, porque todo arquivo passa pela internet do cliente.
 - A interface avisa que, no plano hospedado, a produção depende da conexão da empresa.
 
-## Fase 3 — Pronto para o beta
-
-O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de produção completas da Fase 6. Decidido em 30/09/2026: além do calçado com corte, o beta já tem **etiquetas DTF, estampa corrida e cor lisa** (regras em "Trabalhos sem corte", no glossário). As etapas estão na ordem de execução (revista em 30/09/2026): as etapas de produção (3.2) vêm antes do DTF e do tecido, que as usam; o cliente final fica por último, porque filtra as consultas de todos os tipos de pedido.
-
-**Etapa 3.1 — Download da arte.** Na seção Produção do pedido, ao lado do DXF de cada tamanho (já existente), baixar a arte da peça: no mínimo o original aprovado, com o nome completo calculado da arte (`002-TNS_20_Bluey Azul_Lingua_29-30`, sem acento no arquivo). As saídas geradas (TIFF, JPG, PDF) continuam na Etapa 6.3.
-
-**Etapa 3.2 — Ciclo do pedido e etapas de produção.** Rascunho → confirmado → em produção → entregue, com as etapas de produção de cada tipo de item: calçado (imprimir, cortar), DTF em rolo (imprimir) ou cortado (imprimir → cortar), estampa corrida e cor lisa (imprimir no papel → transferir para o tecido; a transferência espera o material quando ele falta).
-
-**Etapa 3.3 — Estoque e materiais.** Estoque da empresa (hoje só existe estoque por cliente); o papel de transferência como material, com a sua largura; preço por metro no cadastro de materiais. Baixa automática na confirmação do pedido (tecido do cliente ou da empresa, e o papel); sem saldo, avisa e marca "aguardando material", sem bloquear, porque a impressão no papel pode ser adiantada.
-
-**Etapa 3.4 — Parâmetros e preços do dono.** Largura do filme DTF (60 cm), margem das bordas (1,5 cm), espaçamento padrão, fileiras extras, preço geral por metro do DTF (ex: R$ 120), preço da impressão por metro linear, **o mesmo para estampa corrida e cor lisa** (igual para qualquer largura), custo único do corte por unidade, metragem mínima dos pedidos de tecido e o padrão de "cobrar excedente". Preços acordados por cliente (por metro e/ou por unidade de cada tamanho) valem antes dos gerais. "Cobrar excedente" segue a cascata dono → cliente → pedido. Nova ação na grade de Funções: "aprovar pedido abaixo do mínimo".
-
-**Etapa 3.5 — Numeração automática e "entra no catálogo".** Sequências por empresa que nunca reutilizam números: `DTF-863`, `CR-4114`, e a variação por família de cor (`Amarelo v42`, família reconhecida pelo tom do arquivo). Cada empresa começa do 1, sem migrar os números atuais (o primeiro cliente sobe os arquivos em ordem; o número antigo fica no nome original do upload, pesquisável). Os tamanhos de uma etiqueta chegam juntos pelo agrupamento no upload. Marcação "entra no catálogo" para etiquetas DTF e estampas corridas (desmarcada por padrão) e cores lisas (marcada por padrão).
-
-**Etapa 3.6 — DTF.** Etiqueta com grade P/M/G ou numérica; a medida de cada tamanho é lida do arquivo; espaçamento sugerido opcional por arte. Pedido por etiqueta e tamanho, entrega em rolo ou cortada (por pedido). Encaixe estimado na largura útil do filme, testando a rotação de 90° de cada etiqueta; a quantidade real completa as fileiras e soma as fileiras extras (sem metragem mínima: o mínimo é uma fileira cheia), e o excedente vai sempre para o cliente. Cobrança alternada no pedido entre metro (sempre a metragem total) e quantidade (preço por unidade calculado do preço por metro, arredondado para cima; o excedente é cobrado ou não conforme a cascata); o corte é cobrado sobre tudo o que foi cortado. O preço editado no pedido nunca apaga o sugerido, para medir o desconto por pedido, por cliente e no total. O RIP monta a folha.
-
-**Etapa 3.7 — Estampa corrida e cor lisa.** Estampa corrida: só o módulo é guardado (o RIP monta a repetição); pedido em metros lineares, na largura do tecido (editável no pedido), sobre um material da empresa ou do cliente; preço da impressão por metro linear, mais o tecido (preço do cadastro) quando o material é da empresa; metragem mínima, com aprovação de quem tem a ação na grade abaixo dela. Cor lisa: cada versão é uma cor própria (família reconhecida pelo tom + variação, material, cliente opcional, arquivo de referência 5 × 5 cm) e todas continuam valendo; é pedida como tecido liso, com as mesmas regras da estampa corrida. Só a cor final é cadastrada (as tentativas do desenvolvimento ficam fora).
-
-**Etapa 3.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
-
 ## Fase 4 — Lançamento beta
 
-2 ou 3 clientes, começando pela sublimação. Cada instância começa vazia e o cliente sobe tudo de novo (sem migração dos dados atuais, decidido em 30/09/2026). Cada um numa instância da Fase 2, com backup diário e cobrança manual.
+2 ou 3 clientes, começando pela sublimação. Cada instância começa vazia e o cliente sobe tudo de novo (sem migração dos dados atuais, decidido em 30/09/2026). Cada um numa instância da Fase 3, com backup diário e cobrança manual.
 
 ## Fase 5 — Catálogo versionado com herança
 
@@ -384,7 +388,7 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 **Etapa 6.3 — Origem e saídas.** A Arte tem um arquivo de origem (PSD, CDR, AI, PNG, TIFF, JPG) e saídas de produção geradas para o seu corte: TIFF em ultra resolução e JPG compactado para bitmaps, PDF para vetores. As saídas são geradas em job, nunca no request.
 
-**Etapa 6.4 — Camada de processo.** Criar o conceito de Processo (sublimação, frequência, bordado, silk). Artes, tempos e materiais pertencem a um processo e referenciam a parte do catálogo pelo UUID. Separar do código o que hoje é específico de sublimação. O DTF (Etapa 3.6) entra antes, como o primeiro trabalho fora do calçado com corte; aqui ele passa a ser um processo como os outros.
+**Etapa 6.4 — Camada de processo.** Criar o conceito de Processo (sublimação, frequência, bordado, silk). Artes, tempos e materiais pertencem a um processo e referenciam a parte do catálogo pelo UUID. Separar do código o que hoje é específico de sublimação. O DTF (Etapa 2.6) entra antes, como o primeiro trabalho fora do calçado com corte; aqui ele passa a ser um processo como os outros.
 
 **Segurança de arquivos:**
 
@@ -416,7 +420,7 @@ Quando o servidor local chegar (Fase 8), vale também a parte offline: o servido
 - Credenciais da equipe com 2FA por chave física, uma conta por pessoa.
 - No servidor local, só funciona pelo túnel, com o acesso liberado pelo cliente.
 
-**Etapa 7.3 — Cobrança automática.** Substitui a cobrança manual da Etapa 2.7 (valor, teste grátis e gateway ainda em aberto).
+**Etapa 7.3 — Cobrança automática.** Substitui a cobrança manual da Etapa 3.7 (valor, teste grátis e gateway ainda em aberto).
 
 ## Fase 8 — Servidor local e launcher
 
@@ -551,7 +555,7 @@ Estes itens não devem ser implementados nas fases acima, mas o desenho não pod
 | Classificação de mudança | Versões marcadas como compatíveis (alerta simples) ou incompatíveis (revisão obrigatória) | Fase 5 |
 | Pedidos entre empresas | A marca encomenda na rede e cada fornecedor vê só a sua parte | Fases 5 e 9 |
 | Script de instalação | Instalação em Linux ou TrueNAS já existentes, sem a ISO | Fase 8 |
-| Aviso de cor parecida | Ao subir uma cor lisa quase igual a uma existente, avisar ("parece a Amarelo v36") antes de criar outra versão | Etapa 3.7 |
+| Aviso de cor parecida | Ao subir uma cor lisa quase igual a uma existente, avisar ("parece a Amarelo v36") antes de criar outra versão | Etapa 2.7 |
 | Offline no navegador | Descartado: o servidor local cobre esse caso | — |
 
 ## Decisões em aberto
