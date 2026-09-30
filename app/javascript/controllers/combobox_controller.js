@@ -17,7 +17,11 @@ export default class extends Controller {
     const q = this.input.value.trim()
     if (this.selected) { this.selected = false; return }
 
-    fetch(`${this.searchUrlValue}?q=${encodeURIComponent(q)}`)
+    // The search URL may already carry a query (…/for_client?client_id=3):
+    // appending "?q=" made "client_id=3?q=…" and the typed text was lost.
+    const url = new URL(this.searchUrlValue, window.location.origin)
+    url.searchParams.set("q", q)
+    fetch(url)
       .then(r => r.json())
       .then(items => {
         const extraFieldNames = this.extraFieldsValue ? this.extraFieldsValue.split(",") : []

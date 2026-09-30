@@ -51,6 +51,7 @@ export default class extends Controller {
   edit(e) {
     const btn = e.currentTarget
     const form = this.dialogTarget.querySelector("form")
+    this._somenteEdicao(true)
     const fields = form.querySelectorAll("[data-dialog-field]")
 
     fields.forEach(field => {
@@ -99,8 +100,17 @@ export default class extends Controller {
   }
 
   _resetToCreate() {
-    const form = this.dialogTarget.querySelector("form")
     this._resetDialogCreate(this.dialogTarget)
+    this._somenteEdicao(false)
+  }
+
+  // Options marked data-somente-edicao (e.g. the modelo's trashed client)
+  // only make sense when editing a record that already points at them.
+  _somenteEdicao(mostrar) {
+    this.dialogTarget.querySelectorAll("[data-somente-edicao]").forEach((el) => {
+      el.hidden = !mostrar
+      el.disabled = !mostrar
+    })
   }
 
   _resetDialogCreate(dialog) {
