@@ -1,9 +1,8 @@
 # Lists the pieces an order item is made of, starting from the arte that was
 # added to the pedido: one Slot per peça of the arte's molde, each with the
 # molde's arte for that peça, or arquivo nil when none exists yet (pending).
-# Pieces come from the molde's molde_pecas; if those were never synced (it
-# happens lazily on the molde page), from its modelo — read-only, nothing is
-# written here. The added arte is always present, even when its peça is
+# Pieces come from the molde's molde_pecas (its parts, chosen on the molde
+# page — Etapa 1.1, 3/5); nothing is written here. The added arte is always present, even when its peça is
 # unknown or not configured on the molde. An arte without molde is a
 # single-piece composition.
 #
@@ -31,8 +30,9 @@ class MoldeComposicaoService
   private
 
   def molde_pecas
-    configured = @molde.molde_pecas.includes(:peca).order(:id).map(&:peca).reject(&:excluido?)
-    configured.presence || @molde.modelo&.pecas&.ativos&.order(:id).to_a || []
+    # Parts belong to the molde only (Etapa 1.1, 3/5): no fallback to the
+    # category's pieces any more.
+    @molde.molde_pecas.includes(:peca).order(:id).map(&:peca).reject(&:excluido?)
   end
 
   def molde_artes

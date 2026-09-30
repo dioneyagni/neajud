@@ -45,7 +45,6 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     let(:peca) { create(:peca, nome: "Peça Uuid") }
 
     before do
-      modelo.pecas << peca
       create(:molde, nome: "Molde Uuid", client: client, modelo: modelo)
       corte = create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca, client: client)
       create(:tamanho, arquivo: corte, nome: "33-34")
@@ -64,7 +63,7 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     it "for every search and cascade endpoint" do
       caminhos = [
         "/clients/search?q=Uuid", "/modelos/search?q=Uuid", "/pecas/search?q=Uuid", "/moldes/search?q=Uuid",
-        "/modelos/#{modelo.uuid}/pecas", "/moldes/for_client?client_uuid=#{client.uuid}",
+        "/moldes/for_client?client_uuid=#{client.uuid}",
         "/pecas/for_cascade?modelo_uuid=#{modelo.uuid}&client_uuid=#{client.uuid}",
         "/tamanhos/for_cascade?modelo_uuid=#{modelo.uuid}&peca_uuid=#{peca.uuid}",
         "/materiais/grupos?q=Uuid", "/materiais/cores", "/materiais/search?client_uuid=#{client.uuid}"
@@ -87,7 +86,7 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       client = create(:client)
       modelo = create(:modelo)
       get moldes_path
-      expect(response.body).to include(%(<option value="#{client.uuid}">), %(<option value="#{modelo.uuid}">))
+      expect(response.body).to include(%(<option value="#{client.uuid}">), %(<option value="#{modelo.uuid}" data-grade=))
     end
   end
 end

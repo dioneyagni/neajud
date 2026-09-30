@@ -96,23 +96,13 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
   // ── Self-contained Show Page Tests ──
   // Each creates its own data so it can run independently of other sections.
 
+  // Etapa 1.1 (3/5): modelos are the official list, so the show page uses one.
   await test("Modelos page: show page renders with details", async () => {
-    const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
-    const modeloName = `Show Test Modelo ${Date.now()}`;
-
-    await page.evaluate(async ({ name, csrf }) => {
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": name })
-      });
-    }, { name: modeloName, csrf: token });
-    await page.waitForTimeout(500);
-
+    const modeloName = "Tenis";
     const modelo = await page.evaluate(async (name) => {
       const r = await fetch(`/modelos/search?q=${encodeURIComponent(name)}`);
       const list = await r.json();
-      return list[0] || null;
+      return list.find((m) => m.nome === name) || null;
     }, modeloName);
     if (!modelo) throw new Error(`Modelo "${modeloName}" not found`);
 
@@ -127,7 +117,7 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
     const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
 
     const clientName = `Show Test Client ${Date.now()}`;
-    const modeloName = `Show Test Modelo ${Date.now()}`;
+    const modeloName = "Tenis";
     const moldeName = `Show Test Molde ${Date.now()}`;
 
     const ids = await page.evaluate(async ({ csrf, clientName, modeloName, moldeName }) => {
@@ -136,15 +126,10 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: csrf, "client[name]": clientName, "client[responsible]": "Tester" })
       });
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName })
-      });
       const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
       const clients = await clientRes.json();
       const modeloRes = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
-      const modelos = await modeloRes.json();
+      const modelos = (await modeloRes.json()).filter((m) => m.nome === modeloName);
       if (!clients[0] || !modelos[0]) return null;
       await fetch("/moldes", {
         method: "POST",
@@ -162,7 +147,7 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
     const body = await page.textContent("body");
     if (!body.includes(moldeName)) throw new Error(`Show page missing molde name`);
     if (!body.includes("Details")) throw new Error("Show page missing Details section");
-    if (!body.includes("Cortes")) throw new Error("Show page missing Cortes section");
+    if (!body.includes("Parts and cuts")) throw new Error("Show page missing the parts section");
   });
 
   await test("Clients page: show page renders with details", async () => {

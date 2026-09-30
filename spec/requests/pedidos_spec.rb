@@ -169,8 +169,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "stores every piece of the arte's molde, marking the ones without arte as pending" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
-      modelo = create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] }
-      molde = create(:molde, modelo: modelo).tap(&:sync_molde_pecas!)
+      molde = create(:molde, partes: [ lateral, lingua ])
       arte = create(:arquivo, category: "artes", molde: molde, peca: lateral)
 
       post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "_total" => "1" } }
@@ -182,7 +181,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "stores the pieces left unchecked in the modal as excluded" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
-      molde = create(:molde, modelo: create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] })
+      molde = create(:molde, partes: [ lateral, lingua ])
       arte_lateral = create(:arquivo, category: "artes", molde: molde, peca: lateral)
       arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua)
 

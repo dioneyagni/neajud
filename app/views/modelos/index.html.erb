@@ -1,44 +1,34 @@
 <h2>Modelos</h2>
 
-<div class="clients-toolbar">
-  <% if pode?(:catalogo, :editar) %>
-    <%= link_to "New Modelo", new_modelo_path, class: "btn btn-primary" %>
-  <% end %>
-</div>
+<p class="page-hint">
+  The official Neajud list: every company uses the same products and models.
+  To add one, ask Neajud.
+</p>
 
-<% if @modelos.any? %>
-  <table class="clients-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Peças</th>
-        <th>Arquivos</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @modelos.each do |modelo| %>
+<% @produtos.each do |produto| %>
+  <section class="catalogo-produto" data-produto="<%= produto.nome %>">
+    <h3><%= produto.nome %>
+      <span class="catalogo-grade"><%= produto.grade.any? ? "Grade #{produto.grade.first}–#{produto.grade.last}" : "No grade" %></span>
+    </h3>
+    <table class="clients-table">
+      <thead>
         <tr>
-          <td><%= link_to modelo.nome, modelo_path(modelo) %></td>
-          <td><%= modelo.pecas.map(&:nome).join(", ") %></td>
-          <td><%= modelo.arquivos_count %></td>
-          <td class="clients-table-actions">
-            <% if pode?(:catalogo, :editar) %>
-              <%= link_to "Edit", edit_modelo_path(modelo), class: "btn btn-secondary btn-sm" %>
-            <% end %>
-            <% if pode?(:catalogo, :excluir) %>
-              <%= button_to "Delete", modelo_path(modelo), method: :delete,
-                    form: { style: "display: inline-block;" },
-                    data: { turbo_confirm: "Move modelo to the trash: \"#{modelo.nome}\"?" },
-                    class: "btn btn-danger btn-sm" %>
-            <% end %>
-          </td>
+          <th>Name</th>
+          <th>Abbreviation</th>
+          <th>Arquivos</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p class="gallery-empty">No modelos registered yet.</p>
+      </thead>
+      <tbody>
+        <% produto.modelos.select { |m| !m.excluido? }.sort_by(&:nome).each do |modelo| %>
+          <tr>
+            <td><%= link_to modelo.nome, modelo_path(modelo) %></td>
+            <td><%= modelo.abreviacao %></td>
+            <td><%= @arquivos_por_modelo.fetch(modelo.id, 0) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
 <% end %>
 
 <div class="back-link-wrapper">

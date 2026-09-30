@@ -49,63 +49,40 @@ RSpec.describe Molde do
     end
   end
 
-  describe "#sync_molde_pecas!" do
-    let(:client) { Client.create!(name: "Test Client", responsible: "John") }
-    let(:modelo) { Modelo.create!(nome: "Modelo Base") }
-    let(:peca1) { Peca.create!(nome: "Frente") }
-    let(:peca2) { Peca.create!(nome: "Costa") }
+  # Etapa 1.1 (3/5): the molde uses a stretch of its produto's grade; its
+  # parts are its own (no copy from the category any more).
+  describe "grade interval" do
+    let(:client) { create(:client) }
+    let(:calcado) { create(:modelo, produto: create(:produto, grade: (18..46).map(&:to_s))) }
+    let(:banner) { create(:modelo, produto: create(:produto, grade: [])) }
 
-    before do
-      ModeloPeca.create!(modelo: modelo, peca: peca1)
-      ModeloPeca.create!(modelo: modelo, peca: peca2)
+    def molde(modelo: calcado, de: nil, ate: nil)
+      Molde.new(nome: "001-TNS", client: client, modelo: modelo, tamanho_inicial: de, tamanho_final: ate)
     end
 
-    it "creates molde_pecas for all modelo pecas" do
-      molde = Molde.create!(nome: "Camisa", client: client, modelo: modelo)
-      molde.sync_molde_pecas!
-
-      expect(molde.molde_pecas.count).to eq(2)
-      expect(molde.configured_pecas.pluck(:nome)).to contain_exactly("Frente", "Costa")
+    it "accepts a stretch of the produto's grade and lists it" do
+      m = molde(de: "24", ate: "27")
+      expect(m).to be_valid
+      expect(m.grade).to eq(%w[24 25 26 27])
     end
 
-    it "keeps a trashed peça's row (and needs_cut) but never creates one for it" do
-      molde = Molde.create!(nome: "Camisa", client: client, modelo: modelo)
-      molde.sync_molde_pecas!
-      molde.molde_pecas.find_by(peca: peca2).update!(needs_cut: false)
-      peca2.excluir!(changed_by: "10.0.0.1")
-
-      molde.sync_molde_pecas!
-      expect(molde.molde_pecas.find_by(peca: peca2).needs_cut).to be false
-
-      novo = Molde.create!(nome: "Blusa", client: client, modelo: modelo)
-      novo.sync_molde_pecas!
-      expect(novo.configured_pecas.pluck(:nome)).to eq([ "Frente" ])
+    it "accepts no interval at all (chosen later)" do
+      expect(molde).to be_valid
+      expect(molde.grade).to eq([])
     end
 
-    it "does not duplicate existing records" do
-      molde = Molde.create!(nome: "Camisa", client: client, modelo: modelo)
-      molde.sync_molde_pecas!
-      molde.sync_molde_pecas!
-
-      expect(molde.molde_pecas.count).to eq(2)
+    it "refuses sizes outside the grade, a reversed stretch, or only one end" do
+      expect(molde(de: "17", ate: "20")).not_to be_valid
+      reverso = molde(de: "30", ate: "24")
+      expect(reverso).not_to be_valid
+      expect(reverso.errors[:tamanho_final].first).to include("\"30\"–\"24\" is not a stretch of 18–46")
+      expect(molde(de: "24")).not_to be_valid
     end
 
-    it "removes molde_pecas for pecas no longer in the modelo" do
-      molde = Molde.create!(nome: "Camisa", client: client, modelo: modelo)
-      molde.sync_molde_pecas!
-
-      ModeloPeca.where(modelo_id: modelo.id, peca_id: peca2.id).delete_all
-      molde.sync_molde_pecas!
-
-      expect(molde.molde_pecas.count).to eq(1)
-      expect(molde.configured_pecas.pluck(:nome)).to eq([ "Frente" ])
-    end
-
-    it "does nothing when modelo_id is nil" do
-      molde = Molde.create!(nome: "Avulso", client: client)
-      molde.sync_molde_pecas!
-
-      expect(molde.molde_pecas.count).to eq(0)
+    it "refuses an interval when the produto has no grade (Banner)" do
+      m = molde(modelo: banner, de: "P", ate: "G")
+      expect(m).not_to be_valid
+      expect(m.errors[:tamanho_inicial].first).to include("has none")
     end
   end
 end

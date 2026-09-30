@@ -6,7 +6,7 @@ RSpec.describe ReferenciaAtiva do
   it "refuses a new record pointing at a trashed one, naming it and the expected shape" do
     molde = build(:molde, client: trashed_client)
     expect(molde).not_to be_valid
-    expect(molde.errors[:client]).to eq([ "\"Fagner\" (id #{trashed_client.id}) is in the trash; expected an active client" ])
+    expect(molde.errors[:client]).to eq([ "\"Fagner\" (#{trashed_client.uuid}) is in the trash; expected an active client" ])
   end
 
   it "refuses changing a reference to a trashed record" do

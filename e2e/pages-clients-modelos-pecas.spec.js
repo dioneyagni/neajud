@@ -201,7 +201,9 @@ runSpec("Pages E2E: clients, modelos & pecas", async ({ page, test }) => {
     if (!hrefs.includes("/modelos")) throw new Error("Modelos nav link not found");
   });
 
-  await test("Modelos page: index renders with heading", async () => {
+  // Etapa 1.1 (3/5): the official list is read only — create/edit/delete
+  // moved out; e2e/modelos.spec.js covers the page itself.
+  await test("Modelos page: index renders with heading, without a New button", async () => {
     await page.goto(`${BASE_URL}/modelos`);
     await page.waitForSelector("h2", { timeout: 5000 });
 
@@ -209,72 +211,10 @@ runSpec("Pages E2E: clients, modelos & pecas", async ({ page, test }) => {
     if (!body.includes("Modelos")) throw new Error("Modelos heading not found");
 
     const newLink = await page.$('a[href*="/modelos/new"]');
-    if (!newLink) throw new Error("New Modelo link not found");
+    if (newLink) throw new Error("New Modelo link should be gone (official list)");
 
     const backLink = await page.$('a[href="/"]');
     if (!backLink) throw new Error("Back to Gallery link not found");
-  });
-
-  async function createModelo(page, nome) {
-    await page.goto(`${BASE_URL}/modelos/new`);
-    await page.waitForSelector("h2", { timeout: 5000 });
-    await page.fill("input[name='modelo[nome]']", nome);
-    await page.click("input[type='submit']");
-    await page.waitForTimeout(1000);
-  }
-
-  await test("Modelos page: create a new modelo via dedicated page", async () => {
-    const nome = `E2E Modelo ${Date.now()}`;
-    await createModelo(page, nome);
-
-    const body = await page.textContent("body");
-    if (!body.includes(nome)) throw new Error(`Modelo page did not show modelo name: "${body.slice(0, 200)}"`);
-  });
-
-  await test("Modelos page: new page shows peças list", async () => {
-    await page.goto(`${BASE_URL}/modelos/new`);
-    await page.waitForSelector("h2", { timeout: 5000 });
-
-    const body = await page.textContent("body");
-    if (!body.includes("Componentes")) throw new Error("Componentes heading not found");
-  });
-
-  await test("Modelos page: edit a modelo via dedicated page", async () => {
-    await createModelo(page, `E2E Edit ${Date.now()}`);
-    const currentUrl = page.url();
-
-    // Navigate to edit
-    await page.goto(`${currentUrl}/edit`);
-    await page.waitForSelector("h2", { timeout: 5000 });
-
-    const nomeInput = await page.$("input[name='modelo[nome]']");
-    if (!nomeInput) throw new Error("Name input not found on edit page");
-
-    const currentName = await nomeInput.inputValue();
-    await nomeInput.fill(`${currentName} Edited`);
-
-    await page.click("input[type='submit']");
-    await page.waitForTimeout(1000);
-
-    const body = await page.textContent("body");
-    if (!body.includes(currentName)) throw new Error(`Modelo not updated: "${body.slice(0, 200)}"`);
-  });
-
-  await test("Modelos page: delete a modelo", async () => {
-    await page.goto(`${BASE_URL}/modelos`);
-    await page.waitForSelector(".clients-table", { timeout: 5000 });
-
-    const deleteBtn = await page.$("button.btn-danger");
-    if (!deleteBtn) throw new Error("Delete button not found");
-
-    await deleteBtn.click();
-    await page.waitForTimeout(1000);
-
-    const body = await page.textContent("body");
-    if (!body.includes("moved to the trash")) {
-      const status = await page.evaluate(() => document.title);
-      throw new Error(`Modelo not deleted — status: "${status}", body: "${body.slice(0, 300)}"`);
-    }
   });
 
   await test("Pecas page: nav link in header", async () => {

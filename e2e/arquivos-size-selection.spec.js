@@ -167,13 +167,9 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         const pecas = await pecaRes.json();
         if (!pecas[0]) return null;
 
-        const modeloBody = new URLSearchParams();
-        modeloBody.append("authenticity_token", token);
-        modeloBody.append("modelo[nome]", "Comp Modelo");
-        modeloBody.append("modelo[peca_uuids][]", pecas[0].id);
-        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: modeloBody });
-        const modeloRes = await fetch("/modelos/search?q=Comp Modelo");
-        const modelos = await modeloRes.json();
+        // Etapa 1.1 (3/5): the official modelo "Calce Fácil" (no other spec uses it).
+        const modeloRes = await fetch("/modelos/search?q=" + encodeURIComponent("Calce Fácil"));
+        const modelos = (await modeloRes.json()).filter((m) => m.nome === "Calce Fácil");
         if (!modelos[0]) return null;
 
         const clientRes = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
@@ -361,8 +357,6 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
         // Delete in reverse dependency order
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
-        // Delete modelo after peca (no hard dep via models since we already removed molde)
-        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
         try { if (orgUuid) await fetch(`/arquivos/${orgUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}

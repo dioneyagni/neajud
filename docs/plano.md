@@ -287,7 +287,7 @@ A estrutura que é cara de mudar depois: nomes, identificadores e a forma como t
   | Camisa | PP, P, M, G, GG, XG (numerações depois) | Camisa [CMS] |
   | Banner | sem grade (a medida vem com os trabalhos sem corte, Fase 2) | Banner [BNN] |
 
-  O molde escolhe o intervalo da grade que usa. **As partes são só do molde**: a categoria deixa de ter peças; as Peças continuam uma lista da empresa (Lateral, Língua…), e cada molde escolhe as suas e marca "corta/não corta".
+  O molde escolhe o intervalo da grade que usa. **As partes são só do molde**: a categoria deixa de ter peças; as Peças continuam uma lista da empresa (Lateral, Língua…), e cada molde escolhe as suas e marca "corta/não corta". Concluída em 30/09/2026. No caminho: como todo cliente usa o mesmo "Tenis", as buscas que caíam em "cortes da mesma categoria" (`Arquivo.cortes_do_molde`, `MoldMatchService`) passaram a ficar dentro do cliente — sem isso, uma arte pegava o corte e os tamanhos de outro cliente.
 - **4/5 — Código do molde.** Código fixo `NNN-ABR` (número por cliente, somando todas as categorias, nunca reutilizado: a MKS com jogging vira 004-JGG), sufixo livre, `variacao_de` (a variação nasce com as partes da base copiadas; a herança de verdade é a Fase 5) e as colunas `version`, `base_id` e `published_at` (antiga Etapa 1.3).
 - **5/5 — Referência e Nome.** Referência (de um molde, select com "criar nova") e, na arte, `referencia` e `nome`, com o nome completo calculado, o pré-preenchimento e as sugestões descritos nas regras do domínio, e a trava de uma arte por corte + referência + nome.
 

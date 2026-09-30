@@ -324,8 +324,9 @@ grade at total 0 is refused outright. All blockers come from
 `PedidoBloqueiosService` (`Pedido#bloqueios_confirmacao`), which feeds the
 server guard, the pending box on the pedido page and the list badge.
 
-- `MoldeComposicaoService` builds the pieces (molde_pecas, else the modelo's
-  pieces, read-only); the added arte always wins its own peça.
+- `MoldeComposicaoService` builds the pieces from the molde's own parts
+  (`molde_pecas`, chosen on the molde page — a modelo has none since Etapa
+  1.1, 3/5); the added arte always wins its own peça.
 - `Pedido#pecas_para_produzir` (`ProducaoPedidoService`) is the **only** place
   production reads from — peça × tamanho over checked pieces.
 - A pending piece is completed by choosing an existing arte
@@ -666,6 +667,34 @@ addressed by tamanho name inside their item — don't need one).
 - Tests: `spec/requests/uuid_publico_spec.rb` checks pages, JSON endpoints and
   forms; add a row when you add an endpoint.
 
+## Official catalog (Etapa 1.1, 3/5)
+
+Produto (with its grade of individual sizes) and Modelo (the category, with
+an abbreviation) are the **official Neajud list**, the same in every
+company: `config/catalogo_oficial.yml`, with fixed uuids.
+
+- **Loading:** `CatalogoOficial.sincronizar!` (`bin/rails catalogo:sincronizar`)
+  runs after every `db:prepare` (so on deploy and `bin/setup`) and in `bin/e2e`
+  after the truncate. Safe to repeat: matched by uuid, updated in place; what
+  left the file goes to the trash (`changed_by: "catalogo_oficial"`), comes
+  back if listed again. A record with the same name but not in the list (a
+  dev sample) is adopted — it takes the official uuid.
+- **Read only for the company:** `/modelos` lists them by produto; no
+  create/edit/destroy routes, and they aren't restorable from `/lixeira`.
+  To add one, edit the YAML in a PR.
+- **Molde:** chooses a stretch of its produto's grade (`tamanho_inicial`,
+  `tamanho_final`, validated; `Molde#grade` lists it) and has its **own parts**
+  (`molde_pecas`, added/removed on the molde page, each "corta / não corta").
+  Categories have no pieces: nothing is copied from them.
+- ⚠️ **A modelo is shared by every client**, so anything that falls back to
+  "cortes of the same modelo" must stay inside the client:
+  `Arquivo.cortes_do_molde` and `MoldMatchService` only take cortes of the
+  molde's / arte's client (an arte picked another client's corte and sizes
+  when the fallback didn't).
+- E2E: `e2e/support/catalogo.js` (`modeloOficial`, `adicionarPartes`); specs
+  pick an official modelo instead of registering one — use a different one
+  per spec when cortes could meet in the fallback.
+
 ## Logical deletion (Etapa 0.4)
 
 Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Molde`,
@@ -696,8 +725,9 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   `Pedido#editavel?`); a draft that uses a trashed arte or corte can't be
   confirmed (`PedidoBloqueiosService` `:arquivo_excluido`).
 - Still physical on purpose: removing an item / zeroing a size of a **draft**
-  pedido, unlinking a corte from a molde, and derived data rebuilt by
-  reprocessing (tamanhos, cut layers, `molde_pecas` sync).
+  pedido, unlinking a corte from a molde, removing a part from a molde
+  (`remover_parte`), and derived data rebuilt by reprocessing (tamanhos, cut
+  layers).
 
 ## Guard: never run bin/e2e with the wrong RAILS_ENV
 
@@ -874,7 +904,7 @@ The plan renames things; until those stages land, the code keeps its names:
 
 | docs/plano.md | Code today |
 |---|---|
-| Produto | doesn't exist yet (Etapa 1.1, 3/5) |
+| Produto | `Produto` (official list, `config/catalogo_oficial.yml`) |
 | Modelo (categoria, e.g. Jogging [JGG]) | `Modelo` (was `Molde` until Etapa 1.1, 2/5) |
 | Molde (the client's form, e.g. 002-TNS Furado) | `Molde` (was `Modelo` until Etapa 1.1, 2/5) — the names swapped in migration `TrocaMoldeModelo` |
 | Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 5/5); not catalog, not versioned |

@@ -1,4 +1,6 @@
 const { BASE_URL, runSpec } = require("./support/runner");
+const { waitForText } = require("./support/wait");
+const { modeloOficial } = require("./support/catalogo");
 
 runSpec("Moldes E2E Tests", async ({ page, test }) => {
   const UNIQ = `M${Date.now()}`;
@@ -47,26 +49,51 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
     if (!clientOption) throw new Error(`Client "${moldeClientName}" not found in dropdown`);
     await clientSelect.selectOption({ label: clientOption });
 
+    // Etapa 1.1 (3/5): choosing the modelo fills the sizes with its produto's
+    // grade (Calçado 18–46), whole grade by default.
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('select[name="molde[modelo_uuid]"]').selectOption({ label: "Tenis [TNS]" });
+    const inicial = dialog.locator('select[name="molde[tamanho_inicial]"]');
+    const final = dialog.locator('select[name="molde[tamanho_final]"]');
+    const padrao = [ await inicial.inputValue(), await final.inputValue() ];
+    if (padrao.join("-") !== "18-46") throw new Error(`Expected the whole grade 18-46 by default, got ${padrao.join("-")}`);
+    await inicial.selectOption("24");
+    await final.selectOption("34");
+
     await page.click('button[data-dialog-target="submitBtn"]:has-text("Register")');
+    await waitForText(page, "Molde registered.");
 
-    await page.waitForURL("**/moldes", { timeout: 10000 });
-    await page.waitForTimeout(500);
-
-    const body = await page.textContent("body");
-    if (!body.includes(`E2E Molde ${UNIQ}`)) {
-      throw new Error(`New molde not found in table. Body preview: ${body.slice(0, 300)}`);
+    const linha = page.locator("tr", { hasText: `E2E Molde ${UNIQ}` });
+    if (!(await linha.textContent()).includes("24–34")) {
+      throw new Error(`New molde row lacks its sizes 24–34: ${(await linha.textContent()).replace(/\s+/g, " ")}`);
     }
+  });
+
+  // Banner has no grade (its measure comes with the no-cut work, Fase 2).
+  await test("A modelo without grade offers no sizes", async () => {
+    await page.goto(`${BASE_URL}/moldes`);
+    await page.click('button:has-text("New Molde")');
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('select[name="molde[modelo_uuid]"]').selectOption({ label: "Banner [BNN]" });
+    const opcoes = await dialog.locator('select[name="molde[tamanho_inicial]"] option').allTextContents();
+    if (opcoes.join("|") !== "—") throw new Error(`Expected only "—" for Banner, got ${opcoes.join("|")}`);
+    await dialog.locator('button:has-text("Cancel")').click();
   });
 
   await test("Edit molde via dialog", async () => {
     await page.goto(`${BASE_URL}/moldes`);
 
-    const editBtn = page.locator('button:has-text("Edit")').first();
+    const editBtn = page.locator("tr", { hasText: `E2E Molde ${UNIQ}` }).locator('button:has-text("Edit")');
     await editBtn.click();
-    await page.waitForTimeout(300);
 
     const title = await page.locator('[data-dialog-target="dialogTitle"]').textContent();
     if (!title.includes("Edit")) throw new Error(`Dialog title not 'Edit', got "${title}"`);
+
+    // The sizes come prefilled although their options depend on the modelo.
+    const dialog = page.locator("dialog[open]");
+    const tamanhos = [ await dialog.locator('select[name="molde[tamanho_inicial]"]').inputValue(),
+                       await dialog.locator('select[name="molde[tamanho_final]"]').inputValue() ];
+    if (tamanhos.join("-") !== "24-34") throw new Error(`Edit should prefill 24-34, got ${tamanhos.join("-")}`);
 
     await page.fill('input[name="molde[nome]"]', `Edited Molde ${UNIQ}`);
     await page.click('button[data-dialog-target="submitBtn"]:has-text("Update")');
@@ -102,57 +129,47 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
     if (backExists === 0) throw new Error("All Moldes link not found");
   });
 
-  await test("Molde show: pecas list with toggle appears when modelo has pecas", async () => {
+  // Etapa 1.1 (3/5): parts belong to the molde, chosen on its page.
+  await test("Molde show: add parts, mark one as not cut, remove one, register a new piece", async () => {
+    await page.goto(BASE_URL);
     const token = await page.evaluate(() => document.querySelector('meta[name="csrf-token"]')?.content || "");
-    const ts = Date.now();
-    const clientName = `Peca Toggle Client ${ts}`;
-    const modeloName = `Peca Toggle Modelo ${ts}`;
-    const moldeName = `Peca Toggle Molde ${ts}`;
+    const nomes = { cliente: `Partes Client ${UNIQ}`, molde: `Partes Molde ${UNIQ}`, lateral: `Lateral ${UNIQ}`, lingua: `Lingua ${UNIQ}` };
+    const tenis = await modeloOficial(page, "Tenis");
 
-    const moldeId = await page.evaluate(async ({ csrf, clientName, modeloName, moldeName }) => {
-      await fetch("/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "client[name]": clientName, "client[responsible]": "Tester" })
-      });
-      const cr = await fetch(`/clients/search?q=${encodeURIComponent(clientName)}`);
-      const clients = await cr.json();
-      if (!clients[0]) return null;
-
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName })
-      });
-      const mr = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
-      const modelos = await mr.json();
-      if (!modelos[0]) return null;
-
-      await fetch("/moldes", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName, "molde[client_uuid]": clients[0].id, "molde[modelo_uuid]": modelos[0].id })
-      });
-      const mdr = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
-      const moldes = await mdr.json();
-      return moldes[0]?.id || null;
-    }, { csrf: token, clientName, modeloName, moldeName });
-    if (!moldeId) throw new Error("Failed to create molde with modelo");
+    const moldeId = await page.evaluate(async ({ csrf, nomes, modeloUuid }) => {
+      const post = (url, campos) => fetch(url, { method: "POST", body: new URLSearchParams({ authenticity_token: csrf, ...campos }) });
+      await post("/clients", { "client[name]": nomes.cliente, "client[responsible]": "Tester" });
+      await post("/pecas", { "peca[nome]": nomes.lateral });
+      await post("/pecas", { "peca[nome]": nomes.lingua });
+      const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(nomes.cliente)}`)).json())[0];
+      await post("/moldes", { "molde[nome]": nomes.molde, "molde[client_uuid]": client.id, "molde[modelo_uuid]": modeloUuid });
+      return (await (await fetch(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`)).json())[0]?.id || null;
+    }, { csrf: token, nomes, modeloUuid: tenis.id });
+    if (!moldeId) throw new Error("Failed to create the molde");
 
     await page.goto(`${BASE_URL}/moldes/${moldeId}`);
-    await page.waitForSelector("h2", { timeout: 5000 });
+    await waitForText(page, "This molde has no parts yet.");
 
-    const body = await page.textContent("body");
-    if (!body.includes("Cortes")) throw new Error("Cortes section not found");
-    if (!body.includes("No organized cuts") && !body.includes("Toggle")) {
-      if (!body.includes("No organized cuts")) {
-        throw new Error("Expected 'No organized cuts' message when modelo has no pecas configured");
-      }
+    for (const parte of [ nomes.lateral, nomes.lingua ]) {
+      await page.selectOption("#peca_uuid_parte", { label: parte });
+      await page.click('.molde-adicionar-parte button[type="submit"]');
+      await waitForText(page, `Part "${parte}" added.`);
     }
 
-    const toggleSwitches = await page.$$(".toggle-switch");
-    if (toggleSwitches.length === 0) {
-      console.log("        No toggle switches found — modelo may have no pecas");
-    }
+    const lingua = page.locator(`.molde-peca-row[data-parte="${nomes.lingua}"]`);
+    // The checkbox itself is hidden by the switch styling; click what users see.
+    await lingua.locator(".toggle-slider").click();
+    await lingua.locator(".molde-peca-status--not-needed").waitFor({ timeout: 10000 });
+
+    await page.locator(`.molde-peca-row[data-parte="${nomes.lateral}"]`).locator('button:has-text("Remove")').click();
+    await waitForText(page, `Part "${nomes.lateral}" removed.`);
+    if (await page.locator(`.molde-peca-row[data-parte="${nomes.lateral}"]`).count() !== 0) throw new Error("Removed part still listed");
+
+    const nova = `Reforco ${UNIQ}`;
+    await page.click('a:has-text("+ Register new piece")');
+    await page.fill("input[name='peca[nome]']", nova);
+    await page.click("input[type='submit']");
+    await waitForText(page, "Peça added to molde.");
+    await page.locator(`.molde-peca-row[data-parte="${nova}"]`).waitFor({ timeout: 5000 });
   });
 });

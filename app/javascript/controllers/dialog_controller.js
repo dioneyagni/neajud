@@ -1,11 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["dialog", "modeloDialog", "pecaDialog", "dialogTitle", "submitBtn"]
+  static targets = ["dialog", "pecaDialog", "dialogTitle", "submitBtn"]
 
   connect() {
     this.boundClose = this.backdropClose.bind(this)
-    this.boundCloseModelo = this.backdropCloseModelo.bind(this)
     this.boundClosePeca = this.backdropClosePeca.bind(this)
   }
 
@@ -17,30 +16,18 @@ export default class extends Controller {
 
   openByName(e) {
     const name = e.params.name
-    if (name === "modelo") {
-      this._resetDialogCreate(this.modeloDialogTarget)
-      this.modeloDialogTarget.showModal()
-      this.modeloDialogTarget.addEventListener("click", this.boundCloseModelo)
-    } else if (name === "peca") {
+    // Only pieces can be registered from the DXF organization: the models
+    // are the official list (Etapa 1.1, 3/5).
+    if (name === "peca") {
       this._resetDialogCreate(this.pecaDialogTarget)
       this.pecaDialogTarget.showModal()
       this.pecaDialogTarget.addEventListener("click", this.boundClosePeca)
     }
   }
 
-  closeModelo() {
-    this.modeloDialogTarget.close()
-    this.modeloDialogTarget.removeEventListener("click", this.boundCloseModelo)
-  }
-
   closePeca() {
     this.pecaDialogTarget.close()
     this.pecaDialogTarget.removeEventListener("click", this.boundClosePeca)
-  }
-
-  backdropCloseModelo(e) {
-    if (e.target !== this.modeloDialogTarget) return
-    this.closeModelo()
   }
 
   backdropClosePeca(e) {
@@ -57,7 +44,11 @@ export default class extends Controller {
     fields.forEach(field => {
       const key = field.dataset.dialogField
       field.value = btn.dataset[key] || ""
+      // A select whose options depend on another field (the molde's sizes,
+      // grade_molde_controller.js) keeps the wanted value until they exist.
+      field.dataset.valor = btn.dataset[key] || ""
     })
+    this._avisarMudanca(fields)
 
     if (this.hasDialogTitleTarget) {
       this.dialogTitleTarget.textContent = btn.dataset.dialogTitle || "Edit"
@@ -119,7 +110,17 @@ export default class extends Controller {
       form.reset()
       form.querySelector('input[name="_method"]')?.remove()
       const fields = form.querySelectorAll("[data-dialog-field]")
-      fields.forEach(field => { field.value = "" })
+      fields.forEach(field => {
+        field.value = ""
+        delete field.dataset.valor
+      })
+      this._avisarMudanca(fields)
     }
+  }
+
+  // Setting .value fires no event; controllers that react to a field (the
+  // molde's grade) need one.
+  _avisarMudanca(fields) {
+    fields.forEach(field => field.dispatchEvent(new Event("change", { bubbles: true })))
   }
 }

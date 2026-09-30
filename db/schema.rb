@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_220000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -308,25 +308,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
     t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end
 
-  create_table "modelo_pecas", id: false, force: :cascade do |t|
-    t.integer "modelo_id", null: false
-    t.integer "peca_id", null: false
-    t.index ["modelo_id", "peca_id"], name: "index_modelo_pecas_on_modelo_id_and_peca_id", unique: true
-    t.index ["modelo_id"], name: "index_modelo_pecas_on_modelo_id"
-    t.index ["peca_id"], name: "index_modelo_pecas_on_peca_id"
-  end
-
   create_table "modelos", force: :cascade do |t|
+    t.string "abreviacao"
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
     t.string "nome", null: false
+    t.integer "produto_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.index ["abreviacao"], name: "index_modelos_on_abreviacao", unique: true
     t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
     t.index ["nome"], name: "index_modelos_on_nome", unique: true
+    t.index ["produto_id"], name: "index_modelos_on_produto_id"
     t.index ["uuid"], name: "index_modelos_on_uuid", unique: true
   end
 
@@ -352,6 +348,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
     t.string "nome", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
+    t.string "tamanho_final"
+    t.string "tamanho_inicial"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["client_id"], name: "index_moldes_on_client_id"
@@ -405,6 +403,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
     t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
     t.index ["status"], name: "index_pedidos_on_status"
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
+  end
+
+  create_table "produtos", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.json "grade", default: [], null: false
+    t.string "nome", null: false
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["deleted_at"], name: "index_produtos_on_deleted_at"
+    t.index ["nome"], name: "index_produtos_on_nome", unique: true
+    t.index ["uuid"], name: "index_produtos_on_uuid", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -512,8 +525,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_200000) do
   add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"
-  add_foreign_key "modelo_pecas", "modelos"
-  add_foreign_key "modelo_pecas", "pecas"
+  add_foreign_key "modelos", "produtos"
   add_foreign_key "molde_pecas", "moldes"
   add_foreign_key "molde_pecas", "pecas"
   add_foreign_key "moldes", "clients"

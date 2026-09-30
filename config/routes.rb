@@ -15,7 +15,7 @@ Rails.application.routes.draw do
   end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|moldes|modelos|pecas|funcoes/ }
+       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do
@@ -71,12 +71,10 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :modelos, only: %i[index show new create edit update destroy] do
+  # Official list, read only (Etapa 1.1, 3/5).
+  resources :modelos, only: %i[index show] do
     collection do
       get :search
-    end
-    member do
-      get :pecas
     end
   end
 
@@ -94,6 +92,8 @@ Rails.application.routes.draw do
     end
     member do
       patch :update_peca_config
+      post :adicionar_parte
+      delete :remover_parte
     end
   end
 

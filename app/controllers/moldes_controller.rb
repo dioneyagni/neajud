@@ -1,8 +1,8 @@
 class MoldesController < ApplicationController
   exige :catalogo, :ver, only: %i[index show search for_client]
-  exige :catalogo, :editar, only: %i[create update update_peca_config]
+  exige :catalogo, :editar, only: %i[create update update_peca_config adicionar_parte remover_parte]
   exige :catalogo, :excluir, only: :destroy
-  before_action :set_molde, only: %i[show update destroy update_peca_config]
+  before_action :set_molde, only: %i[show update destroy update_peca_config adicionar_parte remover_parte]
 
   def index
     @moldes = Molde.ativos.left_joins(:arquivos)
@@ -20,28 +20,35 @@ class MoldesController < ApplicationController
   end
 
   def show
-    if @molde.modelo_id.present?
-      @molde.sync_molde_pecas! if @molde.molde_pecas.empty?
-
-      via_join_ids = @molde.vinculated_arquivos.ativos.where(organized: true, modelo_id: @molde.modelo_id, client_id: @molde.client_id).select(:id)
-      @organized_arquivos = Arquivo.ativos.where(organized: true, modelo_id: @molde.modelo_id, molde_id: @molde.id, client_id: @molde.client_id)
-                               .or(Arquivo.where(id: via_join_ids))
-                               .includes(:peca, :tamanhos, approved_version: :image_metadata)
-                               .order(:peca_id)
-      @grouped_by_peca = @organized_arquivos.group_by(&:peca)
-
-      @molde_pecas = @molde.molde_pecas.includes(:peca).order("pecas.nome")
-      organized = @organized_arquivos
-      @molde_pecas.each do |mp|
-        mp.define_singleton_method(:corte_arquivo) do
-          organized.find { |a| a.peca_id == mp.peca_id }
-        end
+    @organized_arquivos = cortes_organizados
+    @molde_pecas = @molde.molde_pecas.includes(:peca).order("pecas.nome")
+    @pecas_para_adicionar = Peca.ativos.where.not(id: @molde.molde_pecas.select(:peca_id)).order(:nome)
+    organized = @organized_arquivos.to_a
+    @molde_pecas.each do |mp|
+      mp.define_singleton_method(:corte_arquivo) do
+        organized.find { |a| a.peca_id == mp.peca_id }
       end
-    else
-      @organized_arquivos = []
-      @grouped_by_peca = {}
-      @molde_pecas = []
     end
+  end
+
+  # Parts belong to the molde (Etapa 1.1, 3/5): chosen here from the company's
+  # piece list, each with "corta / não corta".
+  # Usage: POST /moldes/:uuid/adicionar_parte (peca_uuid)
+  def adicionar_parte
+    peca = Peca.ativos.por_uuid!(params[:peca_uuid])
+    parte = @molde.molde_pecas.create(peca: peca)
+    return redirect_to molde_path(@molde), notice: "Part \"#{peca.nome}\" added." if parte.persisted?
+
+    redirect_to molde_path(@molde), alert: "Could not add \"#{peca.nome}\": #{parte.errors.full_messages.to_sentence}"
+  end
+
+  # Physical on purpose, like unlinking a corte: the part row is configuration
+  # of this molde, not something a user registered.
+  # Usage: DELETE /moldes/:uuid/remover_parte (molde_peca_uuid)
+  def remover_parte
+    parte = @molde.molde_pecas.por_uuid!(params[:molde_peca_uuid])
+    parte.destroy!
+    redirect_to molde_path(@molde), notice: "Part \"#{parte.peca.nome}\" removed."
   end
 
   def update_peca_config
@@ -75,7 +82,6 @@ class MoldesController < ApplicationController
 
     @molde = Molde.new(molde_params)
     if @molde.save
-      @molde.sync_molde_pecas! if @molde.modelo_id.present?
       assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, notice: "Molde registered."
     else
@@ -84,11 +90,7 @@ class MoldesController < ApplicationController
   end
 
   def update
-    modelo_anterior = @molde.modelo_id
-
     if @molde.update(molde_params)
-      modelo_changed = @molde.modelo_id != modelo_anterior
-      @molde.sync_molde_pecas! if modelo_changed && @molde.modelo_id.present?
       redirect_back fallback_location: arquivos_path, notice: "Molde updated."
     else
       redirect_back fallback_location: arquivos_path, alert: @molde.errors.full_messages.join(", ")
@@ -107,7 +109,15 @@ class MoldesController < ApplicationController
   end
 
   def molde_params
-    params.require(:molde).permit(:nome, :client_uuid, :modelo_uuid)
+    params.require(:molde).permit(:nome, :client_uuid, :modelo_uuid, :tamanho_inicial, :tamanho_final)
+  end
+
+  # The cortes of this molde's category and client, plus those linked to it
+  # directly (a corte serves several moldes).
+  def cortes_organizados
+    via_ligacao = @molde.vinculated_arquivos.ativos.where(organized: true, modelo_id: @molde.modelo_id, client_id: @molde.client_id).select(:id)
+    proprios = Arquivo.ativos.where(organized: true, modelo_id: @molde.modelo_id, molde_id: @molde.id, client_id: @molde.client_id)
+    proprios.or(Arquivo.where(id: via_ligacao)).includes(:peca, :tamanhos, approved_version: :image_metadata).order(:peca_id)
   end
 
   def assign_molde_to_arquivo(molde)

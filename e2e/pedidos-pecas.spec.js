@@ -4,6 +4,7 @@ const { execSync } = require("child_process");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { imageHasVisiblePixels } = require("./support/pixels");
+const { modeloOficial, adicionarPartes } = require("./support/catalogo");
 
 // "Adicionar ao Pedido" lists every piece of the arte's molde: checked
 // pieces go to production, unchecked ones are excluded, and pieces without
@@ -42,7 +43,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     }, { searchUrl, key, value });
   }
 
-  // Peças + modelo with both + client + molde, through the app's own endpoints.
+  // Peças + client + molde (official modelo) with both as parts, through the app's own endpoints.
   async function setupMolde() {
     await page.goto(BASE_URL);
     for (const nome of Object.values(names)) await postForm("/pecas", [[ "peca[nome]", nome ]]);
@@ -50,15 +51,15 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       lateral: await findId(`/pecas/search?q=${encodeURIComponent(names.lateral)}`, "nome", names.lateral),
       lingua: await findId(`/pecas/search?q=${encodeURIComponent(names.lingua)}`, "nome", names.lingua),
     };
-    const modeloNome = `Modelo ${UNIQ}`;
-    await postForm("/modelos", [[ "modelo[nome]", modeloNome ], [ "modelo[peca_uuids][]", pecaIds.lateral ], [ "modelo[peca_uuids][]", pecaIds.lingua ]]);
-    const modeloId = await findId(`/modelos/search?q=${encodeURIComponent(modeloNome)}`, "nome", modeloNome);
+    // Etapa 1.1 (3/5): an official modelo; the parts go on the molde.
+    const modeloId = (await modeloOficial(page, "Tenis")).id;
     const clientName = `Cliente ${UNIQ}`;
     await postForm("/clients", [[ "client[name]", clientName ], [ "client[responsible]", "E2E" ]]);
     const clientId = await findId(`/clients/search?q=${encodeURIComponent(clientName)}`, "name", clientName);
     const moldeNome = `Molde ${UNIQ}`;
     await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[client_uuid]", clientId ], [ "molde[modelo_uuid]", modeloId ]]);
     const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "nome", moldeNome);
+    await adicionarPartes(page, moldeId, [ pecaIds.lateral, pecaIds.lingua ]);
     if (!pecaIds.lateral || !pecaIds.lingua || !modeloId || !moldeId) {
       throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, modeloId, clientId, moldeId })}`);
     }
@@ -293,6 +294,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       await postForm("/moldes", [[ "molde[nome]", outroMoldeNome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
       const outroId = await findId(`/moldes/search?q=${encodeURIComponent(outroMoldeNome)}`, "nome", outroMoldeNome);
       if (!outroId) throw new Error("Could not create the second molde");
+      await adicionarPartes(page, outroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
       outroUuid = await uploadArte(outroFile, outroId, null);
       // Group 1 is "the client's artes": give it the same client.
       const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_uuid", molde.clientId ]]);
@@ -343,6 +345,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       await postForm("/moldes", [[ "molde[nome]", nome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
       const terceiroId = await findId(`/moldes/search?q=${encodeURIComponent(nome)}`, "nome", nome);
       if (!terceiroId) throw new Error("Could not create the third molde");
+      await adicionarPartes(page, terceiroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
       await uploadArte(terceiroFile, terceiroId, molde.pecaIds.lateral);
       await openModalFor(terceiroFile);
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });

@@ -17,6 +17,7 @@ class Molde < ApplicationRecord
   recusa_excluido :client, :modelo
   validates :nome, presence: true
   validates :nome, uniqueness: { scope: :client_id, case_sensitive: false }
+  validate :intervalo_da_grade
 
   scope :search, ->(q) {
     return all if q.blank?
@@ -28,18 +29,25 @@ class Molde < ApplicationRecord
     where(client_id: client_id)
   }
 
-  def sync_molde_pecas!
-    return unless modelo_id.present?
+  # The stretch of its produto's grade this molde uses (Etapa 1.1, 3/5), e.g.
+  # 24 to 34 of Calçado's 18–46; empty when not chosen or the produto has
+  # no grade (Banner).
+  # Usage: molde.grade # => ["24", "25", …, "34"]
+  def grade
+    return [] if tamanho_inicial.blank?
 
-    modelo_peca_ids = ModeloPeca.where(modelo_id: modelo_id).pluck(:peca_id)
+    modelo&.produto&.trecho_da_grade(tamanho_inicial, tamanho_final) || []
+  end
 
-    existing = molde_pecas.index_by(&:peca_id)
+  private
 
-    # A trashed peça keeps its existing row (and needs_cut) but gets no new one.
-    Peca.ativos.where(id: modelo_peca_ids).pluck(:id).each do |peca_id|
-      molde_pecas.find_or_create_by!(peca_id: peca_id) unless existing[peca_id]
-    end
+  def intervalo_da_grade
+    return if tamanho_inicial.blank? && tamanho_final.blank?
 
-    molde_pecas.where.not(peca_id: modelo_peca_ids).delete_all
+    grade_do_produto = modelo&.grade.to_a
+    return errors.add(:tamanho_inicial, "needs a modelo whose produto has a grade; #{modelo&.nome.inspect} has none") if grade_do_produto.empty?
+    return if modelo.produto.trecho_da_grade(tamanho_inicial, tamanho_final)
+
+    errors.add(:tamanho_final, "#{tamanho_inicial.inspect}–#{tamanho_final.inspect} is not a stretch of #{grade_do_produto.first}–#{grade_do_produto.last} (both ends in the grade, first ≤ last)")
   end
 end

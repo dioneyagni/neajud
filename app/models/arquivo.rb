@@ -113,14 +113,17 @@ class Arquivo < ApplicationRecord
   # Several moldes share a modelo, each with its own cortes (e.g. Tenis Baixo
   # → 19-20-25, 21-24, 28-29); taking every corte of the modelo gave an arte of
   # 28-29 the tamanho of 21-24's corte (bug found 28/09/2026). Only when no
-  # corte is linked to the molde, the modelo's cortes.
+  # corte is linked to the molde, the modelo's cortes — of the molde's client
+  # only: since the modelos are the official list (Etapa 1.1, 3/5), every
+  # client's "Tenis" is the same modelo, and an arte got another client's
+  # corte and sizes.
   # Usage: Arquivo.cortes_do_molde(arte.molde)
   def self.cortes_do_molde(molde)
     return none unless molde&.modelo_id
 
     organizados = ativos.where(organized: true)
     ligados = organizados.joins(:arquivo_moldes).where(arquivo_moldes: { molde_id: molde.id })
-    ligados.exists? ? ligados : organizados.where(modelo_id: molde.modelo_id)
+    ligados.exists? ? ligados : organizados.where(modelo_id: molde.modelo_id, client_id: molde.client_id)
   end
 
   # This arte's corte through its molde: the one of its own peça when it has
