@@ -60,7 +60,7 @@ class PedidosController < ApplicationController
     end
     session[:current_pedido_uuid] = @pedido.uuid
 
-    materia_prima = MateriaPrima.find_by(id: params[:materia_prima_id]) if params[:materia_prima_id].present?
+    materia_prima = MateriaPrima.por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
 
     ItemPedido.transaction do
       item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
@@ -157,18 +157,18 @@ class PedidosController < ApplicationController
 
   # Checks/unchecks one piece of an item. Only while the pedido is a draft:
   # once confirmed, its pieces are what goes to production.
-  # Usage: PATCH /pedidos/:uuid/alternar_peca?id=<item uuid>&peca_id=<row id>&incluida=false
+  # Usage: PATCH /pedidos/:uuid/alternar_peca?id=<item uuid>&peca_uuid=<row uuid>&incluida=false
   def alternar_peca
     error = alternar_peca_error
     return render json: { ok: false, error: error }, status: :unprocessable_content if error
 
-    peca_row = @pedido.itens_pedido.find_by!(uuid: params[:id]).item_pedido_pecas.find(params[:peca_id])
-    return render json: { ok: false, error: "Piece #{peca_row.id} has no arte (pending); it cannot be checked or unchecked" }, status: :unprocessable_content unless peca_row.arquivo
+    peca_row = @pedido.itens_pedido.find_by!(uuid: params[:id]).item_pedido_pecas.por_uuid!(params[:peca_uuid])
+    return render json: { ok: false, error: "Piece #{peca_row.uuid} has no arte (pending); it cannot be checked or unchecked" }, status: :unprocessable_content unless peca_row.arquivo
 
     peca_row.update!(incluida: params[:incluida] == "true")
     render json: { ok: true, estado: peca_row.estado }
   rescue ActiveRecord::RecordNotFound
-    render json: { ok: false, error: "Item #{params[:id].inspect} or piece #{params[:peca_id].inspect} not found in pedido #{@pedido.uuid}" }, status: :not_found
+    render json: { ok: false, error: "Item #{params[:id].inspect} or piece #{params[:peca_uuid].inspect} not found in pedido #{@pedido.uuid}" }, status: :not_found
   end
 
   # The "Produção" section alone, reloaded (Turbo Frame) when a piece is

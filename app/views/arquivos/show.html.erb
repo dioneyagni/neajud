@@ -184,7 +184,7 @@
         <div class="version-card">
           <div class="version-card-thumb">
             <% if version.preview_file.present? && File.exist?(version.preview_file) %>
-              <%= image_tag version_preview_arquivo_path(@arquivo, version_id: version.id), alt: "v#{version.version_number}" %>
+              <%= image_tag version_preview_arquivo_path(@arquivo, version_uuid: version.uuid), alt: "v#{version.version_number}" %>
             <% else %>
               <%= image_tag "#{FileCategory.extension_icon(version.extension)}.svg", class: "stamp-card-ext-icon-centered", alt: version.extension %>
             <% end %>
@@ -205,7 +205,7 @@
             </div>
             <div class="version-card-actions">
               <% if !version.approved? && pode_editar_arquivo?(@arquivo) %>
-                <%= button_to "Usar esta versão", approve_version_arquivo_path(@arquivo, version_id: version.id), method: :patch, class: "btn btn-primary btn-sm" %>
+                <%= button_to "Usar esta versão", approve_version_arquivo_path(@arquivo, version_uuid: version.uuid), method: :patch, class: "btn btn-primary btn-sm" %>
               <% end %>
             </div>
           </div>

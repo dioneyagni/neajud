@@ -76,7 +76,7 @@ RSpec.describe "Modelos", type: :request do
 
       expect(mp.needs_cut).to be true
 
-      patch update_peca_config_modelo_path(modelo), params: { modelo_peca_id: mp.id, needs_cut: "false" }
+      patch update_peca_config_modelo_path(modelo), params: { modelo_peca_uuid: mp.uuid, needs_cut: "false" }
 
       expect(response).to redirect_to(modelo_path(modelo))
       expect(mp.reload.needs_cut).to be false
@@ -88,7 +88,7 @@ RSpec.describe "Modelos", type: :request do
       client = create(:client, name: "Test Client", responsible: "John")
 
       expect {
-        post modelos_path, params: { modelo: { nome: "Air Max", client_id: client.id } }
+        post modelos_path, params: { modelo: { nome: "Air Max", client_uuid: client.uuid } }
       }.to change(Modelo, :count).by(1)
 
       expect(Modelo.last.nome).to eq("Air Max")
@@ -127,7 +127,7 @@ RSpec.describe "Modelos", type: :request do
       client = create(:client, name: "Test Client", responsible: "John")
       create(:modelo, nome: "Air Max", client: client)
 
-      get for_client_modelos_path(client_id: client.id)
+      get for_client_modelos_path(client_uuid: client.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
@@ -144,6 +144,20 @@ RSpec.describe "Modelos", type: :request do
 
       modelo.reload
       expect(modelo.nome).to eq("Air Max 2")
+    end
+
+    # Regression (Etapa 1.1, 1/2): the "molde changed?" check ran before the
+    # new molde was assigned, so it was always false and the pieces kept the
+    # old molde's list (the show page only syncs an empty list).
+    it "rebuilds the pieces from the new molde when the molde changes" do
+      antigo = create(:molde).tap { |m| m.pecas << create(:peca, nome: "Lateral") }
+      novo = create(:molde).tap { |m| m.pecas << create(:peca, nome: "Cabedal") }
+      modelo = create(:modelo, molde: antigo).tap(&:sync_modelo_pecas!)
+
+      patch modelo_path(modelo), params: { modelo: { molde_uuid: novo.uuid } }
+
+      expect(modelo.reload.molde).to eq(novo)
+      expect(modelo.modelo_pecas.map { |mp| mp.peca.nome }).to eq([ "Cabedal" ])
     end
   end
 
@@ -162,7 +176,7 @@ RSpec.describe "Modelos", type: :request do
       client = create(:client)
       create(:modelo, client: client, nome: "001-JGG INF")
       create(:modelo, client: client, nome: "002-JGG NB")
-      get for_client_modelos_path(client_id: client.id, q: "inf")
+      get for_client_modelos_path(client_uuid: client.uuid, q: "inf")
       expect(response.parsed_body.map { |m| m["nome"] }).to eq([ "001-JGG INF" ])
     end
 

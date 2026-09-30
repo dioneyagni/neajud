@@ -1,8 +1,8 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "061063b836bff06bb5922320d8a074c2a4ca77086695752d3e966ba2a3986593",
-      "note": "Pre-existing: false positive (file access via model attributes)"
+      "fingerprint": "8650a0a2a5c1c49371990b8200e6c996dc442d7de310f81fa933c05afd505cc8",
+      "note": "ArquivosController#version_preview: ArquivoVersion#preview_file is written only by ArquivoProcessingJob under <STORAGE_BASE>/<arquivo.uuid>/v<N>/preview/ (uuid is SecureRandom); the version is looked up by its uuid inside the arquivo's own versions. Fingerprint changed in Etapa 1.1 (find -> por_uuid!); was 'Pre-existing: false positive (file access via model attributes)'."
     },
     {
       "fingerprint": "c1339fb993b064ae9af3d1ffdca196ffdb0f828eb4a8f837356d71c99ff581b9",
@@ -17,8 +17,8 @@
       "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb."
     },
     {
-      "fingerprint": "b1916ad5449a059d2465ab2453d46215a5f8fb805eb656b16a65c331e48e8700",
-      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb."
+      "fingerprint": "f02355f7a162787e2bb9fb2b87ab22c09cf0dc1b42553f721895207e60375557",
+      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb. Fingerprint changed in Etapa 1.1 (Tamanho.find -> Tamanho.por_uuid!)."
     }
   ]
 }

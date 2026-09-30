@@ -46,7 +46,7 @@ RSpec.describe "Pecas", type: :request do
     it "redirects to edit molde when molde_id is present" do
       molde = create(:molde, nome: "Sapato")
 
-      post pecas_path, params: { peca: { nome: "Solado" }, molde_id: molde.id }
+      post pecas_path, params: { peca: { nome: "Solado" }, molde_uuid: molde.uuid }
 
       expect(response).to redirect_to(edit_molde_path(molde))
       molde.reload
@@ -75,7 +75,7 @@ RSpec.describe "Pecas", type: :request do
       client = create(:client, name: "Test Client", responsible: "John")
       create(:arquivo, molde: molde, peca: peca, client: client, organized: true)
 
-      get for_cascade_pecas_path(molde_id: molde.id, client_id: client.id)
+      get for_cascade_pecas_path(molde_uuid: molde.uuid, client_uuid: client.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
@@ -89,7 +89,7 @@ RSpec.describe "Pecas", type: :request do
       molde.pecas << peca
       create(:arquivo, tipo_corte: "apenas_corte", molde: molde, peca: peca, organized: true)
 
-      get for_cascade_pecas_path(molde_id: molde.id)
+      get for_cascade_pecas_path(molde_uuid: molde.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
@@ -102,7 +102,7 @@ RSpec.describe "Pecas", type: :request do
       peca = create(:peca)
       molde.pecas << peca
 
-      get for_cascade_pecas_path(molde_id: molde.id)
+      get for_cascade_pecas_path(molde_uuid: molde.uuid)
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)

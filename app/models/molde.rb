@@ -1,4 +1,5 @@
 class Molde < ApplicationRecord
+  include GeraUuid
   include Excluivel
 
   has_many :arquivos, dependent: :nullify
@@ -13,8 +14,4 @@ class Molde < ApplicationRecord
     pattern = "%#{q.to_s.gsub(/[%_]/, '\\\\\0')}%"
     where("nome LIKE ?", pattern)
   }
-
-  def to_param
-    id.to_s
-  end
 end

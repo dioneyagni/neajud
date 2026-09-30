@@ -14,7 +14,7 @@ export default class extends Controller {
     this._paint(card, input.checked)
     this._hideError()
     input.disabled = true
-    this._save(card.dataset.pecaId, input.checked)
+    this._save(card.dataset.pecaUuid, input.checked)
       .then(() => this._reloadProducao())
       .catch(err => {
         input.checked = !input.checked
@@ -24,9 +24,9 @@ export default class extends Controller {
       .finally(() => { input.disabled = false })
   }
 
-  _save(pecaId, incluida) {
+  _save(pecaUuid, incluida) {
     const body = new FormData()
-    body.append("peca_id", pecaId)
+    body.append("peca_uuid", pecaUuid)
     body.append("incluida", String(incluida))
     return fetch(this.urlValue, { method: "PATCH", headers: this._headers(), body })
       .then(r => r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` })))

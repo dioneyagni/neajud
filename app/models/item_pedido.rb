@@ -1,4 +1,5 @@
 class ItemPedido < ApplicationRecord
+  include GeraUuid
   include ReferenciaAtiva
 
   self.table_name = "itens_pedido"
@@ -9,14 +10,6 @@ class ItemPedido < ApplicationRecord
   recusa_excluido :pedido, :arquivo
   has_many :grades, class_name: "ItemPedidoGrade", dependent: :destroy
   has_many :item_pedido_pecas, -> { order(:position) }, dependent: :destroy
-
-  validates :uuid, uniqueness: true
-
-  before_validation :generate_uuid, on: :create
-
-  def to_param
-    uuid
-  end
 
   # Stores one row per piece of the ordered modelo.
   # Usage: item.compor_pecas!(ModeloComposicaoService.call(arte))
@@ -44,11 +37,5 @@ class ItemPedido < ApplicationRecord
 
   def quantidade_total
     grades.sum(:quantidade)
-  end
-
-  private
-
-  def generate_uuid
-    self.uuid ||= SecureRandom.uuid
   end
 end

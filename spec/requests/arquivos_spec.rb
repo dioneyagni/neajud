@@ -259,7 +259,7 @@ RSpec.describe "Arquivos", type: :request do
       peca = create(:peca)
       arquivo = create(:arquivo)
 
-      patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id, molde_id: molde.id, peca_id: peca.id }
+      patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid, molde_uuid: molde.uuid, peca_uuid: peca.uuid }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.modelo_id).to eq(modelo.id)
@@ -271,7 +271,7 @@ RSpec.describe "Arquivos", type: :request do
       modelo = create(:modelo)
       arquivo = create(:arquivo)
 
-      patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }, as: :turbo_stream
+      patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("<turbo-stream")
@@ -285,7 +285,7 @@ RSpec.describe "Arquivos", type: :request do
       arquivo = create(:arquivo, client: create(:client))
       modelo = create(:modelo, client: arquivo.client)
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }, as: :turbo_stream
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
       }.to have_enqueued_job(TamanhoAutoAssignJob).with(arquivo.id)
       expect(arquivo.reload.buscando_tamanho?).to be true
       expect(response.body).to include("Procurando tamanho", busca_tamanho_arquivo_path(arquivo, format: :json))
@@ -299,7 +299,7 @@ RSpec.describe "Arquivos", type: :request do
       corte = create(:arquivo, :corte, organized: true, molde: modelo.molde).tap { |c| c.modelos << modelo }
       arquivo = create(:arquivo, tamanho: create(:tamanho, arquivo: corte))
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: modelo.id }
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: modelo.uuid }
       }.not_to have_enqueued_job(TamanhoAutoAssignJob)
       expect(arquivo.reload.tamanho_id).to be_present
     ensure
@@ -316,7 +316,7 @@ RSpec.describe "Arquivos", type: :request do
       create(:arquivo, :corte, organized: true, molde: molde).tap { |c| c.modelos << novo }
       arquivo = create(:arquivo, modelo: antigo, tamanho: create(:tamanho, arquivo: corte_antigo))
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: novo.id }
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: novo.uuid }
       }.to have_enqueued_job(TamanhoAutoAssignJob)
       expect(arquivo.reload.tamanho_id).to be_nil
     ensure
@@ -331,7 +331,7 @@ RSpec.describe "Arquivos", type: :request do
       get arquivo_path(arquivo)
       expect(response.body).to include('title="Unlink model"')
       expect {
-        patch update_modelo_arquivo_path(arquivo), params: { modelo_id: "" }
+        patch update_modelo_arquivo_path(arquivo), params: { modelo_uuid: "" }
       }.not_to have_enqueued_job(TamanhoAutoAssignJob)
       expect(arquivo.reload).to have_attributes(modelo_id: nil, molde_id: nil, tamanho_id: nil)
       expect(flash[:notice]).to eq("Modelo unlinked.")
@@ -358,7 +358,7 @@ RSpec.describe "Arquivos", type: :request do
     it "assigns a tamanho to an arquivo" do
       arquivo = create(:arquivo)
       tamanho = create(:tamanho, arquivo: arquivo)
-      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: tamanho.id }
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_uuid: tamanho.uuid }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.tamanho_id).to eq(tamanho.id)
@@ -367,7 +367,7 @@ RSpec.describe "Arquivos", type: :request do
     it "unlinks a tamanho from an arquivo" do
       tamanho = create(:tamanho)
       arquivo = create(:arquivo, tamanho: tamanho)
-      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: "" }
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_uuid: "" }
       expect(response).to redirect_to(arquivo_path(arquivo))
       arquivo.reload
       expect(arquivo.tamanho_id).to be_nil
@@ -377,7 +377,7 @@ RSpec.describe "Arquivos", type: :request do
       arquivo = create(:arquivo)
       tamanho = create(:tamanho, arquivo: arquivo)
 
-      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_id: tamanho.id }, as: :turbo_stream
+      patch update_tamanho_arquivo_path(arquivo), params: { tamanho_uuid: tamanho.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("<turbo-stream")
@@ -484,7 +484,7 @@ RSpec.describe "Arquivos", type: :request do
       arquivo.update!(approved_version_id: v1.id)
       v2 = create(:arquivo_version, arquivo: arquivo, approved: false, version_number: 2)
 
-      patch approve_version_arquivo_path(arquivo), params: { version_id: v2.id }
+      patch approve_version_arquivo_path(arquivo), params: { version_uuid: v2.uuid }
       expect(response).to redirect_to(arquivo_path(arquivo))
       expect(v1.reload.approved).to be false
       expect(v2.reload.approved).to be true
@@ -496,7 +496,7 @@ RSpec.describe "Arquivos", type: :request do
     it "returns 404 when version has no preview" do
       arquivo = create(:arquivo)
       version = create(:arquivo_version, arquivo: arquivo)
-      get version_preview_arquivo_path(arquivo, version_id: version.id)
+      get version_preview_arquivo_path(arquivo, version_uuid: version.uuid)
       expect(response).to have_http_status(:not_found)
     end
 
@@ -508,7 +508,7 @@ RSpec.describe "Arquivos", type: :request do
       File.write(preview_path, "fake-png-data")
       version.update!(preview_file: preview_path)
 
-      get version_preview_arquivo_path(arquivo, version_id: version.id)
+      get version_preview_arquivo_path(arquivo, version_uuid: version.uuid)
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("image/png")
     end
@@ -521,7 +521,7 @@ RSpec.describe "Arquivos", type: :request do
       arquivo.update!(approved_version_id: version.id)
 
       patch configure_layers_arquivo_path(arquivo), params: {
-        version_id: version.id,
+        version_uuid: version.uuid,
         layer_annotations: {
           "0" => { color: "#FF0000", layer_name: "Layer1", annotation: "cut" }
         }
@@ -542,7 +542,7 @@ RSpec.describe "Arquivos", type: :request do
     end
 
     let(:organizar) do
-      { molde_id: create(:molde).id, peca_id: create(:peca).id, tamanhos: { "0" => { nome: "34", width_mm: 100, height_mm: 50 } } }
+      { molde_uuid: create(:molde).uuid, peca_uuid: create(:peca).uuid, tamanhos: { "0" => { nome: "34", width_mm: 100, height_mm: 50 } } }
     end
 
     it "organize saves the choice at once and only queues each size's DXF and preview" do
@@ -578,8 +578,8 @@ RSpec.describe "Arquivos", type: :request do
       arquivo = create(:arquivo, extension: "dxf")
 
       patch organize_arquivo_path(arquivo), params: {
-        molde_id: molde.id,
-        peca_id: peca.id,
+        molde_uuid: molde.uuid,
+        peca_uuid: peca.uuid,
         molde_nome: "Test Molde",
         peca_nome: "Test Peca",
         tamanhos: {
@@ -599,8 +599,8 @@ RSpec.describe "Arquivos", type: :request do
       arquivo = create(:arquivo, extension: "dxf")
 
       patch organize_arquivo_path(arquivo), params: {
-        molde_id: molde.id,
-        peca_id: peca.id,
+        molde_uuid: molde.uuid,
+        peca_uuid: peca.uuid,
         tamanhos: { "0" => { nome: "Size A", width_mm: 100, height_mm: 50 } }
       }, as: :turbo_stream
       expect(response).to have_http_status(:success)
@@ -620,8 +620,8 @@ RSpec.describe "Arquivos", type: :request do
       corte2 = create(:arquivo, :corte)
 
       patch organize_arquivo_path(corte2), params: {
-        molde_id: molde.id,
-        peca_id: peca.id
+        molde_uuid: molde.uuid,
+        peca_uuid: peca.uuid
       }
       expect(response).to redirect_to(arquivo_path(corte2))
       corte2.reload
@@ -642,8 +642,8 @@ RSpec.describe "Arquivos", type: :request do
       corte2.modelos << modelo
 
       patch organize_arquivo_path(corte2), params: {
-        molde_id: molde.id,
-        peca_id: peca.id
+        molde_uuid: molde.uuid,
+        peca_uuid: peca.uuid
       }
       expect(response).to redirect_to(arquivo_path(corte2))
       follow_redirect!
@@ -665,8 +665,8 @@ RSpec.describe "Arquivos", type: :request do
       corte2.modelos << modelo
 
       patch organize_arquivo_path(corte2), params: {
-        molde_id: molde.id,
-        peca_id: peca.id
+        molde_uuid: molde.uuid,
+        peca_uuid: peca.uuid
       }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
@@ -689,7 +689,7 @@ RSpec.describe "Arquivos", type: :request do
 
       corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
 
-      post add_modelo_arquivo_path(corte2), params: { modelo_id: modelo.id }
+      post add_modelo_arquivo_path(corte2), params: { modelo_uuid: modelo.uuid }
       expect(response).to redirect_to(arquivo_path(corte2))
       follow_redirect!
       expect(response.body).to include("já possui corte organizado")
@@ -699,7 +699,7 @@ RSpec.describe "Arquivos", type: :request do
       modelo = create(:modelo)
       corte = create(:arquivo, :corte)
 
-      post add_modelo_arquivo_path(corte), params: { modelo_id: modelo.id }
+      post add_modelo_arquivo_path(corte), params: { modelo_uuid: modelo.uuid }
       expect(response).to redirect_to(arquivo_path(corte))
       expect(corte.reload.modelos).to include(modelo)
     end
@@ -715,7 +715,7 @@ RSpec.describe "Arquivos", type: :request do
 
       corte2 = create(:arquivo, :corte, organized: true, peca: peca, molde: molde)
 
-      post add_modelo_arquivo_path(corte2), params: { modelo_id: modelo.id }, as: :turbo_stream
+      post add_modelo_arquivo_path(corte2), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include("já possui corte organizado")
@@ -727,7 +727,7 @@ RSpec.describe "Arquivos", type: :request do
       modelo = create(:modelo)
       corte = create(:arquivo, :corte)
 
-      post add_modelo_arquivo_path(corte), params: { modelo_id: modelo.id }, as: :turbo_stream
+      post add_modelo_arquivo_path(corte), params: { modelo_uuid: modelo.uuid }, as: :turbo_stream
       expect(response).to have_http_status(:success)
       expect(response.content_type).to include("text/vnd.turbo-stream.html")
       expect(response.body).to include('id="modelo-field-section"')

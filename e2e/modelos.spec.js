@@ -41,7 +41,7 @@ runSpec("Modelos E2E Tests", async ({ page, test }) => {
     await page.fill('input[name="modelo[nome]"]', `E2E Modelo ${UNIQ}`);
 
     // Select the client just provisioned above
-    const clientSelect = page.locator('select[name="modelo[client_id]"]');
+    const clientSelect = page.locator('select[name="modelo[client_uuid]"]');
     const options = await clientSelect.locator("option").allTextContents();
     const clientOption = options.find((o) => o.includes(modeloClientName));
     if (!clientOption) throw new Error(`Client "${modeloClientName}" not found in dropdown`);
@@ -131,7 +131,7 @@ runSpec("Modelos E2E Tests", async ({ page, test }) => {
       await fetch("/modelos", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_id]": clients[0].id, "modelo[molde_id]": moldes[0].id })
+        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_uuid]": clients[0].id, "modelo[molde_uuid]": moldes[0].id })
       });
       const mdr = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
       const modelos = await mdr.json();

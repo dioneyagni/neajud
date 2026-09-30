@@ -38,7 +38,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     const nomeInput = await dialog.$("#modelo_nome_dialog");
     await nomeInput.fill(`E2E Modelo ${Date.now()}`);
 
-    const clientSelect = await dialog.$("#modelo_client_id_dialog");
+    const clientSelect = await dialog.$("#modelo_client_uuid_dialog");
     const clientOptions = await clientSelect.$$("option");
     if (clientOptions.length < 2) throw new Error(`Not enough client options: ${clientOptions.length}`);
     await clientSelect.selectOption({ index: 1 });
@@ -149,7 +149,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
       await fetch("/modelos", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_id]": clients[0].id, "modelo[molde_id]": moldes[0].id })
+        body: new URLSearchParams({ authenticity_token: csrf, "modelo[nome]": modeloName, "modelo[client_uuid]": clients[0].id, "modelo[molde_uuid]": moldes[0].id })
       });
       const modeloRes = await fetch(`/modelos/search?q=${encodeURIComponent(modeloName)}`);
       const modelos = await modeloRes.json();
@@ -225,7 +225,7 @@ runSpec("Pages E2E: modelos, show pages & materials", async ({ page, test }) => 
     const firstClientOption = clientOptions.first();
     const expectedId = await firstClientOption.getAttribute("data-id");
     await firstClientOption.click();
-    const hiddenValue = await page.$eval("input[name='movimento_estoque[client_id]']", el => el.value);
+    const hiddenValue = await page.$eval("input[name='movimento_estoque[client_uuid]']", el => el.value);
     if (hiddenValue !== expectedId) throw new Error(`Hidden field value ${hiddenValue} does not match selected client id ${expectedId}`);
   });
 });

@@ -1,6 +1,6 @@
 <%= form_with url: configure_layers_arquivo_path(@arquivo), method: :patch,
       data: { controller: "edit-toggle async-form", action: "turbo:submit-end->async-form#onSuccess turbo:submit-end->edit-toggle#onSuccess" } do |f| %>
-  <%= hidden_field_tag :version_id, version.id %>
+  <%= hidden_field_tag :version_uuid, version.uuid %>
 
   <div class="section-heading-with-action">
     <h4>Layers</h4>

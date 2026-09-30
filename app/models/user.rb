@@ -22,10 +22,6 @@ class User < ApplicationRecord
     vinculos.find_by(empresa: Empresa.atual)
   end
 
-  def to_param
-    uuid
-  end
-
   def ativo?
     desativado_em.nil?
   end

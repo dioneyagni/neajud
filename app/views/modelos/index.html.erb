@@ -16,24 +16,24 @@
         <input type="text" name="modelo[nome]" id="modelo_nome_dialog" data-dialog-field="nome" required>
       </div>
       <div class="client-field">
-        <label for="modelo_client_id_dialog">Client</label>
-        <select name="modelo[client_id]" id="modelo_client_id_dialog" data-dialog-field="clientId" required>
+        <label for="modelo_client_uuid_dialog">Client</label>
+        <select name="modelo[client_uuid]" id="modelo_client_uuid_dialog" data-dialog-field="clientUuid" required>
           <option value="">Select a client...</option>
           <% @clientes_para_escolher.each do |c| %>
             <% if c.excluido? %>
-              <option value="<%= c.id %>" data-somente-edicao hidden disabled><%= c.name %> (in the trash)</option>
+              <option value="<%= c.uuid %>" data-somente-edicao hidden disabled><%= c.name %> (in the trash)</option>
             <% else %>
-              <option value="<%= c.id %>"><%= c.name %></option>
+              <option value="<%= c.uuid %>"><%= c.name %></option>
             <% end %>
           <% end %>
         </select>
       </div>
       <div class="client-field">
-        <label for="modelo_molde_id_dialog">Mold</label>
-        <select name="modelo[molde_id]" id="modelo_molde_id_dialog" data-dialog-field="moldeId">
+        <label for="modelo_molde_uuid_dialog">Mold</label>
+        <select name="modelo[molde_uuid]" id="modelo_molde_uuid_dialog" data-dialog-field="moldeUuid">
           <option value="">Select a mold...</option>
           <% Molde.ativos.order(:nome).each do |m| %>
-            <option value="<%= m.id %>"><%= m.nome %></option>
+            <option value="<%= m.uuid %>"><%= m.nome %></option>
           <% end %>
         </select>
       </div>
@@ -69,8 +69,8 @@
                 <button class="btn btn-secondary btn-sm"
                         data-action="click->dialog#edit"
                         data-nome="<%= modelo.nome %>"
-                        data-client-id="<%= modelo.client_id %>"
-                        data-molde-id="<%= modelo.molde_id %>"
+                        data-client-uuid="<%= modelo.client.uuid %>"
+                        data-molde-uuid="<%= modelo.molde&.uuid %>"
                         data-action-url="<%= modelo_path(modelo) %>"
                         data-method="patch"
                         data-dialog-title="Edit Modelo"

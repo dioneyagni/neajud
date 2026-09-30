@@ -51,13 +51,13 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
       lingua: await findId(`/pecas/search?q=${encodeURIComponent(names.lingua)}`, "nome", names.lingua),
     };
     const moldeNome = `Molde ${UNIQ}`;
-    await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[peca_ids][]", pecaIds.lateral ], [ "molde[peca_ids][]", pecaIds.lingua ]]);
+    await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[peca_uuids][]", pecaIds.lateral ], [ "molde[peca_uuids][]", pecaIds.lingua ]]);
     const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "nome", moldeNome);
     const clientName = `Cliente ${UNIQ}`;
     await postForm("/clients", [[ "client[name]", clientName ], [ "client[responsible]", "E2E" ]]);
     const clientId = await findId(`/clients/search?q=${encodeURIComponent(clientName)}`, "name", clientName);
     const modeloNome = `Modelo ${UNIQ}`;
-    await postForm("/modelos", [[ "modelo[nome]", modeloNome ], [ "modelo[client_id]", clientId ], [ "modelo[molde_id]", moldeId ]]);
+    await postForm("/modelos", [[ "modelo[nome]", modeloNome ], [ "modelo[client_uuid]", clientId ], [ "modelo[molde_uuid]", moldeId ]]);
     const modeloId = await findId(`/modelos/search?q=${encodeURIComponent(modeloNome)}`, "nome", modeloNome);
     if (!pecaIds.lateral || !pecaIds.lingua || !moldeId || !modeloId) {
       throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, moldeId, clientId, modeloId })}`);
@@ -76,8 +76,8 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     const href = await cardFor(file).locator("a").first().getAttribute("href");
     const uuid = href.split("/").pop();
     if (modeloId) {
-      const fields = [[ "_method", "patch" ], [ "modelo_id", modeloId ]];
-      if (pecaId) fields.push([ "peca_id", pecaId ]);
+      const fields = [[ "_method", "patch" ], [ "modelo_uuid", modeloId ]];
+      if (pecaId) fields.push([ "peca_uuid", pecaId ]);
       const status = await postForm(`/arquivos/${uuid}/update_modelo`, fields);
       if (status >= 400) throw new Error(`update_modelo failed for ${uuid}: HTTP ${status}`);
     }
@@ -290,12 +290,12 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     await test("Setup: another modelo of the same client with an arte without peça", async () => {
       outroModeloNome = `Outro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/modelos", [[ "modelo[nome]", outroModeloNome ], [ "modelo[client_id]", modelo.clientId ], [ "modelo[molde_id]", modelo.moldeId ]]);
+      await postForm("/modelos", [[ "modelo[nome]", outroModeloNome ], [ "modelo[client_uuid]", modelo.clientId ], [ "modelo[molde_uuid]", modelo.moldeId ]]);
       const outroId = await findId(`/modelos/search?q=${encodeURIComponent(outroModeloNome)}`, "nome", outroModeloNome);
       if (!outroId) throw new Error("Could not create the second modelo");
       outroUuid = await uploadArte(outroFile, outroId, null);
       // Group 1 is "the client's artes": give it the same client.
-      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_id", modelo.clientId ]]);
+      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_uuid", modelo.clientId ]]);
       if (status >= 400) throw new Error(`update_client failed: HTTP ${status}`);
     });
 
@@ -340,7 +340,7 @@ runSpec("Pedidos E2E: pieces of the modelo (add-to-order modal + pedido page)", 
     await test("Setup: a third modelo whose Língua has no arte, added to the pedido", async () => {
       const nome = `Terceiro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/modelos", [[ "modelo[nome]", nome ], [ "modelo[client_id]", modelo.clientId ], [ "modelo[molde_id]", modelo.moldeId ]]);
+      await postForm("/modelos", [[ "modelo[nome]", nome ], [ "modelo[client_uuid]", modelo.clientId ], [ "modelo[molde_uuid]", modelo.moldeId ]]);
       const terceiroId = await findId(`/modelos/search?q=${encodeURIComponent(nome)}`, "nome", nome);
       if (!terceiroId) throw new Error("Could not create the third modelo");
       await uploadArte(terceiroFile, terceiroId, modelo.pecaIds.lateral);

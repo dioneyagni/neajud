@@ -1,4 +1,5 @@
 class ModeloPeca < ApplicationRecord
+  include GeraUuid
   include ReferenciaAtiva
 
   belongs_to :modelo

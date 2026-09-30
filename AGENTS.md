@@ -642,6 +642,30 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   solicitacoes) —
   without it `resources :aprovacoes` generated `new_arquivo_aprovaco_path`.
 
+## Public identifiers are uuids (Etapa 1.1, 1/2)
+
+The integer id is the internal key only; nothing that leaves the server
+carries it (a guessable sequence would let the future cliente final reach
+other clients' records). Every entity includes `GeraUuid` (pure join tables,
+`sessions`, the 1:1 `arquivo_image_metadata` and `itens_pedido_grade` — rows
+addressed by tamanho name inside their item — don't need one).
+
+- **URLs:** `GeraUuid#to_param` is the uuid, so path helpers build
+  `/clients/<uuid>`; controllers look up with `Model.por_uuid!(params[:id])`
+  (also on a relation: `@arquivo.arquivo_versions.por_uuid!(…)`). An integer
+  id answers 404.
+- **JSON:** `id` is the record's uuid (`{ id: c.uuid, name: … }`); a reference
+  to another record is `<assoc>_uuid` (`molde_uuid`).
+- **Forms and fetch params:** name them `<assoc>_uuid` (`client_uuid`,
+  `modelo[molde_uuid]`, `molde[peca_uuids][]`), never `<assoc>_id` with a uuid
+  inside: Rails casts `"8f3a…"` to the integer 8 and links the wrong record
+  silently. Models declare `atribui_por_uuid :client, :molde`
+  (`AtribuiPorUuid`) so `Modelo.new(client_uuid: …)` works; blank unlinks, an
+  unknown uuid raises `RecordNotFound`. Filters use a subquery:
+  `where(molde: Molde.where(uuid: params[:molde_uuid]))`.
+- Tests: `spec/requests/uuid_publico_spec.rb` checks pages, JSON endpoints and
+  forms; add a row when you add an endpoint.
+
 ## Logical deletion (Etapa 0.4)
 
 Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Modelo`,
@@ -828,7 +852,7 @@ assuming global fixtures.
   `ArquivosController#parse_hmm`.
 
 - Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
-- Arquivo routes use `uuid` (`Arquivo.find_by!(uuid:)`), not integer id
+- Every route, JSON and form value uses the `uuid` — see "Public identifiers are uuids"
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
 - CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
   bundler-audit, importmap audit, `bin/check-residues`, rubocop, rspec, and e2e.
@@ -867,9 +891,6 @@ Current code that still differs from the plan — don't copy these patterns into
 - **No "cliente final"** — the client's own access (seeing only their pedidos
   and artes) needs every query filtered by client. Target: Etapa 2.8, before
   the beta.
-- **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
-  `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
-  use integer ids. Target: UUID on every entity (Etapa 1.1).
 - **Client approval only registered by the team** — "aprovada pelo cliente no
   sistema" needs the cliente final (its own etapa before the beta).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,

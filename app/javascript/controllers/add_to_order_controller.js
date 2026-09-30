@@ -9,7 +9,7 @@ export default class extends Controller {
     arteUuid: String,
     arteFilename: String,
     arteClient: String,
-    arteClientId: String,
+    arteClientUuid: String,
     artePreview: String,
     tamanhos: Array
   }
@@ -24,7 +24,7 @@ export default class extends Controller {
     this.arteFilenameValue = btn.dataset.addToOrderArteFilename
     this.arteClientValue = btn.dataset.addToOrderArteClient || ""
     this.artePreviewValue = btn.dataset.addToOrderArtePreview || ""
-    this.arteClientIdValue = btn.dataset.addToOrderArteClientId || ""
+    this.arteClientUuidValue = btn.dataset.addToOrderArteClientUuid || ""
 
     let tamanhos = []
     try {
@@ -55,8 +55,8 @@ export default class extends Controller {
     if (!materialField) return
     let searchUrl = "/materiais/search"
     let registerUrl = "/materiais/new"
-    if (this.arteClientIdValue) {
-      const qs = `client_id=${encodeURIComponent(this.arteClientIdValue)}`
+    if (this.arteClientUuidValue) {
+      const qs = `client_uuid=${encodeURIComponent(this.arteClientUuidValue)}`
       searchUrl += `?${qs}`
       registerUrl += `?${qs}`
     }
@@ -72,9 +72,9 @@ export default class extends Controller {
     const formData = new FormData()
     formData.append("arquivo_uuid", this.arteUuidValue)
 
-    const materialId = this.materialHiddenTarget.value
-    if (materialId) {
-      formData.append("materia_prima_id", materialId)
+    const materialUuid = this.materialHiddenTarget.value
+    if (materialUuid) {
+      formData.append("materia_prima_uuid", materialUuid)
     }
 
     const gradeInputs = this.gradeContainerTarget.querySelectorAll(".add-to-order-grade-input")

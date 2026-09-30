@@ -61,7 +61,7 @@
                     <label class="toggle-switch">
                       <input type="checkbox" <%= "checked" if mp.needs_cut %>
                              data-action="change->toggle-switch#onChange"
-                             data-url="<%= update_peca_config_modelo_path(@modelo, modelo_peca_id: mp.id) %>">
+                             data-url="<%= update_peca_config_modelo_path(@modelo, modelo_peca_uuid: mp.uuid) %>">
                       <span class="toggle-slider"></span>
                     </label>
                   </div>

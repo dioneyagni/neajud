@@ -29,12 +29,21 @@ RSpec.describe "Lixeira", type: :request do
   end
 
   describe "POST /lixeira/:tipo/:id/restaurar" do
-    it "restores a client by id" do
+    it "restores a client by uuid" do
       client = create(:client).tap { |c| c.excluir!(changed_by: "10.0.0.1") }
-      post restaurar_lixeira_path(tipo: "clients", id: client.id)
+      post restaurar_lixeira_path(tipo: "clients", id: client.uuid)
       expect(client.reload).not_to be_excluido
       expect(response).to redirect_to(lixeira_path)
       expect(client.exclusao_logs.last).to have_attributes(acao: "restaurado", changed_by: "127.0.0.1")
+    end
+
+    # Etapa 1.1 (1/2): the integer id never leaves the server, so it must not
+    # find anything either (a guessable sequence would reach other records).
+    it "does not find a record by its integer id" do
+      client = create(:client).tap { |c| c.excluir!(changed_by: "10.0.0.1") }
+      post restaurar_lixeira_path(tipo: "clients", id: client.id)
+      expect(response).to have_http_status(:not_found)
+      expect(client.reload).to be_excluido
     end
 
     it "restores arquivos and pedidos by uuid" do
@@ -69,7 +78,7 @@ RSpec.describe "Lixeira", type: :request do
       create(:molde, nome: "Sapato").excluir!(changed_by: "10.0.0.1")
       create(:peca, nome: "Solado").excluir!(changed_by: "10.0.0.1")
 
-      post modelos_path, params: { modelo: { nome: "Tenis", client_id: modelo.client_id } }
+      post modelos_path, params: { modelo: { nome: "Tenis", client_uuid: modelo.client.uuid } }
       expect(flash[:alert]).to include("is in the trash")
       post moldes_path, params: { molde: { nome: "Sapato" } }
       expect(flash[:alert]).to include("is in the trash")

@@ -46,15 +46,15 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
         const post = (url, fields) => fetch(url, { method: "POST", body: form(fields), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
         await post("/pecas", { "peca[nome]": `Peca ${uniq}` });
         const peca = (await (await fetch(`/pecas/search?q=${encodeURIComponent(`Peca ${uniq}`)}`)).json())[0];
-        await post("/moldes", { "molde[nome]": `Molde ${uniq}`, "molde[peca_ids][]": peca.id });
+        await post("/moldes", { "molde[nome]": `Molde ${uniq}`, "molde[peca_uuids][]": peca.id });
         const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Molde ${uniq}`)}`)).json())[0];
         const organized = await post(`/arquivos/${corteUuid}/organize`, {
-          _method: "patch", molde_id: molde.id, peca_id: peca.id,
+          _method: "patch", molde_uuid: molde.id, peca_uuid: peca.id,
           "tamanhos[0][nome]": "34", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
         });
-        const tamanho = (await (await fetch(`/tamanhos/for_cascade?molde_id=${molde.id}&peca_id=${peca.id}`)).json()).find((t) => t.nome === "34");
+        const tamanho = (await (await fetch(`/tamanhos/for_cascade?molde_uuid=${molde.id}&peca_uuid=${peca.id}`)).json()).find((t) => t.nome === "34");
         if (!organized.ok || !tamanho) return false;
-        return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_id: tamanho.id })).ok;
+        return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_uuid: tamanho.id })).ok;
       }, { token, corteUuid, arteUuid, uniq: UNIQ });
       if (!ok) throw new Error("Could not organize the DXF and link its tamanho to the arte");
     } finally {
@@ -165,10 +165,10 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
         const clientId = clients.find((c) => c.name === clientName)?.id;
 
         const form = new FormData();
-        form.append("movimento_estoque[client_id]", clientId);
+        form.append("movimento_estoque[client_uuid]", clientId);
         form.append("movimento_estoque[tipo]", "entrada");
-        form.append("movimento_estoque[grupo_material_id]", grupoId);
-        form.append("movimento_estoque[cor_material_id]", corId);
+        form.append("movimento_estoque[grupo_material_uuid]", grupoId);
+        form.append("movimento_estoque[cor_material_uuid]", corId);
         form.append("movimento_estoque[largura]", "1.40");
         form.append("movimento_estoque[gramatura]", "100g");
         form.append("movimento_estoque[quantidade]", "50");

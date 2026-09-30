@@ -3,6 +3,7 @@
 # modelo — the move the user had to confirm. Names are copied so the history
 # stays readable after a modelo is deleted (the ids are then nullified).
 class ArquivoVinculoLog < ApplicationRecord
+  include GeraUuid
   belongs_to :arquivo
   belongs_to :from_modelo, class_name: "Modelo", optional: true
   belongs_to :to_modelo, class_name: "Modelo", optional: true

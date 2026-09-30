@@ -55,13 +55,13 @@ class PedidoPecasController < ApplicationController
 
   def set_peca_row
     @pedido = Pedido.ativos.find_by!(uuid: params[:pedido_uuid])
-    @peca_row = ItemPedidoPeca.joins(:item_pedido).where(itens_pedido: { pedido_id: @pedido.id }).find(params[:id])
+    @peca_row = ItemPedidoPeca.joins(:item_pedido).where(itens_pedido: { pedido_id: @pedido.id }).por_uuid!(params[:id])
   end
 
   def require_pending_in_draft
     return if @pedido.status == "rascunho" && @peca_row.arquivo.nil?
 
     redirect_to resumo_pedido_path(@pedido),
-                alert: "Piece #{@peca_row.id} can't be completed: pedido is #{@pedido.status} and the piece #{@peca_row.arquivo ? "already has an arte" : "is pending"}."
+                alert: "Piece #{@peca_row.uuid} can't be completed: pedido is #{@pedido.status} and the piece #{@peca_row.arquivo ? "already has an arte" : "is pending"}."
   end
 end

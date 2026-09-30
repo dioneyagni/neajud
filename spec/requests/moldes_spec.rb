@@ -66,6 +66,12 @@ RSpec.describe "Moldes", type: :request do
       expect(Molde.last.nome).to eq("Sapato")
     end
 
+    it "links the peças listed by uuid" do
+      lateral = create(:peca, nome: "Lateral")
+      post moldes_path, params: { molde: { nome: "Tenis", peca_uuids: [ lateral.uuid ] } }
+      expect(Molde.last.pecas).to eq([ lateral ])
+    end
+
     it "redirects to molde show page on success" do
       post moldes_path, params: { molde: { nome: "Chinelo" } }
 
@@ -116,6 +122,13 @@ RSpec.describe "Moldes", type: :request do
 
       molde.reload
       expect(molde.nome).to eq("Chinelo")
+    end
+
+    it "replaces the peças with the ones listed by uuid" do
+      molde = create(:molde).tap { |m| m.pecas << create(:peca, nome: "Lateral") }
+      lingua = create(:peca, nome: "Língua")
+      patch molde_path(molde), params: { molde: { nome: molde.nome, peca_uuids: [ "", lingua.uuid ] } }
+      expect(molde.reload.pecas).to eq([ lingua ])
     end
   end
 

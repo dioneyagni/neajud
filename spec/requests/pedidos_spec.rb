@@ -145,7 +145,7 @@ RSpec.describe "Pedidos", type: :request do
     it "includes material when specified" do
       post adicionar_item_pedidos_path, params: {
         arquivo_uuid: arquivo.uuid,
-        materia_prima_id: materia_prima.id,
+        materia_prima_uuid: materia_prima.uuid,
         grade: { "_total" => "1" }
       }
 
@@ -308,7 +308,7 @@ RSpec.describe "Pedidos", type: :request do
     let!(:peca_row) { create(:item_pedido_peca, item_pedido: item) }
 
     def alternar(incluida, row: peca_row, target: pedido)
-      patch alternar_peca_pedido_path(target), params: { id: row.item_pedido.uuid, peca_id: row.id, incluida: incluida }, as: :json
+      patch alternar_peca_pedido_path(target), params: { id: row.item_pedido.uuid, peca_uuid: row.uuid, incluida: incluida }, as: :json
     end
 
     it "unchecks and re-checks a piece" do

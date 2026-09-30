@@ -83,7 +83,7 @@ class ArquivosController < ApplicationController
   end
 
   def approve_version
-    version = @arquivo.arquivo_versions.find(params[:version_id])
+    version = @arquivo.arquivo_versions.por_uuid!(params[:version_uuid])
     @arquivo.arquivo_versions.update_all(approved: false)
     version.update!(approved: true)
     @arquivo.update!(approved_version_id: version.id)
@@ -91,7 +91,7 @@ class ArquivosController < ApplicationController
   end
 
   def configure_layers
-    version = @arquivo.arquivo_versions.find(params[:version_id])
+    version = @arquivo.arquivo_versions.por_uuid!(params[:version_uuid])
     annotations = params[:layer_annotations]
     unless annotations.is_a?(ActionController::Parameters) || annotations.is_a?(Hash)
       return head :bad_request
@@ -102,7 +102,7 @@ class ArquivosController < ApplicationController
   end
 
   def add_modelo
-    modelo = Modelo.ativos.find(params[:modelo_id])
+    modelo = Modelo.ativos.por_uuid!(params[:modelo_uuid])
     if @arquivo.corte? && @arquivo.organized? && @arquivo.peca_id.present?
       conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, modelo: modelo)
       if conflict && conflict.id != @arquivo.id
@@ -124,7 +124,7 @@ class ArquivosController < ApplicationController
   end
 
   def remove_modelo
-    modelo = @arquivo.modelos.find(params[:modelo_id])
+    modelo = @arquivo.modelos.por_uuid!(params[:modelo_uuid])
     @arquivo.modelos.delete(modelo)
     respond_to do |format|
       format.turbo_stream
@@ -133,7 +133,7 @@ class ArquivosController < ApplicationController
   end
 
   def update_client
-    if @arquivo.update(client_id: params[:client_id].presence)
+    if @arquivo.update(client_uuid: params[:client_uuid])
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @arquivo, notice: "Client updated." }
@@ -144,11 +144,11 @@ class ArquivosController < ApplicationController
   end
 
   def update_modelo
-    updates = { modelo_id: params[:modelo_id].presence }
-    updates[:molde_id] = params[:molde_id].presence if params[:molde_id].present?
-    updates[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
-    # Unlink (modelo_id blank): also forget the molde that came with it.
-    updates[:molde_id] = nil if updates[:modelo_id].nil? && !@arquivo.corte?
+    updates = { modelo_uuid: params[:modelo_uuid] }
+    updates[:molde_uuid] = params[:molde_uuid] if params[:molde_uuid].present?
+    updates[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
+    # Unlink (modelo_uuid blank): also forget the molde that came with it.
+    updates[:molde_id] = nil if params[:modelo_uuid].blank? && !@arquivo.corte?
 
     if @arquivo.update(updates)
       @arquivo.reload
@@ -158,7 +158,7 @@ class ArquivosController < ApplicationController
       @arquivo.buscar_tamanho_em_fila!
       respond_to do |format|
         format.turbo_stream
-        format.html { redirect_to @arquivo, notice: updates[:modelo_id] ? "Modelo updated." : "Modelo unlinked." }
+        format.html { redirect_to @arquivo, notice: params[:modelo_uuid].present? ? "Modelo updated." : "Modelo unlinked." }
       end
     else
       redirect_to @arquivo, alert: "Could not update modelo: #{@arquivo.errors.full_messages.to_sentence}"
@@ -178,7 +178,7 @@ class ArquivosController < ApplicationController
   end
 
   def update_tamanho
-    if @arquivo.update(tamanho_id: params[:tamanho_id].presence)
+    if @arquivo.update(tamanho_uuid: params[:tamanho_uuid])
       @arquivo.reload
       respond_to do |format|
         format.turbo_stream
@@ -252,7 +252,7 @@ class ArquivosController < ApplicationController
   end
 
   def version_preview
-    version = @arquivo.arquivo_versions.find(params[:version_id])
+    version = @arquivo.arquivo_versions.por_uuid!(params[:version_uuid])
     raise ActionController::MissingFile if version.preview_file.blank?
     path = version.preview_file
     raise ActionController::MissingFile unless File.exist?(path)
@@ -274,12 +274,12 @@ class ArquivosController < ApplicationController
 
   def organize
     update_attrs = { organized: true }
-    update_attrs[:molde_id] = params[:molde_id].presence if params[:molde_id].present?
-    update_attrs[:peca_id] = params[:peca_id].presence if params[:peca_id].present?
+    update_attrs[:molde_uuid] = params[:molde_uuid] if params[:molde_uuid].present?
+    update_attrs[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
     update_attrs[:molde_nome] = params[:molde_nome].presence if params[:molde_nome].present?
     update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
 
-    peca_id = params[:peca_id].presence
+    peca_id = Peca.por_uuid!(params[:peca_uuid]).id if params[:peca_uuid].present?
     if peca_id && @arquivo.corte?
       conflicting = @arquivo.modelos.any? { |m|
         c = Arquivo.conflicting_corte(peca_id: peca_id, modelo: m)

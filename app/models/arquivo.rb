@@ -1,4 +1,5 @@
 class Arquivo < ApplicationRecord
+  include GeraUuid
   include Excluivel
   include ReferenciaAtiva
   include Aprovavel
@@ -17,16 +18,15 @@ class Arquivo < ApplicationRecord
   belongs_to :peca, optional: true
   belongs_to :modelo, optional: true
   belongs_to :tamanho, optional: true
+  atribui_por_uuid :client, :molde, :peca, :modelo, :tamanho
   has_one :corte, through: :tamanho, source: :arquivo
 
-  before_validation :set_uuid, on: :create
   before_validation :set_default_tipo_corte
   after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
   before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
   recusa_excluido :client, :modelo, :molde, :peca
-  validates :uuid, presence: true, uniqueness: true
   validates :filename, presence: true
   validates :extension, presence: true
   validates :mime_type, presence: true
@@ -192,10 +192,6 @@ class Arquivo < ApplicationRecord
     end
   end
 
-  def to_param
-    uuid
-  end
-
   def next_version_number
     (arquivo_versions.maximum(:version_number) || 0) + 1
   end
@@ -227,7 +223,6 @@ class Arquivo < ApplicationRecord
            .where.not(id: id)
            .exists?
   end
-
 
   # Each page reacts only to what it shows, so a refresh never wipes what the
   # user is doing elsewhere (files picked for the next upload, a typed grade):
@@ -293,9 +288,5 @@ class Arquivo < ApplicationRecord
 
   def marca_recente?(momento)
     momento.present? && momento > TAREFA_EM_FILA_EXPIRA.ago
-  end
-
-  def set_uuid
-    self.uuid ||= SecureRandom.uuid
   end
 end

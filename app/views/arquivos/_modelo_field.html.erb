@@ -16,7 +16,7 @@
             <span class="client-name-display"><%= modelo.nome %></span>
             <span class="client-responsible-display">(<%= modelo.client.name %><% if modelo.molde %>, <%= modelo.molde.nome %><% end %>)</span>
             <% if pode_editar_arquivo?(@arquivo) %>
-              <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_id: modelo.id), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
+              <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_uuid: modelo.uuid), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
               <% end %>
             <% end %>
@@ -35,7 +35,7 @@
             <span class="client-name-display"><%= modelo.nome %></span>
             <span class="client-responsible-display">(<%= modelo.client.name %><% if modelo.molde %>, <%= modelo.molde.nome %><% end %>)</span>
             <% if pode_editar_arquivo?(@arquivo) %>
-              <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_id: modelo.id), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
+              <%= button_to remove_modelo_arquivo_path(@arquivo, modelo_uuid: modelo.uuid), method: :delete, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model" do %>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
               <% end %>
             <% end %>
@@ -44,7 +44,7 @@
       <% else %>
         <span class="client-empty">No models linked</span>
       <% end %>
-      <form action="<%= add_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" style="margin-top: 0.5rem" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+      <form action="<%= add_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" style="margin-top: 0.5rem" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_uuid: @arquivo.client&.uuid) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
         <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
         <div class="combobox">
           <input type="text"
@@ -53,7 +53,7 @@
                  data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
           <div class="combobox-results"></div>
         </div>
-        <input type="hidden" name="modelo_id" value="">
+        <input type="hidden" name="modelo_uuid" value="">
         <div class="edit-actions" style="margin-top: 0.5rem">
           <button type="submit" class="btn-icon btn-confirm" title="Add">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -73,7 +73,7 @@
           <%# Like the client's: unlinking also clears the tamanho and molde that
               came with the modelo, to start the choice over. %>
           <% if pode_editar_arquivo?(@arquivo) %>
-            <%= button_to update_modelo_arquivo_path(@arquivo), method: :patch, params: { modelo_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model",
+            <%= button_to update_modelo_arquivo_path(@arquivo), method: :patch, params: { modelo_uuid: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink model",
                   data: { turbo_confirm: "Unlink the model? The size chosen for it is cleared too." } do %>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
             <% end %>
@@ -86,7 +86,7 @@
     </div>
 
     <div data-edit-toggle-target="form" style="display:none">
-      <form action="<%= update_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_id: @arquivo.client_id) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
+      <form action="<%= update_modelo_arquivo_path(@arquivo) %>" method="post" data-turbo-stream="true" data-controller="combobox" data-combobox-search-url-value="<%= @arquivo.client.present? ? for_client_modelos_path(client_uuid: @arquivo.client&.uuid) : search_modelos_path %>" data-combobox-display-field-value="nome" data-combobox-extra-fields-value="<%= @arquivo.client.present? ? "" : "client_name" %>" data-combobox-register-label-value="Register new model">
         <input type="hidden" name="_method" value="patch">
         <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
         <div class="combobox">
@@ -98,7 +98,7 @@
                  data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
           <div class="combobox-results"></div>
         </div>
-        <input type="hidden" name="modelo_id" value="<%= @arquivo.modelo_id %>">
+        <input type="hidden" name="modelo_uuid" value="<%= @arquivo.modelo&.uuid %>">
         <div class="edit-actions" style="margin-top: 0.5rem">
           <button type="submit" class="btn-icon btn-confirm" title="Confirm">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -114,7 +114,7 @@
   <dialog data-dialog-target="dialog" class="client-dialog">
     <form action="<%= modelos_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <input type="hidden" name="modelo[client_id]" value="<%= @arquivo.client_id || '' %>">
+      <input type="hidden" name="modelo[client_uuid]" value="<%= @arquivo.client&.uuid %>">
       <input type="hidden" name="arquivo_uuid" value="<%= @arquivo.uuid %>">
       <h4 data-dialog-target="dialogTitle">Register New Model</h4>
       <div class="client-field">
@@ -123,21 +123,21 @@
       </div>
       <% if @arquivo.client.blank? %>
         <div class="client-field">
-          <label for="modelo_client_id_dialog_arquivo">Client</label>
-          <select name="modelo[client_id]" id="modelo_client_id_dialog_arquivo" required>
+          <label for="modelo_client_uuid_dialog_arquivo">Client</label>
+          <select name="modelo[client_uuid]" id="modelo_client_uuid_dialog_arquivo" required>
             <option value="">Select a client...</option>
             <% Client.ativos.order(:name).each do |c| %>
-              <option value="<%= c.id %>"><%= c.name %></option>
+              <option value="<%= c.uuid %>"><%= c.name %></option>
             <% end %>
           </select>
         </div>
       <% end %>
       <div class="client-field">
-        <label for="modelo_molde_id_dialog_arquivo">Mold</label>
-        <select name="modelo[molde_id]" id="modelo_molde_id_dialog_arquivo">
+        <label for="modelo_molde_uuid_dialog_arquivo">Mold</label>
+        <select name="modelo[molde_uuid]" id="modelo_molde_uuid_dialog_arquivo">
           <option value="">Select a mold...</option>
           <% Molde.ativos.order(:nome).each do |m| %>
-            <option value="<%= m.id %>"><%= m.nome %></option>
+            <option value="<%= m.uuid %>"><%= m.nome %></option>
           <% end %>
         </select>
       </div>

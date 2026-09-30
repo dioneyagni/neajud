@@ -35,10 +35,10 @@ RSpec.describe "Movimentos", type: :request do
       expect {
         post movimentos_path, params: {
           movimento_estoque: {
-            client_id: client.id,
+            client_uuid: client.uuid,
             tipo: "entrada",
-            grupo_material_id: grupo.id,
-            cor_material_id: cor.id,
+            grupo_material_uuid: grupo.uuid,
+            cor_material_uuid: cor.uuid,
             largura: "1,40",
             gramatura: "100g",
             quantidade: "10"
@@ -53,7 +53,7 @@ RSpec.describe "Movimentos", type: :request do
 
     it "renders new with alert when material is invalid" do
       post movimentos_path, params: {
-        movimento_estoque: { client_id: "", tipo: "", grupo_material_id: "", cor_material_id: "", largura: "", gramatura: "", quantidade: "" }
+        movimento_estoque: { client_uuid: "", tipo: "", grupo_material_uuid: "", cor_material_uuid: "", largura: "", gramatura: "", quantidade: "" }
       }
 
       expect(response).to have_http_status(:unprocessable_content)
@@ -65,8 +65,8 @@ RSpec.describe "Movimentos", type: :request do
 
       post movimentos_path, params: {
         movimento_estoque: {
-          client_id: "", tipo: "entrada",
-          grupo_material_id: grupo.id, cor_material_id: cor.id,
+          client_uuid: "", tipo: "entrada",
+          grupo_material_uuid: grupo.uuid, cor_material_uuid: cor.uuid,
           largura: "1.40", gramatura: "100g", quantidade: "5"
         }
       }
@@ -80,8 +80,8 @@ RSpec.describe "Movimentos", type: :request do
       expect {
         post movimentos_path, params: {
           movimento_estoque: {
-            client_id: client.id, tipo: "entrada",
-            grupo_material_id: grupo.id, cor_material_id: cor.id,
+            client_uuid: client.uuid, tipo: "entrada",
+            grupo_material_uuid: grupo.uuid, cor_material_uuid: cor.uuid,
             largura: "1.40", gramatura: "100g", quantidade: "3"
           }
         }

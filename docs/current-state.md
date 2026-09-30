@@ -105,6 +105,8 @@ Alvo: Etapa 0.5 (pessoa, vínculo e perfis) e Etapa 7.1 (login na nuvem).
 
 ## UUID por entidade
 
+> **Resolvido na Etapa 1.1 (1/2), 30/09/2026:** toda entidade tem `uuid`, e só ele sai do servidor (ver "Public identifiers are uuids" no AGENTS.md). Ficaram sem: as tabelas de ligação (`arquivo_modelos`, `molde_pecas`), `sessions`, `arquivo_image_metadata` e `itens_pedido_grade`. O retrato abaixo é o de 26/09/2026.
+
 - **Com `uuid`:** `arquivos`, `arquivo_versions`, `arquivo_time_logs`, `pedidos`, `itens_pedido`, `bans`.
 - **Sem `uuid`:** `arquivo_image_metadata`, `arquivo_modelos`, `arquivo_vinculo_logs`, `clients`, `cor_materiais`, `cut_layers`, `grupo_materiais`, `item_pedido_pecas`, `itens_pedido_grade`, `materia_primas`, `modelo_pecas`, `modelos`, `molde_pecas`, `moldes`, `movimento_estoques`, `pecas`, `tamanhos`.
 - Nas URLs, só arquivos e pedidos usam o UUID; moldes, modelos, peças, clientes, tamanhos e as peças de pedido usam o id inteiro.

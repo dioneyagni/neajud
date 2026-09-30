@@ -1,23 +1,24 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { moldeId: Number, modeloId: Number, clientId: Number }
-  static targets = ["pecaSelect", "tamanhoSelect", "tamanhoId", "saveBtn"]
+  // Uuids, never integer ids (Etapa 1.1): they go straight into the query.
+  static values = { moldeUuid: String, modeloUuid: String, clientUuid: String }
+  static targets = ["pecaSelect", "tamanhoSelect", "tamanhoUuid", "saveBtn"]
 
   connect() {
-    if (this.moldeIdValue) {
+    if (this.moldeUuidValue) {
       this.fetchPecas()
     }
   }
 
   baseParams() {
     const params = new URLSearchParams()
-    params.set("molde_id", this.moldeIdValue)
-    if (this.hasModeloIdValue && this.modeloIdValue) {
-      params.set("modelo_id", this.modeloIdValue)
+    params.set("molde_uuid", this.moldeUuidValue)
+    if (this.modeloUuidValue) {
+      params.set("modelo_uuid", this.modeloUuidValue)
     }
-    if (this.hasClientIdValue && this.clientIdValue) {
-      params.set("client_id", this.clientIdValue)
+    if (this.clientUuidValue) {
+      params.set("client_uuid", this.clientUuidValue)
     }
     return params
   }
@@ -36,14 +37,14 @@ export default class extends Controller {
   }
 
   onPecaChange() {
-    const pecaId = this.pecaSelectTarget.value
+    const pecaUuid = this.pecaSelectTarget.value
     this.tamanhoSelectTarget.innerHTML = "<option value=''>Select a size...</option>"
-    this.tamanhoIdTarget.value = ""
+    this.tamanhoUuidTarget.value = ""
     this.saveBtnTarget.disabled = true
-    if (!pecaId) return
+    if (!pecaUuid) return
 
     const params = this.baseParams()
-    params.set("peca_id", pecaId)
+    params.set("peca_uuid", pecaUuid)
     fetch(`/tamanhos/for_cascade?${params}`)
       .then(r => r.json())
       .then(tamanhos => {
@@ -57,8 +58,8 @@ export default class extends Controller {
   }
 
   onTamanhoChange() {
-    const id = this.tamanhoSelectTarget.value
-    this.tamanhoIdTarget.value = id
-    this.saveBtnTarget.disabled = !id
+    const uuid = this.tamanhoSelectTarget.value
+    this.tamanhoUuidTarget.value = uuid
+    this.saveBtnTarget.disabled = !uuid
   }
 }

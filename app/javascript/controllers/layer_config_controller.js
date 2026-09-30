@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["select"]
-  static values = { versionId: Number, url: String }
+  static values = { versionUuid: String, url: String }
 
   save() {
     const annotations = this.selectTargets.map(select => ({
@@ -23,8 +23,8 @@ export default class extends Controller {
 
     const hiddenVersion = document.createElement("input")
     hiddenVersion.type = "hidden"
-    hiddenVersion.name = "version_id"
-    hiddenVersion.value = this.versionIdValue
+    hiddenVersion.name = "version_uuid"
+    hiddenVersion.value = this.versionUuidValue
     form.appendChild(hiddenVersion)
 
     annotations.forEach((a, i) => {

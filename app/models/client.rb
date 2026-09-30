@@ -1,4 +1,5 @@
 class Client < ApplicationRecord
+  include GeraUuid
   include Excluivel
 
   has_many :arquivos, dependent: :nullify

@@ -8,7 +8,7 @@
   <div class="stamp-detail-section" style="margin-bottom: 1rem;">
     <%= form_with model: @movimento, url: form_url, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
       <div class="client-field">
-        <%= f.label :client_id, "Client" %>
+        <%= f.label :client_uuid, "Client" %>
         <div class="combobox">
           <input type="text"
                  class="combobox-input"
@@ -18,7 +18,7 @@
                  data-action="focus->client-select#search input->client-select#search blur->client-select#blur">
           <div class="combobox-results" data-client-select-target="results"></div>
         </div>
-        <input type="hidden" name="movimento_estoque[client_id]" data-client-select-target="hidden" value="<%= @movimento.client_id %>">
+        <input type="hidden" name="movimento_estoque[client_uuid]" data-client-select-target="hidden" value="<%= @movimento.client&.uuid %>">
       </div>
 
       <div class="client-field">
@@ -38,7 +38,7 @@
       </div>
 
       <div class="client-field">
-        <%= f.label :grupo_material_id, "Group" %>
+        <%= f.label :grupo_material_uuid, "Group" %>
         <div class="combobox">
           <input type="text"
                  class="combobox-input"
@@ -48,19 +48,19 @@
                  data-action="focus->group-select#search input->group-select#search blur->group-select#blur">
           <div class="combobox-results" data-group-select-target="results"></div>
         </div>
-        <input type="hidden" name="movimento_estoque[grupo_material_id]" data-group-select-target="hidden" value="<%= @selected_grupo_id %>">
+        <input type="hidden" name="movimento_estoque[grupo_material_uuid]" data-group-select-target="hidden" value="<%= @selected_grupo_uuid %>">
       </div>
 
       <div class="client-field" data-controller="color-picker">
-        <%= f.label :cor_material_id, "Color" %>
+        <%= f.label :cor_material_uuid, "Color" %>
         <div class="color-swatch-grid">
           <% @cores.each do |cor| %>
             <button type="button"
-                    class="color-swatch<%= ' selected' if @selected_cor_id.to_s == cor.id.to_s %>"
+                    class="color-swatch<%= ' selected' if @selected_cor_uuid.to_s == cor.uuid %>"
                     style="background-color: <%= CorMaterial::COLOR_HEX[cor.nome] || '#CCCCCC' %>;"
                     title="<%= cor.nome %>"
                     data-action="click->color-picker#select"
-                    data-id="<%= cor.id %>">
+                    data-id="<%= cor.uuid %>">
             </button>
           <% end %>
           <% if @available_cor_names.present? %>
@@ -68,8 +68,8 @@
                     data-action="click->color-picker#openNew">+</button>
           <% end %>
         </div>
-        <span class="color-swatch-name" data-color-picker-target="name"><%= @selected_cor_id.present? ? @cores.find { |c| c.id == @selected_cor_id.to_i }&.nome : '' %></span>
-        <input type="hidden" name="movimento_estoque[cor_material_id]" data-color-picker-target="input" value="<%= @selected_cor_id %>">
+        <span class="color-swatch-name" data-color-picker-target="name"><%= @cores.find { |c| c.uuid == @selected_cor_uuid }&.nome %></span>
+        <input type="hidden" name="movimento_estoque[cor_material_uuid]" data-color-picker-target="input" value="<%= @selected_cor_uuid %>">
 
         <dialog data-color-picker-target="dialog" class="client-dialog" data-action="click->color-picker#backdropClose">
           <div class="client-form" data-form-action="<%= create_cor_materiais_path %>">

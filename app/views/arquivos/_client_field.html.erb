@@ -15,7 +15,7 @@
           <span class="client-responsible-display">(<%= @arquivo.client.responsible %>)</span>
         <% end %>
         <% if pode_editar_arquivo?(@arquivo) %>
-          <%= button_to update_client_arquivo_path(@arquivo), method: :patch, params: { client_id: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink client" do %>
+          <%= button_to update_client_arquivo_path(@arquivo), method: :patch, params: { client_uuid: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink client" do %>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
           <% end %>
         <% end %>
@@ -40,7 +40,7 @@
                data-action="focus->combobox#search input->combobox#search blur->combobox#blur">
         <div class="combobox-results"></div>
       </div>
-      <input type="hidden" name="client_id" id="client_id" value="<%= @arquivo.client_id %>">
+      <input type="hidden" name="client_uuid" id="client_uuid" value="<%= @arquivo.client&.uuid %>">
       <div class="edit-actions" style="margin-top: 0.5rem">
         <button type="submit" class="btn-icon btn-confirm" title="Confirm">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

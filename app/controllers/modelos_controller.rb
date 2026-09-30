@@ -45,7 +45,7 @@ class ModelosController < ApplicationController
   end
 
   def update_peca_config
-    mp = @modelo.modelo_pecas.find(params[:modelo_peca_id])
+    mp = @modelo.modelo_pecas.por_uuid!(params[:modelo_peca_uuid])
     mp.update!(needs_cut: params[:needs_cut] == "true")
 
     redirect_to modelo_path(@modelo), notice: "Piece configuration updated."
@@ -53,16 +53,17 @@ class ModelosController < ApplicationController
 
   def search
     modelos = Modelo.ativos.search(params[:q]).limit(10)
-    render json: modelos.map { |m| { id: m.id, nome: m.nome, client_name: m.client.name } }
+    render json: modelos.map { |m| { id: m.uuid, nome: m.nome, client_name: m.client.name } }
   end
 
   def for_client
-    modelos = Modelo.ativos.where(client_id: params[:client_id]).search(params[:q]).order(:nome)
-    render json: modelos.map { |m| { id: m.id, nome: m.nome, molde_id: m.molde_id } }
+    modelos = Modelo.ativos.where(client: Client.where(uuid: params[:client_uuid])).includes(:molde).search(params[:q]).order(:nome)
+    render json: modelos.map { |m| { id: m.uuid, nome: m.nome, molde_uuid: m.molde&.uuid } }
   end
 
   def create
-    existing = Modelo.where("LOWER(nome) = ? AND client_id = ?", modelo_params[:nome].downcase, modelo_params[:client_id]).first
+    existing = Modelo.where(client: Client.where(uuid: modelo_params[:client_uuid]))
+                     .where("LOWER(nome) = ?", modelo_params[:nome].downcase).first
     if existing&.excluido?
       return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
     end
@@ -83,9 +84,10 @@ class ModelosController < ApplicationController
   end
 
   def update
-    molde_changed = @modelo.molde_id_changed? && @modelo.molde_id != modelo_params[:molde_id]
+    molde_anterior = @modelo.molde_id
 
     if @modelo.update(modelo_params)
+      molde_changed = @modelo.molde_id != molde_anterior
       @modelo.sync_modelo_pecas! if molde_changed && @modelo.molde_id.present?
       redirect_back fallback_location: arquivos_path, notice: "Modelo updated."
     else
@@ -101,11 +103,11 @@ class ModelosController < ApplicationController
   private
 
   def set_modelo
-    @modelo = Modelo.find(params[:id])
+    @modelo = Modelo.por_uuid!(params[:id])
   end
 
   def modelo_params
-    params.require(:modelo).permit(:nome, :client_id, :molde_id)
+    params.require(:modelo).permit(:nome, :client_uuid, :molde_uuid)
   end
 
   def assign_modelo_to_arquivo(modelo)

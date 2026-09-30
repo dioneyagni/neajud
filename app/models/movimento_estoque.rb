@@ -1,8 +1,10 @@
 class MovimentoEstoque < ApplicationRecord
+  include GeraUuid
   include ReferenciaAtiva
 
   belongs_to :materia_prima
   belongs_to :client
+  atribui_por_uuid :client
   recusa_excluido :client
 
   validates :tipo, presence: true, inclusion: { in: %w[entrada saida] }

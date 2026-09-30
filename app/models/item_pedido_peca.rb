@@ -5,6 +5,7 @@
 #                                      without this piece)
 # peca nil means the arte's piece is unknown ("Sem peça").
 class ItemPedidoPeca < ApplicationRecord
+  include GeraUuid
   include ReferenciaAtiva
 
   belongs_to :item_pedido
