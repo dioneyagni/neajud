@@ -19,7 +19,7 @@ Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados 
 1. **Fundações:** repositório privado; autenticação com pessoa, vínculo e perfis; UUID em todas as entidades; exclusão lógica; processamento de arquivos em fila.
 2. **Modelo de domínio:** renomear `Modelo` para `Referencia`; criar Produto e o novo Modelo (categoria); tamanhos individuais com cortes que declaram os tamanhos atendidos; colunas de versão e base (`version`, `base_id`, `published_at`) já presentes, sem implementar herança e alertas ainda.
 3. **Operação na nuvem:** uma instância por cliente criada por script com Kamal; backup diário de cada instância com restauração testada; cobrança manual no início.
-4. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação cujos dados já estão no sistema.
+4. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação; cada instância começa vazia e o cliente sobe tudo de novo.
 5. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
 
 ## Exemplo real do catálogo
@@ -50,14 +50,12 @@ Leitura: o molde pertence ao cliente e tem código fixo `NNN-ABR` (número seque
 
 ## Casos que ainda faltam discutir
 
-- Ciclo do pedido: rascunho, confirmado, produção, entregue (já existe bloqueio de confirmação no código: peça sem arte, item com quantidade 0, peça sem corte, tamanho que o corte não tem — `PedidoBloqueiosService`).
+Discutidos em 29 e 30/09/2026 e levados ao `docs/plano.md`: ciclo do pedido e etapas de produção (Etapa 3.2), estoque e materiais (3.3), montagem da impressão (o RIP monta; o Neajud só estima o encaixe do DTF, 3.6), perfil Financeiro (virou uma função que o dono cria).
+
 - Registro de tempo de produção e relatórios.
-- Estoque, materiais e cores (existem no código como movimentos, materiais e cores).
-- Montagem da impressão: organizar vários cortes numa folha ou rolo.
 - Cobrança do ponto de vista do cliente: troca de plano, fim do teste, inadimplência.
-- Perfil Financeiro.
 - Relação final entre Estampa e Arte (ligação opcional nos dois sentidos, em definição).
-- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o antigo `docs/product-requirements.md`, removido em 26/09/2026, era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. Tarefas de produção (cortar/imprimir) e o ciclo do pedido ficam para outra conversa.
+- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o antigo `docs/product-requirements.md`, removido em 26/09/2026, era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. As etapas de produção (imprimir, cortar, transferir) e o ciclo do pedido foram decididos na Etapa 3.2 do plano; ligar as pendências a elas continua aberto.
 
 ## Sugestão de primeira mensagem na sessão
 

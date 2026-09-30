@@ -850,10 +850,10 @@ The plan renames things; until those stages land, the code keeps its names:
 
 | docs/plano.md | Code today |
 |---|---|
-| Produto | doesn't exist yet (Etapa 1.1, 2/3) |
+| Produto | doesn't exist yet (Etapa 1.1, 2/2) |
 | Modelo (categoria, e.g. Jogging [JGG]) | `Molde` (becomes `Modelo` in Etapa 1.1) |
 | Molde (the client's form, e.g. 002-TNS Furado) | `Modelo` (becomes `Molde` in Etapa 1.1) — **the two names swap** |
-| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 2/3); not catalog, not versioned |
+| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 2/2); not catalog, not versioned |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
 | Arte | `Arquivo` with `category: "artes"` |
@@ -864,7 +864,7 @@ The plan renames things; until those stages land, the code keeps its names:
 Current code that still differs from the plan — don't copy these patterns into new work:
 
 - **No "cliente final"** — the client's own access (seeing only their pedidos
-  and artes) needs every query filtered by client. Target: Etapa 3.3, before
+  and artes) needs every query filtered by client. Target: Etapa 3.8, before
   the beta.
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
