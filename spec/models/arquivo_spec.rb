@@ -61,10 +61,6 @@ RSpec.describe Arquivo, type: :model do
     let(:peca) { create(:peca) }
     let(:modelo) { create(:modelo) }
 
-    before do
-      create(:modelo_peca, modelo: modelo, peca: peca)
-    end
-
     it "allows first organized corte with a peca for a molde" do
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -258,9 +254,17 @@ RSpec.describe Arquivo, type: :model do
       expect(described_class.cortes_do_molde(molde)).to contain_exactly(meu)
     end
 
-    it "falls back to the modelo's cortes when none is linked to the molde" do
-      solto = create(:arquivo, :corte, organized: true, modelo: modelo)
+    it "falls back to the modelo's cortes of the molde's client when none is linked to the molde" do
+      solto = create(:arquivo, :corte, organized: true, modelo: modelo, client: molde.client)
       expect(described_class.cortes_do_molde(molde)).to contain_exactly(solto)
+    end
+
+    # Regression (Etapa 1.1, 3/5): the official "Tenis" is every client's, so
+    # the fallback took another client's corte (and its sizes) for an arte.
+    it "never falls back to another client's corte of the same modelo" do
+      create(:arquivo, :corte, organized: true, modelo: modelo, client: create(:client))
+      create(:arquivo, :corte, organized: true, modelo: modelo, client: nil)
+      expect(described_class.cortes_do_molde(molde)).to be_empty
     end
 
     it "picks the corte of the arte's own peça, else the first" do

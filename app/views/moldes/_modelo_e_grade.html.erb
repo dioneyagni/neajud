@@ -1,0 +1,34 @@
+<%# The molde's modelo (official list, grouped by produto) and the stretch of
+    the produto's grade it uses (Etapa 1.1, 3/5). grade_molde_controller.js
+    fills the size selects from the chosen modelo's grade.
+    Locals: sufixo (unique id suffix), editavel (adds data-dialog-field so the
+    dialog's Edit can prefill it). %>
+<div data-controller="grade-molde">
+  <div class="client-field">
+    <label for="molde_modelo_uuid_<%= sufixo %>">Model</label>
+    <select name="molde[modelo_uuid]" id="molde_modelo_uuid_<%= sufixo %>"
+            data-grade-molde-target="modelo" data-action="change->grade-molde#atualizar"
+            <%= 'data-dialog-field="modeloUuid"'.html_safe if editavel %>>
+      <option value="">Select a model...</option>
+      <% Produto.ativos.includes(:modelos).order(:nome).each do |produto| %>
+        <optgroup label="<%= produto.nome %>">
+          <% produto.modelos.reject(&:excluido?).sort_by(&:nome).each do |m| %>
+            <option value="<%= m.uuid %>" data-grade="<%= produto.grade.to_json %>"><%= m.nome %> [<%= m.abreviacao %>]</option>
+          <% end %>
+        </optgroup>
+      <% end %>
+    </select>
+  </div>
+  <div class="client-field grade-molde-campos">
+    <label for="molde_tamanho_inicial_<%= sufixo %>">Sizes</label>
+    <select name="molde[tamanho_inicial]" id="molde_tamanho_inicial_<%= sufixo %>" data-grade-molde-target="inicial"
+            <%= 'data-dialog-field="tamanhoInicial"'.html_safe if editavel %>>
+      <option value="">—</option>
+    </select>
+    <span>to</span>
+    <select name="molde[tamanho_final]" id="molde_tamanho_final_<%= sufixo %>" data-grade-molde-target="final"
+            <%= 'data-dialog-field="tamanhoFinal"'.html_safe if editavel %>>
+      <option value="">—</option>
+    </select>
+  </div>
+</div>

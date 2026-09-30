@@ -38,9 +38,11 @@ class MoldMatchService
       return do_molde if do_molde.any?
     end
 
+    # The client's own cortes only: the modelos are the official list (Etapa
+    # 1.1, 3/5), so another client's "Tenis" corte has the same modelo.
     if @arte.client
       modelo_ids = Molde.ativos.where(client_id: @arte.client_id).distinct.pluck(:modelo_id).compact
-      by_client = Arquivo.ativos.where(organized: true, modelo_id: modelo_ids).to_a
+      by_client = Arquivo.ativos.where(organized: true, modelo_id: modelo_ids, client_id: @arte.client_id).to_a
       return by_client if by_client.any?
     end
 

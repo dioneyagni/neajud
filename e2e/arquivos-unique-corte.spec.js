@@ -7,7 +7,6 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
   await test("Unique Corte: rejects duplicate peca for same molde", async () => {
     const prefix = "UniqCorte";
     const clientName = `${prefix}Client`;
-    const modeloName = `${prefix}Modelo`;
     const pecaName = `${prefix}Peca`;
     const moldeName = `${prefix}Molde`;
     const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
@@ -87,16 +86,9 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const peca = pecas.find(x => x.nome === `${prefix}Peca`);
         if (!peca) return "peca_not_found";
 
-        // Create modelo with peca linked
-        const mBody = new URLSearchParams();
-        mBody.append("authenticity_token", token);
-        mBody.append("modelo[nome]", `${prefix}Modelo`);
-        mBody.append("modelo[peca_uuids][]", peca.id);
-        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
-        await new Promise(r => setTimeout(r, 200));
-        const mr = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
-        const modelos = await mr.json();
-        const modelo = modelos.find(x => x.nome === `${prefix}Modelo`);
+        // Etapa 1.1 (3/5): the official modelo "Slide" (no other spec uses it).
+        const mr = await fetch("/modelos/search?q=Slide");
+        const modelo = (await mr.json()).find(x => x.nome === "Slide");
         if (!modelo) return "modelo_not_found";
 
         // Create molde linked to client + modelo
@@ -180,7 +172,6 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
       try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
-      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
       try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
       if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);
@@ -192,7 +183,6 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
     const prefix = "UniqCorteOrg";
     const clientName = `${prefix}Client`;
     const pecaName = `${prefix}Peca`;
-    const modeloName = `${prefix}Modelo`;
     const moldeName = `${prefix}Molde`;
     const dxf1Path = path.join(__dirname, `${prefix}-one.dxf`);
     const dxf2Path = path.join(__dirname, `${prefix}-two.dxf`);
@@ -235,15 +225,9 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         const peca = pecas.find(x => x.nome === `${prefix}Peca`);
         if (!peca) return "peca_not_found";
 
-        const mBody = new URLSearchParams();
-        mBody.append("authenticity_token", token);
-        mBody.append("modelo[nome]", `${prefix}Modelo`);
-        mBody.append("modelo[peca_uuids][]", peca.id);
-        await fetch("/modelos", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: mBody });
-        await new Promise(r => setTimeout(r, 200));
-        const mr = await fetch(`/modelos/search?q=${encodeURIComponent(`${prefix}Modelo`)}`);
-        const modelos = await mr.json();
-        const modelo = modelos.find(x => x.nome === `${prefix}Modelo`);
+        // Etapa 1.1 (3/5): the official modelo "Slide" (no other spec uses it).
+        const mr = await fetch("/modelos/search?q=Slide");
+        const modelo = (await mr.json()).find(x => x.nome === "Slide");
         if (!modelo) return "modelo_not_found";
 
         const modBody = new URLSearchParams({
@@ -366,7 +350,6 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       try { if (uuid2) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid2); } catch (_) {}
       try { if (uuid1) await page.evaluate((u) => fetch(`/arquivos/${u}`, { method: "DELETE", redirect: "manual" }).catch(() => {}), uuid1); } catch (_) {}
       try { if (moldeId) await page.evaluate((id) => fetch(`/moldes/${id}`, { method: "DELETE" }).catch(() => {}), moldeId); } catch (_) {}
-      try { if (modeloId) await page.evaluate((id) => fetch(`/modelos/${id}`, { method: "DELETE" }).catch(() => {}), modeloId); } catch (_) {}
       try { if (pecaId) await page.evaluate((id) => fetch(`/pecas/${id}`, { method: "DELETE" }).catch(() => {}), pecaId); } catch (_) {}
       try { await page.evaluate((n) => fetch(`/clients/search?q=${encodeURIComponent(n)}`).then(r => r.json()).then(clients => { const c = clients.find(x => x.name === n); if (c) fetch(`/clients/${c.id}`, { method: "DELETE" }); }), clientName); } catch (_) {}
       if (fs.existsSync(dxf1Path)) fs.unlinkSync(dxf1Path);

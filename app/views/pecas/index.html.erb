@@ -11,7 +11,7 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Modelos</th>
+        <th>Moldes</th>
         <th>Arquivos</th>
         <th>Actions</th>
       </tr>
@@ -20,7 +20,7 @@
       <% @pecas.each do |peca| %>
         <tr>
           <td><%= peca.nome %></td>
-          <td><%= peca.modelos.map(&:nome).join(", ") %></td>
+          <td><%= peca.moldes.reject(&:excluido?).map(&:nome).join(", ") %></td>
           <td><%= peca.arquivos_count %></td>
           <td class="clients-table-actions">
             <% if pode?(:catalogo, :editar) %>

@@ -31,9 +31,9 @@ RSpec.describe MoldMatchService do
     arte
   end
 
-  def corte_with_tamanhos(modelo_id:, tamanhos: [], preview_filename: "corte.png")
+  def corte_with_tamanhos(modelo_id:, tamanhos: [], preview_filename: "corte.png", client_id: nil)
     corte = create(:arquivo, category: "corte", extension: "dxf", organized: true,
-      modelo_id: modelo_id)
+      modelo_id: modelo_id, client_id: client_id)
     version = create(:arquivo_version, arquivo: corte, version_number: 1, approved: true,
       extension: "png", filename: "corte")
     preview = create_fake_png(300, 200, preview_filename)
@@ -128,7 +128,7 @@ RSpec.describe MoldMatchService do
         arte.update!(molde_id: molde.id)
         arte.reload
 
-        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-dims.png",
+        corte_with_tamanhos(modelo_id: modelo.id, client_id: client.id, preview_filename: "corte-dims.png",
           tamanhos: [
             { nome: "Far", width_mm: 500, height_mm: 500 },
             { nome: "Close", width_mm: 100, height_mm: 50 },
@@ -153,7 +153,7 @@ RSpec.describe MoldMatchService do
 
         t_preview = arte.preview_file
 
-        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-contour-fallback.png",
+        corte_with_tamanhos(modelo_id: modelo.id, client_id: client.id, preview_filename: "corte-contour-fallback.png",
           tamanhos: [
             { nome: "ContourMatch", width_mm: 200, height_mm: 100,
               preview_file: t_preview }
@@ -176,7 +176,7 @@ RSpec.describe MoldMatchService do
         arte.reload
 
         t_preview = arte.preview_file
-        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-client-fallback.png",
+        corte_with_tamanhos(modelo_id: modelo.id, client_id: client.id, preview_filename: "corte-client-fallback.png",
           tamanhos: [
             { nome: "ClientFallback", width_mm: 100, height_mm: 50,
               preview_file: t_preview }
@@ -185,6 +185,22 @@ RSpec.describe MoldMatchService do
         result = described_class.call(arte)
         expect(result).to be_present
         expect(result.nome).to eq("ClientFallback")
+      end
+
+      # Regression (Etapa 1.1, 3/5): the official "Tenis" is every client's
+      # modelo, so the fallback matched another client's corte.
+      it "never takes another client's corte of the same modelo" do
+        client = create(:client)
+        modelo = create(:modelo)
+        create(:molde, modelo: modelo, client: client)
+        arte = arte_with_preview
+        arte.update!(client_id: client.id)
+        arte.reload
+
+        corte_with_tamanhos(modelo_id: modelo.id, client_id: create(:client).id, preview_filename: "corte-outro-cliente.png",
+          tamanhos: [ { nome: "OutroCliente", width_mm: 100, height_mm: 50, preview_file: arte.preview_file } ])
+
+        expect(described_class.call(arte)).to be_nil
       end
     end
 
@@ -200,7 +216,7 @@ RSpec.describe MoldMatchService do
 
         t_preview = arte.preview_file
 
-        corte_with_tamanhos(modelo_id: modelo.id, preview_filename: "corte-bad-mold.png",
+        corte_with_tamanhos(modelo_id: modelo.id, client_id: client.id, preview_filename: "corte-bad-mold.png",
           tamanhos: [
             { nome: "OnlyChoice", width_mm: 100, height_mm: 50,
               preview_file: t_preview }

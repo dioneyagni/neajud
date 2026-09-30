@@ -1,0 +1,37 @@
+# Lista oficial do Neajud: produtos, suas grades e os modelos (categorias)
+# com abreviação (docs/plano.md, Etapa 1.1, 3/5; decidida em 30/09/2026).
+#
+# É igual em todas as empresas: os uuids são fixos e nunca mudam, porque o
+# compartilhamento entre empresas (Fase 9) reconhece "Calçado › Tenis" por
+# eles. A empresa só vê esta lista; muda-se por PR neste arquivo, até a área
+# de super-admin da Fase 7 substituí-lo.
+#
+# Carregada por `bin/rails catalogo:sincronizar` (roda também depois de
+# db:prepare e no bin/e2e): cria o que falta, atualiza nome, abreviação e
+# grade pelo uuid, e manda para a lixeira o que saiu daqui. Nunca apaga.
+#
+# grade: lista de tamanhos em ordem, ou { de:, ate: } para números seguidos.
+produtos:
+  - uuid: 8578eeb8-3b1e-4dce-9b83-5164f093fe42
+    nome: Calçado
+    grade: { de: 18, ate: 46 }
+    modelos:
+      - { uuid: 6a0c98c1-e4f5-4f06-aa2f-86cbb7ffd172, nome: "Tenis", abreviacao: TNS }
+      - { uuid: e8fd4b91-3778-4ab2-8d21-13071c9294b2, nome: "Jogging", abreviacao: JGG }
+      - { uuid: 27cf4199-1181-4450-a87a-a5e1463f2a83, nome: "Bota", abreviacao: BT }
+      - { uuid: 92ecbe5d-e481-47f1-ae9d-67773e0de970, nome: "Calce Fácil", abreviacao: CLCF }
+      - { uuid: 261115b4-4631-4889-a884-4a01a233c9bf, nome: "Chuteira", abreviacao: CHT }
+      - { uuid: 694564e1-7f81-4f85-954e-31bc62facfa6, nome: "Chinelo", abreviacao: CHN }
+      - { uuid: 212f8d5b-e163-4b5c-a176-50af10723642, nome: "Slide", abreviacao: SLD }
+  - uuid: aa37a84e-22a2-496e-8274-cd9f478031cf
+    nome: Camisa
+    # Numerações (infantil etc.) entram depois.
+    grade: [PP, P, M, G, GG, XG]
+    modelos:
+      - { uuid: 3be0790f-99be-4d7a-92db-7ec660ee15c9, nome: "Camisa", abreviacao: CMS }
+  - uuid: cf6be747-bba7-4a39-89d1-7c3a3fabada4
+    nome: Banner
+    # Sem grade: a medida (largura × altura) vem com os trabalhos sem corte (Fase 2).
+    grade: []
+    modelos:
+      - { uuid: d8d273bd-af7e-49ad-94a3-18369979876f, nome: "Banner", abreviacao: BNN }

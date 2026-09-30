@@ -25,6 +25,6 @@ module ReferenciaAtiva
     registro = public_send(nome)
     return unless registro&.excluido?
 
-    errors.add(nome, "\"#{registro.rotulo_lixeira}\" (id #{registro.id}) is in the trash; expected an active #{nome}")
+    errors.add(nome, "\"#{registro.rotulo_lixeira}\" (#{registro.uuid}) is in the trash; expected an active #{nome}")
   end
 end

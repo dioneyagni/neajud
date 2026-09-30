@@ -2,13 +2,13 @@ require "rails_helper"
 
 RSpec.describe "Pecas", type: :request do
   describe "GET /pecas" do
-    it "renders the index page" do
-      create(:peca, nome: "Solado")
+    it "renders the index page, with the moldes that use each piece" do
+      create(:molde, nome: "001-TNS").molde_pecas.create!(peca: create(:peca, nome: "Solado"))
 
       get pecas_path
 
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Solado")
+      expect(response.body).to include("Solado", "001-TNS")
     end
   end
 
@@ -43,14 +43,14 @@ RSpec.describe "Pecas", type: :request do
       expect(response.body).to include("Register New Peça")
     end
 
-    it "redirects to edit modelo when modelo_id is present" do
-      modelo = create(:modelo, nome: "Sapato")
+    # "Register new piece" from a molde's page (Etapa 1.1, 3/5).
+    it "adds the new piece as a part of the molde it came from" do
+      molde = create(:molde, nome: "001-TNS")
 
-      post pecas_path, params: { peca: { nome: "Solado" }, modelo_uuid: modelo.uuid }
+      post pecas_path, params: { peca: { nome: "Solado" }, molde_uuid: molde.uuid }
 
-      expect(response).to redirect_to(edit_modelo_path(modelo))
-      modelo.reload
-      expect(modelo.pecas.pluck(:nome)).to include("Solado")
+      expect(response).to redirect_to(molde_path(molde))
+      expect(molde.molde_pecas.map { |mp| mp.peca.nome }).to eq([ "Solado" ])
     end
   end
 
@@ -71,7 +71,6 @@ RSpec.describe "Pecas", type: :request do
     it "returns pecas for a given modelo and client" do
       modelo = create(:modelo, nome: "Sapato")
       peca = create(:peca, nome: "Solado")
-      modelo.pecas << peca
       client = create(:client, name: "Test Client", responsible: "John")
       create(:arquivo, modelo: modelo, peca: peca, client: client, organized: true)
 
@@ -86,7 +85,6 @@ RSpec.describe "Pecas", type: :request do
     it "returns pecas from organized arquivos regardless of tipo_corte" do
       modelo = create(:modelo)
       peca = create(:peca, nome: "Solado")
-      modelo.pecas << peca
       create(:arquivo, tipo_corte: "apenas_corte", modelo: modelo, peca: peca, organized: true)
 
       get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
@@ -100,7 +98,6 @@ RSpec.describe "Pecas", type: :request do
     it "returns empty array when no organized arquivos exist" do
       modelo = create(:modelo)
       peca = create(:peca)
-      modelo.pecas << peca
 
       get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
 

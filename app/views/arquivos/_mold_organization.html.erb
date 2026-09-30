@@ -1,4 +1,4 @@
-<div data-controller="dialog" data-create-title="Register New Model" data-create-label="Register" data-create-url="<%= modelos_path %>">
+<div data-controller="dialog">
   <div id="organize-flash"></div>
   <% if arquivo.preparando_tamanhos? %>
     <%# Etapa 0.6: PreparacaoTamanhosJob refreshes the page when done; polling
@@ -23,12 +23,9 @@
 
   <%
     linked_modelo_id = arquivo.modelo_id || arquivo.moldes.find { |m| m.modelo_id.present? }&.modelo_id
-    linked_modelo = Modelo.find_by(id: linked_modelo_id) if linked_modelo_id
-    initial_pecas = if linked_modelo_id
-                      linked_modelo&.pecas&.ativos&.order(:nome)&.to_a || []
-                    else
-                      Peca.ativos.order(:nome).to_a
-                    end
+    # Etapa 1.1 (3/5): a category has no parts any more, so every active piece
+    # is offered (plus this corte's own, even if trashed).
+    initial_pecas = Peca.ativos.or(Peca.where(id: arquivo.peca_id)).order(:nome).to_a
 
     molde_ids = arquivo.moldes.pluck(:id)
     occupied_peca_ids = if arquivo.corte? && molde_ids.any?
@@ -43,35 +40,27 @@
                         end
   %>
 
-  <div class="mold-organization-fields"
-       data-controller="mold-org-cascade"
-       data-mold-org-cascade-modelo-uuid-value="<%= linked_modelo&.uuid %>">
+  <div class="mold-organization-fields">
     <div class="mold-field">
       <label for="modelo_uuid">Model</label>
       <% if arquivo.organized? %>
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.modelo&.nome || arquivo.modelo_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
           <select name="modelo_uuid" id="modelo_uuid"
-                  data-mold-org-cascade-target="modeloSelect"
-                  data-action="change->mold-org-cascade#onModeloChange"
                   data-original-value="<%= arquivo.modelo&.uuid %>">
             <option value="">Select a model...</option>
             <% Modelo.ativos.order(:nome).each do |m| %>
               <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
-          <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="modelo" style="margin-top: 0.25rem">+ Register new model</button>
         </span>
       <% else %>
-        <select name="modelo_uuid" id="modelo_uuid"
-                data-mold-org-cascade-target="modeloSelect"
-                data-action="change->mold-org-cascade#onModeloChange">
+        <select name="modelo_uuid" id="modelo_uuid">
           <option value="">Select a model...</option>
           <% Modelo.ativos.order(:nome).each do |m| %>
             <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>
-        <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="modelo" style="margin-top: 0.25rem">+ Register new model</button>
       <% end %>
     </div>
     <div class="mold-field">
@@ -80,7 +69,6 @@
         <span class="field-display" data-edit-toggle-target="display"><%= arquivo.peca&.nome || arquivo.peca_nome %></span>
         <span data-edit-toggle-target="form" style="display:none">
           <select name="peca_uuid" id="peca_uuid"
-                  data-mold-org-cascade-target="pecaSelect"
                   data-original-value="<%= arquivo.peca&.uuid %>">
             <option value="">Select a piece...</option>
             <% initial_pecas.each do |p| %>
@@ -90,8 +78,7 @@
           <button type="button" class="btn btn-secondary btn-sm" data-action="click->dialog#openByName" data-dialog-name-param="peca" style="margin-top: 0.25rem">+ Register new piece</button>
         </span>
       <% else %>
-          <select name="peca_uuid" id="peca_uuid"
-                  data-mold-org-cascade-target="pecaSelect">
+          <select name="peca_uuid" id="peca_uuid">
             <option value="">Select a piece...</option>
             <% initial_pecas.each do |p| %>
               <option value="<%= p.uuid %>" <%= "selected" if arquivo.peca_id == p.id %>><%= p.nome %><%= " ✓" if occupied_peca_ids.include?(p.id) %></option>
@@ -169,21 +156,6 @@
   </div>
 <% end %>
 
-  <dialog data-dialog-target="modeloDialog" class="client-dialog" id="modelo_dialog_org">
-    <form action="<%= modelos_path %>" method="post" class="client-form">
-      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-      <input type="hidden" name="arquivo_uuid" value="<%= arquivo.uuid %>">
-      <h4 data-dialog-target="dialogTitle">Register New Model</h4>
-      <div class="client-field">
-        <label for="modelo_nome_dialog_org">Name</label>
-        <input type="text" name="modelo[nome]" id="modelo_nome_dialog_org" data-dialog-field="nome" required>
-      </div>
-      <div class="client-dialog-actions">
-        <button type="button" data-action="click->dialog#closeModelo" class="btn btn-secondary">Cancel</button>
-        <button type="submit" class="btn btn-primary" data-dialog-target="submitBtn">Register</button>
-      </div>
-    </form>
-  </dialog>
 
   <dialog data-dialog-target="pecaDialog" class="client-dialog" id="peca_dialog_org">
     <form action="<%= pecas_path %>" method="post" class="client-form">

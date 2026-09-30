@@ -9,7 +9,10 @@ export default class extends Controller {
     fetch(url, {
       method: "PATCH",
       headers: {
-        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+        // No meta tag in the test env (forgery protection off): reading
+        // .content of null threw before the request (first E2E of the toggle,
+        // Etapa 1.1, 3/5).
+        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || "",
         "Accept": "text/html"
       },
       body: new URLSearchParams({ needs_cut: needsCut.toString() })

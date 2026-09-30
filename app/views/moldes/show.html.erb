@@ -10,6 +10,8 @@
           <dd><%= @molde.client.name %></dd>
           <dt>Modelo</dt>
           <dd><%= @molde.modelo&.nome || "—" %></dd>
+          <dt>Sizes</dt>
+          <dd class="molde-grade"><%= @molde.grade.any? ? "#{@molde.grade.first}–#{@molde.grade.last}" : "—" %></dd>
         </dl>
       </div>
 
@@ -21,41 +23,41 @@
         </div>
       </div>
 
-      <div class="stamp-detail-section stamp-detail-section--full">
-        <h3>Cortes (Organized Cuts)</h3>
+      <div class="stamp-detail-section stamp-detail-section--full" id="molde-partes">
+        <%# Etapa 1.1 (3/5): the parts belong to the molde, chosen here from the
+            company's piece list; the category (modelo) has none. %>
+        <h3>Parts and cuts</h3>
 
-        <% if @molde.modelo.present? %>
-          <h4 style="margin-top: 0.75rem; color: var(--text-muted);">Modelo: <%= @molde.modelo.nome %></h4>
+        <% if @molde_pecas.any? %>
+          <div class="molde-pecas-list">
+            <% @molde_pecas.each do |mp| %>
+              <div class="molde-peca-row" data-controller="toggle-switch" data-parte="<%= mp.peca.nome %>">
+                <div class="molde-peca-info">
+                  <span class="molde-peca-name"><%= mp.peca.nome %> <%= selo_excluido(mp.peca) %></span>
 
-          <% if @molde_pecas.any? %>
-            <div class="molde-pecas-list">
-              <% @molde_pecas.each do |mp| %>
-                <div class="molde-peca-row" data-controller="toggle-switch">
-                  <div class="molde-peca-info">
-                    <span class="molde-peca-name"><%= mp.peca.nome %></span>
-
-                    <% if mp.needs_cut %>
-                      <% if mp.corte_arquivo %>
-                        <span class="molde-peca-status molde-peca-status--has-corte">
-                          <%= link_to mp.corte_arquivo.filename, arquivo_path(mp.corte_arquivo), class: "molde-peca-file-link" %>
-                          <% if mp.corte_arquivo.tamanhos.any? %>
-                            <span class="molde-peca-sizes">
-                              <%= mp.corte_arquivo.tamanhos.map { |t| t.nome }.join(", ") %>
-                            </span>
-                          <% end %>
-                        </span>
-                      <% else %>
-                        <span class="molde-peca-status molde-peca-status--missing">
-                          Corte ausente
-                        </span>
-                      <% end %>
+                  <% if mp.needs_cut %>
+                    <% if mp.corte_arquivo %>
+                      <span class="molde-peca-status molde-peca-status--has-corte">
+                        <%= link_to mp.corte_arquivo.filename, arquivo_path(mp.corte_arquivo), class: "molde-peca-file-link" %>
+                        <% if mp.corte_arquivo.tamanhos.any? %>
+                          <span class="molde-peca-sizes">
+                            <%= mp.corte_arquivo.tamanhos.map { |t| t.nome }.join(", ") %>
+                          </span>
+                        <% end %>
+                      </span>
                     <% else %>
-                      <span class="molde-peca-status molde-peca-status--not-needed">
-                        Não corta
+                      <span class="molde-peca-status molde-peca-status--missing">
+                        Corte ausente
                       </span>
                     <% end %>
-                  </div>
+                  <% else %>
+                    <span class="molde-peca-status molde-peca-status--not-needed">
+                      Não corta
+                    </span>
+                  <% end %>
+                </div>
 
+                <% if pode?(:catalogo, :editar) %>
                   <div class="molde-peca-toggle">
                     <span class="toggle-label"><%= mp.needs_cut ? "Cortar" : "Não corta" %></span>
                     <label class="toggle-switch">
@@ -64,19 +66,31 @@
                              data-url="<%= update_peca_config_molde_path(@molde, molde_peca_uuid: mp.uuid) %>">
                       <span class="toggle-slider"></span>
                     </label>
+                    <%= button_to "Remove", remover_parte_molde_path(@molde, molde_peca_uuid: mp.uuid), method: :delete,
+                          form: { style: "display: inline-block;" },
+                          data: { turbo_confirm: "Remove the part \"#{mp.peca.nome}\" from this molde?" },
+                          class: "btn btn-danger btn-sm" %>
                   </div>
-                </div>
-              <% end %>
-            </div>
-          <% else %>
-            <p class="gallery-empty" style="margin-top: 0.75rem">
-              No organized cuts for this model yet.
-            </p>
-          <% end %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         <% else %>
-          <p class="gallery-empty" style="margin-top: 0.75rem">
-            This molde has no model assigned.
-          </p>
+          <p class="gallery-empty" style="margin-top: 0.75rem">This molde has no parts yet.</p>
+        <% end %>
+
+        <% if pode?(:catalogo, :editar) %>
+          <%= form_with url: adicionar_parte_molde_path(@molde), method: :post, class: "molde-adicionar-parte" do %>
+            <label for="peca_uuid_parte">Add a part</label>
+            <select name="peca_uuid" id="peca_uuid_parte" required>
+              <option value="">Select a piece...</option>
+              <% @pecas_para_adicionar.each do |peca| %>
+                <option value="<%= peca.uuid %>"><%= peca.nome %></option>
+              <% end %>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            <%= link_to "+ Register new piece", new_peca_path(molde_uuid: @molde.uuid), class: "btn btn-secondary btn-sm" %>
+          <% end %>
         <% end %>
       </div>
     </div>

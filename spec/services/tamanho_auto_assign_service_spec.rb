@@ -3,9 +3,11 @@ require_relative "../support/fake_mold_matcher"
 
 RSpec.describe TamanhoAutoAssignService do
   let(:modelo) { create(:modelo) }
-  let(:corte) { create(:arquivo, :corte, organized: true, modelo: modelo) }
+  let(:molde) { create(:molde, modelo: modelo) }
+  # Same client as the molde: the fallback never crosses clients (Etapa 1.1, 3/5).
+  let(:corte) { create(:arquivo, :corte, organized: true, modelo: modelo, client: molde.client) }
   let!(:first_tamanho) { create(:tamanho, arquivo: corte, nome: "P", position: 1) }
-  let(:arte) { create(:arquivo, molde: create(:molde, modelo: modelo), modelo: modelo) }
+  let(:arte) { create(:arquivo, molde: molde, modelo: modelo) }
 
   def assign(arte, match: nil)
     described_class.call(arte, matcher: FakeMoldMatcher.new(match))

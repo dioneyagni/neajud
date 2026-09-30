@@ -6,9 +6,11 @@ class LixeiraController < ApplicationController
   # Lixeira's level 2 is "restaurar" (Autorizacao::NIVEL_MAXIMO).
   exige :lixeira, :editar, only: :restaurar
   # Route segment => model. Also the whitelist for #restaurar's :tipo.
+  # Modelos aren't here: the official list trashes and restores them
+  # (CatalogoOficial), the company can't (Etapa 1.1, 3/5).
   TIPOS = {
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
-    "moldes" => Molde, "modelos" => Modelo, "pecas" => Peca, "funcoes" => Funcao
+    "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao
   }.freeze
 
   def index

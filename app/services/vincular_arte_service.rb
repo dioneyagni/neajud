@@ -37,9 +37,9 @@ class VincularArteService
   private
 
   def validar!
-    raise Recusado, "Piece #{@peca_row.id} is not pending (it already has arte #{@peca_row.arquivo&.filename.inspect})" if @peca_row.arquivo
+    raise Recusado, "Piece #{@peca_row.uuid} is not pending (it already has arte #{@peca_row.arquivo&.filename.inspect})" if @peca_row.arquivo
     # A nil peca_id would match every unknown-peça pending row below.
-    raise Recusado, "Piece #{@peca_row.id} has no peça; only pieces of the molde can be completed" unless @peca_row.peca
+    raise Recusado, "Piece #{@peca_row.uuid} has no peça; only pieces of the molde can be completed" unless @peca_row.peca
     raise Recusado, "Arte #{@arte.filename.inspect} is not a candidate for peça #{@peca_row.peca&.nome.inspect} of molde #{@molde&.nome.inspect}" unless ArteCandidatasService.new(@peca_row).candidata?(@arte)
     return unless mudanca? && !@confirmar_mudanca
 

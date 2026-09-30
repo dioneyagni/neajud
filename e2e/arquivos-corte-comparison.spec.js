@@ -39,7 +39,8 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Create modelo + peca via API
+      // Create the peca via API; the modelo is the official "Chuteira"
+      // (Etapa 1.1, 3/5), used by no other spec.
       const csrf = await page.evaluate(() =>
         document.querySelector("meta[name='csrf-token']")?.content || ""
       );
@@ -50,18 +51,9 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "CorteCompPiece" })
         });
-        const pecaRes = await fetch("/pecas/search?q=CorteCompPiece");
-        const pecas = await pecaRes.json();
-        const pecaId = pecas[0]?.id;
-
-        await fetch("/modelos", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "modelo[nome]": "CorteCompMold", "modelo[peca_uuids][]": pecaId || "" })
-        });
       }, csrf);
 
-      // Reload so the <select> options include the newly created modelo/peca
+      // Reload so the <select> options include the newly created peca
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
 
@@ -74,7 +66,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         displays.forEach(el => el.style.display = "none");
       });
 
-      await page.selectOption('select[name="modelo_uuid"]', { label: "CorteCompMold" });
+      await page.selectOption('select[name="modelo_uuid"]', { label: "Chuteira" });
       await page.selectOption('select[name="peca_uuid"]', { label: "CorteCompPiece" });
 
       const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
@@ -179,18 +171,12 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
     } finally {
       await page.evaluate(async ({ dxfUuid, arteUuid }) => {
         // Find IDs via search
-        let clientId, modeloId, pecaId;
+        let clientId, pecaId;
         try {
           const cr = await fetch("/clients/search?q=CorteCompClient");
           const clients = await cr.json();
           const c = clients.find(x => x.name === "CorteCompClient");
           if (c) clientId = c.id;
-        } catch (_) {}
-        try {
-          const mr = await fetch("/modelos/search?q=CorteCompMold");
-          const modelos = await mr.json();
-          const m = modelos.find(x => x.name === "CorteCompMold");
-          if (m) modeloId = m.id;
         } catch (_) {}
         try {
           const pr = await fetch("/pecas/search?q=CorteCompPiece");
@@ -200,7 +186,6 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
         } catch (_) {}
         // Delete in reverse dependency order
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
         try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}

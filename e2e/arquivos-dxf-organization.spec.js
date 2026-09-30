@@ -47,6 +47,13 @@ runSpec("Arquivos E2E: DXF mold organization & overlap", async ({ page, test }) 
     const pecaSelect = await page.$('select[name="peca_uuid"]');
     if (!pecaSelect) throw new Error("Piece select not found");
 
+    // Etapa 1.1 (3/5): modelos are the official list — only a piece can be
+    // registered from here, and every official modelo is offered.
+    if (await page.locator('button:has-text("+ Register new model")').count() !== 0) throw new Error("Registering a modelo should be gone");
+    if (await page.locator('button:has-text("+ Register new piece")').count() === 0) throw new Error("Register new piece button missing");
+    const modelos = await page.locator('select[name="modelo_uuid"] option').allTextContents();
+    if (!modelos.includes("Tenis") || !modelos.includes("Banner")) throw new Error(`Official modelos missing from the select: ${modelos.join(", ")}`);
+
     // Verify tamanho rows
     const tamanhoRows = await page.$$(".tamanho-row");
     if (tamanhoRows.length !== 1) throw new Error(`Expected 1 tamanho row, got ${tamanhoRows.length}`);
@@ -62,7 +69,8 @@ runSpec("Arquivos E2E: DXF mold organization & overlap", async ({ page, test }) 
   });
 
 await test("DXF Mold Organization: save organization marks as organized", async () => {
-    // Create modelo and peca for the test
+    // Create the peca for the test; the modelo is the official "Tenis"
+    // (Etapa 1.1, 3/5: modelos can't be registered any more).
     const csrf = await page.evaluate(() => {
       const meta = document.querySelector("meta[name='csrf-token']");
       return meta?.content || "";
@@ -73,16 +81,6 @@ await test("DXF Mold Organization: save organization marks as organized", async 
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "Cabedal" })
-      });
-      const pecaRes = await fetch("/pecas/search?q=Cabedal");
-      const pecas = await pecaRes.json();
-      const pecaId = pecas[0]?.id;
-
-      // Create modelo with peca linked
-      await fetch("/modelos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: token, "modelo[nome]": "Tênis", "modelo[peca_uuids][]": pecaId || "" })
       });
     }, csrf);
 
@@ -96,7 +94,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.waitForTimeout(500);
 
     // Select modelo and peca from dropdowns
-    await page.selectOption('select[name="modelo_uuid"]', { label: "Tênis" });
+    await page.selectOption('select[name="modelo_uuid"]', { label: "Tenis" });
     await page.selectOption('select[name="peca_uuid"]', { label: "Cabedal" });
 
     // Change tamanho name
@@ -113,7 +111,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     // Verify modelo and peca were saved by checking display text
     const body = await page.textContent("body");
-    if (!body.includes("Tênis")) throw new Error(`Modelo "Tênis" not found on page`);
+    if (!body.includes("Tenis")) throw new Error(`Modelo "Tenis" not found on page`);
     if (!body.includes("Cabedal")) throw new Error(`Peca "Cabedal" not found on page`);
 
     const tamanhoVal = await page.$eval(".tamanho-input", el => el.value);

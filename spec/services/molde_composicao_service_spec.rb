@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe MoldeComposicaoService do
   let(:lateral) { create(:peca, nome: "Lateral") }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:modelo) { create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] } }
-  let(:molde) { create(:molde, modelo: modelo).tap(&:sync_molde_pecas!) }
+  let(:molde) { create(:molde, partes: [ lateral, lingua ]) }
 
   # An arte gets its peça through tamanho → corte, like in production data.
   def arte_for(peca, molde: self.molde)
@@ -43,11 +42,12 @@ RSpec.describe MoldeComposicaoService do
     expect(described_class.call(arte_lateral).map(&:arquivo)).to eq([ arte_lateral, linked ])
   end
 
-  it "falls back to the modelo's pieces when molde_pecas were never synced, without writing them" do
-    unsynced = create(:molde, modelo: modelo)
-    arte_lateral = arte_for(lateral, molde: unsynced)
-    expect(pieces(described_class.call(arte_lateral)).map(&:first)).to eq([ "Lateral", "Língua" ])
-    expect(unsynced.molde_pecas.reload).to be_empty
+  # Etapa 1.1 (3/5): parts belong to the molde; the category has none to
+  # fall back to.
+  it "gives a molde without parts just the added arte" do
+    sem_partes = create(:molde, modelo: create(:modelo))
+    arte_lateral = arte_for(lateral, molde: sem_partes)
+    expect(pieces(described_class.call(arte_lateral))).to eq([ [ "Lateral", arte_lateral ] ])
   end
 
   it "adds the arte itself when its peça is unknown" do
@@ -70,7 +70,7 @@ RSpec.describe MoldeComposicaoService do
 
   it "ignores artes of other moldes" do
     arte_lateral = arte_for(lateral)
-    arte_for(lingua, molde: create(:molde, modelo: modelo))
+    arte_for(lingua, molde: create(:molde, partes: [ lateral, lingua ]))
     expect(described_class.call(arte_lateral).map(&:arquivo)).to eq([ arte_lateral, nil ])
   end
 

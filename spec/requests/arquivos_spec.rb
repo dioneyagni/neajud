@@ -612,7 +612,6 @@ RSpec.describe "Arquivos", type: :request do
       molde = create(:molde)
       modelo = create(:modelo)
       peca = create(:peca)
-      create(:modelo_peca, modelo: modelo, peca: peca)
 
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -633,7 +632,6 @@ RSpec.describe "Arquivos", type: :request do
       molde = create(:molde)
       modelo = create(:modelo)
       peca = create(:peca)
-      create(:modelo_peca, modelo: modelo, peca: peca)
 
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -656,7 +654,6 @@ RSpec.describe "Arquivos", type: :request do
       molde = create(:molde)
       modelo = create(:modelo)
       peca = create(:peca)
-      create(:modelo_peca, modelo: modelo, peca: peca)
 
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -682,7 +679,6 @@ RSpec.describe "Arquivos", type: :request do
       molde = create(:molde)
       modelo = create(:modelo)
       peca = create(:peca)
-      create(:modelo_peca, modelo: modelo, peca: peca)
 
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -708,7 +704,6 @@ RSpec.describe "Arquivos", type: :request do
       molde = create(:molde)
       modelo = create(:modelo)
       peca = create(:peca)
-      create(:modelo_peca, modelo: modelo, peca: peca)
 
       corte1 = create(:arquivo, :corte, organized: true, peca: peca, modelo: modelo)
       corte1.moldes << molde
@@ -870,7 +865,7 @@ RSpec.describe "Arquivos", type: :request do
   describe "GET /arquivos/:id/composicao" do
     let(:lateral) { create(:peca, nome: "Lateral") }
     let(:lingua) { create(:peca, nome: "Língua") }
-    let(:molde) { create(:molde, modelo: create(:modelo).tap { |m| m.pecas << [ lateral, lingua ] }) }
+    let(:molde) { create(:molde, partes: [ lateral, lingua ]) }
 
     it "lists every piece of the arte's molde, pending ones without arte" do
       arte = create(:arquivo, molde: molde, peca: lateral, filename: "lateral-azul")

@@ -169,6 +169,9 @@ tables.each { |t| conn.execute("DELETE FROM #{conn.quote_table_name(t)}") }
 conn.execute("PRAGMA foreign_keys = ON")
 Rails.application.load_seed
 ' 2>&1 | tail -1
+# The official catalog (Etapa 1.1, 3/5) is data every instance has: truncating
+# removed it, so load it again like a deploy does.
+bin/rails catalogo:sincronizar 2>&1 | tail -1
 echo "       Done."
 
 # Step 3: Start Rails server in background

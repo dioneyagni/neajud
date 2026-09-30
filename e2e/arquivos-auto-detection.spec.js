@@ -46,28 +46,20 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         document.querySelector("meta[name='csrf-token']")?.content || ""
       );
 
-      // Create modelo + peca via API
+      // Create the peca via API; the modelo is the official "Bota" (Etapa 1.1,
+      // 3/5), which no other spec uses, so MoldMatchService only sees this corte.
       await page.evaluate(async (token) => {
         await fetch("/pecas", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ authenticity_token: token, "peca[nome]": "AutoDetectPiece" })
         });
-        const pecaRes = await fetch("/pecas/search?q=AutoDetectPiece");
-        const pecas = await pecaRes.json();
-        const pecaId = pecas[0]?.id;
-
-        await fetch("/modelos", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ authenticity_token: token, "modelo[nome]": "AutoDetectMold", "modelo[peca_uuids][]": pecaId || "" })
-        });
       }, csrf);
 
       await page.reload();
       await page.waitForSelector("h2", { timeout: 10000 });
 
-      await page.selectOption('select[name="modelo_uuid"]', { label: "AutoDetectMold" });
+      await page.selectOption('select[name="modelo_uuid"]', { label: "Bota" });
       await page.selectOption('select[name="peca_uuid"]', { label: "AutoDetectPiece" });
 
       const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
@@ -82,9 +74,9 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
       });
 
       modeloId = await page.evaluate(async () => {
-        const r = await fetch("/modelos/search?q=AutoDetectMold");
+        const r = await fetch("/modelos/search?q=Bota");
         const list = await r.json();
-        const m = list.find(x => x.nome === "AutoDetectMold");
+        const m = list.find(x => x.nome === "Bota");
         return m ? m.id : null;
       });
       if (!modeloId) throw new Error("Could not find modelo after organization");
@@ -121,7 +113,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         document.querySelector("meta[name='csrf-token']")?.content || ""
       );
 
-      const apiOk = await page.evaluate(async ({ token, arteUuid, modeloId }) => {
+      const apiOk = await page.evaluate(async ({ token, arteUuid, dxfUuid, modeloId }) => {
         // Create client
         const cResp = await fetch("/clients", {
           method: "POST",
@@ -144,6 +136,16 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
           body: cf.toString()
         });
         if (!cr.ok && cr.status !== 302) return { ok: false, step: "update client", status: cr.status };
+
+        // The corte is the same client's, as in real data: the search never
+        // takes another client's corte (Etapa 1.1, 3/5 — "Bota" is every
+        // client's modelo).
+        const cc = await fetch(`/arquivos/${dxfUuid}/update_client`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ authenticity_token: token, client_uuid: client.id }).toString()
+        });
+        if (!cc.ok && cc.status !== 302) return { ok: false, step: "update corte client", status: cc.status };
 
         // Create a Molde linked to the organized modelo, under this client
         const mr = await fetch("/moldes", {
@@ -174,7 +176,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         if (!mur.ok && mur.status !== 302) return { ok: false, step: "update molde", status: mur.status };
 
         return { ok: true };
-      }, { token: csrf2, arteUuid, modeloId });
+      }, { token: csrf2, arteUuid, dxfUuid, modeloId });
 
       if (!apiOk.ok) {
         throw new Error(`Setup failed at ${apiOk.step}${apiOk.status ? ": " + apiOk.status : ""}`);
@@ -200,18 +202,12 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
       if (!badge) throw new Error("No selected size badge found — auto-detection did not set a tamanho");
     } finally {
       await page.evaluate(async ({ dxfUuid, arteUuid }) => {
-        let clientId, modeloId, pecaId, moldeId;
+        let clientId, pecaId, moldeId;
         try {
           const cr = await fetch("/clients/search?q=AutoDetectClient");
           const clients = await cr.json();
           const c = clients.find(x => x.name === "AutoDetectClient");
           if (c) clientId = c.id;
-        } catch (_) {}
-        try {
-          const mr = await fetch("/modelos/search?q=AutoDetectMold");
-          const modelos = await mr.json();
-          const m = modelos.find(x => x.nome === "AutoDetectMold");
-          if (m) modeloId = m.id;
         } catch (_) {}
         try {
           const pr = await fetch("/pecas/search?q=AutoDetectPiece");
@@ -227,7 +223,6 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         } catch (_) {}
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}
         try { if (pecaId) await fetch(`/pecas/${pecaId}`, { method: "DELETE" }); } catch (_) {}
-        try { if (modeloId) await fetch(`/modelos/${modeloId}`, { method: "DELETE" }); } catch (_) {}
         try { if (dxfUuid) await fetch(`/arquivos/${dxfUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (arteUuid) await fetch(`/arquivos/${arteUuid}`, { method: "DELETE", redirect: "manual" }); } catch (_) {}
         try { if (clientId) await fetch(`/clients/${clientId}`, { method: "DELETE" }); } catch (_) {}

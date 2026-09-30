@@ -6,7 +6,7 @@ class PecasController < ApplicationController
 
   def index
     @pecas = Peca.ativos.left_joins(:arquivos)
-                  .includes(:modelos)
+                  .includes(:moldes)
                   .select(Peca.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
                   .group(:id)
                   .order(:nome)
@@ -14,7 +14,7 @@ class PecasController < ApplicationController
 
   def new
     @peca = Peca.new
-    @modelo_uuid = params[:modelo_uuid]
+    @molde_uuid = params[:molde_uuid]
   end
 
   def search
@@ -44,15 +44,17 @@ class PecasController < ApplicationController
     @peca = Peca.new(peca_params)
     if @peca.save
       assign_peca_to_arquivo(@peca) if params[:arquivo_uuid].present?
-      if params[:modelo_uuid].present?
-        modelo = Modelo.ativos.por_uuid!(params[:modelo_uuid])
-        modelo.pecas << @peca
-        redirect_to edit_modelo_path(modelo), notice: "Peça added to modelo."
+      # "Register new piece" from a molde's page: it becomes one of its parts
+      # (Etapa 1.1, 3/5 — parts belong to the molde, not to the category).
+      if params[:molde_uuid].present?
+        molde = Molde.ativos.por_uuid!(params[:molde_uuid])
+        molde.molde_pecas.create!(peca: @peca)
+        redirect_to molde_path(molde), notice: "Peça added to molde."
       else
         redirect_to pecas_path, notice: "Piece registered."
       end
     else
-      @modelo_uuid = params[:modelo_uuid]
+      @molde_uuid = params[:molde_uuid]
       render :new, status: :unprocessable_entity
     end
   end

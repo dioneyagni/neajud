@@ -8,8 +8,10 @@
         <dl class="detail-grid">
           <dt>Name</dt>
           <dd><%= @modelo.nome %></dd>
-          <dt>Peças</dt>
-          <dd><%= @modelo.pecas.pluck(:nome).join(", ").presence || "—" %></dd>
+          <dt>Product</dt>
+          <dd><%= @modelo.produto&.nome || "—" %></dd>
+          <dt>Abbreviation</dt>
+          <dd><%= @modelo.abreviacao || "—" %></dd>
           <dt>Arquivos</dt>
           <dd><%= @modelo.arquivos.count %></dd>
         </dl>

@@ -31,10 +31,12 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list modelos", "catalogo", 1, -> { get modelos_path } ],
     [ "register a peça", "catalogo", 2, -> { post pecas_path, params: { peca: { nome: "Nova" } } } ],
     [ "trash a molde", "catalogo", 3, -> { delete molde_path(molde) } ],
+    [ "add a part to a molde", "catalogo", 2, -> { post adicionar_parte_molde_path(molde), params: { peca_uuid: peca.uuid } } ],
+    [ "remove a molde's part", "catalogo", 2, -> { delete remover_parte_molde_path(molde, molde_peca_uuid: molde.molde_pecas.create!(peca: create(:peca)).uuid) } ],
     [ "list materials", "estoque", 1, -> { get materiais_path } ],
     [ "open the new movement form", "estoque", 2, -> { get new_movimento_path } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],
-    [ "restore from the trash", "lixeira", 2, -> { post restaurar_lixeira_path(tipo: "pecas", id: peca.tap { |p| p.excluir!(changed_by: "x") }.id) } ]
+    [ "restore from the trash", "lixeira", 2, -> { post restaurar_lixeira_path(tipo: "pecas", id: peca.tap { |p| p.excluir!(changed_by: "x") }.uuid) } ]
   ].freeze
 
   REQUISITOS.each do |descricao, area, nivel, requisicao|

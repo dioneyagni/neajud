@@ -46,8 +46,8 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
         const post = (url, fields) => fetch(url, { method: "POST", body: form(fields), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
         await post("/pecas", { "peca[nome]": `Peca ${uniq}` });
         const peca = (await (await fetch(`/pecas/search?q=${encodeURIComponent(`Peca ${uniq}`)}`)).json())[0];
-        await post("/modelos", { "modelo[nome]": `Modelo ${uniq}`, "modelo[peca_uuids][]": peca.id });
-        const modelo = (await (await fetch(`/modelos/search?q=${encodeURIComponent(`Modelo ${uniq}`)}`)).json())[0];
+        // Etapa 1.1 (3/5): an official modelo (the peça is unique per run).
+        const modelo = (await (await fetch("/modelos/search?q=Tenis")).json()).find((m) => m.nome === "Tenis");
         const organized = await post(`/arquivos/${corteUuid}/organize`, {
           _method: "patch", modelo_uuid: modelo.id, peca_uuid: peca.id,
           "tamanhos[0][nome]": "34", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
