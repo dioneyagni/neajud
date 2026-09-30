@@ -10,17 +10,18 @@ Este arquivo resume decisões e conversas que não estão (ou não estão comple
 
 ## Ordem de lançamento (prioridade)
 
-Detalhada, fase a fase, em `docs/plano.md` › **Ordem de execução** (reordenado em 26/09/2026: nuvem primeiro; servidor local depois, junto com o launcher Tauri).
+Detalhada, fase a fase, em `docs/plano.md` › **Ordem de execução** (reordenado em 26/09/2026: nuvem primeiro; servidor local depois, junto com o launcher Tauri; em 30/09/2026 o "Pronto para o beta" passou a vir antes da operação na nuvem).
 
 O produto principal é a nuvem. Lançar primeiro o plano hospedado; servidor local, ISO, launcher e compartilhamento entre empresas ficam para depois.
 
 Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados de clientes reais; adiar o que pode ser acrescentado sem migração.
 
 1. **Fundações:** repositório privado; autenticação com pessoa, vínculo e perfis; UUID em todas as entidades; exclusão lógica; processamento de arquivos em fila.
-2. **Modelo de domínio:** renomear `Modelo` para `Referencia`; criar Produto e o novo Modelo (categoria); tamanhos individuais com cortes que declaram os tamanhos atendidos; colunas de versão e base (`version`, `base_id`, `published_at`) já presentes, sem implementar herança e alertas ainda.
-3. **Operação na nuvem:** uma instância por cliente criada por script com Kamal; backup diário de cada instância com restauração testada; cobrança manual no início.
-4. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação; cada instância começa vazia e o cliente sobe tudo de novo.
-5. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
+2. **Modelo de domínio:** trocar os nomes `Molde` ⇄ `Modelo`; Produto e Modelo (categoria) do catálogo oficial do Neajud; Referência e Nome nas artes; tamanhos individuais com tipo de grade no corte; arte com um arquivo por tamanho; pedido com um tipo; colunas de versão e base (`version`, `base_id`, `published_at`) já presentes, sem implementar herança e alertas ainda. Sem migração dos dados atuais.
+3. **Pronto para o beta:** download da arte, ciclo do pedido e etapas de produção, estoque, parâmetros e preços do dono, numeração automática, DTF, estampa corrida e cor lisa, cliente final.
+4. **Operação na nuvem:** uma instância por cliente criada por script com Kamal; backup diário de cada instância com restauração testada; cobrança manual no início.
+5. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação; cada instância começa vazia e o cliente sobe tudo de novo.
+6. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
 
 ## Exemplo real do catálogo
 
@@ -40,9 +41,9 @@ Leitura: o molde pertence ao cliente e tem código fixo `NNN-ABR` (número seque
 
 **Dono ou admin:** assinar o plano hospedado; instalar a ISO e parear; convidar funcionários (ou criar acesso temporário offline); bloquear ex-funcionário; aprovar ou adiar atualização com rollback; trocar disco de backup; adicionar disco; restaurar numa máquina nova; migrar entre nuvem e local; acessar remotamente com 2FA.
 
-**Catálogo:** cadastrar produto, modelo (categoria com abreviação), molde do cliente (código automático + sufixo), partes e grade; subir cortes marcando tamanhos; criar variação de molde que substitui, acrescenta ou remove parte, ou reagrupa cortes; marcar referência e nome nas artes para agrupá-las; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
+**Catálogo:** escolher produto e modelo (categoria com abreviação) da lista oficial do Neajud; cadastrar molde do cliente (código automático + sufixo), com o intervalo da grade e as partes; subir cortes marcando tamanhos; criar variação de molde que substitui, acrescenta ou remove parte, ou reagrupa cortes; marcar referência e nome nas artes para agrupá-las; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
 
-**Estampas, artes e produção:** criar estampa com material do cliente; criar artes (uma por corte); refazer artes após correção da estampa; lançar pedido por tamanho individual e resolver corte e arte; baixar saídas de produção; excluir e restaurar arte.
+**Estampas, artes e produção:** criar estampa com material do cliente; criar artes (uma por corte + referência + nome, com um arquivo por tamanho, agrupados no upload); subir etiquetas DTF, estampas corridas e cores lisas; refazer artes após correção da estampa; lançar pedido (um tipo por pedido: calçado, DTF ou tecido) e, no calçado, por tamanho individual resolvendo corte e arte; baixar saídas de produção; excluir e restaurar arte.
 
 **Compartilhamento:** compartilhar molde desmarcando itens; compartilhar só um corte com sua arte; receber e produzir offline; revogar; empresa de outro processo pendurar componente próprio numa parte recebida.
 

@@ -29,7 +29,7 @@ flowchart TD
     MO -. variação de .-> MO0[Molde de base<br/>ex: 001-TNS]
     MO --> PA[Parte<br/>lateral, língua, palmilha]
     PA --> C[Corte<br/>arquivo que atende tamanhos]
-    C --> A[Arte<br/>uma por corte]
+    C --> A[Arte<br/>uma por corte + referência + nome,<br/>um arquivo por tamanho]
     A -. marcada com .-> R[Referência + Nome<br/>ex: 20 · Bluey Azul]
     E[Estampa<br/>foto, recorte, PDF] --> A
 ```
@@ -132,12 +132,12 @@ Os dois rodam o mesmo código e o mesmo formato de backup; migrar um cliente de 
 
 ## Usuários e permissões
 
-A conta é da pessoa; o acesso a cada empresa é um vínculo com um ou mais perfis fixos.
+A conta é da pessoa; o acesso a cada empresa é um vínculo com uma função (editável pelo dono, 27/09/2026) e acessos extras.
 
 **Pessoa, empresa e vínculo:**
 
 - A conta é única, na Neajud Cloud, e pertence à pessoa.
-- Um vínculo liga a pessoa a uma empresa com um ou mais perfis. A mesma pessoa pode ser designer numa empresa, cliente de outra e dona da própria.
+- Um vínculo liga a pessoa a uma empresa com uma função e, se preciso, acessos extras. A mesma pessoa pode ser designer numa empresa, cliente de outra e dona da própria.
 - Qualquer pessoa pode criar uma empresa, que começa no teste grátis.
 - O login acontece na nuvem; a pessoa escolhe a empresa e é enviada à instância dela já autenticada. O servidor local mantém cópia dos vínculos da sua empresa para login offline.
 
@@ -149,7 +149,7 @@ A conta é da pessoa; o acesso a cada empresa é um vínculo com um ou mais perf
 
 **Atualizado em 27/09/2026 — funções editáveis pelo dono.** Os perfis fixos abaixo viraram o **ponto de partida** de uma política que o dono edita na tela Funções: uma grade área × função com os níveis — / Ver / Editar / Excluir (cada nível inclui os anteriores), mais ações especiais. O dono também cria funções novas (no chão de fábrica, vários funcionários usam a mesma função). Cada pessoa tem **uma função**, e pode receber **acessos extras** que só aumentam o que a função dá. A Lixeira entrou como área (— / Ver / Restaurar), liberada pelo dono a quem ele quiser. O dono tem tudo e sua função não é editável; editar funções é só do dono. Evolução prevista: agrupar funções por **setor**. Motor próprio (sem Oso, cuja política fica num serviço externo, nem Action Policy, cujas regras ficam em código); se as regras por registro crescerem (cliente final), o motor pode mudar por baixo da classe `Autorizacao`.
 
-**Perfis fixos, combináveis no mesmo vínculo** (as permissões somam; empresa de uma pessoa só tem o dono com tudo) — a grade inicial das funções:
+**Funções padrão** (o ponto de partida da grade, que o dono edita; empresa de uma pessoa só tem o dono com tudo):
 
 | Ação | Dono | Admin | Atendimento | Designer | Produção | Cliente final |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -311,7 +311,7 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
 **Etapa 2.3 — Estoque e materiais.** Estoque da empresa (hoje só existe estoque por cliente); o papel de transferência como material, com a sua largura; preço por metro no cadastro de materiais. Baixa automática na confirmação do pedido (tecido do cliente ou da empresa, e o papel); sem saldo, avisa e marca "aguardando material", sem bloquear, porque a impressão no papel pode ser adiantada.
 
-**Etapa 2.4 — Parâmetros e preços do dono.** Largura do filme DTF (60 cm), margem das bordas (1,5 cm), espaçamento padrão, fileiras extras, preço geral por metro do DTF (ex: R$ 120), preço da impressão por metro linear, **o mesmo para estampa corrida e cor lisa** (igual para qualquer largura), custo único do corte por unidade, metragem mínima dos pedidos de tecido e o padrão de "cobrar excedente". Preços acordados por cliente (por metro e/ou por unidade de cada tamanho) valem antes dos gerais. "Cobrar excedente" segue a cascata dono → cliente → pedido. Nova ação na grade de Funções: "aprovar pedido abaixo do mínimo".
+**Etapa 2.4 — Parâmetros e preços do dono.** Largura do filme DTF (60 cm), margem das bordas (1,5 cm), espaçamento padrão, fileiras extras (padrão do dono, alterável no pedido), preço geral por metro do DTF (ex: R$ 120), preço da impressão por metro linear, **o mesmo para estampa corrida e cor lisa** (igual para qualquer largura), custo único do corte por unidade, metragem mínima dos pedidos de tecido e o padrão de "cobrar excedente". Preços acordados por cliente (por metro e/ou por unidade de cada tamanho) valem antes dos gerais. "Cobrar excedente" segue a cascata dono → cliente → pedido. Nova ação na grade de Funções: "aprovar pedido abaixo do mínimo".
 
 **Etapa 2.5 — Numeração automática e "entra no catálogo".** Sequências por empresa que nunca reutilizam números: `DTF-863`, `CR-4114`, e a variação por família de cor (`Amarelo v42`, família reconhecida pelo tom do arquivo). Cada empresa começa do 1, sem migrar os números atuais (o primeiro cliente sobe os arquivos em ordem; o número antigo fica no nome original do upload, pesquisável). Os tamanhos de uma etiqueta chegam juntos pelo agrupamento no upload. Marcação "entra no catálogo" para etiquetas DTF e estampas corridas (desmarcada por padrão) e cores lisas (marcada por padrão).
 
@@ -384,7 +384,7 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 **Etapa 6.1 — Estampa.** Nova entidade, versionada, pertencente a um cliente. Aceita vários arquivos de qualquer tipo: fotos, arquivos gráficos, PDFs de instruções. Um recorte é guardado como marcação de área sobre o arquivo original, sem duplicá-lo.
 
-**Etapa 6.2 — Ligação Arte → Estampa e Corte.** Cada Arte registra, quando houver, a versão da estampa de origem, e sempre o corte (com sua versão) a que se destina: uma arte por corte, seguindo o mesmo agrupamento de tamanhos. Uma estampa gera várias artes. Quando a estampa ou o corte ganham nova versão, as artes afetadas recebem alerta para refazer.
+**Etapa 6.2 — Ligação Arte → Estampa e Corte.** Cada Arte registra, quando houver, a versão da estampa de origem, e sempre o corte (com sua versão) a que se destina: uma arte por corte + referência + nome, com um arquivo por tamanho do corte. Uma estampa gera várias artes. Quando a estampa ou o corte ganham nova versão, as artes afetadas recebem alerta para refazer.
 
 **Etapa 6.3 — Origem e saídas.** A Arte tem um arquivo de origem (PSD, CDR, AI, PNG, TIFF, JPG) e saídas de produção geradas para o seu corte: TIFF em ultra resolução e JPG compactado para bitmaps, PDF para vetores. As saídas são geradas em job, nunca no request.
 

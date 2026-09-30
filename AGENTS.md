@@ -857,7 +857,8 @@ The plan renames things; until those stages land, the code keeps its names:
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
 | Arte | `Arquivo` with `category: "artes"` |
-| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual) |
+| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual, with a grade type per corte: Par, Ímpar, P/M/G, Furada) |
+| Etiqueta DTF, Estampa corrida, Cor lisa | don't exist yet (Etapas 2.5–2.7); today uploaded as plain artes (samples only — the beta starts with an empty database) |
 
 ## Known gaps vs docs/plano.md
 
