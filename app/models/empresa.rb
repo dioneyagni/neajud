@@ -1,5 +1,5 @@
 # The company this instance serves. One instance per empresa (docs/plano.md,
-# Etapa 2.1), so there is at most one row and data tables carry no empresa_id.
+# Etapa 3.1), so there is at most one row and data tables carry no empresa_id.
 class Empresa < ApplicationRecord
   include GeraUuid
 

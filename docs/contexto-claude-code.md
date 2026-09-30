@@ -10,43 +10,40 @@ Este arquivo resume decisões e conversas que não estão (ou não estão comple
 
 ## Ordem de lançamento (prioridade)
 
-Detalhada, fase a fase, em `docs/plano.md` › **Ordem de execução** (reordenado em 26/09/2026: nuvem primeiro; servidor local depois, junto com o launcher Tauri).
+Detalhada, fase a fase, em `docs/plano.md` › **Ordem de execução** (reordenado em 26/09/2026: nuvem primeiro; servidor local depois, junto com o launcher Tauri; em 30/09/2026 o "Pronto para o beta" passou a vir antes da operação na nuvem).
 
 O produto principal é a nuvem. Lançar primeiro o plano hospedado; servidor local, ISO, launcher e compartilhamento entre empresas ficam para depois.
 
 Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados de clientes reais; adiar o que pode ser acrescentado sem migração.
 
 1. **Fundações:** repositório privado; autenticação com pessoa, vínculo e perfis; UUID em todas as entidades; exclusão lógica; processamento de arquivos em fila.
-2. **Modelo de domínio:** renomear `Modelo` para `Referencia`; criar Produto e o novo Modelo (categoria); tamanhos individuais com cortes que declaram os tamanhos atendidos; colunas de versão e base (`version`, `base_id`, `published_at`) já presentes, sem implementar herança e alertas ainda.
-3. **Operação na nuvem:** uma instância por cliente criada por script com Kamal; backup diário de cada instância com restauração testada; cobrança manual no início.
-4. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação cujos dados já estão no sistema.
-5. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
+2. **Modelo de domínio:** trocar os nomes `Molde` ⇄ `Modelo`; Produto e Modelo (categoria) do catálogo oficial do Neajud; Referência e Nome nas artes; tamanhos individuais com tipo de grade no corte; arte com um arquivo por tamanho; pedido com um tipo; colunas de versão e base (`version`, `base_id`, `published_at`) já presentes, sem implementar herança e alertas ainda. Sem migração dos dados atuais.
+3. **Pronto para o beta:** download da arte, ciclo do pedido e etapas de produção, estoque, parâmetros e preços do dono, numeração automática, DTF, estampa corrida e cor lisa, cliente final.
+4. **Operação na nuvem:** uma instância por cliente criada por script com Kamal; backup diário de cada instância com restauração testada; cobrança manual no início.
+5. **Lançamento beta** com 2 ou 3 clientes, começando pela sublimação; cada instância começa vazia e o cliente sobe tudo de novo.
+6. **Depois:** estampas; herança e alertas de versão; cobrança automática; servidor local com ISO; compartilhamento entre empresas.
 
-## Exemplo real do catálogo (planilha de referência)
+## Exemplo real do catálogo
 
-| Produto | Modelo (categoria) | Molde | Referência | Partes | Tamanhos |
+Revisado em 29/09/2026, com os clientes reais (a planilha original misturava molde e referência; a definição vale o que está no glossário do `plano.md`):
+
+| Produto | Modelo (categoria) | Cliente | Molde | Referências (agrupam artes) | Partes |
 | --- | --- | --- | --- | --- | --- |
-| Chinelo | Flip Flop | Slin | — | Correia, Tira | 33-34 ao 39-40 |
-| | | | | Detalhe | P e G |
-| Chinelo | Flip Flop | Unisex | — | Correia, Tira | 33-34 ao 39-40 |
-| | | | | Detalhe | P e G |
-| Chinelo | Slide | mind 1 | — | Cabedal, Palmilha, Soleta | 33-34 ao 43-44 |
-| | | | | Knit | P, M, G |
-| Tênis | Jogging | NB | Fuel, Elite | Cabedal, Forro, Palmilha, Língua | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 21-24 | 21, 24 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 19-20 | 19, 20 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Baixo | 28-29 | 28, 29 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
-| Tênis | Cano Alto | 40-41 | 40, 41 | Lateral, Língua, Palmilha | 33-34 ao 43-44 |
+| Tênis | Tenis [TNS] | MKS | 001-TNS | 19, 20 (a 19 tem um detalhe na arte) | Lateral, Língua |
+| Tênis | Tenis [TNS] | MKS | 002-TNS Furado (variação do 001) | — | Lateral própria; Língua herdada |
+| Tênis | Tenis [TNS] | MKS | 003-TNS Velcro (variação do 001) | — | Lateral própria; Língua herdada |
+| Tênis | Jogging [JGG] | NESK | 001-JGG DUNN · 002-JGG NB · 003-JGG Olympus | Fuel, Elite (no 002) | Cabedal, Reforço |
+| Tênis | Jogging [JGG] | GMS | 001-JGG NB | Fuel, Elite | Cabedal, Reforço |
 
-Leitura: "—" significa molde usado diretamente, sem referência. Faixas como 33-34 e rótulos como P/M/G são agrupamentos de cortes; no sistema, os tamanhos são guardados um a um e cada corte declara quais atende. A tabela de correspondência (ex: quais números o Knit P atende) é definida no molde e pode ser substituída na referência.
+Leitura: o molde pertence ao cliente e tem código fixo `NNN-ABR` (número sequencial por cliente) mais um sufixo livre. Mudar o corte de uma parte gera um molde variação; mudar só a arte é outra referência ou outro nome. O nome completo de uma arte é calculado: `002-TNS_20_Bluey Azul_Lingua_29-30`. Faixas como 29-30 são agrupamentos de cortes; no sistema, os tamanhos são guardados um a um e cada corte declara quais atende.
 
 ## Casos de uso levantados
 
 **Dono ou admin:** assinar o plano hospedado; instalar a ISO e parear; convidar funcionários (ou criar acesso temporário offline); bloquear ex-funcionário; aprovar ou adiar atualização com rollback; trocar disco de backup; adicionar disco; restaurar numa máquina nova; migrar entre nuvem e local; acessar remotamente com 2FA.
 
-**Catálogo:** cadastrar produto, modelo, molde, partes e grade; subir cortes marcando tamanhos; criar variação de molde; criar referência herdando partes; substituir, acrescentar ou remover parte; reagrupar cortes na referência; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
+**Catálogo:** escolher produto e modelo (categoria com abreviação) da lista oficial do Neajud; cadastrar molde do cliente (código automático + sufixo), com o intervalo da grade e as partes; subir cortes marcando tamanhos; criar variação de molde que substitui, acrescenta ou remove parte, ou reagrupa cortes; marcar referência e nome nas artes para agrupá-las; publicar nova versão e alertar dependentes; adotar ou não uma nova versão; usar molde público de outra empresa.
 
-**Estampas, artes e produção:** criar estampa com material do cliente; criar artes (uma por corte); refazer artes após correção da estampa; lançar pedido por tamanho individual e resolver corte e arte; baixar saídas de produção; excluir e restaurar arte.
+**Estampas, artes e produção:** criar estampa com material do cliente; criar artes (uma por corte + referência + nome, com um arquivo por tamanho, agrupados no upload); subir etiquetas DTF, estampas corridas e cores lisas; refazer artes após correção da estampa; lançar pedido (um tipo por pedido: calçado, DTF ou tecido) e, no calçado, por tamanho individual resolvendo corte e arte; baixar saídas de produção; excluir e restaurar arte.
 
 **Compartilhamento:** compartilhar molde desmarcando itens; compartilhar só um corte com sua arte; receber e produzir offline; revogar; empresa de outro processo pendurar componente próprio numa parte recebida.
 
@@ -54,14 +51,12 @@ Leitura: "—" significa molde usado diretamente, sem referência. Faixas como 3
 
 ## Casos que ainda faltam discutir
 
-- Ciclo do pedido: rascunho, confirmado, produção, entregue (já existe bloqueio de confirmação no código: peça sem arte, item com quantidade 0, peça sem corte, tamanho que o corte não tem — `PedidoBloqueiosService`).
+Discutidos em 29 e 30/09/2026 e levados ao `docs/plano.md`: ciclo do pedido e etapas de produção (Etapa 2.2), estoque e materiais (2.3), montagem da impressão (o RIP monta; o Neajud só estima o encaixe do DTF, 2.6), perfil Financeiro (virou uma função que o dono cria).
+
 - Registro de tempo de produção e relatórios.
-- Estoque, materiais e cores (existem no código como movimentos, materiais e cores).
-- Montagem da impressão: organizar vários cortes numa folha ou rolo.
 - Cobrança do ponto de vista do cliente: troca de plano, fim do teste, inadimplência.
-- Perfil Financeiro.
 - Relação final entre Estampa e Arte (ligação opcional nos dois sentidos, em definição).
-- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o antigo `docs/product-requirements.md`, removido em 26/09/2026, era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. Tarefas de produção (cortar/imprimir) e o ciclo do pedido ficam para outra conversa.
+- **Pendências viram tarefas** (discutido em 26/09/2026, adiado). A ideia original do produto era um sistema de tarefas (o antigo `docs/product-requirements.md`, removido em 26/09/2026, era "rastrear o tempo gasto em estampas"; a home ainda se chama "Tracker"). Descrever tarefas é chato e ambíguo; o estado dos arquivos já descreve o trabalho. O sistema já calcula pendências com contexto e ação que resolve: `PedidoBloqueiosService` (peça sem arte, item zerado, peça sem corte, tamanho sem corte) e os ícones do card da galeria (sem cliente, não organizado, cortes sobrepostos, sem preview do tamanho, falha de processamento). Direção: essas pendências viram uma caixa de tarefas por perfil, **calculadas** e que **fecham sozinhas** quando o arquivo resolve; gravar responsável e tempo só depois da Etapa 0.5. Próximo passo: cada nova feature que gerar pendências será analisada como fonte de tarefa antes de construir a caixa. As etapas de produção (imprimir, cortar, transferir) e o ciclo do pedido foram decididos na Etapa 2.2 do plano; ligar as pendências a elas continua aberto.
 
 ## Sugestão de primeira mensagem na sessão
 

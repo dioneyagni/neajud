@@ -242,7 +242,7 @@ Never merge, force-push to `main`, or delete branches you didn't create.
 
 ⚠️ **Branch protection is not enabled**: the repo is private (since 26/09/2026) and
 GitHub Free doesn't offer branch protection for private repos (needs GitHub Team —
-see Etapa 2.5 in `docs/plano.md`). The discipline is manual: never merge with red CI.
+see Etapa 3.5 in `docs/plano.md`). The discipline is manual: never merge with red CI.
 
 Before every push, run the **Pre-commit** command from the Commands section.
 
@@ -538,7 +538,7 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 `SessionsController#new/create` and the first-access setup are public.
 
 - **Model:** `User` (the plan's "pessoa"; name chosen in session) +
-  `Empresa` (**one per instance** — docs/plano.md Etapa 2.1; `Empresa.atual`)
+  `Empresa` (**one per instance** — docs/plano.md Etapa 3.1; `Empresa.atual`)
   + `Vinculo` (user × empresa × **one `Funcao`** + `acessos_extras`). New
   tables get a `uuid` via the `GeraUuid` concern; `users.cloud_user_uuid`
   links to the future Neajud Cloud account (Etapa 7.1).
@@ -850,21 +850,23 @@ The plan renames things; until those stages land, the code keeps its names:
 
 | docs/plano.md | Code today |
 |---|---|
-| Referência | `Modelo` (rename planned in Etapa 1.1) |
-| Modelo (categoria), Produto | don't exist yet (Etapa 1.1) |
-| Molde | `Molde` |
+| Produto | doesn't exist yet (Etapa 1.1, 2/2) |
+| Modelo (categoria, e.g. Jogging [JGG]) | `Molde` (becomes `Modelo` in Etapa 1.1) |
+| Molde (the client's form, e.g. 002-TNS Furado) | `Modelo` (becomes `Molde` in Etapa 1.1) — **the two names swap** |
+| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 2/2); not catalog, not versioned |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
 | Arte | `Arquivo` with `category: "artes"` |
-| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual) |
+| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual, with a grade type per corte: Par, Ímpar, P/M/G, Furada) |
+| Etiqueta DTF, Estampa corrida, Cor lisa | don't exist yet (Etapas 2.5–2.7); today uploaded as plain artes (samples only — the beta starts with an empty database) |
 
 ## Known gaps vs docs/plano.md
 
 Current code that still differs from the plan — don't copy these patterns into new work:
 
 - **No "cliente final"** — the client's own access (seeing only their pedidos
-  and artes) needs every query filtered by client. Target: its own etapa
-  before the beta.
+  and artes) needs every query filtered by client. Target: Etapa 2.8, before
+  the beta.
 - **UUID not everywhere** — only `arquivos`, `arquivo_versions`, `arquivo_time_logs`,
   `pedidos`, `itens_pedido` and `bans` have one; routes for modelos, moldes, peças, clients
   use integer ids. Target: UUID on every entity (Etapa 1.1).
