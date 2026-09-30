@@ -109,6 +109,19 @@ RSpec.describe "Modelos", type: :request do
     end
   end
 
+  # Regression (29/09/2026): a modelo whose client went to the trash had no
+  # option in the edit dialog's required select, so saving it was silently
+  # blocked by the browser.
+  it "offers a listed modelo's trashed client in the edit dialog, marked" do
+    client = create(:client, name: "Cliente Antigo")
+    create(:modelo, client: client)
+    client.excluir!(changed_by: "10.0.0.1")
+    create(:client, name: "Outro Na Lixeira", deleted_at: 1.day.ago)
+    get modelos_path
+    expect(response.body).to include("Cliente Antigo (in the trash)")
+    expect(response.body).not_to include("Outro Na Lixeira")
+  end
+
   describe "GET /modelos/for_client" do
     it "returns modelos for a given client" do
       client = create(:client, name: "Test Client", responsible: "John")
@@ -141,6 +154,16 @@ RSpec.describe "Modelos", type: :request do
 
       expect { delete modelo_path(modelo) }.not_to change(Modelo, :count)
       expect(modelo.reload).to be_excluido
+    end
+
+    # Regression (29/09/2026): the arte page's combobox appended "?q=" to a URL
+    # that already had "?client_id=", and for_client ignored q anyway.
+    it "for_client filters by the typed text" do
+      client = create(:client)
+      create(:modelo, client: client, nome: "001-JGG INF")
+      create(:modelo, client: client, nome: "002-JGG NB")
+      get for_client_modelos_path(client_id: client.id, q: "inf")
+      expect(response.parsed_body.map { |m| m["nome"] }).to eq([ "001-JGG INF" ])
     end
 
     it "hides trashed modelos from for_client" do

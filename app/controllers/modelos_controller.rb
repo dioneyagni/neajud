@@ -10,6 +10,13 @@ class ModelosController < ApplicationController
                       .select(Modelo.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
                       .group(:id)
                       .order(:nome)
+    # Active clients plus a listed modelo's own client even if trashed: the
+    # edit dialog's required select had no option for it, so saving that
+    # modelo was silently blocked by the browser (29/09/2026).
+    # Trashed ones last, and only while editing (data-somente-edicao, see
+    # dialog_controller.js): a new modelo can't be created for them.
+    @clientes_para_escolher = Client.ativos.or(Client.where(id: @modelos.map(&:client_id)))
+                                    .order(Arel.sql("deleted_at IS NOT NULL"), :name)
   end
 
   def show
@@ -50,7 +57,7 @@ class ModelosController < ApplicationController
   end
 
   def for_client
-    modelos = Modelo.ativos.where(client_id: params[:client_id]).order(:nome)
+    modelos = Modelo.ativos.where(client_id: params[:client_id]).search(params[:q]).order(:nome)
     render json: modelos.map { |m| { id: m.id, nome: m.nome, molde_id: m.molde_id } }
   end
 

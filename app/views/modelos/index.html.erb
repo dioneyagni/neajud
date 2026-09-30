@@ -19,8 +19,12 @@
         <label for="modelo_client_id_dialog">Client</label>
         <select name="modelo[client_id]" id="modelo_client_id_dialog" data-dialog-field="clientId" required>
           <option value="">Select a client...</option>
-          <% Client.ativos.order(:name).each do |c| %>
-            <option value="<%= c.id %>"><%= c.name %></option>
+          <% @clientes_para_escolher.each do |c| %>
+            <% if c.excluido? %>
+              <option value="<%= c.id %>" data-somente-edicao hidden disabled><%= c.name %> (in the trash)</option>
+            <% else %>
+              <option value="<%= c.id %>"><%= c.name %></option>
+            <% end %>
           <% end %>
         </select>
       </div>
