@@ -311,7 +311,7 @@ RSpec.describe "Arquivos", type: :request do
     it "changing to another molde drops the old molde's tamanho and searches again" do
       ActiveJob::Base.queue_adapter = :test
       modelo = create(:modelo)
-      antigo, novo = create(:molde, modelo: modelo, nome: "21-24"), create(:molde, modelo: modelo, nome: "28-29")
+      antigo, novo = create(:molde, modelo: modelo, sufixo: "21-24"), create(:molde, modelo: modelo, sufixo: "28-29")
       corte_antigo = create(:arquivo, :corte, organized: true, modelo: modelo).tap { |c| c.moldes << antigo }
       create(:arquivo, :corte, organized: true, modelo: modelo).tap { |c| c.moldes << novo }
       arquivo = create(:arquivo, molde: antigo, tamanho: create(:tamanho, arquivo: corte_antigo))

@@ -45,9 +45,10 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
     await secao.locator(".combobox-option-new").click();
     const dialogo = secao.locator("dialog[open]");
     await dialogo.waitFor();
-    await dialogo.locator('input[name="molde[nome]"]').fill(moldeName);
+    await dialogo.locator('input[name="molde[sufixo]"]').fill(moldeName);
+    await dialogo.locator('select[name="molde[modelo_uuid]"]').selectOption({ label: "Tenis [TNS]" });
     await dialogo.locator('button[type="submit"]').click();
-    await waitForText(page, "Molde registered.");
+    await waitForText(page, /Molde \d{3}-TNS .* registered\./);
 
     const estado = await page.evaluate(() => {
       const link = [...document.querySelectorAll("a")].find((a) => a.textContent.includes("Back to Gallery"));
@@ -77,7 +78,9 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
 
   // Regression (29/09/2026): the edit dialog's required client select had no
   // option for a trashed client, so saving such a molde was silently blocked;
-  // the trashed client must not be offered when creating, though.
+  // the trashed client must not be offered when creating, though. Since
+  // Etapa 1.1 (4/5) the client is fixed once created: editing hides (and
+  // doesn't send) the client field.
   await test("A molde whose client is in the trash can be edited; creating doesn't offer that client", async () => {
     await page.goto(`${BASE_URL}/moldes`);
     const trashed = await page.evaluate(async (uniq) => {
@@ -93,9 +96,8 @@ runSpec("Arquivos E2E: dialogs never leave the page inert", async ({ page, test 
     const linha = page.locator(".clients-table tbody tr").filter({ hasText: moldeName });
     await linha.locator("button:has-text('Edit')").click();
     const dialogo = page.locator("dialog[open]");
-    const valor = await dialogo.locator("#molde_client_uuid_dialog").inputValue();
-    if (valor !== String(trashed)) throw new Error(`Client select is "${valor}", expected the trashed client ${trashed}`);
-    await dialogo.locator("#molde_nome_dialog").fill(`${moldeName} Editado`);
+    if (await dialogo.locator("#molde_client_uuid_dialog").isVisible()) throw new Error("The client is fixed once created: its field must be hidden when editing");
+    await dialogo.locator("#molde_sufixo_dialog").fill(`${moldeName} Editado`);
     await dialogo.locator("button[type='submit']").click();
     await waitForText(page, "Molde updated.");
 

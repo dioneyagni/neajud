@@ -1,7 +1,10 @@
 FactoryBot.define do
+  # A client's form; its name is assembled from the number, the modelo's
+  # abbreviation and the suffix (Etapa 1.1, 4/5), e.g. "001-M1 MyString".
   factory :molde do
-    nome { "MyString" }
+    sufixo { "MyString" }
     client
+    modelo
 
     # The molde's own parts (Etapa 1.1, 3/5): create(:molde, partes: [lateral, lingua])
     transient do

@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "PedidoPecas", type: :request do
   let(:client) { create(:client) }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:molde) { create(:molde, client: client, nome: "Tênis baixo") }
+  let(:molde) { create(:molde, client: client, sufixo: "Tênis baixo") }
   let(:pedido) { create(:pedido) }
   let(:item) { create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, client: client, molde: molde)) }
   let!(:pending_row) { create(:item_pedido_peca, item_pedido: item, peca: lingua, arquivo: nil) }
@@ -11,7 +11,7 @@ RSpec.describe "PedidoPecas", type: :request do
   describe "GET escolher_arte" do
     it "lists the candidate groups; artes from another molde ask to confirm the move" do
       free = create(:arquivo, client: client, filename: "livre")
-      other = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"), filename: "de-outro")
+      other = create(:arquivo, client: client, molde: create(:molde, client: client, sufixo: "Outro"), filename: "de-outro")
       get escolher_arte_pedido_peca_path(pedido, pending_row)
       html = Nokogiri::HTML(response.body)
       expect(html.css(".escolher-arte-grupo").map { |g| g["data-grupo"] }).to eq(%w[cliente_sem_peca cliente_sem_molde sem_cliente])
@@ -45,7 +45,7 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "sends a move back to the picker without the confirmation, changing nothing" do
-      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
+      arte = create(:arquivo, client: client, molde: create(:molde, client: client, sufixo: "Outro"))
       post vincular_arte_pedido_peca_path(pedido, pending_row), params: { arquivo_uuid: arte.uuid }
       expect(response).to redirect_to(escolher_arte_pedido_peca_path(pedido, pending_row))
       expect(flash[:alert]).to include("confirm")
@@ -53,10 +53,11 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "moves and logs with the confirmation" do
-      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
+      outro = create(:molde, client: client, sufixo: "Outro")
+      arte = create(:arquivo, client: client, molde: outro)
       post vincular_arte_pedido_peca_path(pedido, pending_row), params: { arquivo_uuid: arte.uuid, confirmar_mudanca: "1" }
       expect(arte.reload.molde).to eq(molde)
-      expect(arte.vinculo_logs.sole.from_molde_nome).to eq("Outro")
+      expect(arte.vinculo_logs.sole.from_molde_nome).to eq(outro.nome)
     end
   end
 
@@ -70,12 +71,13 @@ RSpec.describe "PedidoPecas", type: :request do
     end
 
     it "shows the link history on the arte page, marking moves" do
-      arte = create(:arquivo, client: client, molde: create(:molde, client: client, nome: "Outro"))
+      outro = create(:molde, client: client, sufixo: "Outro")
+      arte = create(:arquivo, client: client, molde: outro)
       VincularArteService.call(pending_row, arte, changed_by: "10.0.0.1", confirmar_mudanca: true)
       get arquivo_path(arte)
       row = Nokogiri::HTML(response.body).at_css("#vinculo-history-section tbody tr")
       expect(row["class"]).to include("vinculo-history-mudanca")
-      expect(row.css("td").first(4).map(&:text).map(&:strip)).to eq([ "Outro", "Tênis baixo", "Língua", pedido.uuid.first(8) ])
+      expect(row.css("td").first(4).map(&:text).map(&:strip)).to eq([ outro.nome, molde.nome, "Língua", pedido.uuid.first(8) ])
     end
 
     it "hides the history section when there is none" do
@@ -94,7 +96,7 @@ RSpec.describe "PedidoPecas", type: :request do
       arte = Arquivo.find_by!(filename: "02-no_spot")
       expect([ arte.client, arte.molde, arte.peca, arte.category ]).to eq([ client, molde, lingua, "artes" ])
       expect(pending_row.reload.arquivo).to eq(arte)
-      expect(arte.vinculo_logs.sole.to_molde_nome).to eq("Tênis baixo")
+      expect(arte.vinculo_logs.sole.to_molde_nome).to eq(molde.nome)
       expect(arte.vinculo_logs.sole.user).to eq(@usuario_logado)
       expect(response).to redirect_to(resumo_pedido_path(pedido))
       expect(flash[:notice]).to include("02-no_spot", "Língua")

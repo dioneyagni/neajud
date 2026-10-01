@@ -4,7 +4,7 @@ RSpec.describe ArteCandidatasService do
   let(:client) { create(:client) }
   let(:lateral) { create(:peca, nome: "Lateral") }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:molde) { create(:molde, client: client, nome: "Tênis baixo") }
+  let(:molde) { create(:molde, client: client, sufixo: "Tênis baixo") }
   let(:pending_row) do
     item = create(:item_pedido, arquivo: create(:arquivo, client: client, molde: molde, peca: lateral))
     create(:item_pedido_peca, item_pedido: item, peca: lingua, arquivo: nil)
@@ -19,7 +19,7 @@ RSpec.describe ArteCandidatasService do
   end
 
   it "group 1: client's artes with a molde but no peça, this molde first" do
-    other_molde = create(:molde, client: client, nome: "AAA outro")
+    other_molde = create(:molde, client: client, sufixo: "AAA outro")
     of_other = create(:arquivo, client: client, molde: other_molde, filename: "a-outro")
     of_this = create(:arquivo, client: client, molde: molde, filename: "z-este")
     create(:arquivo, client: client, molde: molde, peca: lateral)

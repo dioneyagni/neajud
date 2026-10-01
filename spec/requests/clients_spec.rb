@@ -107,7 +107,7 @@ RSpec.describe "Clients", type: :request do
     # 01/10/2026: a client's cortes showed nowhere on its page.
     describe "its cortes" do
       let(:client) { create(:client) }
-      let(:molde) { create(:molde, client: client, nome: "001-TNS Base") }
+      let(:molde) { create(:molde, client: client, sufixo: "Base") }
 
       def corte(filename, organized:, molde: nil)
         create(:arquivo, :corte, client: client, organized: organized, filename: filename).tap { |c| c.moldes << molde if molde }

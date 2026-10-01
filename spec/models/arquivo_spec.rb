@@ -247,7 +247,7 @@ RSpec.describe Arquivo, type: :model do
       nao_organizado = corte(organized: false, moldes: [ molde ])
       sem_molde = corte(organized: true)
       # Linked first, then its molde went to the trash.
-      molde_na_lixeira = create(:molde, client: client, nome: "Na lixeira")
+      molde_na_lixeira = create(:molde, client: client, sufixo: "Na lixeira")
       so_na_lixeira = corte(organized: true, moldes: [ molde_na_lixeira ])
       molde_na_lixeira.excluir!(changed_by: "10.0.0.1")
       ligado = corte(organized: true, moldes: [ molde ])
@@ -265,8 +265,8 @@ RSpec.describe Arquivo, type: :model do
     let(:modelo) { create(:modelo) }
     let(:lateral) { create(:peca, nome: "Lateral") }
     let(:lingua) { create(:peca, nome: "Língua") }
-    let(:outro_molde) { create(:molde, modelo: modelo, nome: "21-24") }
-    let(:molde) { create(:molde, modelo: modelo, nome: "28-29") }
+    let(:outro_molde) { create(:molde, modelo: modelo, sufixo: "21-24") }
+    let(:molde) { create(:molde, modelo: modelo, sufixo: "28-29") }
 
     def corte(peca, *moldes)
       create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca).tap { |c| moldes.each { |m| c.moldes << m } }

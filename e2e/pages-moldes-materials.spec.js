@@ -35,13 +35,15 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
     const title = await dialog.$eval("h4", el => el.textContent);
     if (title !== "Register New Molde") throw new Error(`Wrong dialog title: ${title}`);
 
-    const nomeInput = await dialog.$("#molde_nome_dialog");
+    const nomeInput = await dialog.$("#molde_sufixo_dialog");
     await nomeInput.fill(`E2E Molde ${Date.now()}`);
 
     const clientSelect = await dialog.$("#molde_client_uuid_dialog");
     const clientOptions = await clientSelect.$$("option");
     if (clientOptions.length < 2) throw new Error(`Not enough client options: ${clientOptions.length}`);
     await clientSelect.selectOption({ index: 1 });
+    // The code needs a modelo (Etapa 1.1, 4/5).
+    await (await dialog.$('select[name="molde[modelo_uuid]"]')).selectOption({ label: "Tenis [TNS]" });
 
     const registerBtn = await dialog.$("button[type='submit']");
     await registerBtn.click();
@@ -64,7 +66,7 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
     const dialog = await page.$("dialog[open]");
     if (!dialog) throw new Error("Edit dialog did not open");
 
-    const nomeInput = await dialog.$("#molde_nome_dialog");
+    const nomeInput = await dialog.$("#molde_sufixo_dialog");
     const currentName = await nomeInput.inputValue();
 
     await nomeInput.fill(`${currentName} Edited`);
@@ -134,7 +136,7 @@ runSpec("Pages E2E: moldes, show pages & materials", async ({ page, test }) => {
       await fetch("/moldes", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ authenticity_token: csrf, "molde[nome]": moldeName, "molde[client_uuid]": clients[0].id, "molde[modelo_uuid]": modelos[0].id })
+        body: new URLSearchParams({ authenticity_token: csrf, "molde[sufixo]": moldeName, "molde[client_uuid]": clients[0].id, "molde[modelo_uuid]": modelos[0].id })
       });
       const moldeRes = await fetch(`/moldes/search?q=${encodeURIComponent(moldeName)}`);
       const moldes = await moldeRes.json();

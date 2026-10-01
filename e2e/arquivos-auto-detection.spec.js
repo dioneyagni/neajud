@@ -153,7 +153,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             authenticity_token: token,
-            "molde[nome]": "AutoDetectModel",
+            "molde[sufixo]": "AutoDetectModel",
             "molde[client_uuid]": client.id,
             "molde[modelo_uuid]": modeloId
           })
@@ -163,7 +163,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         // Find molde back
         const msResp = await fetch("/moldes/search?q=AutoDetectModel", { headers: { Accept: "application/json" } });
         const models = await msResp.json();
-        const molde = models.find(m => m.nome === "AutoDetectModel");
+        const molde = models.find(m => m.sufixo === "AutoDetectModel");
         if (!molde) return { ok: false, step: "find molde" };
 
         // Assign molde to arte via update_molde (triggers MoldMatchService)
@@ -218,7 +218,7 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
         try {
           const mr2 = await fetch("/moldes/search?q=AutoDetectModel");
           const moldes = await mr2.json();
-          const mo = moldes.find(x => x.nome === "AutoDetectModel");
+          const mo = moldes.find(x => x.sufixo === "AutoDetectModel");
           if (mo) moldeId = mo.id;
         } catch (_) {}
         try { if (moldeId) await fetch(`/moldes/${moldeId}`, { method: "DELETE" }); } catch (_) {}

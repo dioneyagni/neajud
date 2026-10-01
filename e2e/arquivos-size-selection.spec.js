@@ -181,7 +181,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             authenticity_token: token,
-            "molde[nome]": "Comp Molde",
+            "molde[sufixo]": "Comp Molde",
             "molde[client_uuid]": clients[0].id,
             "molde[modelo_uuid]": modelos[0].id
           })

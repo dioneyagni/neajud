@@ -94,7 +94,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
         // Create molde linked to client + modelo
         const modBody = new URLSearchParams({
           authenticity_token: token,
-          "molde[nome]": `${prefix}Molde`,
+          "molde[sufixo]": `${prefix}Molde`,
           "molde[client_uuid]": client.id,
           "molde[modelo_uuid]": modelo.id
         });
@@ -112,7 +112,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       moldeId = await page.evaluate(async ({ prefix }) => {
         const r = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
         const moldes = await r.json();
-        const m = moldes.find(x => x.nome === `${prefix}Molde`);
+        const m = moldes.find(x => x.sufixo === `${prefix}Molde`);
         return m ? m.id : null;
       }, { prefix });
       if (!moldeId) throw new Error("Molde not found");
@@ -232,7 +232,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
 
         const modBody = new URLSearchParams({
           authenticity_token: token,
-          "molde[nome]": `${prefix}Molde`,
+          "molde[sufixo]": `${prefix}Molde`,
           "molde[client_uuid]": client.id,
           "molde[modelo_uuid]": modelo.id
         });
@@ -248,7 +248,7 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       moldeId = await page.evaluate(async ({ prefix }) => {
         const r = await fetch(`/moldes/search?q=${encodeURIComponent(`${prefix}Molde`)}`);
         const moldes = await r.json();
-        const m = moldes.find(x => x.nome === `${prefix}Molde`);
+        const m = moldes.find(x => x.sufixo === `${prefix}Molde`);
         return m ? m.id : null;
       }, { prefix });
       if (!moldeId) throw new Error("Molde not found");

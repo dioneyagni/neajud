@@ -29,7 +29,9 @@ runSpec("Arquivos E2E: unlink mold", async ({ page, test }) => {
         body: new URLSearchParams({ authenticity_token: token, ...fields }) });
       await post("/clients", { "client[name]": `Unlink Client ${uniq}`, "client[responsible]": "T" });
       const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(`Unlink Client ${uniq}`)}`)).json())[0];
-      await post("/moldes", { "molde[nome]": `Unlink Molde ${uniq}`, "molde[client_uuid]": client.id });
+      // A molde needs a modelo for its code (Etapa 1.1, 4/5).
+      const tenis = (await (await fetch("/modelos/search?q=Tenis")).json()).find((m) => m.nome === "Tenis");
+      await post("/moldes", { "molde[sufixo]": `Unlink Molde ${uniq}`, "molde[client_uuid]": client.id, "molde[modelo_uuid]": tenis.id });
       const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Unlink Molde ${uniq}`)}`)).json())[0];
       const c = await post(`/arquivos/${uuid}/update_client`, { _method: "patch", client_uuid: client.id });
       const m = await post(`/arquivos/${uuid}/update_molde`, { _method: "patch", molde_uuid: molde.id });

@@ -695,6 +695,27 @@ company: `config/catalogo_oficial.yml`, with fixed uuids.
   pick an official modelo instead of registering one — use a different one
   per spec when cortes could meet in the fallback.
 
+## Molde code (Etapa 1.1, 4/5)
+
+A molde is named `NNN-ABR` + optional suffix ("002-TNS Furado"):
+
+- `numero`: per client, all categories together, **never reused** (the max
+  includes trashed moldes; unique index `client_id, numero`). The client is
+  fixed once created (validation + the edit dialog hides it).
+- The abbreviation is the modelo's, so changing the modelo turns 002-TNS into
+  002-JGG; `sufixo` is free text. `nome` **stores the assembled name**
+  (`Molde#montar_nome`, before validation) for search and sorting — never
+  assign it directly. When the official list changes an abbreviation,
+  `CatalogoOficial` calls `Molde#atualizar_nome!` on that modelo's moldes.
+- A modelo is required on create (the code needs its abbreviation).
+- `variacao_de`: a variation of any molde, **also another client's** (it
+  follows its own client's numbering). Set only on create; it is born with the
+  base's modelo and grade (when not given), its parts (with "corta/não corta")
+  and its corte links (`arquivo_moldes`) — a copy, not inheritance (that is
+  Fase 5). `version`, `base_id`, `published_at` exist for Fase 5, unused.
+- Forms send `molde[sufixo]`, never `molde[nome]`; JSON search results carry
+  `nome`, `codigo` and `sufixo` (E2E specs find their molde by `sufixo`).
+
 ## Logical deletion (Etapa 0.4)
 
 Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Molde`,

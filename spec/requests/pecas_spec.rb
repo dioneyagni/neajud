@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Pecas", type: :request do
   describe "GET /pecas" do
     it "renders the index page, with the moldes that use each piece" do
-      create(:molde, nome: "001-TNS").molde_pecas.create!(peca: create(:peca, nome: "Solado"))
+      create(:molde, sufixo: "001-TNS").molde_pecas.create!(peca: create(:peca, nome: "Solado"))
 
       get pecas_path
 
@@ -45,7 +45,7 @@ RSpec.describe "Pecas", type: :request do
 
     # "Register new piece" from a molde's page (Etapa 1.1, 3/5).
     it "adds the new piece as a part of the molde it came from" do
-      molde = create(:molde, nome: "001-TNS")
+      molde = create(:molde, sufixo: "001-TNS")
 
       post pecas_path, params: { peca: { nome: "Solado" }, molde_uuid: molde.uuid }
 

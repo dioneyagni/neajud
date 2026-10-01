@@ -53,8 +53,8 @@ runSpec("Client page: cortes", async ({ page, test }) => {
     const tenis = await modeloOficial(page, "Tenis");
     await post("/pecas", { "peca[nome]": nomes.peca });
     pecaUuid = await buscar(`/pecas/search?q=${encodeURIComponent(nomes.peca)}`, "nome", nomes.peca);
-    await post("/moldes", { "molde[nome]": nomes.molde, "molde[client_uuid]": clienteUuid, "molde[modelo_uuid]": tenis.id });
-    moldeUuid = await buscar(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`, "nome", nomes.molde);
+    await post("/moldes", { "molde[sufixo]": nomes.molde, "molde[client_uuid]": clienteUuid, "molde[modelo_uuid]": tenis.id });
+    moldeUuid = await buscar(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`, "sufixo", nomes.molde);
     const organizado = await post(`/arquivos/${corteUuid}/organize`, {
       _method: "patch", modelo_uuid: tenis.id, peca_uuid: pecaUuid,
       "tamanhos[0][nome]": "29-30", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
