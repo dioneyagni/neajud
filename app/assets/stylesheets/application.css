@@ -941,6 +941,29 @@ section {
   color: #666;
 }
 
+/* Client page: its cortes (01/10/2026) */
+
+.cliente-cortes-pendentes {
+  border-left: 4px solid #f9a825;
+}
+
+.badge-count {
+  display: inline-block;
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #f9a825;
+  color: #fff;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.cliente-molde-subtitulo {
+  margin: 0.75rem 0 0.25rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
 /* Clients page */
 
 .clients-toolbar {

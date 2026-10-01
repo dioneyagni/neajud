@@ -126,6 +126,22 @@ class Arquivo < ApplicationRecord
     ligados.exists? ? ligados : organizados.where(modelo_id: molde.modelo_id, client_id: molde.client_id)
   end
 
+  # The client page (01/10/2026) shows each corte once: under a molde the
+  # organized cortes linked to it; everything else of the client — not
+  # organized yet, or organized but linked to no active molde — waits in
+  # "Cortes não organizados".
+  # Usage: Arquivo.cortes_ligados_ao_molde(molde)
+  def self.cortes_ligados_ao_molde(molde)
+    ativos.where(category: "corte", organized: true).joins(:arquivo_moldes).where(arquivo_moldes: { molde_id: molde.id })
+  end
+
+  # Usage: Arquivo.cortes_pendentes_do_cliente(client)
+  def self.cortes_pendentes_do_cliente(client)
+    do_cliente = ativos.where(category: "corte", client_id: client.id)
+    ligados = ArquivoMolde.joins(:molde).merge(Molde.ativos).select(:arquivo_id)
+    do_cliente.where(organized: false).or(do_cliente.where.not(id: ligados))
+  end
+
   # This arte's corte through its molde: the one of its own peça when it has
   # one, else the first of the molde's cortes.
   def corte_via_molde

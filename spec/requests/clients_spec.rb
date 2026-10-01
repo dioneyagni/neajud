@@ -104,6 +104,42 @@ RSpec.describe "Clients", type: :request do
       expect(response.body).to include("Moldes")
     end
 
+    # 01/10/2026: a client's cortes showed nowhere on its page.
+    describe "its cortes" do
+      let(:client) { create(:client) }
+      let(:molde) { create(:molde, client: client, sufixo: "Base") }
+
+      def corte(filename, organized:, molde: nil)
+        create(:arquivo, :corte, client: client, organized: organized, filename: filename).tap { |c| c.moldes << molde if molde }
+      end
+
+      it "lists the not organized and the unlinked ones in their own area, and each molde's own under it" do
+        corte("nao-organizado", organized: false)
+        corte("sem-molde", organized: true)
+        corte("do-molde", organized: true, molde: molde)
+        get client_path(client)
+        pagina = Nokogiri::HTML(response.body)
+        expect(pagina.css("#cortes-pendentes .stamp-card").map { |c| c["data-filename"] }).to contain_exactly("nao-organizado", "sem-molde")
+        expect(pagina.css(".cliente-molde-cortes .stamp-card").map { |c| c["data-filename"] }).to eq([ "do-molde" ])
+      end
+
+      # The area is a to-do list: with nothing pending it would only be noise.
+      it "hides the area when every corte is organized and linked" do
+        corte("do-molde", organized: true, molde: molde)
+        get client_path(client)
+        expect(response.body).not_to include("Cortes não organizados")
+      end
+
+      # Cortes belong to the Catálogo área (Arquivo#area_de_acesso).
+      it "shows no cortes to who can't see the Catálogo" do
+        corte("nao-organizado", organized: false)
+        corte("do-molde", organized: true, molde: molde)
+        entrar_com_funcao(niveis: { "clientes" => 1 })
+        get client_path(client)
+        expect(response.body).not_to include("Cortes não organizados", "do-molde")
+      end
+    end
+
     it "returns 404 for nonexistent client" do
       get client_path(99999)
       expect(response).to have_http_status(:not_found)

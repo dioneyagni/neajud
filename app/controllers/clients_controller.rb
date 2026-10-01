@@ -22,6 +22,8 @@ class ClientsController < ApplicationController
                                         .order(created_at: :desc)
                                         .limit(20)
     end
+    @cortes_por_molde = @moldes.to_h { |molde| [ molde, Arquivo.cortes_ligados_ao_molde(molde).includes(approved_version: :image_metadata).order(:filename) ] }
+    @cortes_pendentes = Arquivo.cortes_pendentes_do_cliente(@client).includes(approved_version: :image_metadata).order(created_at: :desc)
 
     @client_materiais = MateriaPrima
       .joins(:movimento_estoques)

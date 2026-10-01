@@ -235,6 +235,30 @@ RSpec.describe Arquivo, type: :model do
     end
   end
 
+  describe ".cortes_pendentes_do_cliente / .cortes_ligados_ao_molde" do
+    let(:client) { create(:client) }
+    let(:molde) { create(:molde, client: client) }
+
+    def corte(organized:, moldes: [], client: self.client)
+      create(:arquivo, :corte, client: client, organized: organized).tap { |c| moldes.each { |m| c.moldes << m } }
+    end
+
+    it "splits a client's cortes: pending (not organized, or linked to no active molde) vs each molde's" do
+      nao_organizado = corte(organized: false, moldes: [ molde ])
+      sem_molde = corte(organized: true)
+      # Linked first, then its molde went to the trash.
+      molde_na_lixeira = create(:molde, client: client, sufixo: "Na lixeira")
+      so_na_lixeira = corte(organized: true, moldes: [ molde_na_lixeira ])
+      molde_na_lixeira.excluir!(changed_by: "10.0.0.1")
+      ligado = corte(organized: true, moldes: [ molde ])
+      corte(organized: false, client: create(:client))
+      create(:arquivo, :corte, client: client, organized: false).excluir!(changed_by: "10.0.0.1")
+
+      expect(described_class.cortes_pendentes_do_cliente(client)).to contain_exactly(nao_organizado, sem_molde, so_na_lixeira)
+      expect(described_class.cortes_ligados_ao_molde(molde)).to contain_exactly(ligado)
+    end
+  end
+
   # Regression (28/09/2026): several moldes share a modelo, each with its own
   # cortes; the modelo's first corte was taken as every molde's corte.
   describe ".cortes_do_molde / #corte_via_molde" do

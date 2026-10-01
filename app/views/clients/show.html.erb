@@ -23,6 +23,22 @@
         </div>
       </div>
 
+      <%# Cortes not organized yet, or organized but linked to no molde
+          (01/10/2026): they had a client and showed nowhere on its page.
+          Cortes are Catálogo, so only who sees the Catálogo sees them. %>
+      <% if pode?(:catalogo, :ver) && @cortes_pendentes.any? %>
+        <div class="stamp-detail-section stamp-detail-section--full cliente-cortes-pendentes" id="cortes-pendentes">
+          <h3>Cortes não organizados <span class="badge-count"><%= @cortes_pendentes.size %></span></h3>
+          <p class="page-hint">Open a corte to organize it (modelo, piece, sizes) and link it to one of this client's moldes.</p>
+          <%= turbo_stream_from "arquivos" %>
+          <div class="gallery">
+            <% @cortes_pendentes.each do |corte| %>
+              <%= render partial: "arquivos/card", locals: { arquivo: corte } %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
       <div class="stamp-detail-section stamp-detail-section--full" data-controller="dialog" data-create-title="Register New Molde" data-create-label="Register" data-create-url="<%= moldes_path %>">
         <div class="clients-toolbar">
           <h3 style="margin-bottom:0">Moldes</h3>
@@ -98,14 +114,24 @@
             </span>
             <%= link_to "Show", molde_path(molde), class: "btn btn-secondary btn-sm", style: "float:right" %>
           </h3>
+          <% cortes = pode?(:catalogo, :ver) ? @cortes_por_molde.fetch(molde) : [] %>
+          <% if cortes.any? %>
+            <h4 class="cliente-molde-subtitulo">Cortes</h4>
+            <div class="gallery cliente-molde-cortes">
+              <% cortes.each do |corte| %>
+                <%= render partial: "arquivos/card", locals: { arquivo: corte } %>
+              <% end %>
+            </div>
+          <% end %>
           <% if arquivos.any? %>
             <%= turbo_stream_from "arquivos" %>
-            <div class="gallery">
+            <% if cortes.any? %><h4 class="cliente-molde-subtitulo">Artes</h4><% end %>
+            <div class="gallery cliente-molde-artes">
               <% arquivos.each do |arquivo| %>
                 <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>
               <% end %>
             </div>
-          <% else %>
+          <% elsif cortes.empty? %>
             <p class="gallery-empty" style="margin-top: 0.75rem">No arquivos for this mold yet.</p>
           <% end %>
         </div>
