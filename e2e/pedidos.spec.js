@@ -266,6 +266,29 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
 
   // Used to look for input[value="Confirmar Pedido"] — button_to renders a
   // <button> — and "skip" when missing, so it passed without ever confirming.
+  // Regression (01/10/2026, ed6a2aba): this arte was added without client, so
+  // the draft has none; confirming would have made a pedido without client.
+  await test("A draft whose arte has no client says so, blocks Confirmar, and adopts the client once the arte gets one", async () => {
+    await page.goto(`${BASE_URL}/pedidos`);
+    await page.locator("a").filter({ hasText: "Resumo" }).first().click();
+    await page.locator(".pedido-cliente-previsto").filter({ hasText: "ainda sem cliente" }).waitFor({ timeout: 5000 });
+    await page.locator(".pedido-pendencia--arte_sem_cliente").filter({ hasText: `e2e-arte-${UNIQ} sem cliente` }).waitFor();
+    if (!(await page.locator('form[action$="/confirmar"] button').isDisabled())) throw new Error("Confirmar should be blocked by the arte without client");
+
+    const resumoUrl = page.url();
+    const arte = (await page.locator(".pedido-pendencia--arte_sem_cliente a").first().getAttribute("href")).split("/").pop();
+    const ok = await page.evaluate(async ({ uniq, arte }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const post = (url, campos) => fetch(url, { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) });
+      await post("/clients", { "client[name]": `Pedido Client ${uniq}`, "client[responsible]": "T" });
+      const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(`Pedido Client ${uniq}`)}`)).json())[0];
+      return (await post(`/arquivos/${arte}/update_client`, { _method: "patch", client_uuid: client.id })).ok;
+    }, { uniq: UNIQ, arte });
+    if (!ok) throw new Error("Could not give the arte a client");
+    await page.goto(resumoUrl);
+    await page.getByText(`Cliente: Pedido Client ${UNIQ}`).waitFor({ timeout: 5000 });
+  });
+
   await test("Confirm pedido: a valid draft (quantity > 0, piece with corte) is confirmed", async () => {
     await page.goto(`${BASE_URL}/pedidos`);
     const resumo = page.locator("a").filter({ hasText: "Resumo" }).first();

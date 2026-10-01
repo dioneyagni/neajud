@@ -83,4 +83,40 @@ RSpec.describe Pedido, type: :model do
       expect(pedido.pecas_para_produzir).to eq([])
     end
   end
+
+  # Regression (01/10/2026, ed6a2aba): a draft created for an arte without
+  # client stayed without one after the arte got its client.
+  describe "a draft without client and its artes' client" do
+    let(:mks) { create(:client, name: "MKS") }
+    let(:pedido) { create(:pedido, client: nil) }
+
+    def item_com(client)
+      create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, category: "artes", client: client))
+    end
+
+    it "adopts the client once its only arte gets one" do
+      arte = item_com(nil).arquivo
+      expect(pedido.reload.client).to be_nil
+      arte.update!(client: mks)
+      expect(pedido.reload.client).to eq(mks)
+    end
+
+    it "waits while some arte has no client or the artes have different clients" do
+      item_com(mks)
+      sem = item_com(nil).arquivo
+      pedido.adotar_cliente_das_artes!
+      expect(pedido.reload.client).to be_nil
+      sem.update!(client: create(:client, name: "GMS"))
+      expect(pedido.reload.client).to be_nil
+      expect(pedido.clientes_das_artes.map(&:name)).to eq(%w[GMS MKS])
+    end
+
+    it "never changes a confirmed pedido or one that already has a client" do
+      confirmado = create(:pedido, client: nil, status: "confirmado")
+      arte = create(:arquivo, category: "artes", client: nil)
+      create(:item_pedido, pedido: confirmado, arquivo: arte)
+      arte.update!(client: mks)
+      expect(confirmado.reload.client).to be_nil
+    end
+  end
 end

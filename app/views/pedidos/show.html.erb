@@ -12,6 +12,19 @@
 
 <% if @pedido.client %>
   <p><strong>Cliente:</strong> <%= @pedido.client.name %> <%= selo_excluido(@pedido.client) %></p>
+<% elsif @pedido.status == "rascunho" %>
+  <%# A draft without client takes its artes' client — or is split by them
+      when confirmed (01/10/2026: the page said nothing about it). %>
+  <% clientes = @pedido.clientes_das_artes.to_a %>
+  <p class="pedido-cliente-previsto"><strong>Cliente:</strong>
+    <% if clientes.size > 1 %>
+      será dividido por cliente ao confirmar: <%= clientes.map(&:name).join(", ") %>
+    <% elsif clientes.one? %>
+      <%= clientes.first.name %> (das artes)
+    <% else %>
+      ainda sem cliente — vem das artes
+    <% end %>
+  </p>
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 

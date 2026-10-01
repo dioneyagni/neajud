@@ -27,6 +27,8 @@ class Arquivo < ApplicationRecord
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
   recusa_excluido :client, :molde, :modelo, :peca
+  before_validation :herdar_cliente_do_molde
+  after_update_commit :atualizar_rascunhos_sem_cliente, if: :saved_change_to_client_id?
   validates :filename, presence: true
   validates :extension, presence: true
   validates :mime_type, presence: true
@@ -210,6 +212,19 @@ class Arquivo < ApplicationRecord
       status == name
     end
   end
+
+  # 01/10/2026 (pedido ed6a2aba): an arte linked to a client's molde belongs
+  # to that client — VincularArteService already did it, the arte page didn't.
+  def herdar_cliente_do_molde
+    self.client = molde.client if category == "artes" && client_id.nil? && molde && will_save_change_to_molde_id?
+  end
+  private :herdar_cliente_do_molde
+
+  # A draft pedido waiting for its artes' client adopts it (Pedido#adotar_cliente_das_artes!).
+  def atualizar_rascunhos_sem_cliente
+    Pedido.ativos.rascunhos.where(client_id: nil).joins(:itens_pedido).where(itens_pedido: { arquivo_id: id }).distinct.each(&:adotar_cliente_das_artes!)
+  end
+  private :atualizar_rascunhos_sem_cliente
 
   def next_version_number
     (arquivo_versions.maximum(:version_number) || 0) + 1

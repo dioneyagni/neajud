@@ -50,4 +50,28 @@ runSpec("Arquivos E2E: unlink mold", async ({ page, test }) => {
     await page.reload();
     if (!(await page.locator("#molde-field-section").textContent()).includes("No mold linked")) throw new Error("Unlink didn't persist");
   });
+
+  // Regression (01/10/2026, pedido ed6a2aba): picking a client's molde on an
+  // arte without client left it without one — and its pedido without client.
+  await test("Picking a molde on an arte without client gives it the molde's client", async () => {
+    const nome = `e2e-sem-cliente-${UNIQ}`;
+    const caminho = path.join(__dirname, `${nome}.tif`);
+    execSync(`convert -size 30x30 xc:blue 'TIFF:${caminho}'`);
+    try {
+      await page.goto(BASE_URL);
+      await uploadFileAndWait(page, caminho);
+    } finally {
+      if (fs.existsSync(caminho)) fs.unlinkSync(caminho);
+    }
+    const uuid = (await page.locator(`.stamp-card[data-filename="${nome}"] a`).first().getAttribute("href")).split("/").pop();
+    const ok = await page.evaluate(async ({ uuid, uniq }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Unlink Molde ${uniq}`)}`)).json())[0];
+      const body = new URLSearchParams({ authenticity_token: token, _method: "patch", molde_uuid: molde.id });
+      return (await fetch(`/arquivos/${uuid}/update_molde`, { method: "POST", body })).ok;
+    }, { uuid, uniq: UNIQ });
+    if (!ok) throw new Error("Could not pick the molde");
+    await page.goto(`${BASE_URL}/arquivos/${uuid}`);
+    await page.locator("#client-field-section .client-name-display").filter({ hasText: `Unlink Client ${UNIQ}` }).waitFor({ timeout: 5000 });
+  });
 });

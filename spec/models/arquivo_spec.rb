@@ -235,6 +235,26 @@ RSpec.describe Arquivo, type: :model do
     end
   end
 
+  # Regression (01/10/2026, pedido ed6a2aba): choosing a client's molde on
+  # the arte page left the arte without client.
+  describe "client from the molde" do
+    let(:molde) { create(:molde) }
+
+    it "gives an arte without client its molde's client" do
+      arte = create(:arquivo, category: "artes", client: nil)
+      arte.update!(molde: molde)
+      expect(arte.reload.client).to eq(molde.client)
+    end
+
+    it "keeps an arte's own client, and never touches a corte" do
+      propria = create(:client)
+      arte = create(:arquivo, category: "artes", client: propria)
+      arte.update!(molde: molde)
+      corte = create(:arquivo, :corte, client: nil, molde: molde)
+      expect([ arte.reload.client, corte.reload.client ]).to eq([ propria, nil ])
+    end
+  end
+
   describe ".cortes_pendentes_do_cliente / .cortes_ligados_ao_molde" do
     let(:client) { create(:client) }
     let(:molde) { create(:molde, client: client) }

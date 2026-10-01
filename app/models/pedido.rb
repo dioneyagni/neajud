@@ -41,4 +41,21 @@ class Pedido < ApplicationRecord
   def bloqueios_confirmacao
     PedidoBloqueiosService.call(self)
   end
+
+  # The clients of this pedido's artes (a draft without client is split by
+  # them when confirmed). Usage: pedido.clientes_das_artes.map(&:name) # => ["MKS"]
+  def clientes_das_artes
+    Client.where(id: itens_pedido.joins(:arquivo).select("arquivos.client_id")).order(:name)
+  end
+
+  # A draft created for an arte without client (01/10/2026, ed6a2aba) takes
+  # the client once every arte of it has the same one.
+  # Usage: pedido.adotar_cliente_das_artes!
+  def adotar_cliente_das_artes!
+    return unless status == "rascunho" && client_id.nil?
+
+    clientes = itens_pedido.joins(:arquivo).distinct.pluck("arquivos.client_id")
+    # size, not one?: [mks, nil].one? is true (one? counts truthy values).
+    update!(client_id: clientes.first) if clientes.size == 1 && clientes.first
+  end
 end
