@@ -102,8 +102,8 @@ RSpec.describe MoldMatchService do
       it "only considers the cortes linked to the arte's molde" do
         modelo = create(:modelo)
         client = create(:client)
-        outro_molde = create(:molde, modelo: modelo, client: client, nome: "21-24")
-        molde = create(:molde, modelo: modelo, client: client, nome: "28-29")
+        outro_molde = create(:molde, modelo: modelo, client: client, sufixo: "21-24")
+        molde = create(:molde, modelo: modelo, client: client, sufixo: "28-29")
         arte = arte_with_preview
         arte.update!(client_id: client.id, molde_id: molde.id)
 

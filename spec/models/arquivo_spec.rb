@@ -241,8 +241,8 @@ RSpec.describe Arquivo, type: :model do
     let(:modelo) { create(:modelo) }
     let(:lateral) { create(:peca, nome: "Lateral") }
     let(:lingua) { create(:peca, nome: "Língua") }
-    let(:outro_molde) { create(:molde, modelo: modelo, nome: "21-24") }
-    let(:molde) { create(:molde, modelo: modelo, nome: "28-29") }
+    let(:outro_molde) { create(:molde, modelo: modelo, sufixo: "21-24") }
+    let(:molde) { create(:molde, modelo: modelo, sufixo: "28-29") }
 
     def corte(peca, *moldes)
       create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca).tap { |c| moldes.each { |m| c.moldes << m } }

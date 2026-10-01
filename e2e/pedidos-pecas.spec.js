@@ -57,8 +57,8 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     await postForm("/clients", [[ "client[name]", clientName ], [ "client[responsible]", "E2E" ]]);
     const clientId = await findId(`/clients/search?q=${encodeURIComponent(clientName)}`, "name", clientName);
     const moldeNome = `Molde ${UNIQ}`;
-    await postForm("/moldes", [[ "molde[nome]", moldeNome ], [ "molde[client_uuid]", clientId ], [ "molde[modelo_uuid]", modeloId ]]);
-    const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "nome", moldeNome);
+    await postForm("/moldes", [[ "molde[sufixo]", moldeNome ], [ "molde[client_uuid]", clientId ], [ "molde[modelo_uuid]", modeloId ]]);
+    const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "sufixo", moldeNome);
     await adicionarPartes(page, moldeId, [ pecaIds.lateral, pecaIds.lingua ]);
     if (!pecaIds.lateral || !pecaIds.lingua || !modeloId || !moldeId) {
       throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, modeloId, clientId, moldeId })}`);
@@ -291,8 +291,8 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     await test("Setup: another molde of the same client with an arte without peça", async () => {
       outroMoldeNome = `Outro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/moldes", [[ "molde[nome]", outroMoldeNome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
-      const outroId = await findId(`/moldes/search?q=${encodeURIComponent(outroMoldeNome)}`, "nome", outroMoldeNome);
+      await postForm("/moldes", [[ "molde[sufixo]", outroMoldeNome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
+      const outroId = await findId(`/moldes/search?q=${encodeURIComponent(outroMoldeNome)}`, "sufixo", outroMoldeNome);
       if (!outroId) throw new Error("Could not create the second molde");
       await adicionarPartes(page, outroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
       outroUuid = await uploadArte(outroFile, outroId, null);
@@ -333,7 +333,8 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       await page.goto(`${BASE_URL}/arquivos/${outroUuid}`);
       const row = page.locator("#vinculo-history-section tbody tr").first();
       const cells = (await row.locator("td").allInnerTexts()).map((t) => t.trim());
-      if (cells[0] !== outroMoldeNome || cells[1] !== `Molde ${UNIQ}` || cells[2] !== names.lingua) {
+      // The moldes show their code (Etapa 1.1, 4/5): "002-TNS Outro …".
+      if (!/^\d{3}-TNS /.test(cells[0]) || !cells[0].endsWith(outroMoldeNome) || !cells[1].endsWith(`Molde ${UNIQ}`) || cells[2] !== names.lingua) {
         throw new Error(`History row ${JSON.stringify(cells)}`);
       }
       if (!(await row.getAttribute("class")).includes("vinculo-history-mudanca")) throw new Error("Move should be highlighted");
@@ -342,8 +343,8 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     await test("Setup: a third molde whose Língua has no arte, added to the pedido", async () => {
       const nome = `Terceiro ${UNIQ}`;
       await page.goto(BASE_URL);
-      await postForm("/moldes", [[ "molde[nome]", nome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
-      const terceiroId = await findId(`/moldes/search?q=${encodeURIComponent(nome)}`, "nome", nome);
+      await postForm("/moldes", [[ "molde[sufixo]", nome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
+      const terceiroId = await findId(`/moldes/search?q=${encodeURIComponent(nome)}`, "sufixo", nome);
       if (!terceiroId) throw new Error("Could not create the third molde");
       await adicionarPartes(page, terceiroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
       await uploadArte(terceiroFile, terceiroId, molde.pecaIds.lateral);

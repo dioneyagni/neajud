@@ -117,10 +117,7 @@
       <input type="hidden" name="molde[client_uuid]" value="<%= @arquivo.client&.uuid %>">
       <input type="hidden" name="arquivo_uuid" value="<%= @arquivo.uuid %>">
       <h4 data-dialog-target="dialogTitle">Register New Mold</h4>
-      <div class="client-field">
-        <label for="molde_nome_dialog_arquivo">Name</label>
-        <input type="text" name="molde[nome]" id="molde_nome_dialog_arquivo" required>
-      </div>
+      <%= render "moldes/sufixo_e_base", sufixo_id: "dialog_arquivo", editavel: false %>
       <% if @arquivo.client.blank? %>
         <div class="client-field">
           <label for="molde_client_uuid_dialog_arquivo">Client</label>

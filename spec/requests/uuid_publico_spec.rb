@@ -45,7 +45,7 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     let(:peca) { create(:peca, nome: "Peça Uuid") }
 
     before do
-      create(:molde, nome: "Molde Uuid", client: client, modelo: modelo)
+      create(:molde, sufixo: "Molde Uuid", client: client, modelo: modelo)
       corte = create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca, client: client)
       create(:tamanho, arquivo: corte, nome: "33-34")
       grupo = GrupoMaterial.create!(nome: "Grupo Uuid")

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -340,23 +340,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_220000) do
   end
 
   create_table "moldes", force: :cascade do |t|
+    t.integer "base_id"
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
     t.integer "modelo_id"
     t.string "nome", null: false
+    t.integer "numero", null: false
+    t.datetime "published_at"
     t.datetime "restored_at"
     t.integer "restored_by_id"
+    t.string "sufixo"
     t.string "tamanho_final"
     t.string "tamanho_inicial"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "variacao_de_id"
+    t.integer "version", default: 1, null: false
+    t.index ["base_id"], name: "index_moldes_on_base_id"
+    t.index ["client_id", "numero"], name: "index_moldes_on_client_id_and_numero", unique: true
     t.index ["client_id"], name: "index_moldes_on_client_id"
     t.index ["deleted_at"], name: "index_moldes_on_deleted_at"
     t.index ["modelo_id"], name: "index_moldes_on_modelo_id"
-    t.index ["nome", "client_id"], name: "index_moldes_on_nome_and_client_id", unique: true
     t.index ["uuid"], name: "index_moldes_on_uuid", unique: true
+    t.index ["variacao_de_id"], name: "index_moldes_on_variacao_de_id"
   end
 
   create_table "movimento_estoques", force: :cascade do |t|
@@ -530,6 +538,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_220000) do
   add_foreign_key "molde_pecas", "pecas"
   add_foreign_key "moldes", "clients"
   add_foreign_key "moldes", "modelos"
+  add_foreign_key "moldes", "moldes", column: "base_id"
+  add_foreign_key "moldes", "moldes", column: "variacao_de_id"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"

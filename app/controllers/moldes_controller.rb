@@ -1,4 +1,6 @@
 class MoldesController < ApplicationController
+  CAMPOS_EDITAVEIS = %i[sufixo modelo_uuid tamanho_inicial tamanho_final].freeze
+
   exige :catalogo, :ver, only: %i[index show search for_client]
   exige :catalogo, :editar, only: %i[create update update_peca_config adicionar_parte remover_parte]
   exige :catalogo, :excluir, only: :destroy
@@ -60,37 +62,29 @@ class MoldesController < ApplicationController
 
   def search
     moldes = Molde.ativos.search(params[:q]).limit(10)
-    render json: moldes.map { |m| { id: m.uuid, nome: m.nome, client_name: m.client.name } }
+    render json: moldes.map { |m| { id: m.uuid, nome: m.nome, codigo: m.codigo, sufixo: m.sufixo, client_name: m.client.name } }
   end
 
   def for_client
     moldes = Molde.ativos.where(client: Client.where(uuid: params[:client_uuid])).includes(:modelo).search(params[:q]).order(:nome)
-    render json: moldes.map { |m| { id: m.uuid, nome: m.nome, modelo_uuid: m.modelo&.uuid } }
+    render json: moldes.map { |m| { id: m.uuid, nome: m.nome, codigo: m.codigo, sufixo: m.sufixo, modelo_uuid: m.modelo&.uuid } }
   end
 
+  # No duplicate-name check any more (Etapa 1.1, 4/5): the number makes every
+  # name unique in the client.
   def create
-    existing = Molde.where(client: Client.where(uuid: molde_params[:client_uuid]))
-                     .where("LOWER(nome) = ?", molde_params[:nome].downcase).first
-    if existing&.excluido?
-      return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
-    end
-    if existing
-      assign_molde_to_arquivo(existing) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, alert: "Molde \"#{existing.nome}\" already exists for this client."
-      return
-    end
-
-    @molde = Molde.new(molde_params)
+    @molde = Molde.new(params.require(:molde).permit(*CAMPOS_EDITAVEIS, :client_uuid, :variacao_de_uuid))
     if @molde.save
       assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
-      redirect_back fallback_location: arquivos_path, notice: "Molde registered."
+      redirect_back fallback_location: arquivos_path, notice: "Molde #{@molde.nome} registered."
     else
       redirect_back fallback_location: arquivos_path, alert: @molde.errors.full_messages.join(", ")
     end
   end
 
+  # The client and the base are fixed once created (their fields aren't read).
   def update
-    if @molde.update(molde_params)
+    if @molde.update(params.require(:molde).permit(*CAMPOS_EDITAVEIS))
       redirect_back fallback_location: arquivos_path, notice: "Molde updated."
     else
       redirect_back fallback_location: arquivos_path, alert: @molde.errors.full_messages.join(", ")
@@ -108,9 +102,6 @@ class MoldesController < ApplicationController
     @molde = Molde.por_uuid!(params[:id])
   end
 
-  def molde_params
-    params.require(:molde).permit(:nome, :client_uuid, :modelo_uuid, :tamanho_inicial, :tamanho_final)
-  end
 
   # The cortes of this molde's category and client, plus those linked to it
   # directly (a corte serves several moldes).

@@ -6,8 +6,23 @@
       <div class="stamp-detail-section">
         <h3>Details</h3>
         <dl class="detail-grid">
+          <dt>Code</dt>
+          <dd class="molde-codigo"><%= @molde.codigo %></dd>
+          <dt>Suffix</dt>
+          <dd><%= @molde.sufixo.presence || "—" %></dd>
           <dt>Client</dt>
           <dd><%= @molde.client.name %></dd>
+          <% if @molde.variacao_de %>
+            <dt>Variation of</dt>
+            <dd class="molde-variacao-de"><%= link_to @molde.variacao_de.nome, molde_path(@molde.variacao_de) %>
+              <% if @molde.variacao_de.client_id != @molde.client_id %>(<%= @molde.variacao_de.client.name %>)<% end %>
+              <%= selo_excluido(@molde.variacao_de) %></dd>
+          <% end %>
+          <% variacoes = @molde.variacoes.ativos.includes(:client).order(:nome) %>
+          <% if variacoes.any? %>
+            <dt>Variations</dt>
+            <dd class="molde-variacoes"><%= safe_join(variacoes.map { |v| link_to(v.client_id == @molde.client_id ? v.nome : "#{v.nome} (#{v.client.name})", molde_path(v)) }, ", ") %></dd>
+          <% end %>
           <dt>Modelo</dt>
           <dd><%= @molde.modelo&.nome || "—" %></dd>
           <dt>Sizes</dt>

@@ -37,8 +37,10 @@ class CatalogoOficial
 
   def sincronizar_produto(dados)
     produto = gravar(Produto, dados, grade: expandir_grade(dados))
-    Array(dados["modelos"]).each do |modelo|
-      gravar(Modelo, modelo, abreviacao: exigir(modelo, "abreviacao"), produto: produto)
+    Array(dados["modelos"]).each do |dados_modelo|
+      modelo = gravar(Modelo, dados_modelo, abreviacao: exigir(dados_modelo, "abreviacao"), produto: produto)
+      # The moldes' stored names carry the abbreviation (Etapa 1.1, 4/5).
+      modelo.moldes.each(&:atualizar_nome!) if modelo.saved_change_to_abreviacao?
     end
   end
 

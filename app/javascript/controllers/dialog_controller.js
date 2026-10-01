@@ -39,6 +39,7 @@ export default class extends Controller {
     const btn = e.currentTarget
     const form = this.dialogTarget.querySelector("form")
     this._somenteEdicao(true)
+    this._somenteCriacao(false)
     const fields = form.querySelectorAll("[data-dialog-field]")
 
     fields.forEach(field => {
@@ -93,6 +94,7 @@ export default class extends Controller {
   _resetToCreate() {
     this._resetDialogCreate(this.dialogTarget)
     this._somenteEdicao(false)
+    this._somenteCriacao(true)
   }
 
   // Options marked data-somente-edicao (e.g. the molde's trashed client)
@@ -101,6 +103,16 @@ export default class extends Controller {
     this.dialogTarget.querySelectorAll("[data-somente-edicao]").forEach((el) => {
       el.hidden = !mostrar
       el.disabled = !mostrar
+    })
+  }
+
+  // Fields that only make sense when creating (the molde's client and base,
+  // fixed afterwards): hidden and disabled while editing, so a required
+  // select doesn't block the submit and nothing is sent.
+  _somenteCriacao(mostrar) {
+    this.dialogTarget.querySelectorAll("[data-somente-criacao]").forEach((el) => {
+      el.hidden = !mostrar
+      el.querySelectorAll("input, select, textarea").forEach((campo) => { campo.disabled = !mostrar })
     })
   }
 

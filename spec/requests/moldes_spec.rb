@@ -4,7 +4,7 @@ RSpec.describe "Moldes", type: :request do
   describe "GET /moldes" do
     it "renders the index page" do
       client = create(:client, name: "Test Client", responsible: "John")
-      create(:molde, nome: "Air Max", client: client)
+      create(:molde, sufixo: "Air Max", client: client)
 
       get moldes_path
 
@@ -16,7 +16,7 @@ RSpec.describe "Moldes", type: :request do
   describe "GET /moldes/:id" do
     it "renders the show page" do
       client = create(:client, name: "Test Client", responsible: "John")
-      molde = create(:molde, nome: "Air Max", client: client)
+      molde = create(:molde, sufixo: "Air Max", client: client)
 
       get molde_path(molde)
 
@@ -30,7 +30,7 @@ RSpec.describe "Moldes", type: :request do
       peca1 = create(:peca, nome: "Frente")
       peca2 = create(:peca, nome: "Costa")
 
-      molde = create(:molde, nome: "Camisa", client: client, modelo: modelo)
+      molde = create(:molde, sufixo: "Camisa", client: client, modelo: modelo)
       molde.molde_pecas.create!(peca: peca1)
       molde.molde_pecas.create!(peca: peca2)
 
@@ -93,7 +93,7 @@ RSpec.describe "Moldes", type: :request do
       client = create(:client, name: "Test Client", responsible: "John")
       peca = create(:peca, nome: "Frente")
 
-      molde = create(:molde, nome: "Camisa", client: client, modelo: create(:modelo))
+      molde = create(:molde, sufixo: "Camisa", client: client, modelo: create(:modelo))
       mp = molde.molde_pecas.create!(peca: peca)
 
       expect(mp.needs_cut).to be true
@@ -106,28 +106,44 @@ RSpec.describe "Moldes", type: :request do
   end
 
   describe "POST /moldes" do
-    it "creates a molde with valid params" do
+    it "creates a molde with its code, from the suffix and the modelo" do
       client = create(:client, name: "Test Client", responsible: "John")
+      tenis = create(:modelo, abreviacao: "TNS")
 
       expect {
-        post moldes_path, params: { molde: { nome: "Air Max", client_uuid: client.uuid } }
+        post moldes_path, params: { molde: { sufixo: "Air Max", client_uuid: client.uuid, modelo_uuid: tenis.uuid } }
       }.to change(Molde, :count).by(1)
 
-      expect(Molde.last.nome).to eq("Air Max")
+      expect(Molde.last.nome).to eq("001-TNS Air Max")
+      expect(flash[:notice]).to eq("Molde 001-TNS Air Max registered.")
+    end
+
+    it "refuses a molde without modelo, saying why" do
+      post moldes_path, params: { molde: { sufixo: "X", client_uuid: create(:client).uuid } }
+      expect(flash[:alert]).to include("the code needs its abbreviation")
+    end
+
+    it "creates a variation of another client's molde, numbered in its own client" do
+      base = create(:molde, partes: [ create(:peca) ])
+      nesk = create(:client, name: "NESK")
+      post moldes_path, params: { molde: { client_uuid: nesk.uuid, variacao_de_uuid: base.uuid, sufixo: "Furado" } }
+      variacao = Molde.find_by!(client: nesk)
+      expect([ variacao.variacao_de, variacao.modelo, variacao.nome ]).to eq([ base, base.modelo, "001-#{base.modelo.abreviacao} Furado" ])
+      expect(variacao.molde_pecas.map(&:peca)).to eq(base.molde_pecas.map(&:peca))
     end
   end
 
   describe "GET /moldes/search" do
     it "returns matching moldes as JSON" do
       client = create(:client, name: "Test Client", responsible: "John")
-      create(:molde, nome: "Air Max", client: client)
+      create(:molde, sufixo: "Air Max", client: client)
 
       get search_moldes_path, params: { q: "Air" }
 
       expect(response).to have_http_status(:success)
       json = JSON.parse(response.body)
       expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("Air Max")
+      expect(json.first.values_at("nome", "codigo", "sufixo")).to eq([ "001-#{Molde.last.modelo.abreviacao} Air Max", "001-#{Molde.last.modelo.abreviacao}", "Air Max" ])
     end
   end
 
@@ -147,7 +163,7 @@ RSpec.describe "Moldes", type: :request do
   describe "GET /moldes/for_client" do
     it "returns moldes for a given client" do
       client = create(:client, name: "Test Client", responsible: "John")
-      create(:molde, nome: "Air Max", client: client)
+      create(:molde, sufixo: "Air Max", client: client)
 
       get for_client_moldes_path(client_uuid: client.uuid)
 
@@ -160,12 +176,19 @@ RSpec.describe "Moldes", type: :request do
   describe "PATCH /moldes/:id" do
     it "updates a molde" do
       client = create(:client, name: "Test Client", responsible: "John")
-      molde = create(:molde, nome: "Air Max", client: client)
+      molde = create(:molde, sufixo: "Air Max", client: client)
 
-      patch molde_path(molde), params: { molde: { nome: "Air Max 2" } }
+      patch molde_path(molde), params: { molde: { sufixo: "Air Max 2" } }
 
       molde.reload
-      expect(molde.nome).to eq("Air Max 2")
+      expect(molde.nome).to eq("#{molde.codigo} Air Max 2")
+    end
+
+    # The number belongs to the client's sequence; the base is copied once.
+    it "ignores a client or base sent on update" do
+      molde = create(:molde)
+      patch molde_path(molde), params: { molde: { sufixo: "Y", client_uuid: create(:client).uuid, variacao_de_uuid: create(:molde).uuid } }
+      expect(molde.reload.attributes.values_at("client_id", "variacao_de_id", "sufixo")).to eq([ molde.client_id, nil, "Y" ])
     end
 
     it "saves the stretch of the grade and refuses one outside it" do
@@ -190,7 +213,7 @@ RSpec.describe "Moldes", type: :request do
   describe "DELETE /moldes/:id" do
     it "moves the molde to the trash" do
       client = create(:client, name: "Test Client", responsible: "John")
-      molde = create(:molde, nome: "Air Max", client: client)
+      molde = create(:molde, sufixo: "Air Max", client: client)
 
       expect { delete molde_path(molde) }.not_to change(Molde, :count)
       expect(molde.reload).to be_excluido
@@ -200,10 +223,10 @@ RSpec.describe "Moldes", type: :request do
     # that already had "?client_id=", and for_client ignored q anyway.
     it "for_client filters by the typed text" do
       client = create(:client)
-      create(:molde, client: client, nome: "001-JGG INF")
-      create(:molde, client: client, nome: "002-JGG NB")
+      create(:molde, client: client, sufixo: "INF")
+      create(:molde, client: client, sufixo: "NB")
       get for_client_moldes_path(client_uuid: client.uuid, q: "inf")
-      expect(response.parsed_body.map { |m| m["nome"] }).to eq([ "001-JGG INF" ])
+      expect(response.parsed_body.map { |m| m["sufixo"] }).to eq([ "INF" ])
     end
 
     it "hides trashed moldes from for_client" do

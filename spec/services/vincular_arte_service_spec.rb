@@ -4,7 +4,7 @@ RSpec.describe VincularArteService do
   let(:client) { create(:client) }
   let(:lateral) { create(:peca, nome: "Lateral") }
   let(:lingua) { create(:peca, nome: "Língua") }
-  let(:molde) { create(:molde, client: client, nome: "Tênis baixo") }
+  let(:molde) { create(:molde, client: client, sufixo: "Tênis baixo") }
 
   def pending_row_in(pedido)
     item = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, client: client, molde: molde, peca: lateral))
@@ -31,22 +31,22 @@ RSpec.describe VincularArteService do
     vincular(arte)
     log = arte.vinculo_logs.sole
     expect([ log.from_molde_nome, log.to_molde_nome, log.peca, log.pedido, log.changed_by, log.mudanca? ])
-      .to eq([ nil, "Tênis baixo", lingua, pedido, "127.0.0.1", false ])
+      .to eq([ nil, molde.nome, lingua, pedido, "127.0.0.1", false ])
   end
 
   it "refuses to move an arte from another molde without confirmation, changing nothing" do
-    other = create(:molde, client: client, nome: "Outro")
+    other = create(:molde, client: client, sufixo: "Outro")
     arte = create(:arquivo, client: client, molde: other)
-    expect { vincular(arte) }.to raise_error(described_class::NaoConfirmado, /"Outro".*"Tênis baixo"/)
+    expect { vincular(arte) }.to raise_error(described_class::NaoConfirmado, /"\d{3}-\w+ Outro".*"\d{3}-\w+ Tênis baixo"/)
     expect([ arte.reload.molde_id, pending_row.reload.estado, ArquivoVinculoLog.count ]).to eq([ other.id, :pendente, 0 ])
   end
 
   it "moves it when confirmed and logs where it came from" do
-    other = create(:molde, client: client, nome: "Outro")
+    other = create(:molde, client: client, sufixo: "Outro")
     arte = create(:arquivo, client: client, molde: other)
     vincular(arte, confirmar_mudanca: true)
     log = arte.vinculo_logs.sole
-    expect([ arte.reload.molde_id, log.from_molde, log.from_molde_nome, log.mudanca? ]).to eq([ molde.id, other, "Outro", true ])
+    expect([ arte.reload.molde_id, log.from_molde, log.from_molde_nome, log.mudanca? ]).to eq([ molde.id, other, other.nome, true ])
   end
 
   it "fills the same pending peça in other draft pedidos of the molde, not in confirmed ones" do

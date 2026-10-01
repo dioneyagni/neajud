@@ -935,6 +935,12 @@ section {
   margin-top: 1rem;
 }
 
+.field-hint {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #666;
+}
+
 /* Clients page */
 
 .clients-toolbar {

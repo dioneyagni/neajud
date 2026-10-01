@@ -4,7 +4,7 @@ RSpec.describe AtribuiPorUuid do
   let(:client) { create(:client) }
 
   it "links the record whose uuid is given and reads it back" do
-    molde = Molde.new(nome: "Fuel", client_uuid: client.uuid)
+    molde = Molde.new(sufixo: "Fuel", client_uuid: client.uuid)
     expect(molde.client).to eq(client)
     expect(molde.client_uuid).to eq(client.uuid)
   end

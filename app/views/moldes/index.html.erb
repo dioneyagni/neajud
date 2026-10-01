@@ -11,11 +11,7 @@
     <form action="<%= moldes_path %>" method="post" class="client-form">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
       <h4 data-dialog-target="dialogTitle">Register New Molde</h4>
-      <div class="client-field">
-        <label for="molde_nome_dialog">Name</label>
-        <input type="text" name="molde[nome]" id="molde_nome_dialog" data-dialog-field="nome" required>
-      </div>
-      <div class="client-field">
+      <div class="client-field" data-somente-criacao>
         <label for="molde_client_uuid_dialog">Client</label>
         <select name="molde[client_uuid]" id="molde_client_uuid_dialog" data-dialog-field="clientUuid" required>
           <option value="">Select a client...</option>
@@ -28,6 +24,7 @@
           <% end %>
         </select>
       </div>
+      <%= render "moldes/sufixo_e_base", sufixo_id: "dialog", editavel: true %>
       <%= render "moldes/modelo_e_grade", sufixo: "dialog", editavel: true %>
       <div class="client-dialog-actions">
         <button type="button" data-action="click->dialog#close" class="btn btn-secondary">Cancel</button>
@@ -62,7 +59,7 @@
               <% if pode?(:catalogo, :editar) %>
                 <button class="btn btn-secondary btn-sm"
                         data-action="click->dialog#edit"
-                        data-nome="<%= molde.nome %>"
+                        data-sufixo="<%= molde.sufixo %>"
                         data-client-uuid="<%= molde.client.uuid %>"
                         data-modelo-uuid="<%= molde.modelo&.uuid %>"
                         data-tamanho-inicial="<%= molde.tamanho_inicial %>"

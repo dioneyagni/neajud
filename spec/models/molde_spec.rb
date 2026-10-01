@@ -1,51 +1,110 @@
 require "rails_helper"
 
 RSpec.describe Molde do
-  it "is valid with nome and client" do
-    client = Client.create!(name: "Test Client", responsible: "John")
-    molde = Molde.new(nome: "Air Max", client: client)
-    expect(molde).to be_valid
+  # Etapa 1.1 (4/5): code NNN-ABR per client + free suffix.
+  describe "code and name" do
+    let(:mks) { create(:client, name: "MKS") }
+    let(:tenis) { create(:modelo, nome: "Tenis", abreviacao: "TNS") }
+    let(:jogging) { create(:modelo, nome: "Jogging", abreviacao: "JGG") }
+
+    it "numbers the client's moldes of every category and assembles the name" do
+      primeiro = Molde.create!(client: mks, modelo: tenis)
+      segundo = Molde.create!(client: mks, modelo: jogging, sufixo: "NB")
+      outro_cliente = Molde.create!(client: create(:client), modelo: tenis)
+      expect([ primeiro.nome, segundo.nome, outro_cliente.nome ]).to eq([ "001-TNS", "002-JGG NB", "001-TNS" ])
+      expect(segundo.codigo).to eq("002-JGG")
+    end
+
+    it "never reuses a number, not even a trashed molde's" do
+      Molde.create!(client: mks, modelo: tenis).excluir!(changed_by: "10.0.0.1")
+      expect(Molde.create!(client: mks, modelo: tenis).numero).to eq(2)
+    end
+
+    it "keeps the number and follows the modelo's abbreviation (002-TNS → 002-JGG)" do
+      Molde.create!(client: mks, modelo: tenis)
+      molde = Molde.create!(client: mks, modelo: tenis, sufixo: "Furado")
+      molde.update!(modelo: jogging)
+      expect(molde.reload.nome).to eq("002-JGG Furado")
+      molde.update!(sufixo: "Velcro")
+      expect(molde.reload.nome).to eq("002-JGG Velcro")
+    end
+
+    it "needs a modelo to be created (the code needs its abbreviation)" do
+      molde = Molde.new(client: mks)
+      expect(molde).not_to be_valid
+      expect(molde.errors[:modelo].first).to include("the code needs its abbreviation")
+    end
+
+    it "needs a client" do
+      expect(Molde.new(modelo: tenis)).not_to be_valid
+    end
+
+    it "keeps its client once created" do
+      molde = Molde.create!(client: mks, modelo: tenis)
+      molde.client = create(:client)
+      expect(molde).not_to be_valid
+      expect(molde.errors[:client].first).to include("the code 001-TNS is in that client's sequence")
+    end
+
+    it "updates the stored name when the abbreviation changes in the official list" do
+      molde = Molde.create!(client: mks, modelo: tenis, sufixo: "Furado")
+      tenis.update_columns(abreviacao: "TEN")
+      molde.reload.atualizar_nome!
+      expect(molde.reload.nome).to eq("001-TEN Furado")
+    end
   end
 
-  it "is invalid without a nome" do
-    client = Client.create!(name: "Test Client", responsible: "John")
-    molde = Molde.new(nome: nil, client: client)
-    expect(molde).not_to be_valid
-  end
+  describe "variation (variacao_de)" do
+    let(:mks) { create(:client, name: "MKS") }
+    let(:lateral) { create(:peca, nome: "Lateral") }
+    let(:lingua) { create(:peca, nome: "Língua") }
+    let(:base) { create(:molde, client: mks, sufixo: nil, tamanho_inicial: "24", tamanho_final: "34", partes: [ lateral, lingua ]) }
 
-  it "is invalid without a client" do
-    molde = Molde.new(nome: "Air Max")
-    expect(molde).not_to be_valid
-  end
+    before do
+      base.molde_pecas.find_by(peca: lingua).update!(needs_cut: false)
+      create(:arquivo, :corte, organized: true, peca: lingua).moldes << base
+    end
 
-  it "allows same nome for different clients" do
-    client1 = Client.create!(name: "Client A", responsible: "A")
-    client2 = Client.create!(name: "Client B", responsible: "B")
-    Molde.create!(nome: "Classic", client: client1)
-    molde2 = Molde.new(nome: "Classic", client: client2)
-    expect(molde2).to be_valid
-  end
+    it "is born with the base's modelo, grade, parts (and cut flag) and corte links" do
+      furado = Molde.create!(client: mks, variacao_de: base, sufixo: "Furado")
+      expect([ furado.modelo, furado.grade.values_at(0, -1) ]).to eq([ base.modelo, %w[24 34] ])
+      expect(furado.molde_pecas.map { |p| [ p.peca.nome, p.needs_cut ] }).to eq([ [ "Lateral", true ], [ "Língua", false ] ])
+      expect(furado.vinculated_arquivos).to eq(base.vinculated_arquivos)
+      expect(furado.nome).to eq("002-#{base.modelo.abreviacao} Furado")
+    end
 
-  it "is invalid with duplicate nome for same client" do
-    client = Client.create!(name: "Test Client", responsible: "John")
-    Molde.create!(nome: "Classic", client: client)
-    duplicate = Molde.new(nome: "Classic", client: client)
-    expect(duplicate).not_to be_valid
+    # "O cliente usando o corte de outro": the variation follows its own
+    # client's numbering and points at the base's cortes.
+    it "can be of another client's molde, numbered in its own client" do
+      nesk = create(:client, name: "NESK")
+      variacao = Molde.create!(client: nesk, variacao_de: base)
+      expect(variacao.numero).to eq(1)
+      expect(variacao.vinculated_arquivos).to eq(base.vinculated_arquivos)
+    end
+
+    it "leaves out trashed parts and cortes, and keeps the base fixed afterwards" do
+      lateral.excluir!(changed_by: "10.0.0.1")
+      base.vinculated_arquivos.first.excluir!(changed_by: "10.0.0.1")
+      variacao = Molde.create!(client: mks, variacao_de: base)
+      expect(variacao.molde_pecas.map { |p| p.peca.nome }).to eq([ "Língua" ])
+      expect(variacao.vinculated_arquivos).to be_empty
+      variacao.variacao_de = create(:molde)
+      expect(variacao).not_to be_valid
+    end
   end
 
   describe ".for_client" do
     it "returns moldes for a given client" do
-      client = Client.create!(name: "Test Client", responsible: "John")
-      molde = Molde.create!(nome: "Air Max", client: client)
-      expect(Molde.for_client(client.id)).to include(molde)
+      molde = create(:molde)
+      expect(Molde.for_client(molde.client_id)).to include(molde)
     end
   end
 
   describe ".search" do
-    it "returns moldes matching the query" do
-      client = Client.create!(name: "Test Client", responsible: "John")
-      molde = Molde.create!(nome: "Air Max", client: client)
+    it "finds moldes by suffix or code" do
+      molde = create(:molde, sufixo: "Air Max")
       expect(Molde.search("Air")).to include(molde)
+      expect(Molde.search(molde.codigo)).to include(molde)
     end
   end
 
@@ -57,7 +116,7 @@ RSpec.describe Molde do
     let(:banner) { create(:modelo, produto: create(:produto, grade: [])) }
 
     def molde(modelo: calcado, de: nil, ate: nil)
-      Molde.new(nome: "001-TNS", client: client, modelo: modelo, tamanho_inicial: de, tamanho_final: ate)
+      Molde.new(client: client, modelo: modelo, tamanho_inicial: de, tamanho_final: ate)
     end
 
     it "accepts a stretch of the produto's grade and lists it" do

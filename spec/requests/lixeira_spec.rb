@@ -73,17 +73,19 @@ RSpec.describe "Lixeira", type: :request do
       expect(flash[:alert]).to include("is in the trash", "Lixeira")
     end
 
-    it "does the same for moldes, modelos and peças" do
-      molde = create(:molde, nome: "Tenis").tap { |m| m.excluir!(changed_by: "10.0.0.1") }
-      create(:modelo, nome: "Sapato").excluir!(changed_by: "10.0.0.1")
+    it "does the same for peças" do
       create(:peca, nome: "Solado").excluir!(changed_by: "10.0.0.1")
-
-      post moldes_path, params: { molde: { nome: "Tenis", client_uuid: molde.client.uuid } }
-      expect(flash[:alert]).to include("is in the trash")
-      post modelos_path, params: { modelo: { nome: "Sapato" } }
-      expect(flash[:alert]).to include("is in the trash")
       post pecas_path, params: { peca: { nome: "Solado" } }
       expect(flash[:alert]).to include("is in the trash")
+    end
+
+    # Moldes are numbered (Etapa 1.1, 4/5): a new one never collides with a
+    # trashed one — it takes the next number. Modelos aren't registered by
+    # the company at all (official list, 3/5).
+    it "gives a new molde the next number instead of refusing a trashed name" do
+      antigo = create(:molde, sufixo: "Tenis").tap { |m| m.excluir!(changed_by: "10.0.0.1") }
+      post moldes_path, params: { molde: { sufixo: "Tenis", client_uuid: antigo.client.uuid, modelo_uuid: antigo.modelo.uuid } }
+      expect(Molde.ativos.sole.nome).to eq("002-#{antigo.modelo.abreviacao} Tenis")
     end
   end
 end

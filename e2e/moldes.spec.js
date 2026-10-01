@@ -40,7 +40,7 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
     await page.click('button:has-text("New Molde")');
     await page.waitForTimeout(300);
 
-    await page.fill('input[name="molde[nome]"]', `E2E Molde ${UNIQ}`);
+    await page.fill('input[name="molde[sufixo]"]', `E2E Molde ${UNIQ}`);
 
     // Select the client just provisioned above
     const clientSelect = page.locator('select[name="molde[client_uuid]"]');
@@ -61,7 +61,8 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
     await final.selectOption("34");
 
     await page.click('button[data-dialog-target="submitBtn"]:has-text("Register")');
-    await waitForText(page, "Molde registered.");
+    // The code is assigned on save (Etapa 1.1, 4/5): "Molde 001-TNS E2E Molde … registered."
+    await waitForText(page, new RegExp(`Molde \\d{3}-TNS E2E Molde ${UNIQ} registered\\.`));
 
     const linha = page.locator("tr", { hasText: `E2E Molde ${UNIQ}` });
     if (!(await linha.textContent()).includes("24–34")) {
@@ -95,7 +96,7 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
                        await dialog.locator('select[name="molde[tamanho_final]"]').inputValue() ];
     if (tamanhos.join("-") !== "24-34") throw new Error(`Edit should prefill 24-34, got ${tamanhos.join("-")}`);
 
-    await page.fill('input[name="molde[nome]"]', `Edited Molde ${UNIQ}`);
+    await page.fill('input[name="molde[sufixo]"]', `Edited Molde ${UNIQ}`);
     await page.click('button[data-dialog-target="submitBtn"]:has-text("Update")');
     await page.waitForTimeout(500);
 
@@ -142,7 +143,7 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
       await post("/pecas", { "peca[nome]": nomes.lateral });
       await post("/pecas", { "peca[nome]": nomes.lingua });
       const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(nomes.cliente)}`)).json())[0];
-      await post("/moldes", { "molde[nome]": nomes.molde, "molde[client_uuid]": client.id, "molde[modelo_uuid]": modeloUuid });
+      await post("/moldes", { "molde[sufixo]": nomes.molde, "molde[client_uuid]": client.id, "molde[modelo_uuid]": modeloUuid });
       return (await (await fetch(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`)).json())[0]?.id || null;
     }, { csrf: token, nomes, modeloUuid: tenis.id });
     if (!moldeId) throw new Error("Failed to create the molde");
@@ -171,5 +172,35 @@ runSpec("Moldes E2E Tests", async ({ page, test }) => {
     await page.click("input[type='submit']");
     await waitForText(page, "Peça added to molde.");
     await page.locator(`.molde-peca-row[data-parte="${nova}"]`).waitFor({ timeout: 5000 });
+  });
+
+  // Etapa 1.1 (4/5): a variation — here of another client's molde — follows
+  // its own client's numbering and is born with the base's parts and grade.
+  await test("Create a variation of another client's molde from the dialog", async () => {
+    const outroCliente = `Variacao Client ${UNIQ}`;
+    await page.goto(BASE_URL);
+    await page.evaluate(async (name) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      await fetch("/clients", { method: "POST", body: new URLSearchParams({ authenticity_token: token, "client[name]": name, "client[responsible]": "T" }) });
+    }, outroCliente);
+
+    await page.goto(`${BASE_URL}/moldes`);
+    await page.click('button:has-text("New Molde")');
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('select[name="molde[client_uuid]"]').selectOption({ label: outroCliente });
+    const base = dialog.locator('select[name="molde[variacao_de_uuid]"] option', { hasText: `Partes Molde ${UNIQ}` });
+    await dialog.locator('select[name="molde[variacao_de_uuid]"]').selectOption(await base.getAttribute("value"));
+    await dialog.locator('input[name="molde[sufixo]"]').fill("Furado");
+    await page.click('button[data-dialog-target="submitBtn"]:has-text("Register")');
+    await waitForText(page, "Molde 001-TNS Furado registered.");
+
+    await page.locator("tr", { hasText: outroCliente }).locator('a:has-text("Show")').click();
+    await page.locator(".molde-variacao-de").waitFor();
+    const origem = await page.locator(".molde-variacao-de").textContent();
+    if (!origem.includes(`Partes Molde ${UNIQ}`) || !origem.includes(`Partes Client ${UNIQ}`)) throw new Error(`Variation of shows "${origem.trim()}"`);
+    for (const parte of [ `Lingua ${UNIQ}`, `Reforco ${UNIQ}` ]) {
+      await page.locator(`.molde-peca-row[data-parte="${parte}"]`).waitFor({ timeout: 5000 });
+    }
+    if ((await page.locator(".molde-codigo").textContent()).trim() !== "001-TNS") throw new Error("The variation should be its client's 001-TNS");
   });
 });
