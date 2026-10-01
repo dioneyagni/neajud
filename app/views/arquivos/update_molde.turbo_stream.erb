@@ -9,3 +9,4 @@
 <%= turbo_stream.replace "corte-comparison-section" do %>
   <%= render "corte_comparison", arquivo: @arquivo %>
 <% end %>
+<%= turbo_stream.replace "nome-arte-section", partial: "arquivos/nome_arte", locals: { arquivo: @arquivo } %>

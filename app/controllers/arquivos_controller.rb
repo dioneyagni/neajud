@@ -54,32 +54,14 @@ class ArquivosController < ApplicationController
       return redirect_to @arquivo, alert: "Select a file to upload."
     end
 
-    version_number = @arquivo.next_version_number
-    version = @arquivo.arquivo_versions.build(
-      version_number: version_number,
-      uuid: SecureRandom.uuid,
-      filename: File.basename(upload.original_filename, ".*"),
-      extension: File.extname(upload.original_filename).delete(".").downcase,
-      mime_type: upload.content_type,
-      status: :pending,
-      category: @arquivo.category
-    )
+    version = @arquivo.nova_versao!(nome_original: upload.original_filename, mime_type: upload.content_type) do |nova|
+      next false if ArquivoUploadService.erro_de_tipo(nova.extension, upload)
 
-    if ArquivoUploadService.erro_de_tipo(version.extension, upload)
-      return redirect_to @arquivo, alert: "Invalid file type."
+      nova.store_original!(upload)
     end
+    return redirect_to @arquivo, alert: "Invalid file type." unless version
 
-    version.store_original!(upload)
-    version.original_file = upload.original_filename
-
-    version.save!
-
-    @arquivo.arquivo_versions.where(approved: true).update_all(approved: false)
-    version.update!(approved: true)
-    @arquivo.update!(approved_version_id: version.id)
-
-    ArquivoProcessingJob.perform_later(version.id)
-    redirect_to @arquivo, notice: "Version #{version_number} uploaded and processing."
+    redirect_to @arquivo, notice: "Version #{version.version_number} uploaded and processing."
   end
 
   def approve_version
@@ -149,10 +131,13 @@ class ArquivosController < ApplicationController
     updates[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
     # Unlink (molde_uuid blank): also forget the modelo that came with it.
     updates[:modelo_id] = nil if params[:molde_uuid].blank? && !@arquivo.corte?
+    # Referências belong to one molde (Etapa 1.1, 5/5): another molde's goes.
+    updates[:referencia_id] = nil if params[:molde_uuid] != @arquivo.molde&.uuid
 
     if @arquivo.update(updates)
       @arquivo.reload
       @arquivo.descartar_tamanho_fora_do_molde!
+      @arquivo.ajustar_referencia_e_nome!
       # Etapa 0.6: the search (up to 37 s) runs in the queue; the page shows
       # "Procurando tamanho…" and refreshes when it ends.
       @arquivo.buscar_tamanho_em_fila!
@@ -266,7 +251,8 @@ class ArquivosController < ApplicationController
     path = @arquivo.approved_original_path
     raise ActionController::MissingFile unless path && File.exist?(path.to_s)
     version = @arquivo.approved_version
-    filename = "#{version.filename}.#{version.extension}"
+    # An arte with a molde downloads under its full name (Etapa 1.1, 5/5).
+    filename = "#{@arquivo.nome_completo(para_arquivo: true) || version.filename}.#{version.extension}"
     send_file path.to_s, type: version.mime_type, disposition: "attachment", filename: filename
   rescue ActionController::MissingFile, Errno::ENOENT
     head :not_found

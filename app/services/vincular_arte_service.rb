@@ -51,7 +51,9 @@ class VincularArteService
   end
 
   def vincular_arte!
-    @arte.update!(molde: @molde, peca: @peca_row.peca, client_id: @arte.client_id || @molde.client_id)
+    referencia = @arte.referencia if @arte.molde_id == @molde.id
+    @arte.update!(molde: @molde, peca: @peca_row.peca, client_id: @arte.client_id || @molde.client_id, referencia: referencia)
+    @arte.ajustar_referencia_e_nome!
   end
 
   def registrar!(from_molde)

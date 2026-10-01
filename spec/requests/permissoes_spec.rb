@@ -24,6 +24,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "trash a client", "clientes", 3, -> { delete client_path(client) } ],
     [ "open an arte", "artes", 1, -> { get arquivo_path(arte) } ],
     [ "edit an arte's time", "artes", 2, -> { patch update_time_arquivo_path(arte), params: { annotated_seconds: 60 } } ],
+    [ "set an arte's referência and name", "artes", 2, -> { patch arquivo_nome_arte_path(arte), params: { nome: "X" } } ],
+    [ "join a repeated arte as a new version", "artes", 2, -> { post tornar_versao_arquivo_nome_arte_path(arte), params: { original_uuid: arte.uuid } } ],
     [ "trash an arte", "artes", 3, -> { delete arquivo_path(arte) } ],
     [ "open a corte (Catálogo)", "catalogo", 1, -> { get arquivo_path(corte) } ],
     [ "change a corte's cut type (Catálogo)", "catalogo", 2, -> { patch update_tipo_corte_arquivo_path(corte), params: { tipo_corte: "apenas_corte" } } ],
