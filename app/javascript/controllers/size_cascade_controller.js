@@ -1,26 +1,21 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  // Uuids, never integer ids (Etapa 1.1): they go straight into the query.
-  static values = { modeloUuid: String, moldeUuid: String, clientUuid: String }
+  // The arte's molde (uuid): the server lists the pieces and sizes of that
+  // molde's cortes (Arquivo.cortes_do_molde). Filtering by the category +
+  // client listed nothing once a molde changed category, and could list
+  // another molde's cortes (01/10/2026).
+  static values = { moldeUuid: String }
   static targets = ["pecaSelect", "tamanhoSelect", "tamanhoUuid", "saveBtn"]
 
   connect() {
-    if (this.modeloUuidValue) {
+    if (this.moldeUuidValue) {
       this.fetchPecas()
     }
   }
 
   baseParams() {
-    const params = new URLSearchParams()
-    params.set("modelo_uuid", this.modeloUuidValue)
-    if (this.moldeUuidValue) {
-      params.set("molde_uuid", this.moldeUuidValue)
-    }
-    if (this.clientUuidValue) {
-      params.set("client_uuid", this.clientUuidValue)
-    }
-    return params
+    return new URLSearchParams({ molde_uuid: this.moldeUuidValue })
   }
 
   cascadeUrl(base) {

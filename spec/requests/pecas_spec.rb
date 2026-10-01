@@ -67,43 +67,42 @@ RSpec.describe "Pecas", type: :request do
     end
   end
 
+  # The pieces of the molde's own cortes (Arquivo.cortes_do_molde).
   describe "GET /pecas/for_cascade" do
-    it "returns pecas for a given modelo and client" do
-      modelo = create(:modelo, nome: "Sapato")
-      peca = create(:peca, nome: "Solado")
-      client = create(:client, name: "Test Client", responsible: "John")
-      create(:arquivo, modelo: modelo, peca: peca, client: client, organized: true)
+    let(:molde) { create(:molde) }
 
-      get for_cascade_pecas_path(modelo_uuid: modelo.uuid, client_uuid: client.uuid)
-
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("Solado")
+    def corte(peca, molde: self.molde, **attrs)
+      create(:arquivo, :corte, organized: true, peca: peca, client: molde.client, modelo: molde.modelo, **attrs).tap { |c| c.moldes << molde }
     end
 
-    it "returns pecas from organized arquivos regardless of tipo_corte" do
-      modelo = create(:modelo)
-      peca = create(:peca, nome: "Solado")
-      create(:arquivo, tipo_corte: "apenas_corte", modelo: modelo, peca: peca, organized: true)
-
-      get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
-
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("Solado")
+    it "lists the pieces of the cortes linked to the molde, regardless of tipo_corte" do
+      corte(create(:peca, nome: "Solado"), tipo_corte: "apenas_corte")
+      corte(create(:peca, nome: "Lateral"))
+      get for_cascade_pecas_path(molde_uuid: molde.uuid)
+      expect(response.parsed_body.map { |p| p["nome"] }).to eq(%w[Lateral Solado])
     end
 
-    it "returns empty array when no organized arquivos exist" do
-      modelo = create(:modelo)
-      peca = create(:peca)
+    # Regression (01/10/2026): the molde moved to the official "Tenis" while
+    # its cortes kept the old category — filtering by category listed nothing,
+    # and the size couldn't be chosen.
+    it "lists the molde's cortes even when they carry another category" do
+      corte(create(:peca, nome: "Lateral"), modelo: create(:modelo, nome: "Tenis Baixo"))
+      get for_cascade_pecas_path(molde_uuid: molde.uuid)
+      expect(response.parsed_body.map { |p| p["nome"] }).to eq([ "Lateral" ])
+    end
 
-      get for_cascade_pecas_path(modelo_uuid: modelo.uuid)
+    # Another molde of the same client and category has its own cortes.
+    it "doesn't list another molde's cortes" do
+      corte(create(:peca, nome: "Lateral"))
+      outro = create(:molde, client: molde.client, modelo: molde.modelo)
+      corte(create(:peca, nome: "Furado"), molde: outro)
+      get for_cascade_pecas_path(molde_uuid: molde.uuid)
+      expect(response.parsed_body.map { |p| p["nome"] }).to eq([ "Lateral" ])
+    end
 
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json).to eq([])
+    it "returns an empty array for an unknown molde" do
+      get for_cascade_pecas_path(molde_uuid: "nao-existe")
+      expect(response.parsed_body).to eq([])
     end
   end
 

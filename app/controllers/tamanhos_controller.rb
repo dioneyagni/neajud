@@ -25,11 +25,11 @@ class TamanhosController < ApplicationController
     head :not_found
   end
 
+  # The sizes of a molde's cortes of one piece (Arquivo.cortes_do_molde).
+  # Usage: GET /tamanhos/for_cascade.json?molde_uuid=…&peca_uuid=… → [{ id:, nome:, width:, height: }]
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, modelo: Modelo.where(uuid: params[:modelo_uuid]),
-                                 peca: Peca.where(uuid: params[:peca_uuid]))
-    scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
-    arquivo_ids = scope.pluck(:id)
+    molde = Molde.find_by(uuid: params[:molde_uuid].to_s)
+    arquivo_ids = Arquivo.cortes_do_molde(molde).where(peca: Peca.where(uuid: params[:peca_uuid])).pluck(:id)
     tamanhos = Tamanho.where(arquivo_id: arquivo_ids).order(:nome)
     render json: tamanhos.map { |t|
       { id: t.uuid, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }

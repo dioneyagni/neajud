@@ -73,38 +73,32 @@ RSpec.describe "Tamanhos", type: :request do
     end
   end
 
+  # The sizes of the molde's own cortes of one piece (Arquivo.cortes_do_molde).
   describe "GET /tamanhos/for_cascade" do
-    it "returns tamanhos as JSON for given modelo_id and peca_id" do
-      modelo = create(:modelo)
-      peca = create(:peca)
-      arquivo = create(:arquivo, organized: true, modelo: modelo, peca: peca)
-      tamanho = create(:tamanho, arquivo: arquivo, nome: "G", position: 1, width_mm: 100, height_mm: 50)
+    let(:molde) { create(:molde) }
+    let(:peca) { create(:peca) }
 
-      get for_cascade_tamanhos_path, params: { modelo_uuid: modelo.uuid, peca_uuid: peca.uuid }
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json).to be_an(Array)
-      expect(json.first["nome"]).to eq("G")
+    def corte(molde: self.molde, **attrs)
+      create(:arquivo, :corte, organized: true, peca: peca, client: molde.client, modelo: molde.modelo, **attrs).tap { |c| c.moldes << molde }
     end
 
-    it "returns empty array when no matching tamanhos" do
-      get for_cascade_tamanhos_path, params: { modelo_id: 99999, peca_id: 99999 }
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json).to eq([])
+    it "returns the sizes of the molde's corte of that piece, regardless of tipo_corte, as JSON" do
+      create(:tamanho, arquivo: corte(tipo_corte: "apenas_corte"), nome: "G", position: 1, width_mm: 100, height_mm: 50)
+      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
+      expect(response.parsed_body.map { |t| t.values_at("nome", "width", "height") }).to eq([ [ "G", "100.0", "50.0" ] ])
     end
 
-    it "returns tamanhos from organized arquivos regardless of tipo_corte" do
-      modelo = create(:modelo)
-      peca = create(:peca)
-      arquivo = create(:arquivo, tipo_corte: "apenas_corte", organized: true, modelo: modelo, peca: peca)
-      create(:tamanho, arquivo: arquivo, nome: "G", position: 1)
+    # Regression (01/10/2026): see pecas_spec — the corte kept another category.
+    it "finds the molde's corte whatever its category, and not another molde's" do
+      create(:tamanho, arquivo: corte(modelo: create(:modelo)), nome: "29-30")
+      create(:tamanho, arquivo: corte(molde: create(:molde, client: molde.client, modelo: molde.modelo)), nome: "31-32")
+      get for_cascade_tamanhos_path, params: { molde_uuid: molde.uuid, peca_uuid: peca.uuid }
+      expect(response.parsed_body.map { |t| t["nome"] }).to eq([ "29-30" ])
+    end
 
-      get for_cascade_tamanhos_path, params: { modelo_uuid: modelo.uuid, peca_uuid: peca.uuid }
-      expect(response).to have_http_status(:success)
-      json = JSON.parse(response.body)
-      expect(json.length).to eq(1)
-      expect(json.first["nome"]).to eq("G")
+    it "returns an empty array when nothing matches" do
+      get for_cascade_tamanhos_path, params: { molde_uuid: "nao-existe", peca_uuid: "nao-existe" }
+      expect(response.parsed_body).to eq([])
     end
   end
 

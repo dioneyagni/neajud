@@ -43,10 +43,11 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     let(:client) { create(:client, name: "Cliente Uuid") }
     let(:modelo) { create(:modelo, nome: "Modelo Uuid") }
     let(:peca) { create(:peca, nome: "Peça Uuid") }
+    let(:molde) { create(:molde, sufixo: "Molde Uuid", client: client, modelo: modelo) }
 
     before do
-      create(:molde, sufixo: "Molde Uuid", client: client, modelo: modelo)
       corte = create(:arquivo, :corte, organized: true, modelo: modelo, peca: peca, client: client)
+      corte.moldes << molde
       create(:tamanho, arquivo: corte, nome: "33-34")
       grupo = GrupoMaterial.create!(nome: "Grupo Uuid")
       cor = CorMaterial.create!(nome: "Azul")
@@ -64,8 +65,8 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       caminhos = [
         "/clients/search?q=Uuid", "/modelos/search?q=Uuid", "/pecas/search?q=Uuid", "/moldes/search?q=Uuid",
         "/moldes/for_client?client_uuid=#{client.uuid}",
-        "/pecas/for_cascade?modelo_uuid=#{modelo.uuid}&client_uuid=#{client.uuid}",
-        "/tamanhos/for_cascade?modelo_uuid=#{modelo.uuid}&peca_uuid=#{peca.uuid}",
+        "/pecas/for_cascade?molde_uuid=#{molde.uuid}",
+        "/tamanhos/for_cascade?molde_uuid=#{molde.uuid}&peca_uuid=#{peca.uuid}",
         "/materiais/grupos?q=Uuid", "/materiais/cores", "/materiais/search?client_uuid=#{client.uuid}"
       ]
       caminhos.each do |caminho|
