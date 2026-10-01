@@ -9,8 +9,8 @@
       "note": "Pre-existing: false positive (file access via model attributes)"
     },
     {
-      "fingerprint": "d3d12fa6e44cb3a70e33f65049036853d488f95e39144642f2866d4572aefb32",
-      "note": "Pre-existing: false positive (file access via model attributes)"
+      "fingerprint": "fa01742407c54c2a09272a432d51309a91dead4f837c4f1b07f1d9c0b47d7ed5",
+      "note": "ArquivosController#download: the path is ArquivoVersion#original_path, under <STORAGE_BASE>/<arquivo.uuid>/v<N>/original/ (uuid is SecureRandom); the file name written there comes from the upload and was already here before. The user-typed text (referência, nome — Etapa 1.1, 5/5) only goes into the Content-Disposition filename, which Rails escapes; accents and path separators are dropped by NomeDeArte#nome_completo(para_arquivo: true). Was 'Pre-existing: false positive (file access via model attributes)'."
     },
     {
       "fingerprint": "d27b0d7c81547826d37fce7a35930ea32634266a823caaa1b8c8636c077bacc5",

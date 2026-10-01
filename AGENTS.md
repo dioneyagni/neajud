@@ -722,6 +722,31 @@ A molde is named `NNN-ABR` + optional suffix ("002-TNS Furado"):
 - Forms send `molde[sufixo]`, never `molde[nome]`; JSON search results carry
   `nome`, `codigo` and `sufixo` (E2E specs find their molde by `sufixo`).
 
+## Referência, Nome and the full name (Etapa 1.1, 5/5)
+
+An arte (`category: "artes"`) has a `Referencia` (a grouping inside one molde:
+"19", "Fuel"; unique per molde ignoring case/accents — `TextoComparavel`) and a
+free `nome` ("Bluey Azul"). `NomeDeArte` (concern in `Arquivo`):
+
+- `nome_completo` — computed, never stored: molde code, referência, nome, part,
+  size, empty pieces skipped (`001-TNS_19_Bluey Azul_Lateral_29-30`);
+  `para_arquivo: true` drops accents and path characters. The arte download
+  (`ArquivosController#download`) uses it as the file name.
+- **Filled automatically** when the molde is chosen (`update_molde`) or the arte
+  is linked from a pedido (`VincularArteService`): `ajustar_referencia_e_nome!`
+  drops another molde's referência and reads blanks from the file name
+  (`NomeDoArquivo`: leading number = referência, created in the molde when
+  missing; parts and sizes left out — "19-BLUEY PTO-LINGUA" → 19, "BLUEY PTO").
+  Edited on the arte page (`NomesArteController#update`).
+- **Same arte uploaded twice** = same molde, referência, comparable nome and
+  **size** (`artes_com_mesmo_nome`; per size until Etapa 1.2 groups sizes into
+  one arte): the newer page offers "Make it a new version of that arte" →
+  `JuntarArteRepetidaService` copies its file as the original's new version in
+  use (`Arquivo#nova_versao!`, shared with `upload_version`) and trashes the
+  newer record. Refused when the newer one is already in a pedido.
+- Inflection: `referencia/referencias` (without it Rails looked for a table
+  `referencia`).
+
 ## Logical deletion (Etapa 0.4)
 
 Nothing a user deletes is physically destroyed. `Arquivo`, `Client`, `Molde`,
@@ -934,7 +959,7 @@ The plan renames things; until those stages land, the code keeps its names:
 | Produto | `Produto` (official list, `config/catalogo_oficial.yml`) |
 | Modelo (categoria, e.g. Jogging [JGG]) | `Modelo` (was `Molde` until Etapa 1.1, 2/5) |
 | Molde (the client's form, e.g. 002-TNS Furado) | `Molde` (was `Modelo` until Etapa 1.1, 2/5) — the names swapped in migration `TrocaMoldeModelo` |
-| Referência, Nome (group artes: "20 · Bluey Azul") | don't exist yet (Etapa 1.1, 5/5); not catalog, not versioned |
+| Referência, Nome (group artes: "20 · Bluey Azul") | `Referencia` (per molde) + `Arquivo#nome` — see "Referência, Nome and the full name"; not catalog, not versioned |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
 | Arte | `Arquivo` with `category: "artes"` |

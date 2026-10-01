@@ -38,6 +38,10 @@ Rails.application.routes.draw do
   end
 
   resources :arquivos, only: %i[index create show destroy] do
+    # Referência + Nome of an arte (Etapa 1.1, 5/5).
+    resource :nome_arte, only: :update, controller: "nomes_arte" do
+      post :tornar_versao
+    end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
     member do
