@@ -41,6 +41,14 @@ RSpec.describe VincularArteService do
     expect([ arte.reload.molde_id, pending_row.reload.estado, ArquivoVinculoLog.count ]).to eq([ other.id, :pendente, 0 ])
   end
 
+  # Etapa 1.1 (5/5): linked to the molde, the arte gets its referência and
+  # name from its file name, like choosing the molde on the arte page.
+  it "fills the arte's referência and name from its file name" do
+    arte = create(:arquivo, client: client, filename: "19-BLUEY PTO")
+    vincular(arte)
+    expect([ arte.reload.referencia&.nome, arte.nome, arte.referencia&.molde ]).to eq([ "19", "BLUEY PTO", molde ])
+  end
+
   it "moves it when confirmed and logs where it came from" do
     other = create(:molde, client: client, sufixo: "Outro")
     arte = create(:arquivo, client: client, molde: other)

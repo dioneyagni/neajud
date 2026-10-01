@@ -293,6 +293,19 @@ RSpec.describe "Arquivos", type: :request do
       ActiveJob::Base.queue_adapter = :inline
     end
 
+    # Etapa 1.1 (5/5): choosing the molde reads Referência + Nome from the
+    # file name (the referência is created in the molde when missing).
+    it "fills the arte's referência and name from its file name" do
+      ActiveJob::Base.queue_adapter = :test
+      arquivo = create(:arquivo, category: "artes", filename: "19-BLUEY PTO-LINGUA")
+      create(:peca, nome: "Língua")
+      molde = create(:molde)
+      patch update_molde_arquivo_path(arquivo), params: { molde_uuid: molde.uuid }
+      expect([ arquivo.reload.referencia&.nome, arquivo.nome, arquivo.referencia&.molde ]).to eq([ "19", "BLUEY PTO", molde ])
+    ensure
+      ActiveJob::Base.queue_adapter = :inline
+    end
+
     it "keeps a tamanho that is the new molde's own, and doesn't search" do
       ActiveJob::Base.queue_adapter = :test
       molde = create(:molde, modelo: create(:modelo))
@@ -436,6 +449,22 @@ RSpec.describe "Arquivos", type: :request do
   end
 
   describe "GET /arquivos/:id/download" do
+    # Etapa 1.1 (5/5): an arte with a molde downloads under its full name,
+    # without accents.
+    it "names an arte's file by its full name" do
+      tamanho = create(:tamanho, arquivo: create(:arquivo, :corte, peca: create(:peca, nome: "Língua")), nome: "29-30")
+      molde = create(:molde, modelo: create(:modelo, abreviacao: "TNS"))
+      arte = create(:arquivo, category: "artes", molde: molde, nome: "Coração", tamanho: tamanho,
+                              referencia: create(:referencia, molde: molde, nome: "19"))
+      versao = create(:arquivo_version, arquivo: arte, version_number: 1, approved: true, extension: "tif", original_file: "x.tif")
+      FileUtils.mkdir_p(File.dirname(versao.original_path))
+      File.write(versao.original_path, "tif")
+      arte.update!(approved_version: versao)
+
+      get download_arquivo_path(arte)
+      expect(response.headers["Content-Disposition"]).to include('filename="001-TNS_19_Coracao_Lingua_29-30.tif"')
+    end
+
     it "returns 404 when no approved version exists" do
       arquivo = create(:arquivo)
       get download_arquivo_path(arquivo)

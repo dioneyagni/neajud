@@ -21,6 +21,7 @@ class Molde < ApplicationRecord
   # Version lineage for Fase 5 (catalog versioning); not used yet.
   belongs_to :base, class_name: "Molde", optional: true
   has_many :variacoes, class_name: "Molde", foreign_key: :variacao_de_id, dependent: :nullify
+  has_many :referencias, -> { order(:nome) }, dependent: :destroy
   atribui_por_uuid :client, :modelo, :variacao_de
   has_many :arquivos, dependent: :nullify
   has_many :arquivo_moldes, dependent: :destroy

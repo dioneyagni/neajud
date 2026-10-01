@@ -1,0 +1,55 @@
+<%# Referência + Nome of an arte and its full name (Etapa 1.1, 5/5). The
+    container is always rendered: update_molde's turbo-stream replaces it
+    (AGENTS.md, "targets must always be in the DOM"). %>
+<div class="stamp-detail-section stamp-detail-section--full" id="nome-arte-section">
+  <% if arquivo.category == "artes" && arquivo.molde %>
+    <h3>Reference &amp; name</h3>
+    <p class="nome-completo" title="Full name (computed)"><code><%= arquivo.nome_completo %></code></p>
+
+    <% repetida_de = arquivo.artes_com_mesmo_nome.first %>
+    <% if repetida_de %>
+      <div class="nome-arte-conflito">
+        <% if repetida_de.created_at <= arquivo.created_at %>
+          This file has the same full name as <%= link_to repetida_de.filename, arquivo_path(repetida_de) %> — it is the same arte uploaded again.
+          <% if pode_editar_arquivo?(arquivo) %>
+            <%= button_to "Make it a new version of that arte", tornar_versao_arquivo_nome_arte_path(arquivo, original_uuid: repetida_de.uuid),
+                  class: "btn btn-primary btn-sm", form: { style: "display:inline-block" },
+                  data: { turbo_confirm: "Make this file version #{repetida_de.next_version_number} of #{repetida_de.filename}? This record goes to the trash." } %>
+          <% end %>
+        <% else %>
+          A newer file has the same full name: <%= link_to repetida_de.filename, arquivo_path(repetida_de) %> (its page offers to make it a new version of this one).
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if pode_editar_arquivo?(arquivo) %>
+      <%= form_with url: arquivo_nome_arte_path(arquivo), method: :patch, class: "nome-arte-form" do %>
+        <div class="client-field">
+          <label for="referencia_uuid_<%= arquivo.uuid %>">Reference</label>
+          <select name="referencia_uuid" id="referencia_uuid_<%= arquivo.uuid %>">
+            <option value="">— none —</option>
+            <% arquivo.molde.referencias.each do |referencia| %>
+              <option value="<%= referencia.uuid %>" <%= "selected" if referencia.id == arquivo.referencia_id %>><%= referencia.nome %></option>
+            <% end %>
+          </select>
+          <input type="text" name="nova_referencia" placeholder="or a new reference" aria-label="New reference">
+        </div>
+        <div class="client-field">
+          <label for="nome_arte_<%= arquivo.uuid %>">Name</label>
+          <input type="text" name="nome" id="nome_arte_<%= arquivo.uuid %>" value="<%= arquivo.nome %>" list="nomes_arte_<%= arquivo.uuid %>">
+          <datalist id="nomes_arte_<%= arquivo.uuid %>">
+            <% arquivo.sugestoes_de_nome.each do |sugestao| %>
+              <option value="<%= sugestao %>"></option>
+            <% end %>
+          </datalist>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      <% end %>
+    <% else %>
+      <dl class="detail-grid">
+        <dt>Reference</dt><dd><%= arquivo.referencia&.nome || "—" %></dd>
+        <dt>Name</dt><dd><%= arquivo.nome.presence || "—" %></dd>
+      </dl>
+    <% end %>
+  <% end %>
+</div>

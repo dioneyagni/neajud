@@ -51,7 +51,7 @@ E2E_SPECS=(
   arquivos-upload arquivos-previews arquivos-versions arquivos-dxf-organization
   arquivos-client-field arquivos-size-selection arquivos-molde-unlink arquivos-dialog-modal
   pages-clients-modelos-pecas pages-moldes-materials
-  arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte
+  arquivos-gallery arquivos-auto-detection arquivos-corte-comparison arquivos-unique-corte arquivos-nome-arte
   movimentos pedidos pedidos-pecas clients clients-cortes moldes materiais modelos lixeira funcoes usuarios aprovacoes
 )
 for file in e2e/*.spec.js; do

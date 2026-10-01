@@ -3,6 +3,7 @@ class Arquivo < ApplicationRecord
   include Excluivel
   include ReferenciaAtiva
   include Aprovavel
+  include NomeDeArte
 
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy
@@ -214,6 +215,33 @@ class Arquivo < ApplicationRecord
   def next_version_number
     (arquivo_versions.maximum(:version_number) || 0) + 1
   end
+
+  # A new version, put in use and queued for processing. The block writes the
+  # original file (the version's storage dir is known before saving) and may
+  # refuse by returning false — then nothing is saved.
+  # Usage: arquivo.nova_versao!(nome_original: "19-x.tif", mime_type: "image/tiff") { |v| v.store_original!(upload) }
+  def nova_versao!(nome_original:, mime_type:)
+    versao = arquivo_versions.build(
+      version_number: next_version_number, filename: File.basename(nome_original, ".*"),
+      extension: File.extname(nome_original).delete(".").downcase, mime_type: mime_type,
+      status: :pending, category: category, original_file: nome_original
+    )
+    return nil if yield(versao) == false
+
+    usar_versao!(versao)
+    ArquivoProcessingJob.perform_later(versao.id)
+    versao
+  end
+
+  def usar_versao!(versao)
+    transaction do
+      versao.save!
+      arquivo_versions.where(approved: true).where.not(id: versao.id).update_all(approved: false)
+      versao.update!(approved: true)
+      update!(approved_version_id: versao.id)
+    end
+  end
+  private :usar_versao!
 
   def approved_original_path
     approved_version&.original_path

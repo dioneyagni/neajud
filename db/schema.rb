@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_150000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -133,11 +133,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
     t.integer "modelo_id"
     t.string "modelo_nome", default: "Novo Modelo"
     t.integer "molde_id"
+    t.string "nome"
     t.string "organize_error"
     t.boolean "organized", default: false, null: false
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
     t.datetime "preparando_tamanhos_desde"
+    t.integer "referencia_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.integer "tamanho_id"
@@ -150,6 +152,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
     t.index ["modelo_id"], name: "index_arquivos_on_modelo_id"
     t.index ["molde_id"], name: "index_arquivos_on_molde_id"
     t.index ["peca_id"], name: "index_arquivos_on_peca_id"
+    t.index ["referencia_id"], name: "index_arquivos_on_referencia_id"
     t.index ["tamanho_id"], name: "index_arquivos_on_tamanho_id"
     t.index ["tipo_corte"], name: "index_arquivos_on_tipo_corte"
     t.index ["uuid"], name: "index_arquivos_on_uuid", unique: true
@@ -428,6 +431,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
     t.index ["uuid"], name: "index_produtos_on_uuid", unique: true
   end
 
+  create_table "referencias", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "molde_id", null: false
+    t.string "nome", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["molde_id"], name: "index_referencias_on_molde_id"
+    t.index ["uuid"], name: "index_referencias_on_uuid", unique: true
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -521,6 +534,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
   add_foreign_key "arquivos", "modelos"
   add_foreign_key "arquivos", "moldes"
   add_foreign_key "arquivos", "pecas"
+  add_foreign_key "arquivos", "referencias"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "exclusao_logs", "users"
@@ -543,6 +557,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_120000) do
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
+  add_foreign_key "referencias", "moldes"
   add_foreign_key "sessions", "users"
   add_foreign_key "solicitacoes_aprovacao", "arquivo_versions"
   add_foreign_key "solicitacoes_aprovacao", "arquivos"
