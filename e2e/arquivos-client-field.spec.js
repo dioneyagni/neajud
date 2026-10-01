@@ -9,8 +9,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     const body = await page.textContent("body");
@@ -69,8 +69,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
@@ -112,8 +112,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
@@ -173,8 +173,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();
@@ -249,8 +249,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     // Edit toggle button should be present on arquivo show page
@@ -270,8 +270,8 @@ runSpec("Arquivos E2E: client field", async ({ page, test }) => {
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arquivoLink.click() ]);
     await page.waitForTimeout(500);
 
     const clientEditBtn = page.locator(".stamp-detail-section").filter({ hasText: "Client" }).locator(".btn-edit").first();

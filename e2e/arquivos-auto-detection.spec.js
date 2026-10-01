@@ -38,8 +38,8 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
 
       // ── Organize the DXF ──
       const dxfCard = page.locator(".stamp-card").filter({ hasText: displayName }).first();
-      await dxfCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
+      // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), dxfCard.locator("a").first().click() ]);
       await page.waitForTimeout(500);
 
       const csrf = await page.evaluate(() =>
@@ -87,8 +87,8 @@ runSpec("Arquivos E2E: auto-detection", async ({ page, test }) => {
 
       const arteCard = page.locator(".stamp-card").filter({ hasText: arteDisplay }).first();
       await arteCard.waitFor({ timeout: 10000 });
-      await arteCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
+      // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), arteCard.locator("a").first().click() ]);
       await page.waitForTimeout(500);
 
       arteUuid = await page.evaluate(() => {

@@ -84,17 +84,23 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
 
   const dxfPath = path.join(testImagesDir, "29-30.dxf");
 
+  // Opens the 29-30 corte from the gallery and waits for its page. Waiting for
+  // an h2 or a dl after the click (as these tests did) is satisfied by the
+  // gallery itself, so a slow navigation read the gallery: "Cut Type section
+  // not found" failed CI once on 01/10/2026 (PR #120). Wait for the URL.
+  async function abrirCorte2930() {
+    const link = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
+    await link.waitFor({ timeout: 10000 });
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), link.click() ]);
+  }
+
   await test("DXF Corte: 29-30.dxf uploads and shows Layer Configuration", async () => {
     if (!fs.existsSync(dxfPath)) throw new Error(`DXF not found: ${dxfPath}`);
 
     await page.goto(BASE_URL);
     await uploadFileAndWait(page, dxfPath);
 
-    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
-    await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("dl", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await abrirCorte2930();
 
     const body = (await page.textContent("body")).toLowerCase();
     if (!body.includes("processed")) throw new Error("Status not processed");
@@ -166,11 +172,7 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).locator("a").first();
-    await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("dl", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await abrirCorte2930();
 
     // Verify measurements exist before save
     const beforeMeasure = await page.$('[data-edit-toggle-target="display"] .layer-measurements');
@@ -255,11 +257,7 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card", { timeout: 10000 });
 
-    const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
-    await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await abrirCorte2930();
 
     const body = await page.textContent("body");
     if (!body.includes("Cut Type")) throw new Error("Cut Type section not found on corte arquivo");
@@ -290,9 +288,8 @@ runSpec("Arquivos E2E: previews, DXF layers & cut type", async ({ page, test }) 
       const baseName = path.basename(artePath, ".tif");
       const card = page.locator(".stamp-card").filter({ hasText: baseName }).first();
       await card.waitFor({ timeout: 10000 });
-      await card.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      // The gallery has an h2 too: wait for the arte's URL (see abrirCorte2930).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), card.locator("a").first().click() ]);
 
       const h3s = await page.$$("h3");
       for (const h3 of h3s) {

@@ -3,7 +3,7 @@ const fs = require("fs");
 const { execSync } = require("child_process");
 const { uploadFileAndWait } = require("./support/upload");
 const { BASE_URL, runSpec } = require("./support/runner");
-const { waitForText } = require("./support/wait");
+const { waitForText, waitForQueuedTask } = require("./support/wait");
 const { modeloOficial } = require("./support/catalogo");
 
 // Etapa 1.1 (5/5): an arte's Referência + Nome, read from the file name when
@@ -65,7 +65,7 @@ runSpec("Arquivos: referência, nome and full name", async ({ page, test }) => {
       await post(`/arquivos/${ids.corte}/add_molde`, { molde_uuid: ids.molde })
     ];
     if (ok.includes(false)) throw new Error(`Setup steps: ${ok}`);
-    ids.tamanho = await primeiroId(`/tamanhos/for_cascade?modelo_uuid=${tenis.id}&peca_uuid=${ids.peca}`, { chave: "nome", valor: "29-30" });
+    ids.tamanho = await primeiroId(`/tamanhos/for_cascade?molde_uuid=${ids.molde}&peca_uuid=${ids.peca}`, { chave: "nome", valor: "29-30" });
     if (!ids.tamanho) throw new Error("Corte size 29-30 not found");
   });
 
@@ -73,6 +73,10 @@ runSpec("Arquivos: referência, nome and full name", async ({ page, test }) => {
     ids.primeira = await subirArte(arquivos.primeira);
     await post(`/arquivos/${ids.primeira}/update_client`, { _method: "patch", client_uuid: ids.client });
     await post(`/arquivos/${ids.primeira}/update_molde`, { _method: "patch", molde_uuid: ids.molde });
+    // Choosing the molde queues the automatic size search, which refreshes
+    // the arte page when it ends: let it finish first, or the refresh lands
+    // while the test types (seen in CI-like runs, 01/10/2026).
+    await waitForQueuedTask(page, `/arquivos/${ids.primeira}/busca_tamanho.json`);
     await post(`/arquivos/${ids.primeira}/update_tamanho`, { _method: "patch", tamanho_uuid: ids.tamanho });
     await page.goto(`${BASE_URL}/arquivos/${ids.primeira}`);
     const esperado = `001-TNS_19_BLUEY ${UNIQ}_${peca}_29-30`;
@@ -94,6 +98,10 @@ runSpec("Arquivos: referência, nome and full name", async ({ page, test }) => {
     ids.segunda = await subirArte(arquivos.segunda);
     await post(`/arquivos/${ids.segunda}/update_client`, { _method: "patch", client_uuid: ids.client });
     await post(`/arquivos/${ids.segunda}/update_molde`, { _method: "patch", molde_uuid: ids.molde });
+    // Choosing the molde queues the automatic size search, which refreshes
+    // the arte page when it ends: let it finish first, or the refresh lands
+    // while the test types (seen in CI-like runs, 01/10/2026).
+    await waitForQueuedTask(page, `/arquivos/${ids.segunda}/busca_tamanho.json`);
     await post(`/arquivos/${ids.segunda}/update_tamanho`, { _method: "patch", tamanho_uuid: ids.tamanho });
     await page.goto(`${BASE_URL}/arquivos/${ids.segunda}`);
     // Same full name, typed in other case: the comparison ignores it.
