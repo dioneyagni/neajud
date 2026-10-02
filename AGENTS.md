@@ -318,9 +318,18 @@ Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its molde
 | `excluida` | has arte, unchecked | the pedido goes without it | allowed |
 | `pendente` | no arte yet | no | **blocked** (UI + server) |
 
-Confirming is also blocked by an item with total quantity 0 and by a
-checked piece whose arte has no corte (no tamanho chosen); adding or saving a
-grade at total 0 is refused outright. All blockers come from
+Confirming is also blocked by an item with total quantity 0, by a
+checked piece whose arte has no corte (no tamanho chosen) and by an item whose
+arte has no client (confirming splits the pedido by its artes' clients);
+adding or saving a grade at total 0 is refused outright.
+
+A draft created for an arte without client has no client: it adopts one
+(`Pedido#adotar_cliente_das_artes!`, from `Arquivo`'s
+`after_update_commit` on `client_id`) once every arte of it has the same
+client, and its page shows the client it will get ("MKS (das artes)", or
+"será dividido por cliente…"). An arte without client gets its molde's client
+when the molde is chosen (`Arquivo#herdar_cliente_do_molde`) — pedido
+ed6a2aba stayed without client because the arte page didn't do it (01/10/2026). All blockers come from
 `PedidoBloqueiosService` (`Pedido#bloqueios_confirmacao`), which feeds the
 server guard, the pending box on the pedido page and the list badge.
 

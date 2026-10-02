@@ -8,7 +8,10 @@
 #   :tamanho_sem_corte — a size the pedido asks for that the piece's corte
 #                 doesn't have, so there is no DXF to download for it;
 #   :arquivo_excluido — the item's arte, or a checked piece's arte or corte,
-#                 is in the trash (Etapa 0.4): restore it or swap it first.
+#                 is in the trash (Etapa 0.4): restore it or swap it first;
+#   :arte_sem_cliente — the item's arte has no client: confirming splits the
+#                 pedido by its artes' clients, and ed6a2aba (01/10/2026)
+#                 would have been confirmed without one.
 # Unchecked pieces never block: the pedido goes to production without them.
 # Used by the confirm guard (server), the pending box and the list badge.
 #
@@ -26,7 +29,7 @@ class PedidoBloqueiosService
   end
 
   def call
-    arquivos_excluidos + sem_arte + zerados + sem_corte + tamanhos_sem_corte
+    arquivos_excluidos + artes_sem_cliente + sem_arte + zerados + sem_corte + tamanhos_sem_corte
   end
 
   private
@@ -48,6 +51,12 @@ class PedidoBloqueiosService
       incluidas = item.item_pedido_pecas.select { |p| p.estado == :incluida }
       [ item.arquivo ] + incluidas.flat_map { |p| [ p.arquivo, p.arquivo.corte ] }
     end.compact.uniq
+  end
+
+  def artes_sem_cliente
+    itens.map(&:arquivo).uniq.select { |arte| arte.client_id.nil? }.map do |arte|
+      Bloqueio.new(tipo: :arte_sem_cliente, descricao: "Arte #{arte.filename} sem cliente", arquivo: arte)
+    end
   end
 
   def sem_arte

@@ -261,6 +261,25 @@ RSpec.describe "Pedidos", type: :request do
       expect(pedido.reload.status).to eq("rascunho")
     end
 
+    # 01/10/2026: a draft without client said nothing about who it is for.
+    it "shows a draft without client the client it will get from its artes" do
+      pedido = create(:pedido, client: nil)
+      create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, category: "artes", client: create(:client, name: "MKS")))
+      get pedido_path(pedido)
+      expect(response.body).to include("MKS (das artes)")
+      create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, category: "artes", client: create(:client, name: "GMS")))
+      get pedido_path(pedido)
+      expect(response.body).to include("será dividido por cliente ao confirmar: GMS, MKS")
+    end
+
+    it "refuses to confirm an item whose arte has no client" do
+      pedido = create(:pedido, client: nil)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: create(:arquivo, category: "artes", client: nil, filename: "sem-dono"))
+      post confirmar_pedido_path(pedido)
+      expect(flash[:alert]).to include("Arte sem-dono sem cliente")
+      expect(pedido.reload.status).to eq("rascunho")
+    end
+
     it "confirms when pieces are only unchecked (the pedido goes without them)" do
       pedido = create(:pedido)
       item = create(:item_pedido, :com_quantidade, pedido: pedido)

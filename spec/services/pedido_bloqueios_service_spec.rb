@@ -9,8 +9,8 @@ RSpec.describe PedidoBloqueiosService do
     create(:arquivo, filename: filename, tamanho: create(:tamanho, nome: "35", arquivo: create(:arquivo, :corte, peca: lateral)))
   end
 
-  def item(quantidade: 1, filename: "tenis")
-    create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, filename: filename)).tap do |i|
+  def item(quantidade: 1, filename: "tenis", client: create(:client))
+    create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, filename: filename, client: client)).tap do |i|
       i.grades.create!(tamanho_nome: "35", quantidade: quantidade) if quantidade.positive?
     end
   end
@@ -55,6 +55,13 @@ RSpec.describe PedidoBloqueiosService do
     pedido_item.grades.create!(tamanho_nome: "35", quantidade: 1)
     create(:item_pedido_peca, item_pedido: pedido_item, peca: lateral, arquivo: arte)
     expect(bloqueios).to eq([ [ :tamanho_sem_corte, "Lateral 35: tamanho não existe no corte 24 AO 34 - CABEDAL" ] ])
+  end
+
+  # Regression (01/10/2026, ed6a2aba): confirming splits by the artes'
+  # clients, so an arte without one would make a pedido without client.
+  it "flags an item's arte without client" do
+    item(filename: "sem-cliente", client: nil)
+    expect(bloqueios).to eq([ [ :arte_sem_cliente, "Arte sem-cliente sem cliente" ] ])
   end
 
   describe "arquivos in the trash (Etapa 0.4)" do
