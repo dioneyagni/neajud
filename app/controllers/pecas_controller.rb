@@ -22,10 +22,12 @@ class PecasController < ApplicationController
     render json: pecas.map { |p| { id: p.uuid, nome: p.nome } }
   end
 
+  # The pieces of a molde's cortes, for the arte's Size Selection — the same
+  # cortes the automatic search and the pedido use (Arquivo.cortes_do_molde).
+  # Usage: GET /pecas/for_cascade.json?molde_uuid=… → [{ id: <uuid>, nome: }]
   def for_cascade
-    scope = Arquivo.ativos.where(organized: true, modelo: Modelo.where(uuid: params[:modelo_uuid]))
-    scope = scope.where(client: Client.where(uuid: params[:client_uuid])) if params[:client_uuid].present?
-    peca_ids = scope.distinct.pluck(:peca_id)
+    molde = Molde.find_by(uuid: params[:molde_uuid].to_s)
+    peca_ids = Arquivo.cortes_do_molde(molde).distinct.pluck(:peca_id)
     pecas = Peca.ativos.where(id: peca_ids).order(:nome)
     render json: pecas.map { |p| { id: p.uuid, nome: p.nome } }
   end

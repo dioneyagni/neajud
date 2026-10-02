@@ -47,8 +47,8 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       await uploadFileAndWait(page, filePath);
       const displayName = path.basename(filePath).replace(/\.[^.]+$/, "");
       const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
-      await card.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
+      // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), card.locator("a").first().click() ]);
       await page.waitForTimeout(500);
       return page.evaluate(() => window.location.pathname.split("/").pop());
     };
@@ -194,8 +194,8 @@ runSpec("Arquivos E2E: unique corte", async ({ page, test }) => {
       await uploadFileAndWait(page, filePath);
       const displayName = path.basename(filePath).replace(/\.[^.]+$/, "");
       const card = page.locator(".stamp-card").filter({ hasText: displayName }).first();
-      await card.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
+      // Wait for the arquivo page itself: the gallery has an h2 too (CI flake, 01/10/2026).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/, { timeout: 15000 }), card.locator("a").first().click() ]);
       await page.waitForTimeout(500);
       return page.evaluate(() => window.location.pathname.split("/").pop());
     };

@@ -52,9 +52,11 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
           _method: "patch", modelo_uuid: modelo.id, peca_uuid: peca.id,
           "tamanhos[0][nome]": "34", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000"
         });
-        const tamanho = (await (await fetch(`/tamanhos/for_cascade?modelo_uuid=${modelo.id}&peca_uuid=${peca.id}`)).json()).find((t) => t.nome === "34");
-        if (!organized.ok || !tamanho) return false;
-        return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_uuid: tamanho.id })).ok;
+        // This arte has no molde: read the size's uuid from the corte's own page.
+        const html = await (await fetch(`/arquivos/${corteUuid}`)).text();
+        const tamanhoUuid = html.match(/data-tamanho-uuid="([^"]+)"/)?.[1];
+        if (!organized.ok || !tamanhoUuid) return false;
+        return (await post(`/arquivos/${arteUuid}/update_tamanho`, { _method: "patch", tamanho_uuid: tamanhoUuid })).ok;
       }, { token, corteUuid, arteUuid, uniq: UNIQ });
       if (!ok) throw new Error("Could not organize the DXF and link its tamanho to the arte");
     } finally {

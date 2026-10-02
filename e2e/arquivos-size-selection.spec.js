@@ -2,6 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
+const { modeloOficial } = require("./support/catalogo");
+const { waitForQueuedTask } = require("./support/wait");
 
 runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
   // ── Size Selection (Arte arquivos) ──
@@ -280,13 +282,15 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       await page.waitForSelector("h2", { timeout: 10000 });
       await page.waitForTimeout(500);
 
-      // Find the organized arquivo's tamanho id via the correct modelo/peca
-      const tamanhoId = await page.evaluate(async ({ token, modeloId, pecaId }) => {
-        const r = await fetch(`/tamanhos/for_cascade?modelo_uuid=${modeloId}&peca_uuid=${pecaId}`);
+      // Find the organized corte's tamanho through the arte's molde — the same
+      // query Size Selection makes (the molde's cortes, 01/10/2026).
+      const tamanhoId = await page.evaluate(async ({ pecaId }) => {
+        const moldeUuid = document.querySelector("#size-selection-section").dataset.sizeCascadeMoldeUuidValue;
+        const r = await fetch(`/tamanhos/for_cascade?molde_uuid=${moldeUuid}&peca_uuid=${pecaId}`);
         const all = await r.json();
         const found = all.find(t => t.nome === "99");
         return found ? found.id : null;
-      }, { token: csrf, modeloId, pecaId });
+      }, { pecaId });
 
       if (!tamanhoId) throw new Error("Tamanho '99' not found via for_cascade API");
 
@@ -366,5 +370,60 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       if (fs.existsSync(orgPath)) fs.unlinkSync(orgPath);
     }
 
+  });
+
+  // Regression (01/10/2026): a molde moved to the official "Tenis" while its
+  // corte kept the old category; Size Selection filtered by category and
+  // listed no piece, so the size couldn't be chosen. It lists the molde's
+  // own cortes now.
+  await test("Size Selection lists the molde's corte even when it carries another category", async () => {
+    const UNIQ = `SC${Date.now()}`;
+    const dxf = path.join(__dirname, `e2e-corte-sc-${UNIQ}.dxf`);
+    const arte = path.join(__dirname, `e2e-arte-sc-${UNIQ}.tif`);
+    fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "29-30.dxf"), dxf);
+    require("child_process").execSync(`convert -size 40x40 xc:green 'TIFF:${arte}'`);
+    try {
+      await page.goto(BASE_URL);
+      await uploadFileAndWait(page, [ dxf, arte ]);
+    } finally {
+      for (const f of [ dxf, arte ]) if (fs.existsSync(f)) fs.unlinkSync(f);
+    }
+    const uuidDe = async (nome) => (await page.locator(".stamp-card").filter({ hasText: nome }).first().locator("a").first().getAttribute("href")).split("/").pop();
+    const corteUuid = await uuidDe(`e2e-corte-sc-${UNIQ}`);
+    const arteUuid = await uuidDe(`e2e-arte-sc-${UNIQ}`);
+    const tenis = await modeloOficial(page, "Tenis");
+    const jogging = await modeloOficial(page, "Jogging");
+    const ok = await page.evaluate(async ({ UNIQ, corteUuid, arteUuid, tenis, jogging }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const post = (url, campos) => fetch(url, { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) });
+      const achar = async (url, chave, valor) => (await (await fetch(url)).json()).find((r) => r[chave] === valor)?.id;
+      await post("/clients", { "client[name]": `SC Client ${UNIQ}`, "client[responsible]": "T" });
+      const client = await achar(`/clients/search?q=SC Client ${UNIQ}`, "name", `SC Client ${UNIQ}`);
+      await post("/pecas", { "peca[nome]": `SC Peca ${UNIQ}` });
+      const peca = await achar(`/pecas/search?q=SC Peca ${UNIQ}`, "nome", `SC Peca ${UNIQ}`);
+      await post("/moldes", { "molde[sufixo]": `SC ${UNIQ}`, "molde[client_uuid]": client, "molde[modelo_uuid]": tenis.id });
+      const molde = await achar(`/moldes/search?q=SC ${UNIQ}`, "sufixo", `SC ${UNIQ}`);
+      const passos = [
+        await post(`/arquivos/${corteUuid}/update_client`, { _method: "patch", client_uuid: client }),
+        // The corte keeps another category ("Jogging") than its molde ("Tenis").
+        await post(`/arquivos/${corteUuid}/organize`, { _method: "patch", modelo_uuid: jogging.id, peca_uuid: peca,
+          "tamanhos[0][nome]": "29-30", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000" }),
+        await post(`/arquivos/${corteUuid}/add_molde`, { molde_uuid: molde }),
+        await post(`/arquivos/${arteUuid}/update_client`, { _method: "patch", client_uuid: client }),
+        await post(`/arquivos/${arteUuid}/update_molde`, { _method: "patch", molde_uuid: molde })
+      ];
+      return passos.every((r) => r.ok);
+    }, { UNIQ, corteUuid, arteUuid, tenis, jogging });
+    if (!ok) throw new Error("Setup failed");
+    // The automatic size search runs in the queue and refreshes the page when
+    // it ends; wait for it so the page doesn't reload under the test.
+    await waitForQueuedTask(page, `/arquivos/${arteUuid}/busca_tamanho.json`);
+
+    await page.goto(`${BASE_URL}/arquivos/${arteUuid}`);
+    const secao = page.locator("#size-selection-section");
+    if (await secao.locator(".btn-edit").count()) await secao.locator(".btn-edit").click();
+    await secao.locator(`select[data-size-cascade-target="pecaSelect"] option`, { hasText: `SC Peca ${UNIQ}` }).waitFor({ state: "attached", timeout: 10000 });
+    await secao.locator(`select[data-size-cascade-target="pecaSelect"]`).selectOption({ label: `SC Peca ${UNIQ}` });
+    await secao.locator(`select[data-size-cascade-target="tamanhoSelect"] option`, { hasText: "29-30" }).waitFor({ state: "attached", timeout: 10000 });
   });
 });

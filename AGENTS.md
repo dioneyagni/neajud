@@ -691,6 +691,12 @@ company: `config/catalogo_oficial.yml`, with fixed uuids.
   `Arquivo.cortes_do_molde` and `MoldMatchService` only take cortes of the
   molde's / arte's client (an arte picked another client's corte and sizes
   when the fallback didn't).
+- **A molde's cortes come from the molde, never from "the category":** the
+  arte's Size Selection (`/pecas/for_cascade` and `/tamanhos/for_cascade`,
+  called with `molde_uuid`) lists `Arquivo.cortes_do_molde` like the automatic
+  search and the pedido. Filtering by category + client listed nothing once a
+  molde moved to the official "Tenis" while its cortes kept the old category,
+  and could list another molde's cortes (fixed 01/10/2026).
 - E2E: `e2e/support/catalogo.js` (`modeloOficial`, `adicionarPartes`); specs
   pick an official modelo instead of registering one — use a different one
   per spec when cortes could meet in the fallback.
