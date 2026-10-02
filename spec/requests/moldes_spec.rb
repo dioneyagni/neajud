@@ -46,6 +46,19 @@ RSpec.describe "Moldes", type: :request do
       expect(response.body).to include("Corte ausente")
     end
 
+    # Etapa 1.2 (1/3): only a warning — the corte stays usable.
+    it "warns when a part's corte doesn't cover the molde's grade" do
+      client = create(:client)
+      peca = create(:peca, nome: "Frente")
+      molde = create(:molde, client: client, modelo: create(:modelo), tamanho_inicial: "24", tamanho_final: "26", partes: [ peca ])
+      corte = create(:arquivo, :corte, client: client, modelo: molde.modelo, peca: peca, organized: true, tipo_grade: "par")
+      corte.moldes << molde
+      create(:tamanho, arquivo: corte, nome: "23-24", numeros: %w[23 24])
+
+      get molde_path(molde)
+      expect(response.body).to include("⚠ Grade: #{molde.nome}: faltam 25, 26")
+    end
+
     # Etapa 1.1 (3/5): a category has no parts, so nothing is copied from it.
     it "shows a molde without parts as such, and offers the company's pieces" do
       create(:peca, nome: "Manga")

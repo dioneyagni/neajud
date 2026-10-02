@@ -637,6 +637,32 @@ RSpec.describe "Arquivos", type: :request do
       expect(response.body).to include("<turbo-stream")
     end
 
+    it "saves the grade type and each size's individual sizes (Etapa 1.2, 1/3)" do
+      arquivo = create(:arquivo, :corte)
+      create(:tamanho, arquivo: arquivo, position: 1, nome: "Size 1")
+
+      patch organize_arquivo_path(arquivo), params: { tipo_grade: "pmg", tamanhos: { "0" => { rotulo: "p", tamanhos: "33-34" } } }
+      tamanho = arquivo.tamanhos.reload.first
+      expect([ arquivo.reload.tipo_grade, tamanho.nome, tamanho.numeros ]).to eq([ "pmg", "P", %w[33 34] ])
+    end
+
+    it "refuses sizes that don't fit the grade type and saves nothing" do
+      peca = create(:peca)
+      arquivo = create(:arquivo, :corte)
+      create(:tamanho, arquivo: arquivo, position: 1, nome: "24")
+
+      patch organize_arquivo_path(arquivo), params: { peca_uuid: peca.uuid, tipo_grade: "par", tamanhos: { "0" => { tamanhos: "24-25" } } }
+      follow_redirect!
+      expect(response.body).to include("Size 1: &quot;24-25&quot; isn&#39;t a Par pair")
+      expect([ arquivo.reload.organized, arquivo.peca_id, arquivo.tipo_grade, arquivo.tamanhos.pluck(:nome) ]).to eq([ false, nil, nil, [ "24" ] ])
+    end
+
+    it "refuses an unknown grade type" do
+      arquivo = create(:arquivo, :corte)
+      patch organize_arquivo_path(arquivo), params: { tipo_grade: "dupla" }
+      expect(arquivo.reload.tipo_grade).to be_nil
+    end
+
     it "allows organize when peca taken but arquivo has no linked moldes" do
       molde = create(:molde)
       modelo = create(:modelo)

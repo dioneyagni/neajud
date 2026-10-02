@@ -60,6 +60,9 @@
                           </span>
                         <% end %>
                       </span>
+                      <% if (aviso = CoberturaDaGrade.aviso_do_molde(mp.corte_arquivo, @molde)) %>
+                        <span class="aviso-cobertura-grade">⚠ Grade: <%= aviso.descricao %></span>
+                      <% end %>
                     <% else %>
                       <span class="molde-peca-status molde-peca-status--missing">
                         Corte ausente

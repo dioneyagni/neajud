@@ -25,8 +25,10 @@ export default class extends Controller {
   }
 
   resetFormValues() {
-    this.element.querySelectorAll("input[data-original-value]").forEach(input => {
-      input.value = input.dataset.originalValue
+    this.element.querySelectorAll("input[data-original-value], select[data-original-value]").forEach(field => {
+      field.value = field.dataset.originalValue
+      // A select's dependents (the grade type's label column) follow its change event.
+      if (field.tagName === "SELECT") field.dispatchEvent(new Event("change"))
     })
   }
 

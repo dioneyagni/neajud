@@ -29,6 +29,7 @@ class Arquivo < ApplicationRecord
 
   recusa_excluido :client, :molde, :modelo, :peca
   before_validation :herdar_cliente_do_molde
+  validates :tipo_grade, inclusion: { in: GradeDoCorte::TIPOS.keys, message: "%{value} is not a grade type; expected one of par, impar, pmg, furada" }, allow_nil: true
   after_update_commit :atualizar_rascunhos_sem_cliente, if: :saved_change_to_client_id?
   validates :filename, presence: true
   validates :extension, presence: true

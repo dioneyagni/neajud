@@ -460,6 +460,48 @@ section {
   font-size: 0.9rem;
 }
 
+.tamanho-rotulo {
+  width: 110px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.tamanho-rotulo[hidden] {
+  display: none;
+}
+
+.tamanho-numeros {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* Etapa 1.2 (1/3): grade type of a corte */
+.tipo-grade-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.tipo-grade-deduzido,
+.tipo-grade-display {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.aviso-cobertura-grade {
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.6rem;
+  background: #fff8e1;
+  border: 1px solid #f0d58a;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #6b5200;
+}
+
 .tamanho-download {
   text-decoration: none;
   margin-left: 0.5rem;

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -144,6 +144,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_150000) do
     t.integer "restored_by_id"
     t.integer "tamanho_id"
     t.string "tipo_corte"
+    t.string "tipo_grade"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
@@ -472,6 +473,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_150000) do
     t.decimal "height_mm", precision: 10, scale: 2
     t.decimal "inner_lines_mm"
     t.string "nome", null: false
+    t.json "numeros", default: [], null: false
     t.decimal "perimeter_mm"
     t.integer "position"
     t.string "preview_file"
