@@ -36,4 +36,23 @@ module ArquivosHelper
     tamanhos = corte&.tamanhos.presence || arquivo.tamanhos
     tamanhos.map { |t| { nome: t.nome } }
   end
+
+  # The grade shown in the Mold Organization form: the corte's own, else the
+  # one deduced from the detected names (Etapa 1.2, 1/3) — nil when nothing
+  # can be deduced ("Size 1").
+  # Usage: grade_proposta(corte) # => { tipo: "par", tamanhos: [{ nome: "23-24", numeros: %w[23 24] }, …] }
+  def grade_proposta(corte)
+    return { tipo: corte.tipo_grade, tamanhos: corte.tamanhos.map { |t| { nome: t.nome, numeros: t.numeros } } } if corte.tipo_grade
+
+    GradeDoCorte.deduzir(corte.tamanhos.map(&:nome))
+  end
+
+  # What goes in a size's field: the pair "29-30", the furada's "24-25-26",
+  # the P's numbers "33-34" (blank until known) — or the name without a type.
+  # Usage: tamanhos_no_campo(tipo: "pmg", nome: "P", numeros: %w[33 34]) # => "33-34"
+  def tamanhos_no_campo(tipo:, nome:, numeros:)
+    return nome if tipo.nil? || %w[par impar].include?(tipo)
+
+    numeros.join("-")
+  end
 end

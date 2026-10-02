@@ -676,6 +676,32 @@ addressed by tamanho name inside their item — don't need one).
 - Tests: `spec/requests/uuid_publico_spec.rb` checks pages, JSON endpoints and
   forms; add a row when you add an endpoint.
 
+## Grade type of a corte (Etapa 1.2, 1/3)
+
+A corte has a `tipo_grade` (`GradeDoCorte::TIPOS`: par, impar, pmg, furada)
+and each `Tamanho` keeps its label in `nome` (what the arte's full name and
+the pedido show, e.g. "29-30", "P") plus `numeros`, the individual sizes it
+serves (strings, like `Molde#grade`).
+
+- **Deduction:** while a corte has no type, the Mold Organization form is
+  prefilled by `GradeDoCorte.deduzir` (`grade_proposta` helper). One number
+  per size is the **last** of the pair ("24, 26…" → Par 23-24…; "35, 37…" →
+  Ímpar 34-35…); written ranges stay; "Size N" deduces nothing. The DXF
+  detection takes the numbers from the range in the filename ("35 AO 43").
+- **Saving:** `organize` reads every row first (`TamanhoReplacementService`
+  with `tipo:` → `GradeDoCorte.ler`, which raises `Invalido` naming the value
+  and the expected shape); one bad row refuses the whole save, nothing
+  written. Tamanhos are updated **in place by position** — uuid, preview,
+  extracted DXF and linked artes stay; only rows past the new list go.
+- **Coverage** (`CoberturaDaGrade`) is a **warning, never a block** (decided
+  01/10/2026): missing / repeated numbers of `Molde#grade`, shown on the corte
+  page (linked moldes) and on the molde page's parts.
+- ⚠️ Pedido grades (`itens_pedido_grade.tamanho_nome`) are keyed by the
+  tamanho's name: relabeling an old corte ("24" → "23-24") leaves draft pedidos
+  pointing at the old name. Fine for the sample data; Etapa 1.2 (3/3) rebuilds
+  the pedido on individual sizes.
+- E2E: `e2e/arquivos-tipo-grade.spec.js`.
+
 ## Official catalog (Etapa 1.1, 3/5)
 
 Produto (with its grade of individual sizes) and Modelo (the category, with

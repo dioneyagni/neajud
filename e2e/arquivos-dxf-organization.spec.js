@@ -202,7 +202,8 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     const tamanhoRows = await page.$$(".tamanho-row");
     if (tamanhoRows.length !== 5) throw new Error(`Expected 5 tamanho rows, got ${tamanhoRows.length}`);
 
-    const expectedNames = ["35", "37", "39", "41", "43"];
+    // Etapa 1.2 (1/3): one odd number per size is deduced as Ímpar pairs.
+    const expectedNames = ["34-35", "36-37", "38-39", "40-41", "42-43"];
     for (let i = 0; i < tamanhoRows.length; i++) {
       const row = tamanhoRows[i];
       const input = await row.$(".tamanho-input");

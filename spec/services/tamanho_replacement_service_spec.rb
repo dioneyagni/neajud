@@ -28,11 +28,32 @@ RSpec.describe TamanhoReplacementService do
     expect(corte.tamanhos.reload.order(:position).pluck(:preview_file)).to eq([ "/previews/1.svg", "/previews/2.svg", nil ])
   end
 
-  it "unlinks artes that pointed at the old tamanhos" do
-    old = create(:tamanho, arquivo: corte, position: 1)
+  it "updates the tamanhos in place: same uuid, the arte stays linked" do
+    old = create(:tamanho, arquivo: corte, position: 1, nome: "24")
     arte = create(:arquivo, tamanho: old)
+    described_class.call(corte, submitted("0" => { tamanhos: "24" }), tipo: "par")
+    expect([ corte.tamanhos.reload.pluck(:uuid), arte.reload.tamanho_id ]).to eq([ [ old.uuid ], old.id ])
+  end
+
+  it "unlinks only the artes of tamanhos past the new list" do
+    create(:tamanho, arquivo: corte, position: 1)
+    sobra = create(:tamanho, arquivo: corte, position: 2)
+    arte = create(:arquivo, tamanho: sobra)
     described_class.call(corte, submitted("0" => { nome: "P" }))
-    expect(arte.reload.tamanho_id).to be_nil
+    expect([ corte.tamanhos.reload.count, arte.reload.tamanho_id ]).to eq([ 1, nil ])
+  end
+
+  it "saves the label and the individual sizes of the grade type" do
+    described_class.call(corte, submitted("0" => { tamanhos: "30" }, "1" => { rotulo: "", tamanhos: "31-32" }), tipo: "par")
+    expect(corte.tamanhos.reload.order(:position).map { |t| [ t.nome, t.numeros ] }).to eq([ [ "29-30", %w[29 30] ], [ "31-32", %w[31 32] ] ])
+  end
+
+  it "refuses the whole list when a row doesn't fit the type, saving nothing" do
+    create(:tamanho, arquivo: corte, position: 1, nome: "24")
+    substituicao = described_class.new(corte, submitted("0" => { tamanhos: "30" }, "1" => { tamanhos: "31-32-33" }), tipo: "par")
+    expect(substituicao.erro).to start_with('Size 2: "31-32-33" isn\'t a Par pair')
+    expect { substituicao.call }.to raise_error(ArgumentError, /Refused tamanhos/)
+    expect(corte.tamanhos.reload.pluck(:nome)).to eq([ "24" ])
   end
 
   it "ignores fields the form is not allowed to set" do

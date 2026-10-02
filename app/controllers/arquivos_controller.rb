@@ -259,38 +259,13 @@ class ArquivosController < ApplicationController
   end
 
   def organize
-    update_attrs = { organized: true }
-    update_attrs[:modelo_uuid] = params[:modelo_uuid] if params[:modelo_uuid].present?
-    update_attrs[:peca_uuid] = params[:peca_uuid] if params[:peca_uuid].present?
-    update_attrs[:modelo_nome] = params[:modelo_nome].presence if params[:modelo_nome].present?
-    update_attrs[:peca_nome] = params[:peca_nome].presence if params[:peca_nome].present?
+    # Etapa 1.2 (1/3): the grade type and each size, read before saving.
+    substituicao = TamanhoReplacementService.new(@arquivo, params[:tamanhos], tipo: params[:tipo_grade]) if params[:tamanhos].respond_to?(:values)
+    return recusar_organizacao(substituicao.erro) if substituicao&.erro
+    return recusar_organizacao("Esta peça já possui um corte organizado para este molde.") if peca_ocupada?
+    return recusar_organizacao(@arquivo.errors.full_messages.join(", ")) unless @arquivo.update(atributos_da_organizacao)
 
-    peca_id = Peca.por_uuid!(params[:peca_uuid]).id if params[:peca_uuid].present?
-    if peca_id && @arquivo.corte?
-      conflicting = @arquivo.moldes.any? { |m|
-        c = Arquivo.conflicting_corte(peca_id: peca_id, molde: m)
-        c && c.id != @arquivo.id
-      }
-      if conflicting
-        flash.now[:alert] = "Esta peça já possui um corte organizado para este molde."
-        respond_to do |format|
-          format.turbo_stream
-          format.html { redirect_to @arquivo, alert: flash.now[:alert] }
-        end
-        return
-      end
-    end
-
-    unless @arquivo.update(update_attrs)
-      flash.now[:alert] = @arquivo.errors.full_messages.join(", ")
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to @arquivo, alert: flash.now[:alert] }
-      end
-      return
-    end
-
-    TamanhoReplacementService.call(@arquivo, params[:tamanhos]) if params[:tamanhos].respond_to?(:values)
+    substituicao&.call
 
     # Etapa 0.6: the heavy part (re-detection, each size's DXF and preview)
     # runs in PreparacaoTamanhosJob; the page shows "Preparando os tamanhos…".
@@ -305,6 +280,32 @@ class ArquivosController < ApplicationController
       format.html { redirect_to @arquivo, notice: "Mold organization saved." }
     end
   end
+
+  def atributos_da_organizacao
+    atributos = { organized: true }
+    %i[modelo_uuid peca_uuid modelo_nome peca_nome].each { |campo| atributos[campo] = params[campo] if params[campo].present? }
+    atributos[:tipo_grade] = params[:tipo_grade].presence if params.key?(:tipo_grade)
+    atributos
+  end
+  private :atributos_da_organizacao
+
+  def recusar_organizacao(mensagem)
+    flash.now[:alert] = mensagem
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @arquivo, alert: mensagem }
+    end
+  end
+  private :recusar_organizacao
+
+  # Another organized corte of one of this corte's moldes already has the peça.
+  def peca_ocupada?
+    return false unless params[:peca_uuid].present? && @arquivo.corte?
+
+    peca_id = Peca.por_uuid!(params[:peca_uuid]).id
+    @arquivo.moldes.any? { |m| (c = Arquivo.conflicting_corte(peca_id: peca_id, molde: m)) && c.id != @arquivo.id }
+  end
+  private :peca_ocupada?
 
   # Etapa 0.4: goes to the trash; the row, its versions and the files in
   # storage/stamps/<uuid> stay, so pedidos that use it keep their previews

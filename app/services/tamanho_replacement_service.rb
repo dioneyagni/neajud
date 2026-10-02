@@ -1,46 +1,74 @@
-# Replaces a corte's tamanhos with the list submitted by the Mold Organization
-# form (keyed "0", "1", … and ordered numerically). Preview images are kept by
-# position, since the form only sends names and measurements. Artes linked to
-# the old tamanhos are unlinked first: those rows are destroyed, and the arte
-# must be re-matched against the new list.
+# Saves a corte's tamanhos from the Mold Organization form (rows keyed "0",
+# "1", … and ordered numerically) — Etapa 1.2 (1/3): read with the corte's
+# grade type (GradeDoCorte: the label and the individual sizes it serves).
 #
-# Usage: TamanhoReplacementService.call(corte, params[:tamanhos])
+# Rows are matched to the existing tamanhos by position and **updated in
+# place**: their previews, extracted DXFs, uuid and the artes linked to them
+# stay. Before, every save destroyed and recreated them, unlinking every arte
+# — so re-saving an organization to set its grade type would have cut the
+# artes off their sizes. Only tamanhos past the new list are removed (and
+# their artes unlinked).
+#
+# Everything is read before anything is written: `erro` tells why a row was
+# refused, and `call` refuses to run then.
+#
+# Usage:
+#   substituicao = TamanhoReplacementService.new(corte, params[:tamanhos], tipo: "par")
+#   substituicao.erro # => nil, or "Size 2: \"30-31\" isn't a Par pair; …"
+#   substituicao.call
 class TamanhoReplacementService
-  FIELDS = %w[nome position width_mm height_mm area_mm2].freeze
+  FIELDS = %w[nome tamanhos rotulo width_mm height_mm area_mm2].freeze
+  MEDIDAS = %w[width_mm height_mm area_mm2].freeze
 
-  def self.call(corte, submitted)
-    new(corte, submitted).call
+  attr_reader :erro
+
+  # Kept for callers without a grade type (the name is the label).
+  def self.call(corte, submitted, tipo: nil)
+    new(corte, submitted, tipo: tipo).call
   end
 
-  def initialize(corte, submitted)
+  def initialize(corte, submitted, tipo: nil)
     @corte = corte
-    @submitted = submitted
+    @tipo = tipo.presence
+    @linhas = ler_linhas(submitted)
+  rescue GradeDoCorte::Invalido => e
+    @erro = e.message
   end
 
   def call
-    previews_by_position = @corte.tamanhos.to_h { |t| [ t.position, t.preview_file ] }
-    Arquivo.where(tamanho_id: @corte.tamanhos.pluck(:id)).update_all(tamanho_id: nil)
-    @corte.tamanhos.destroy_all
-    ordered_rows.each.with_index(1) do |row, position|
-      create_tamanho(row, position, previews_by_position[position])
-    end
+    raise ArgumentError, "Refused tamanhos for #{@corte.filename.inspect}: #{erro}" if erro
+
+    existentes = @corte.tamanhos.index_by(&:position)
+    @linhas.each.with_index(1) { |linha, posicao| salvar(existentes.delete(posicao), linha, posicao) }
+    remover(existentes.values)
   end
 
   private
 
-  def ordered_rows
-    raw = @submitted.is_a?(ActionController::Parameters) ? @submitted.to_unsafe_h : @submitted
-    raw.sort_by { |key, _| key.to_i }.map { |_, row| row.is_a?(Hash) ? row.slice(*FIELDS) : row }
+  def ler_linhas(submitted)
+    raw = submitted.is_a?(ActionController::Parameters) ? submitted.to_unsafe_h : submitted
+    raw.sort_by { |key, _| key.to_i }.each.with_index(1).map do |(_, row), posicao|
+      row = row.slice(*FIELDS)
+      ler_grade(row, posicao).merge(row.slice(*MEDIDAS).symbolize_keys)
+    end
   end
 
-  def create_tamanho(row, position, preview)
-    @corte.tamanhos.create!(
-      nome: row["nome"].presence || "Size #{position}",
-      position: position,
-      width_mm: row["width_mm"],
-      height_mm: row["height_mm"],
-      area_mm2: row["area_mm2"],
-      preview_file: preview
-    )
+  def ler_grade(row, posicao)
+    # No grade type yet: what was typed is just the name, as before 1.2.
+    return { nome: row["tamanhos"].presence || row["nome"].presence || "Size #{posicao}", numeros: [] } unless @tipo
+
+    GradeDoCorte.ler(@tipo, rotulo: row["rotulo"], tamanhos: row["tamanhos"].presence || row["nome"])
+  rescue GradeDoCorte::Invalido => e
+    raise GradeDoCorte::Invalido, "Size #{posicao}: #{e.message}"
+  end
+
+  def salvar(tamanho, linha, posicao)
+    atributos = linha.merge(position: posicao)
+    tamanho ? tamanho.update!(atributos) : @corte.tamanhos.create!(atributos)
+  end
+
+  def remover(tamanhos)
+    Arquivo.where(tamanho_id: tamanhos.map(&:id)).update_all(tamanho_id: nil)
+    tamanhos.each(&:destroy!)
   end
 end
