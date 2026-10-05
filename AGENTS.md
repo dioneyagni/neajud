@@ -782,8 +782,8 @@ search and (until part 2) the client approval stay per file.
   chosen). Sending: `POST /artes` makes each group's empty arte, then each
   file goes to `POST /arquivos` with `arquivo[arte_uuid|peca_uuid|tamanho_rotulo|papel]`
   (`Arte#novo_arquivo` copies the arte's fields; a DXF never joins an arte).
-- E2E: one card per arte, so `waitForProcessed` finds a grouped file through
-  the card that lists it (`data-arte-arquivos`, `data-arte-em-fila` —
+- One card per arte: it lists its files (`data-arte-arquivos`) and keeps
+  polling while any of them is queued (`data-arte-em-fila`,
   `dados_da_arte_no_card`). A spec whose files must group by name writes them
   outside the repo (an `e2e-` prefix would be read as part of the name) —
   `e2e/upload-agrupamento.spec.js`.
@@ -1030,8 +1030,12 @@ Gotchas found while building it:
   every 2s until the state is final (card: swaps itself via turbo-stream; pages:
   reload). The E2E "Without the live connection…" blocks WebSocket to prove it.
 - E2E: `uploadFileAndWait` / `submitUploadAndWait` (`e2e/support/upload.js`)
-  wait for the newest card of each uploaded file to leave "pending"/"processing"
-  (`waitForProcessed`), so specs can keep assuming a processed file.
+  wait for **the files the upload created** — `POST /arquivos` answers JSON
+  `{ uuid, arte_uuid }`, `upload_controller.js` keeps them in the form's
+  `data-upload-enviados` — polling `processamento.json` until final, so specs
+  can keep assuming a processed file. Waiting for a card by file name was
+  satisfied by an older namesake (CI 05/10/2026: a processed `01-no_spot.tif`
+  while the new `01-no_spot.psd` was still processing).
 
 ## db/seeds.rb is empty on purpose
 

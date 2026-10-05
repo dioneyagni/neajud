@@ -5,9 +5,9 @@ const UPLOAD_TIMEOUT = 15000;
 const PROCESSING_TIMEOUT = 45000;
 
 // Clicks upload and waits until upload_controller.js reports every POST
-// finished, reloads the gallery, then waits until each uploaded file's card
-// leaves "pending"/"processing". Waiting for ".stamp-card" or a fixed timeout
-// is not enough: the pre-upload gallery already matches, so the next step
+// finished, then until each created file (by its uuid) leaves
+// "pending"/"processing", and reloads the gallery. Waiting for ".stamp-card"
+// or a fixed timeout is not enough: the pre-upload gallery already matches, so the next step
 // could navigate while the upload (and now the queued job) was still running —
 // "DXF Mold Organization: shows …" then saw a 29-30 with no tamanho rows.
 // Usage: await submitUploadAndWait(page, 2) after selecting two files.
@@ -22,28 +22,28 @@ async function submitUploadAndWait(page, expectedCount, timeout = UPLOAD_TIMEOUT
   const status = await page.inputValue('input[type="submit"]');
   const expected = `Upload complete (${expectedCount} ok, 0 failed)`;
   if (status !== expected) throw new Error(`Upload failed: got "${status}", expected "${expected}"`);
+  // The files this upload created (upload_controller.js): waiting by name was
+  // satisfied by an older namesake card — CI 05/10/2026, "01-no_spot" (TIF,
+  // processed) while the new 01-no_spot.psd was still processing.
+  const uuids = (await page.$eval('form[data-controller="upload"]', (f) => f.dataset.uploadEnviados || "")).split(" ").filter(Boolean);
+  if (uuids.length !== expectedCount) throw new Error(`Expected ${expectedCount} created files, the upload reported ${uuids.length}`);
+  await waitForUploadedProcessed(page, uuids, names);
   await page.reload();
-  await waitForProcessed(page, names);
 }
 
-// Waits until the newest gallery card of each file (by name, extension
-// ignored) has a final data-status (processed, failed, …). The gallery swaps
-// the card by broadcast when the queued job finishes; no reload needed.
-// Usage: await waitForProcessed(page, ["e2e-arte.tif"])
-async function waitForProcessed(page, fileNames, timeout = PROCESSING_TIMEOUT) {
-  const bases = fileNames.map((name) => name.replace(/\.[^.]+$/, ""));
-  try {
-    // Etapa 1.2 (2/3): one card per arte — a file grouped into an arte is
-    // found through the card that lists it (data-arte-arquivos).
-    await page.waitForFunction((bases) => bases.every((base) => {
-      const card = [...document.querySelectorAll(".stamp-card")].find((c) =>
-        c.dataset.filename === base || (c.dataset.arteArquivos || "").split("|").includes(base));
-      return card && !["pending", "processing"].includes(card.dataset.status) && card.dataset.arteEmFila !== "true";
-    }), bases, { timeout });
-  } catch {
-    const states = await page.$$eval(".stamp-card", (cards) => cards.slice(0, 10).map((c) => `${c.dataset.filename}=${c.dataset.status}`));
-    throw new Error(`Processing did not finish within ${timeout}ms for ${bases.join(", ")}; newest cards: ${states.join(", ")}`);
+// Polls each created file's processing state until it is final, through
+// page.request (same session cookies): the gallery reloads itself 1.5 s after
+// an upload, which destroyed a page.evaluate mid-poll; and page.waitForFunction
+// takes the Promise of an async check as already truthy.
+async function waitForUploadedProcessed(page, uuids, names, timeout = PROCESSING_TIMEOUT) {
+  const base = new URL(page.url()).origin;
+  const limite = Date.now() + timeout;
+  while (Date.now() < limite) {
+    const finais = await Promise.all(uuids.map(async (uuid) => (await (await page.request.get(`${base}/arquivos/${uuid}/processamento.json`)).json()).final));
+    if (finais.every(Boolean)) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
+  throw new Error(`Processing did not finish within ${timeout}ms for ${names.join(", ")}`);
 }
 
 // Usage: await uploadFileAndWait(page, "a.tif") or uploadFileAndWait(page, [dxf, tif])
@@ -53,4 +53,4 @@ async function uploadFileAndWait(page, filePaths) {
   await submitUploadAndWait(page, files.length);
 }
 
-module.exports = { UPLOAD_TIMEOUT, submitUploadAndWait, uploadFileAndWait, waitForProcessed };
+module.exports = { UPLOAD_TIMEOUT, submitUploadAndWait, uploadFileAndWait };

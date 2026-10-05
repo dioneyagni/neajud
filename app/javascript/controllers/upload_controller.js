@@ -146,6 +146,7 @@ export default class extends Controller {
 
     let success = 0
     let failure = 0
+    const enviados = []
     await this.agrupando
     const plano = this.conferencia ? await this.conferencia.plano(() => this.criarArte()) : this.files.map((_, indice) => ({ indice, campos: {} }))
 
@@ -166,18 +167,16 @@ export default class extends Controller {
         const resp = await fetch(this.element.action, {
           method: "POST",
           body: fd,
-          headers: { "Accept": "text/vnd.turbo-stream.html, text/html, text/plain" },
+          headers: { "Accept": "application/json" },
           credentials: "same-origin"
         })
-        if (resp.ok || resp.redirected) {
+        const corpo = await resp.json().catch(() => ({}))
+        if (resp.ok) {
           success++
+          enviados.push(corpo.uuid)
           this.setStatus(file.name, "✓ uploaded")
         } else {
-          const text = await resp.text()
-          let msg = "failed"
-          const m = text.match(/class="error"[^>]*>([^<]+)/)
-          if (m) msg = m[1].trim()
-          this.setStatus(file.name, `✗ ${msg}`)
+          this.setStatus(file.name, `✗ ${corpo.error || "failed"}`)
           failure++
         }
       } catch {
@@ -186,6 +185,8 @@ export default class extends Controller {
       }
     }
 
+    // The created files' uuids: E2E waits for these, not for a card by name.
+    this.element.dataset.uploadEnviados = enviados.join(" ")
     this.submitTarget.value = `Upload complete (${success} ok, ${failure} failed)`
     setTimeout(() => window.location.reload(), 1500)
   }

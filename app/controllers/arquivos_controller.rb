@@ -33,19 +33,20 @@ class ArquivosController < ApplicationController
 
     unless file_uploaded?
       @arquivo.errors.add(:original_file, "select a file to upload")
-      load_gallery
-      return render :index, status: :unprocessable_content
+      return responder_upload_recusado
     end
 
     estimate_time!(@arquivo) if params.dig(:arquivo, :batch_started_at).present?
     ArquivoUploadService.call(params[:arquivo][:original_file], remote_ip: request.remote_ip, arquivo: @arquivo)
 
-    if @arquivo.persisted?
-      @arquivo.tornar_piloto! if params.dig(:arquivo, :papel) == "piloto"
-      redirect_to arquivos_path, notice: "Arquivo uploaded successfully. Processing started."
-    else
-      load_gallery
-      render :index, status: :unprocessable_content
+    return responder_upload_recusado unless @arquivo.persisted?
+
+    @arquivo.tornar_piloto! if params.dig(:arquivo, :papel) == "piloto"
+    respond_to do |format|
+      # upload_controller.js: which file was created, so whoever waits for its
+      # processing (E2E) waits for this one and not a namesake (05/10/2026).
+      format.json { render json: { uuid: @arquivo.uuid, arte_uuid: @arquivo.arte&.uuid }, status: :created }
+      format.html { redirect_to arquivos_path, notice: "Arquivo uploaded successfully. Processing started." }
     end
   end
 
@@ -380,6 +381,16 @@ class ArquivosController < ApplicationController
       batch_started_at: Time.parse(params[:arquivo][:batch_started_at]),
       batch_size: params[:arquivo][:batch_size].to_i
     )
+  end
+
+  def responder_upload_recusado
+    respond_to do |format|
+      format.json { render json: { error: @arquivo.errors.full_messages.to_sentence }, status: :unprocessable_content }
+      format.html do
+        load_gallery
+        render :index, status: :unprocessable_content
+      end
+    end
   end
 
   def arquivo_params

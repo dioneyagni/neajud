@@ -51,6 +51,16 @@ RSpec.describe "Upload grouping", type: :request do
       expect([ novo.arte_id, novo.molde_id, novo.client_id, novo.nome ]).to eq([ existente.arte_id, molde.id, molde.client_id, "Bluey" ])
     end
 
+    # upload_controller.js reports the created files; E2E waits for exactly these.
+    it "answers JSON with the created file and its arte, or the refusal" do
+      post arquivos_path, params: { arquivo: { original_file: upload("20-x.tif") } }, headers: { "Accept" => "application/json" }
+      novo = Arquivo.order(:id).last
+      expect([ response.status, response.parsed_body ]).to eq([ 201, { "uuid" => novo.uuid, "arte_uuid" => novo.arte.uuid } ])
+      falso = Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/test.svg"), "image/tiff", original_filename: "falso.tif")
+      post arquivos_path, params: { arquivo: { original_file: falso } }, headers: { "Accept" => "application/json" }
+      expect([ response.status, response.parsed_body["error"] ]).to match([ 422, /declared 'TIF'/ ])
+    end
+
     it "keeps a DXF sent with an arte a corte of its own" do
       dxf = Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/29-30.dxf"), "image/vnd.dxf")
       post arquivos_path, params: { arquivo: { original_file: dxf, arte_uuid: Arte.create!.uuid } }
