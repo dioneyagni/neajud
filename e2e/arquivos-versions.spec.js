@@ -17,9 +17,7 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "test-image" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
     // Verify version card shows v1 with Em uso badge
     const v1Card = page.locator(".version-card").filter({ hasText: "v1" }).first();
@@ -71,9 +69,7 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
 
       const arquivoLink = page.locator(".stamp-card").filter({ hasText: "e2e-approve-test" }).first().locator("a").first();
       await arquivoLink.waitFor({ timeout: 10000 });
-      await arquivoLink.click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
       // Upload a second version
       const multiPath = path.join(__dirname, "multi-frame-test.tif");
@@ -117,9 +113,7 @@ runSpec("Arquivos E2E: versions, download & details", async ({ page, test }) => 
     await page.waitForSelector(".stamp-card a", { timeout: 10000 });
 
     // Navigate to any arquivo's show page
-    await page.locator(".stamp-card a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(300);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator(".stamp-card a").first().click() ]);
 
     // Find download link and verify it points to download path
     const downloadLink = await page.$('a[href*="/download"]');

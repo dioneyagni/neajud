@@ -239,9 +239,7 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
     await page.goto(BASE_URL);
     await uploadFileAndWait(page, testImagePath);
     await page.waitForSelector(".stamp-card a");
-    await page.locator(".stamp-card a").first().click();
-    await page.waitForSelector("h2");
-    await page.waitForTimeout(300);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator(".stamp-card a").first().click() ]);
     const body = await page.textContent("body");
     if (!body.includes("Details")) throw new Error("Details section missing");
     if (!body.includes("Update Time")) throw new Error("Update Time section missing");
@@ -276,8 +274,7 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
   await test("Edit time updates the arquivo and creates history log", async () => {
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a");
-    await page.click(".stamp-card a");
-    await page.waitForSelector("h2");
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.click(".stamp-card a") ]);
 
     await page.click('#update-time-section [data-action="click->edit-toggle#edit"]');
     await page.waitForSelector("#annotated_seconds", { timeout: 5000 });
@@ -297,8 +294,7 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
     await page.waitForSelector(".stamp-card a");
 
     const firstCardHref = await page.locator(".stamp-card a").first().getAttribute("href");
-    await page.locator(".stamp-card a").first().click();
-    await page.waitForSelector("h2");
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator(".stamp-card a").first().click() ]);
 
     await page.click('button:has-text("Delete Arquivo")');
     await page.waitForTimeout(2000);

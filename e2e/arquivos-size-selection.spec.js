@@ -32,9 +32,7 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       if (sizeCardCount === 0) throw new Error("Arte arquivo card not found");
 
       const sizeLink = sizeCard.locator("a").first();
-      await sizeLink.click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), sizeLink.click() ]);
 
       const csrf = await page.evaluate(() => {
         const meta = document.querySelector("meta[name='csrf-token']");
