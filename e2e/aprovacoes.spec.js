@@ -54,8 +54,13 @@ runSpec("Aprovações E2E Tests", async ({ page, test }) => {
   await test("Send for approval on the arte page; the pedido then shows it waiting", async () => {
     await page.goto(`${BASE_URL}/arquivos/${arteUuid}`);
     await waitForText(page, "Not sent for approval.");
-    await page.click('#aprovacao-section button:has-text("Send for approval")');
-    await waitForText(page, "sent for approval.");
+    // Wait for the request itself: "Not sent for approval." (already on the
+    // page) contains "sent for approval." and let a stale page pass.
+    await Promise.all([
+      page.waitForResponse((r) => r.url().endsWith("/solicitacoes_aprovacao") && r.request().method() === "POST"),
+      page.click('#aprovacao-section button:has-text("Send for approval")')
+    ]);
+    await waitForText(page, "sent for approval (1 file).");
     await page.locator('#aprovacao-section[data-estado="aguardando"]').waitFor();
     await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     await waitForText(page, "Aguardando aprovação");
