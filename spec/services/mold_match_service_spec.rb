@@ -50,6 +50,18 @@ RSpec.describe MoldMatchService do
     corte
   end
 
+  # Regression (05/10/2026, 1 of 5 runs): outlines were written to
+  # Tempfile.new(...).path with the Tempfile dropped — when the GC collected
+  # it, its finalizer deleted the file mid-match and the search found nothing.
+  it "keeps a generated outline on disk after a garbage collection" do
+    arte = arte_with_preview
+    outline = described_class.new(arte).send(:generate_outline, arte.preview_file.to_s)
+    GC.start(full_mark: true, immediate_sweep: true)
+    expect(File.exist?(outline)).to be true
+  ensure
+    File.delete(outline) if outline && File.exist?(outline)
+  end
+
   describe ".call" do
     context "when arte has no preview_file" do
       it "returns nil" do
