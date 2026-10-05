@@ -75,7 +75,7 @@ class ArteArquivosController < ApplicationController
   # The new file shares the arte's fields; its size comes from the molde's
   # cortes when the arte has a molde, else from what was typed.
   def novo_arquivo_da_arte
-    novo = Arquivo.new(arte: @arquivo.arte, **@arquivo.attributes.slice(*MembroDeArte::CAMPOS_DA_ARTE).symbolize_keys)
+    novo = @arquivo.arte.novo_arquivo
     tamanho = tamanho_escolhido
     return com_tamanho_do_corte(novo, tamanho) if tamanho
 

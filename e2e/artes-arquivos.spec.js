@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { uploadFileAndWait } = require("./support/upload");
+const { submitUploadAndWait } = require("./support/upload");
 const { BASE_URL, runSpec } = require("./support/runner");
 
 // Etapa 1.2 (2/3): an arte is one envelope of files, one per part × size —
@@ -21,12 +21,18 @@ runSpec("Artes: files per part and size", async ({ page, test }) => {
     ]);
   }
 
-  await test("Two files uploaded apart are two artes, each with the size read from its name", async () => {
+  // Etapa 1.2 (2/3, parte 3): same name = one arte at upload; "Separate" in
+  // the conference keeps them apart (the next steps join them by hand).
+  await test("Separated in the upload's conference, two files are two artes, each with the size read from its name", async () => {
     const caminhos = Object.values(nomes).map((nome) => path.join(__dirname, `${nome}.tif`));
     caminhos.forEach((c) => fs.copyFileSync(fixture, c));
     try {
       await page.goto(BASE_URL);
-      await uploadFileAndWait(page, caminhos);
+      await page.setInputFiles('input[type="file"]', caminhos);
+      await page.locator(".conferencia-grupo").waitFor();
+      await page.locator(".conferencia-arquivo").filter({ hasText: nomes.g }).locator(".conferencia-separar").click();
+      if ((await page.locator(".conferencia-grupo").count()) !== 2) throw new Error("Separate should leave two groups");
+      await submitUploadAndWait(page, 2);
     } finally {
       caminhos.forEach((c) => fs.existsSync(c) && fs.unlinkSync(c));
     }
