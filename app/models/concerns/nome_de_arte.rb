@@ -26,9 +26,10 @@ module NomeDeArte
 
   # Usage: arte.artes_com_mesmo_nome.first # => the arte uploaded before it, if any
   def artes_com_mesmo_nome
-    return Arquivo.none unless arte_com_molde? && tamanho_id && nome.present?
+    # A piloto shares its size with a production file on purpose (Etapa 1.2, 2/3).
+    return Arquivo.none unless arte_com_molde? && tamanho_id && nome.present? && !piloto?
 
-    candidatas = Arquivo.ativos.where(category: "artes", molde_id: molde_id, referencia_id: referencia_id, tamanho_id: tamanho_id).where.not(id: id)
+    candidatas = Arquivo.ativos.where(category: "artes", molde_id: molde_id, referencia_id: referencia_id, tamanho_id: tamanho_id, papel: "producao").where.not(id: id)
     Arquivo.where(id: candidatas.select { |outra| TextoComparavel.iguais?(outra.nome, nome) }.map(&:id)).order(:created_at)
   end
 

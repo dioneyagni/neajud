@@ -760,6 +760,17 @@ search and (until part 2) the client approval stay per file.
 - ⚠️ Read the arte's requests/approvals with a query (`validas.first`), not
   the loaded list: a new Arte starts with its lists loaded (empty), so a
   request created right after was invisible to it.
+- **Piloto** (part 2b, decided 05/10/2026, `PapelNaArte`): `arquivos.papel`
+  is `producao` (default) or `piloto` — one piloto per part of an arte
+  (validated), the editable heavy master. It is in the approval's photo (a
+  new version of it undoes the approval); production files of its part made
+  before its newest version (v2 on) are `anterior_ao_piloto?` ("before the
+  current piloto", a warning). It is never "the same arte uploaded again" of a
+  production file (`artes_com_mesmo_nome` skips it). `ArteArquivosController`
+  `tornar_piloto` (optional `junto_de`: the other arte joins first — the
+  repeated-arte offer) / `voltar_para_producao`. For 3/3: production uses
+  `producao`; the piloto only covers a sample (an arte asked only in the
+  piloto's size with no production file for it).
 - Not yet: grouping at upload (part 3). Pedidos still point at a file until
   Etapa 1.2 (3/3).
 - E2E: `e2e/artes-arquivos.spec.js`.

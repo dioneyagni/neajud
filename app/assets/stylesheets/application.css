@@ -3093,7 +3093,8 @@ li.aprovacao--cancelada {
   font-weight: 600;
 }
 
-.arte-arquivo .arte-separar {
+.arte-arquivo .arte-separar,
+.arte-arquivo .arte-acao-inline {
   display: inline;
 }
 
@@ -3139,4 +3140,14 @@ li.aprovacao--cancelada {
   margin-left: 0.5rem;
   color: #7a5b00;
   font-size: 0.85rem;
+}
+
+/* Etapa 1.2 (2/3, parte 2b): each part's piloto (editable master) */
+.arte-arquivo--piloto {
+  border-left: 4px solid #b06d00;
+}
+
+.arte-arquivo-peso {
+  font-size: 0.8rem;
+  color: #5f6368;
 }

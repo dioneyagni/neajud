@@ -131,4 +131,34 @@ RSpec.describe "Arte files", type: :request do
     post arquivos_path, params: { arquivo: { original_file: upload } }
     expect(Arquivo.order(:id).last.attributes.values_at("tamanho_rotulo", "arte_id")).to match([ "29-30", be_present ])
   end
+
+  describe "the piloto (Etapa 1.2, 2/3 parte 2b)" do
+    it "makes a file its part's piloto and back, listed first with its weight" do
+      arquivo = create(:arquivo, filename: "a-29_30", tamanho_rotulo: "29-30")
+      outro = create(:arquivo, arte: arquivo.arte, filename: "a-piloto")
+      post tornar_piloto_arquivo_arte_path(outro)
+      expect(outro.reload.papel).to eq("piloto")
+      get arquivo_path(arquivo)
+      primeira = Nokogiri::HTML(response.body).css("#arte-arquivos .arte-arquivo").first
+      expect([ primeira["data-arquivo-uuid"], primeira.at_css(".arte-arquivo-tamanho").text ]).to eq([ outro.uuid, "★ Piloto" ])
+      post voltar_para_producao_arquivo_arte_path(outro)
+      expect(outro.reload.papel).to eq("producao")
+    end
+
+    it "from the repeated-arte offer: the older file of another arte joins this one as its piloto" do
+      molde = create(:molde)
+      corte = create(:arquivo, :corte, organized: true, client: molde.client, modelo: molde.modelo).tap { |c| c.moldes << molde }
+      trinta = create(:tamanho, arquivo: corte, nome: "29-30")
+      antigo = create(:arquivo, filename: "20-BLUEY AZUL", molde: molde, nome: "Bluey", tamanho: trinta)
+      novo = create(:arquivo, filename: "20-bluey-29_30", molde: molde, nome: "Bluey", tamanho: trinta)
+
+      get arquivo_path(novo)
+      expect(response.body).to include("Make 20-BLUEY AZUL the piloto of this part")
+      post tornar_piloto_arquivo_arte_path(antigo), params: { junto_de: novo.uuid }
+      expect(response).to redirect_to(arquivo_path(novo))
+      expect([ antigo.reload.arte_id, antigo.papel ]).to eq([ novo.arte_id, "piloto" ])
+      get arquivo_path(novo)
+      expect(response.body).not_to include("same arte uploaded again")
+    end
+  end
 end

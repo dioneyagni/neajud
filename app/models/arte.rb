@@ -17,14 +17,15 @@ class Arte < ApplicationRecord
     arquivos.ativos.order(:id).first
   end
 
-  # Active files by part (nil = part not known yet, last), each part in size
-  # order — the corte's order when the size is known, else the label.
+  # Active files by part (nil = part not known yet, last), each part with its
+  # piloto first, then in size order — the corte's order when the size is
+  # known, else the label.
   # Usage: arte.arquivos_por_parte.each { |peca, arquivos| … }
   def arquivos_por_parte
     ativos = arquivos.ativos.includes(:peca, :approved_version, tamanho: { arquivo: :peca }).to_a
     ativos.group_by(&:resolved_peca)
           .sort_by { |peca, _| [ peca ? 0 : 1, peca&.nome.to_s ] }
-          .to_h { |peca, lista| [ peca, lista.sort_by { |a| [ a.tamanho&.position || 9999, a.rotulo_de_tamanho.to_s, a.id ] } ] }
+          .to_h { |peca, lista| [ peca, lista.sort_by { |a| [ a.piloto? ? 0 : 1, a.tamanho&.position || 9999, a.rotulo_de_tamanho.to_s, a.id ] } ] }
   end
 
   # What the arte is called before its files say which part and size:
