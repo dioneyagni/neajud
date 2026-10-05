@@ -638,6 +638,8 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   `approve_version` route mean **"the version in use"**, not client approval.
   The UI says "Usar esta versão" / "Em uso"; keep "Aprovar/Aprovada" for
   `AprovacaoArte` only.
+- **Per arte since Etapa 1.2 (2/3, part 2)** — see "An arte is an envelope
+  of files": one request and one approval cover all the arte's files.
 - **Attachment** (`AnexoDeAprovacao`): PNG/JPEG/PDF by **first bytes** (no
   ImageMagick/Ghostscript in the request), ≤ 20 MB, stored at
   `<STORAGE_BASE>/<arquivo uuid>/aprovacoes/<aprovação uuid>.<ext>` — the path
@@ -732,17 +734,34 @@ search and (until part 2) the client approval stay per file.
   moving one to another molde or client; candidates are `artes_para_trazer`.
   `mesma_arte_em_outro_envelope` suggests, with its preview, an arte with
   the same molde, referência and nome.
-- ⚠️ A cold test server (eager_load off) processing two uploads at once can
-  fail one job with `undefined method 'arquivo_path'` while rendering the
-  card broadcast (seen only when running a spec by hand right after booting
-  the server; never in `bin/e2e` or CI, which eager-loads). Specs that need a
-  preview assert `data-status="processed"` so it can't pass unnoticed.
+- ⚠️ Rails 8 draws routes lazily outside eager_load, and a Solid Queue worker
+  is its own process: two jobs rendering the card broadcast at once right
+  after boot raced the drawing — one failed with `undefined method
+  'arquivo_path'` and its file stayed "failed" (development too).
+  `config/initializers/solid_queue.rb` draws them on worker start
+  (`SolidQueue.on_worker_start`). Specs that need a preview assert
+  `data-status="processed"` so a failed processing can't pass unnoticed.
 - **Size from the file name:** `NomeDoArquivo` reads it (`tamanho`: "29-30",
   "P"; measures dropped from the name) into `tamanho_rotulo` at upload;
   `TamanhoAutoAssignService` tries it before the outline matcher when exactly
   one size of the file's part's cortes serves it (`Tamanho#atende_rotulo?`).
-- Not yet: approval per arte (part 2), grouping at upload (part 3). Pedidos
-  still point at a file until Etapa 1.2 (3/3).
+- **Client approval is the arte's** (part 2, decided 02/10/2026): `Aprovavel`
+  is on `Arte`; `Arquivo` delegates `estado_aprovacao` & co. A request or an
+  approval (`VersaoDeArte`) has `arte_id` and photographs `arquivo_version_ids`
+  (the version in use of each active file) on create. Only the latest valid
+  one counts: valid while every photographed file still in the arte keeps that
+  version (and at least one is still there). A new version → "not sent" with
+  "changed after the last approval" (`alterado_depois_da_aprovacao?` names the
+  file); a file added later → still approved, marked "after the approval"
+  (`depois_da_aprovacao?`). Joining artes brings the history along.
+  `arquivo_id`/`arquivo_version_id` stay: the file whose page it came from
+  (the attachment path uses its uuid). The gallery card shows a compact badge
+  (`selo_aprovacao(arte, compacto: true)`).
+- ⚠️ Read the arte's requests/approvals with a query (`validas.first`), not
+  the loaded list: a new Arte starts with its lists loaded (empty), so a
+  request created right after was invisible to it.
+- Not yet: grouping at upload (part 3). Pedidos still point at a file until
+  Etapa 1.2 (3/3).
 - E2E: `e2e/artes-arquivos.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)

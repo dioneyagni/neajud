@@ -19,6 +19,11 @@
             <% else %>
               <%= link_to "#{membro.filename}.#{membro.extension}", arquivo_path(membro), class: "arte-arquivo-nome" %>
             <% end %>
+            <% if arquivo.arte.depois_da_aprovacao?(membro) %>
+              <span class="arte-arquivo-aprovacao" title="The client approved the arte before this file was added">after the approval</span>
+            <% elsif arquivo.arte.alterado_depois_da_aprovacao?(membro) %>
+              <span class="arte-arquivo-aprovacao arte-arquivo-aprovacao--alterado" title="Its new version undid the arte's approval">changed after the approval</span>
+            <% end %>
             <% if membro.pending? || membro.processing? %>
               <span class="stamp-card-badge badge-<%= membro.status %>"><%= processamento_label(membro.status) %></span>
             <% end %>

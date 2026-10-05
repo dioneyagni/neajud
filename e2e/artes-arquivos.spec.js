@@ -72,6 +72,26 @@ runSpec("Artes: files per part and size", async ({ page, test }) => {
     if (!(await cards().first().locator(".stamp-card-arte").innerText()).includes("2 files")) throw new Error("The card should say the arte has 2 files");
   });
 
+  // Etapa 1.2 (2/3, parte 2): one request and one approval cover the arte.
+  await test("Approving from one file approves the arte: the other file's page and the card show it", async () => {
+    await abrirCard(UNIQ);
+    const outro = linhas().filter({ hasText: "31-32" }).locator("a.arte-arquivo-nome");
+    const outroHref = await outro.getAttribute("href");
+    await page.click('#aprovacao-section button:has-text("Send for approval")');
+    await page.getByText("sent for approval (2 files)").waitFor();
+    await page.click('#aprovacao-section a:has-text("Register approval")');
+    await page.waitForURL(/\/aprovacoes\/new/);
+    await page.check('input[name="aprovacao[canal]"][value="whatsapp"]');
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.click('input[type="submit"][value="Register approval"]') ]);
+    await page.getByText("registered (2 files)").waitFor();
+
+    await page.goto(new URL(outroHref, BASE_URL).href);
+    await page.locator("#aprovacao-section .badge-aprovacao--aprovada").waitFor();
+    await page.goto(BASE_URL);
+    const selo = (await cards().first().locator(".badge-aprovacao--aprovada").innerText()).trim();
+    if (selo !== "✅ Aprovada") throw new Error(`The card should show the arte approved, got "${selo}"`);
+  });
+
   await test("Adding a file of another size from the arte page", async () => {
     await abrirCard(UNIQ);
     await page.locator(".arte-acrescentar summary").click();
@@ -81,6 +101,9 @@ runSpec("Artes: files per part and size", async ({ page, test }) => {
     await page.getByText("added to this arte (33-34)").waitFor();
     const tamanhos = await linhas().locator(".arte-arquivo-tamanho").allInnerTexts();
     if (tamanhos.join("|") !== "29-30|31-32|33-34") throw new Error(`Expected 3 sizes, got ${tamanhos.join("|")}`);
+    // Added after the approval: the arte stays approved, the new file says so.
+    if (!(await linhas().filter({ hasText: "33-34" }).innerText()).includes("after the approval")) throw new Error("The added file should be marked as after the approval");
+    await page.locator("#aprovacao-section .badge-aprovacao--aprovada").waitFor();
   });
 
   await test("Separating a file makes it an arte of its own again", async () => {

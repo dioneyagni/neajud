@@ -71,7 +71,7 @@ runSpec("Aprovações E2E Tests", async ({ page, test }) => {
       await page.setInputFiles('input[name="aprovacao[anexo]"]', anexoPath);
       await page.click('input[type="submit"][value="Register approval"]');
       await page.waitForURL(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
-      await waitForText(page, "Aprovada — v1, WhatsApp");
+      await waitForText(page, "Aprovada — WhatsApp");
     } finally {
       if (fs.existsSync(anexoPath)) fs.unlinkSync(anexoPath);
     }
@@ -94,7 +94,7 @@ runSpec("Aprovações E2E Tests", async ({ page, test }) => {
     await page.click('#aprovacao-section a:has-text("Register approval")');
     await page.check('input[name="aprovacao[canal]"][value="presencial"]');
     await page.click('input[type="submit"][value="Register approval"]');
-    await waitForText(page, "Aprovada — v1, Presencial");
+    await waitForText(page, "Aprovada — Presencial");
     if ((await page.locator(".aprovacao-historico tr.aprovacao--cancelada").count()) !== 1) throw new Error("Cancelled approval not kept in the history");
   });
 

@@ -1,5 +1,5 @@
-# "Enviar para aprovação" (Etapa 0.5, 4/4): marks that the version in use of
-# an arte was sent to the client; only then it waits for approval and the
+# "Enviar para aprovação" (Etapa 0.5, 4/4): marks that the arte — the version
+# in use of each of its files (Etapa 1.2, 2/3) — was sent to the client; only then it waits for approval and the
 # "register approval" button shows. Cancel keeps it in the history.
 class SolicitacoesAprovacaoController < ApplicationController
   exige_acao :aprovar_arte
@@ -13,7 +13,7 @@ class SolicitacoesAprovacaoController < ApplicationController
     solicitacao = SolicitacaoAprovacao.new(arquivo: arte, arquivo_version: arte.approved_version, user: Current.user)
     return redirect_to arquivo_path(arte), alert: solicitacao.errors.full_messages.to_sentence unless solicitacao.save
 
-    redirect_to arquivo_path(arte), notice: "v#{solicitacao.arquivo_version.version_number} of #{arte.filename} sent for approval."
+    redirect_to arquivo_path(arte), notice: "#{arte.arte.titulo} sent for approval (#{solicitacao.arquivo_version_ids.size} #{"file".pluralize(solicitacao.arquivo_version_ids.size)})."
   end
 
   def cancelar

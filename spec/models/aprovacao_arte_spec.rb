@@ -63,14 +63,14 @@ RSpec.describe AprovacaoArte do
       expect(arte.aprovacao_vigente).to eq(aprovacao)
     end
 
-    # Requests and approvals are per version: the client saw that version.
-    it "a new version starts over (not sent), noting an earlier one was approved" do
+    # Requests and approvals photograph the versions: the client saw those.
+    it "a new version starts over (not sent), noting it changed after the approval" do
       enviar
       aprovar
       v2 = create(:arquivo_version, arquivo: arte, version_number: 2, status: :processed)
       arte.update!(approved_version: v2)
       expect(arte.reload.estado_aprovacao).to eq(:nao_enviada)
-      expect(arte.aprovada_versao_anterior?).to be true
+      expect(arte.alterada_depois_da_aprovacao?).to be true
     end
 
     it "cancelling the approval goes back to waiting; cancelling the request to not sent" do

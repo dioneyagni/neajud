@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -18,6 +18,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
     t.date "aprovado_em", null: false
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
+    t.json "arquivo_version_ids", default: [], null: false
+    t.integer "arte_id", null: false
     t.string "canal", null: false
     t.string "canal_detalhe"
     t.datetime "cancelada_em"
@@ -29,6 +31,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_aprovacoes_arte_on_arquivo_id"
     t.index ["arquivo_version_id"], name: "index_aprovacoes_arte_on_arquivo_version_id"
+    t.index ["arte_id"], name: "index_aprovacoes_arte_on_arte_id"
     t.index ["user_id"], name: "index_aprovacoes_arte_on_user_id"
     t.index ["uuid"], name: "index_aprovacoes_arte_on_uuid", unique: true
   end
@@ -464,6 +467,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
   create_table "solicitacoes_aprovacao", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
+    t.json "arquivo_version_ids", default: [], null: false
+    t.integer "arte_id", null: false
     t.datetime "cancelada_em"
     t.integer "cancelada_por_id"
     t.datetime "created_at", null: false
@@ -472,6 +477,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_solicitacoes_aprovacao_on_arquivo_id"
     t.index ["arquivo_version_id"], name: "index_solicitacoes_aprovacao_on_arquivo_version_id"
+    t.index ["arte_id"], name: "index_solicitacoes_aprovacao_on_arte_id"
     t.index ["user_id"], name: "index_solicitacoes_aprovacao_on_user_id"
     t.index ["uuid"], name: "index_solicitacoes_aprovacao_on_uuid", unique: true
   end
@@ -528,6 +534,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
 
   add_foreign_key "aprovacoes_arte", "arquivo_versions"
   add_foreign_key "aprovacoes_arte", "arquivos"
+  add_foreign_key "aprovacoes_arte", "artes"
   add_foreign_key "aprovacoes_arte", "users"
   add_foreign_key "arquivo_image_metadata", "arquivo_versions"
   add_foreign_key "arquivo_moldes", "arquivos"
@@ -574,6 +581,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
   add_foreign_key "sessions", "users"
   add_foreign_key "solicitacoes_aprovacao", "arquivo_versions"
   add_foreign_key "solicitacoes_aprovacao", "arquivos"
+  add_foreign_key "solicitacoes_aprovacao", "artes"
   add_foreign_key "solicitacoes_aprovacao", "users"
   add_foreign_key "tamanhos", "arquivos"
   add_foreign_key "vinculos", "empresas"
