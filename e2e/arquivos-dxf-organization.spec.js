@@ -33,8 +33,7 @@ runSpec("Arquivos E2E: DXF mold organization & overlap", async ({ page, test }) 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
     await page.waitForSelector(".tamanho-row", { timeout: 15000 });
 
     const body = await page.textContent("body");
@@ -89,9 +88,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "29-30" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
     // Select modelo and peca from dropdowns
     await page.selectOption('select[name="modelo_uuid"]', { label: "Tenis" });
@@ -170,9 +167,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
       // Go to show page and verify error message
       const arquivoLink = card.locator("a").first();
-      await arquivoLink.click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
       const body = await page.textContent("body");
       if (!body.includes("stacked cuts")) throw new Error("Overlap error message not found on show page");
@@ -192,8 +187,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
     await page.waitForSelector(".tamanho-row", { timeout: 15000 });
 
     const body = await page.textContent("body");
@@ -226,9 +220,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
     const body = await page.textContent("body");
     if (!body.includes("Mold Organization")) throw new Error("Mold Organization section not found");
@@ -246,9 +238,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
 // Save organization first
     const saveBtn = await page.$('.mold-organization-form button[type="submit"], .mold-organization-form input[type="submit"]');
@@ -273,9 +263,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
     const arquivoLink = page.locator(".stamp-card").filter({ hasText: "CABEDAL" }).first().locator("a").first();
     await arquivoLink.waitFor({ timeout: 10000 });
-    await arquivoLink.click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
     const downloadLink = await page.$(".tamanho-download");
     if (!downloadLink) throw new Error("No tamanho download link found");
@@ -321,9 +309,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
 
       // Go to show page
       const arquivoLink = card.locator("a").first();
-      await arquivoLink.click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arquivoLink.click() ]);
 
       let body = await page.textContent("body");
       if (!body.includes("stacked cuts")) throw new Error("Overlap error not found on show page");
@@ -385,9 +371,7 @@ await test("DXF Mold Organization: save organization marks as organized", async 
     await page.goto(BASE_URL);
     await page.waitForSelector(".stamp-card a", { timeout: 10000 });
 
-    await page.locator(".stamp-card a").first().click();
-    await page.waitForSelector("h2", { timeout: 10000 });
-    await page.waitForTimeout(300);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator(".stamp-card a").first().click() ]);
 
     const backLink = await page.$('a[href="/"]');
     if (!backLink) throw new Error("Back to Gallery link not found (href=/)");

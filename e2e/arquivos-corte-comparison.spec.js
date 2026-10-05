@@ -35,9 +35,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
 
       // Organize the 29-30 DXF
       const dxfCard = page.locator(".stamp-card").filter({ hasText: "29-30" }).first();
-      await dxfCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), dxfCard.locator("a").first().click() ]);
 
       // Create the peca via API; the modelo is the official "Chuteira"
       // (Etapa 1.1, 3/5), used by no other spec.
@@ -95,9 +93,7 @@ runSpec("Arquivos E2E: corte comparison", async ({ page, test }) => {
       await page.goto(BASE_URL);
       await page.waitForSelector(".stamp-card", { timeout: 10000 });
       await arteCard.waitFor({ timeout: 10000 });
-      await arteCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arteCard.locator("a").first().click() ]);
 
       arteUuid = await page.evaluate(() => {
         const m = window.location.pathname.match(/\/arquivos\/([a-f0-9-]+)/);
