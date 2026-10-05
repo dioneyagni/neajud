@@ -5,7 +5,11 @@ class ItemPedido < ApplicationRecord
   self.table_name = "itens_pedido"
 
   belongs_to :pedido
+  # The arte ordered (Etapa 1.2, 3/3); arquivo is the file it was added from,
+  # still what the pieces start from until the pedido reads them from the arte.
+  belongs_to :arte
   belongs_to :arquivo
+  before_validation { self.arte ||= arquivo&.arte }
   belongs_to :materia_prima, optional: true
   recusa_excluido :pedido, :arquivo
   has_many :grades, class_name: "ItemPedidoGrade", dependent: :destroy

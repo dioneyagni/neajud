@@ -119,4 +119,14 @@ RSpec.describe Pedido, type: :model do
       expect(confirmado.reload.client).to be_nil
     end
   end
+
+  it "is not editable with the old grade (Etapa 1.2, 3/3), even restored" do
+    expect([ build(:pedido).editavel?, build(:pedido, grade_antiga: true).editavel? ]).to eq([ true, false ])
+  end
+
+  it "refuses an unknown type, naming the expected ones" do
+    pedido = build(:pedido, tipo: "dtf")
+    expect(pedido).not_to be_valid
+    expect(pedido.errors[:tipo].first).to include("dtf is not a pedido type; expected one of calcado")
+  end
 end

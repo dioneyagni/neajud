@@ -1,6 +1,6 @@
 class PedidosController < ApplicationController
   exige :pedidos, :ver, only: %i[index show resumo producao]
-  exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar]
+  exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca producao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
@@ -50,14 +50,12 @@ class PedidosController < ApplicationController
     end
 
     arquivo = Arquivo.ativos.find_by!(uuid: params[:arquivo_uuid])
+    erro = erro_de_grade(arquivo.arte, params[:grade])
+    return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
-    @pedido = if arquivo.client_id
-      Pedido.ativos.find_by(client_id: arquivo.client_id, status: "rascunho") ||
-        Pedido.create!(status: "rascunho", client_id: arquivo.client_id)
-    else
-      Pedido.ativos.find_by(uuid: session[:current_pedido_uuid]) ||
-        Pedido.create!(status: "rascunho")
-    end
+    @pedido = pedido_de_destino(arquivo)
+    return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} can't take items: expected a draft, got #{situacao_do_pedido}" }, status: :unprocessable_content unless @pedido.editavel?
+
     session[:current_pedido_uuid] = @pedido.uuid
 
     materia_prima = MateriaPrima.por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
@@ -114,6 +112,7 @@ class PedidosController < ApplicationController
       itens.each do |item|
         novo_item = novo.itens_pedido.create!(
           arquivo: item.arquivo,
+          arte: item.arte,
           materia_prima: item.materia_prima
         )
         item.grades.each do |g|
@@ -135,6 +134,9 @@ class PedidosController < ApplicationController
     if grade_total_after_update(item, grade_params).zero?
       return render json: { ok: false, error: "Quantidade total 0 — use Remover para tirar o item." }, status: :unprocessable_content
     end
+
+    erro = erro_de_grade(item.arte, grade_params)
+    return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
     if grade_params.respond_to?(:each)
       grade_params.each do |tamanho_nome, quantidade|
@@ -181,7 +183,55 @@ class PedidosController < ApplicationController
     render :show
   end
 
+  # The pedido page's "add an arte" (Etapa 1.2, 3/3): molde → referência →
+  # arte, each choice narrowing the next.
+  # Usage: GET /pedidos/artes_para_adicionar.json?molde_uuid=…&referencia_uuid=…
+  def artes_para_adicionar
+    molde = Molde.ativos.por_uuid!(params[:molde_uuid])
+    artes = Arquivo.ativos.where(category: "artes", molde: molde)
+    artes = artes.where(referencia: molde.referencias.por_uuid!(params[:referencia_uuid])) if params[:referencia_uuid].present?
+    render json: {
+      referencias: molde.referencias.order(:nome).map { |r| { uuid: r.uuid, nome: r.nome } },
+      artes: artes.principais_das_artes.includes(:arte, :client, :referencia, molde: :modelo).order(:nome).map { |arquivo| arte_para_adicionar_json(arquivo) }
+    }
+  end
+
   private
+
+  # The pedido page adds to itself; the gallery to the client's draft, else
+  # the one in session, else a new one.
+  def pedido_de_destino(arquivo)
+    return Pedido.por_uuid!(params[:pedido_uuid]) if params[:pedido_uuid].present?
+    return Pedido.ativos.find_by(client_id: arquivo.client_id, status: "rascunho") || Pedido.create!(status: "rascunho", client_id: arquivo.client_id) if arquivo.client_id
+
+    Pedido.ativos.find_by(uuid: session[:current_pedido_uuid]) || Pedido.create!(status: "rascunho")
+  end
+
+  # Etapa 1.2 (3/3): the grade is by the arte's individual sizes
+  # (Arte#tamanhos_do_pedido), or a single "_total" when it has none.
+  def erro_de_grade(arte, grade_params)
+    return nil unless grade_params.respond_to?(:each)
+
+    permitidos = arte&.tamanhos_do_pedido.presence || [ ProducaoPedidoService::TOTAL_KEY ]
+    estranhos = grade_params.to_unsafe_h.keys - permitidos
+    "Sizes #{estranhos.join(", ")} are not in this arte's grade; expected some of #{permitidos.join(", ")}" if estranhos.any?
+  end
+
+  def situacao_do_pedido
+    return "an old-grade pedido" if @pedido.grade_antiga?
+    return "a pedido in the trash" if @pedido.excluido?
+
+    @pedido.status
+  end
+
+  def arte_para_adicionar_json(arquivo)
+    {
+      arquivo_uuid: arquivo.uuid, titulo: arquivo.arte.titulo, filename: arquivo.filename,
+      client: arquivo.client&.name, client_uuid: arquivo.client&.uuid,
+      preview: (preview_arquivo_path(arquivo) if arquivo.preview_file.present?),
+      resumo: helpers.resumo_da_arte(arquivo), tamanhos: helpers.tamanhos_for_arte(arquivo)
+    }
+  end
 
   # Sum of the positive quantities in a grade param ({"35"=>"2", "_total"=>"1"}).
   def grade_param_total(grade_params)
@@ -211,10 +261,16 @@ class PedidosController < ApplicationController
 
   # A trashed pedido stays readable (show, resumo, produção) but frozen until
   # it is restored from /lixeira.
+  # Also a pedido from before Etapa 1.2 (3/3), its grade by the corte's size
+  # name: read only for good.
   def recusar_pedido_excluido
-    return unless @pedido.excluido?
+    return unless @pedido.excluido? || @pedido.grade_antiga?
 
-    message = "#{@pedido.rotulo_lixeira} is in the trash; restore it from Lixeira before changing it"
+    message = if @pedido.grade_antiga?
+      "#{@pedido.rotulo_lixeira} has the old grade (by the corte's size name); it is read only"
+    else
+      "#{@pedido.rotulo_lixeira} is in the trash; restore it from Lixeira before changing it"
+    end
     respond_to do |format|
       format.json { render json: { ok: false, error: message }, status: :unprocessable_content }
       format.any { redirect_to resumo_pedido_path(@pedido), alert: message }

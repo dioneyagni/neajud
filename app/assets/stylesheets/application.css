@@ -3226,3 +3226,66 @@ li.aprovacao--cancelada {
   border: 1px solid #e0e0e0;
   border-radius: 3px;
 }
+
+/* Etapa 1.2 (3/3): adding an arte from the pedido page */
+.pedido-adicionar {
+  margin: 1rem 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fbfcfd;
+}
+
+.pedido-adicionar h3 {
+  margin: 0 0 0.5rem;
+}
+
+.pedido-adicionar-filtros {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pedido-adicionar-artes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.pedido-adicionar-arte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.pedido-adicionar-arte span {
+  color: #5f6368;
+}
+
+.pedido-adicionar-thumb {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.pedido-adicionar-thumb--vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.pedido-grade-antiga {
+  padding: 0.5rem 0.7rem;
+  background: #fff3cd;
+  border: 1px solid #f0d58a;
+  border-radius: 4px;
+}

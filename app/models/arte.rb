@@ -36,6 +36,21 @@ class Arte < ApplicationRecord
     arquivos.build(**compartilhados, **atributos)
   end
 
+  # The sizes a pedido asks this arte in, one by one (Etapa 1.2, 3/3): the
+  # molde's stretch of the grade; without one, the numbers its cortes serve;
+  # with cortes from before the grade type, their size names. Empty without
+  # a molde — the pedido then takes a single total.
+  # Usage: arte.tamanhos_do_pedido # => ["24", "25", …, "34"]
+  def tamanhos_do_pedido
+    molde = principal&.molde
+    return [] unless molde
+    return molde.grade if molde.grade.any?
+
+    tamanhos = Tamanho.unscoped.where(arquivo_id: Arquivo.cortes_do_molde(molde).select(:id)).order(:position).to_a
+    numeros = tamanhos.flat_map(&:numeros).uniq
+    numeros.any? ? numeros.sort_by(&:to_i) : tamanhos.map(&:nome).uniq
+  end
+
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.
   # Usage: arte.titulo # => "001-TNS · 19 · BLUEY PTO"

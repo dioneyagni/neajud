@@ -11,7 +11,9 @@ export default class extends Controller {
     arteClient: String,
     arteClientUuid: String,
     artePreview: String,
-    tamanhos: Array
+    tamanhos: Array,
+    // The pedido page (Etapa 1.2, 3/3) adds to itself and reloads.
+    pedidoUuid: String
   }
 
   connect() {
@@ -101,6 +103,8 @@ export default class extends Controller {
       headers["X-CSRF-Token"] = csrfMeta.content
     }
 
+    if (this.pedidoUuidValue) formData.append("pedido_uuid", this.pedidoUuidValue)
+
     fetch("/pedidos/adicionar_item", {
       method: "POST",
       headers: headers,
@@ -113,6 +117,7 @@ export default class extends Controller {
             detail: { total_itens: data.total_itens }
           }))
           this.close()
+          if (this.pedidoUuidValue) window.location.reload()
         } else {
           this._showError(data.error || "Erro ao adicionar item")
         }

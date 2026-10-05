@@ -28,6 +28,11 @@
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
+<% if @pedido.grade_antiga? %>
+  <%# Etapa 1.2 (3/3): grades by the corte's size name can't be split by number. %>
+  <p class="pedido-grade-antiga" role="note">Pedido no formato antigo (grade pelo tamanho do corte, ex: "29-30"): só leitura. Os pedidos agora são por arte e por número.</p>
+<% end %>
+
 <% if pedido_editavel?(@pedido) %>
   <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
       without arte, items with total 0, checked pieces without corte. %>
@@ -56,6 +61,28 @@
             class: "btn btn-secondary",
             data: { turbo_confirm: "Move this draft to the trash?" } %>
     <% end %>
+  </div>
+<% end %>
+
+<% if pedido_editavel?(@pedido) %>
+  <%# Etapa 1.2 (3/3, decided 05/10/2026): an item enters by molde → referência
+      → arte here too, not only from the gallery's card. %>
+  <% moldes = (@pedido.client ? Molde.ativos.where(client: @pedido.client) : Molde.ativos).includes(:client).order(:nome) %>
+  <div class="pedido-adicionar" data-controller="add-to-order pedido-adicionar"
+       data-add-to-order-pedido-uuid-value="<%= @pedido.uuid %>"
+       data-pedido-adicionar-url-value="<%= artes_para_adicionar_pedidos_path(format: :json) %>">
+    <h3>Adicionar arte</h3>
+    <div class="pedido-adicionar-filtros">
+      <select data-pedido-adicionar-target="molde" data-action="change->pedido-adicionar#escolherMolde">
+        <option value="">Molde…</option>
+        <% moldes.each do |molde| %>
+          <option value="<%= molde.uuid %>"><%= molde.nome %><%= " (#{molde.client.name})" unless @pedido.client %></option>
+        <% end %>
+      </select>
+      <select data-pedido-adicionar-target="referencia" data-action="change->pedido-adicionar#escolherReferencia" hidden></select>
+    </div>
+    <div class="pedido-adicionar-artes" data-pedido-adicionar-target="artes"></div>
+    <%= render "pedidos/add_to_order_modal" %>
   </div>
 <% end %>
 
@@ -120,7 +147,7 @@
 <% end %>
 
 <% if @pedido.itens_pedido.empty? %>
-  <p class="gallery-empty">No items yet. Go to the gallery and add artes to this pedido.</p>
+  <p class="gallery-empty">No items yet. Add an arte above, or from the gallery.</p>
 <% end %>
 
 <div class="back-link-wrapper" style="margin-top:1rem;">

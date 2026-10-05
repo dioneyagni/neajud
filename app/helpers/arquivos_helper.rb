@@ -48,12 +48,12 @@ module ArquivosHelper
     format("%.1f", pixels * 2.54 / dpi)
   end
 
+  # The sizes the pedido grade offers for an arte (Etapa 1.2, 3/3: one by one,
+  # Arte#tamanhos_do_pedido). Usage: tamanhos_for_arte(arquivo) # => [{ nome: "24" }, …]
   def tamanhos_for_arte(arquivo)
-    return [] unless arquivo.category == "artes"
+    return [] unless arquivo.category == "artes" && arquivo.arte
 
-    corte = arquivo.corte_via_molde
-    tamanhos = corte&.tamanhos.presence || arquivo.tamanhos
-    tamanhos.map { |t| { nome: t.nome } }
+    arquivo.arte.tamanhos_do_pedido.map { |nome| { nome: nome } }
   end
 
   # The grade shown in the Mold Organization form: the corte's own, else the

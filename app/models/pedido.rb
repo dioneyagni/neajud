@@ -7,8 +7,12 @@ class Pedido < ApplicationRecord
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy
   has_many :arquivo_vinculo_logs, dependent: :nullify
 
+  # One type per pedido (Etapa 1.2, 3/3): calçado now; DTF and tecido in Fase 2.
+  TIPOS = %w[calcado].freeze
+
   recusa_excluido :client
   validates :status, presence: true, inclusion: { in: %w[rascunho confirmado cancelado] }
+  validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
 
   scope :rascunhos, -> { where(status: "rascunho") }
   scope :confirmados, -> { where(status: "confirmado") }
@@ -20,8 +24,10 @@ class Pedido < ApplicationRecord
   # A draft that is not in the trash: the only state whose items and pieces
   # can still change.
   # Usage: <% if @pedido.editavel? %> … <% end %>
+  # grade_antiga: a pedido from before Etapa 1.2 (3/3), its grade by the
+  # corte's size name — read only, even restored from the trash.
   def editavel?
-    status == "rascunho" && !excluido?
+    status == "rascunho" && !excluido? && !grade_antiga?
   end
 
   def total_itens
