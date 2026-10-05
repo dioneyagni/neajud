@@ -28,6 +28,14 @@ class Arte < ApplicationRecord
           .to_h { |peca, lista| [ peca, lista.sort_by { |a| [ a.piloto? ? 0 : 1, a.tamanho&.position || 9999, a.rotulo_de_tamanho.to_s, a.id ] } ] }
   end
 
+  # A new file of this arte, with its molde, client, referência and nome
+  # (MembroDeArte::CAMPOS_DA_ARTE) — from the arte page or the upload.
+  # Usage: arte.novo_arquivo(peca: lateral, tamanho_rotulo: "29-30")
+  def novo_arquivo(**atributos)
+    compartilhados = principal&.attributes&.slice(*MembroDeArte::CAMPOS_DA_ARTE)&.symbolize_keys || {}
+    arquivos.build(**compartilhados, **atributos)
+  end
+
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.
   # Usage: arte.titulo # => "001-TNS · 19 · BLUEY PTO"

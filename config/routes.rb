@@ -74,8 +74,13 @@ Rails.application.routes.draw do
     end
     collection do
       delete :batch_destroy
+      # Etapa 1.2 (2/3, parte 3): the upload's grouping, before anything is sent.
+      post :agrupamento, to: "agrupamentos_upload#create"
     end
   end
+
+  # The empty arte a group of the upload goes into (Etapa 1.2, 2/3 parte 3).
+  resources :artes, only: :create, param: :uuid
 
   resources :clients, only: %i[show index create update destroy] do
     collection do

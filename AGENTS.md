@@ -771,8 +771,23 @@ search and (until part 2) the client approval stay per file.
   repeated-arte offer) / `voltar_para_producao`. For 3/3: production uses
   `producao`; the piloto only covers a sample (an arte asked only in the
   piloto's size with no production file for it).
-- Not yet: grouping at upload (part 3). Pedidos still point at a file until
-  Etapa 1.2 (3/3).
+- **Grouping at upload** (part 3, decided 05/10/2026): choosing files makes
+  `upload_controller.js` POST their names and weights to
+  `/arquivos/agrupamento` (`AgrupamentoDoUpload`: key = referência + nome
+  from `NomeDoArquivo`, which also reads the part and drops "NEW"/"Copia";
+  cortes alone). When something groups (`conferir`), the file list becomes the
+  conference (`controllers/conferencia_upload.js`, a plain module): part,
+  size, ★ piloto (suggested: PSD/AI/CDR, or ≥ 3× the median weight of the
+  part), separate, join groups, add to an existing arte (suggested, never
+  chosen). Sending: `POST /artes` makes each group's empty arte, then each
+  file goes to `POST /arquivos` with `arquivo[arte_uuid|peca_uuid|tamanho_rotulo|papel]`
+  (`Arte#novo_arquivo` copies the arte's fields; a DXF never joins an arte).
+- E2E: one card per arte, so `waitForProcessed` finds a grouped file through
+  the card that lists it (`data-arte-arquivos`, `data-arte-em-fila` —
+  `dados_da_arte_no_card`). A spec whose files must group by name writes them
+  outside the repo (an `e2e-` prefix would be read as part of the name) —
+  `e2e/upload-agrupamento.spec.js`.
+- Pedidos still point at a file until Etapa 1.2 (3/3).
 - E2E: `e2e/artes-arquivos.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)

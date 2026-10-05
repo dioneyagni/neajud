@@ -29,7 +29,7 @@ class ArquivosController < ApplicationController
   end
 
   def create
-    @arquivo = Arquivo.new(arquivo_params)
+    @arquivo = arquivo_do_upload
 
     unless file_uploaded?
       @arquivo.errors.add(:original_file, "select a file to upload")
@@ -41,6 +41,7 @@ class ArquivosController < ApplicationController
     ArquivoUploadService.call(params[:arquivo][:original_file], remote_ip: request.remote_ip, arquivo: @arquivo)
 
     if @arquivo.persisted?
+      @arquivo.tornar_piloto! if params.dig(:arquivo, :papel) == "piloto"
       redirect_to arquivos_path, notice: "Arquivo uploaded successfully. Processing started."
     else
       load_gallery
@@ -383,6 +384,22 @@ class ArquivosController < ApplicationController
 
   def arquivo_params
     params.require(:arquivo).permit(:filename, :extension, :mime_type)
+  end
+
+  # Etapa 1.2 (2/3, parte 3): the upload's grouping says which arte (a new
+  # one per group, or an existing one), and each file's part and size.
+  def arquivo_do_upload
+    dados = params.require(:arquivo)
+    atributos = arquivo_params.to_h.symbolize_keys
+    atributos[:peca] = Peca.ativos.por_uuid!(dados[:peca_uuid]) if dados[:peca_uuid].present?
+    atributos[:tamanho_rotulo] = dados[:tamanho_rotulo].to_s.squish if dados[:tamanho_rotulo].present?
+    arte = Arte.por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
+    arte ? arte.novo_arquivo(**atributos) : Arquivo.new(atributos)
+  end
+
+  # Only arte files go into an arte; a DXF sent with one stays a corte.
+  def arquivo_de_arte?(upload)
+    upload.respond_to?(:original_filename) && FileCategory.for_extension(File.extname(upload.original_filename).delete(".").downcase) == "artes"
   end
 
   def load_gallery

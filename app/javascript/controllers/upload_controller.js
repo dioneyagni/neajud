@@ -1,11 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
+import ConferenciaDoUpload from "controllers/conferencia_upload"
 
 export default class extends Controller {
   static targets = ["dropzone", "input", "fileList", "submit"]
-  static values = { fieldName: { type: String, default: "arquivo[original_file]" } }
+  static values = { fieldName: { type: String, default: "arquivo[original_file]" }, agrupamentoUrl: String, artesUrl: String }
 
   connect() {
     this.files = []
+    this.textoDoBotao = this.submitTarget.value
   }
 
   dragOver(event) {
@@ -43,15 +45,62 @@ export default class extends Controller {
         }
       }
     }
-    this.render()
     this.updateInput()
+    this.agrupar()
   }
 
   removeFile(event) {
     const idx = parseInt(event.currentTarget.dataset.index)
     this.files.splice(idx, 1)
-    this.render()
     this.updateInput()
+    this.agrupar()
+  }
+
+  // Etapa 1.2 (2/3, parte 3): ask the server how the chosen files group into
+  // artes; the conference shows only when something groups (decided 05/10/2026).
+  agrupar() {
+    this.conferencia = null
+    this.render()
+    if (this.files.length === 0 || !this.hasAgrupamentoUrlValue) return
+
+    const pedido = this.buscarAgrupamento()
+    this.agrupando = pedido
+    pedido.then(resposta => {
+      // Drawn again only when the conference shows: redrawing the plain list
+      // would swap elements someone may be about to click.
+      if (this.agrupando !== pedido || !resposta?.conferir) return
+      this.conferencia = new ConferenciaDoUpload(resposta, s => this.escapeHtml(s))
+      this.render()
+    })
+  }
+
+  async buscarAgrupamento() {
+    try {
+      const resp = await fetch(this.agrupamentoUrlValue, {
+        method: "POST", headers: this.cabecalhosJson(), credentials: "same-origin",
+        body: JSON.stringify({ arquivos: this.files.map(f => ({ nome: f.name, bytes: f.size })) })
+      })
+      return resp.ok ? await resp.json() : null
+    } catch {
+      return null
+    }
+  }
+
+  conferir(event) {
+    if (this.conferencia?.aplicar(event)) this.render()
+  }
+
+  async criarArte() {
+    try {
+      const resp = await fetch(this.artesUrlValue, { method: "POST", headers: this.cabecalhosJson(), credentials: "same-origin" })
+      return resp.ok ? (await resp.json()).uuid : null
+    } catch {
+      return null
+    }
+  }
+
+  cabecalhosJson() {
+    return { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || "" }
   }
 
   updateInput() {
@@ -63,8 +112,14 @@ export default class extends Controller {
   }
 
   render() {
+    this.submitTarget.value = this.textoDoBotao
     if (this.files.length === 0) {
       this.fileListTarget.innerHTML = ""
+      return
+    }
+    if (this.conferencia) {
+      this.fileListTarget.innerHTML = this.conferencia.html(this.files)
+      this.submitTarget.value = `Upload ${this.files.length} files in ${this.conferencia.totalDeArtes} artes`
       return
     }
 
@@ -91,12 +146,18 @@ export default class extends Controller {
 
     let success = 0
     let failure = 0
+    await this.agrupando
+    const plano = this.conferencia ? await this.conferencia.plano(() => this.criarArte()) : this.files.map((_, indice) => ({ indice, campos: {} }))
 
-    for (const file of this.files) {
+    for (const { indice, campos } of plano) {
+      const file = this.files[indice]
       this.setStatus(file.name, "uploading...")
 
       const fd = new FormData()
       fd.append(this.fieldNameValue, file)
+      for (const [campo, valor] of Object.entries(campos)) {
+        if (valor) fd.append(`arquivo[${campo}]`, valor)
+      }
       fd.append("arquivo[batch_started_at]", batchStartedAt)
       fd.append("arquivo[batch_size]", batchSize)
       if (csrf) fd.append("authenticity_token", csrf)

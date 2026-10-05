@@ -1,8 +1,11 @@
 <%# data-status lets E2E specs wait for queued processing to finish (Etapa 0.3).
     While queued, the card polls itself in case the broadcast was missed. %>
-<% em_fila = arquivo.pending? || arquivo.processing? %>
+<%# One card per arte (Etapa 1.2, 2/3): it keeps polling while any file of the
+    arte is queued — a broadcast lost on reload left a grouped upload "queued". %>
+<% dados_da_arte = dados_da_arte_no_card(arquivo) %>
+<% em_fila = arquivo.pending? || arquivo.processing? || dados_da_arte[:arte_em_fila] %>
 <%= tag.div id: dom_id(arquivo), class: "stamp-card",
-      data: { status: arquivo.status, filename: arquivo.filename }.merge(
+      data: { status: arquivo.status, filename: arquivo.filename, **dados_da_arte }.merge(
         em_fila ? { controller: "processamento", processamento_mode_value: "card", processamento_url_value: processamento_arquivo_path(arquivo) } : {}
       ) do %>
   <label class="stamp-card-checkbox">

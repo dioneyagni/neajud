@@ -21,8 +21,24 @@ RSpec.describe "Arte files", type: :request do
 
       get arquivos_path
       expect(response.body.scan('class="stamp-card"').size).to eq(2)
-      expect(response.body).to include("19-BLUEY-29_30", "2 files · No part 29-30, 31-32", "sozinha")
-      expect(response.body).not_to include("19-BLUEY-31_32")
+      expect(response.body).to include("2 files · No part 29-30, 31-32")
+      # The second file has no card of its own: its name is only in the arte's card data.
+      nomes = Nokogiri::HTML(response.body).css(".stamp-card-name").map { |n| n.text.strip }
+      expect(nomes).to contain_exactly("19-BLUEY-29_30.tif", "sozinha.tif")
+    end
+
+    # Regression (05/10/2026): a grouped upload's card stopped polling once its
+    # first file was processed, and a broadcast lost on reload left it "queued".
+    it "keeps the card polling while any file of its arte is queued" do
+      primeiro = create(:arquivo)
+      primeiro.update!(approved_version: create(:arquivo_version, arquivo: primeiro, status: :processed))
+      outro = create(:arquivo, arte: primeiro.arte, filename: "na-fila")
+      outro.update!(approved_version: create(:arquivo_version, arquivo: outro, status: :pending))
+
+      get arquivos_path
+      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{primeiro.id}")
+      expect(card.attributes.transform_values(&:value)).to include("data-controller" => "processamento", "data-arte-em-fila" => "true")
+      expect(card["data-arte-arquivos"].split("|")).to contain_exactly("test_arquivo", "na-fila")
     end
 
     it "batch delete trashes the whole arte of a card" do

@@ -6,7 +6,8 @@
   <div class="upload-form-wrapper">
   <% accept_ext = FileCategory.extensions.map { |e| ".#{e}" }.join(",") %>
   <% hint_parts = FileCategory.all.map { |_name, config| "#{config[:label]}: #{config[:extensions].map(&:upcase).join(', ')}" }.join(" | ") %>
-  <%= form_with model: @arquivo, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false, allowed_extensions: FileCategory.extensions.map { |e| ".#{e}" }.join(",") } } do |f| %>
+  <%= form_with model: @arquivo, html: { enctype: "multipart/form-data", data: { controller: "upload", action: "submit->upload#submit", turbo: false, allowed_extensions: FileCategory.extensions.map { |e| ".#{e}" }.join(","),
+                                                                    upload_agrupamento_url_value: agrupamento_arquivos_path, upload_artes_url_value: artes_path } } do |f| %>
     <% if @arquivo.errors.any? %>
       <div class="form-errors">
         <% @arquivo.errors.full_messages.each do |msg| %>

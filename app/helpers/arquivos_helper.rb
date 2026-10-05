@@ -75,6 +75,17 @@ module ArquivosHelper
     numeros.join("-")
   end
 
+  # What a gallery card says about its arte (Etapa 1.2, 2/3 parte 3): its
+  # files' names and whether any is still queued — one card stands for the
+  # whole arte, so E2E waits for an uploaded file through its arte's card.
+  # Usage: tag.div(data: { **dados_da_arte_no_card(arquivo) })
+  def dados_da_arte_no_card(arquivo)
+    return {} unless arquivo.arte
+
+    membros = arquivo.arte.arquivos.ativos.includes(:approved_version).to_a
+    { arte_arquivos: membros.map(&:filename).join("|"), arte_em_fila: membros.any? { |m| m.pending? || m.processing? } }
+  end
+
   # The other files of an arte on its gallery card (Etapa 1.2, 2/3), nil for
   # an arte of one file: "3 files · Lateral 29-30, 31-32 · Língua 29-30".
   # Usage: resumo_da_arte(arquivo) # => "2 files · Lateral 29-30, 31-32"

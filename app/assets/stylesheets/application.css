@@ -3151,3 +3151,78 @@ li.aprovacao--cancelada {
   font-size: 0.8rem;
   color: #5f6368;
 }
+
+/* Etapa 1.2 (2/3, parte 3): the upload's conference, one block per arte */
+.conferencia-grupo {
+  margin: 0.6rem 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fbfcfd;
+}
+
+.conferencia-grupo-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.conferencia-grupo-contagem {
+  color: #5f6368;
+  font-size: 0.85rem;
+}
+
+.conferencia-arquivo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.conferencia-arquivo--piloto {
+  border-left: 4px solid #b06d00;
+}
+
+.conferencia-piloto {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.conferencia-parte--vazia {
+  border: 1px solid #e0a800;
+  background: #fff8e1;
+}
+
+.conferencia-tamanho {
+  width: 6rem;
+}
+
+.conferencia-existentes {
+  margin: 0.3rem 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.conferencia-existentes p {
+  margin: 0 0 0.2rem;
+}
+
+.conferencia-existente {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0;
+}
+
+.conferencia-existente span {
+  color: #5f6368;
+}
+
+.conferencia-existente-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}

@@ -33,9 +33,12 @@ async function submitUploadAndWait(page, expectedCount, timeout = UPLOAD_TIMEOUT
 async function waitForProcessed(page, fileNames, timeout = PROCESSING_TIMEOUT) {
   const bases = fileNames.map((name) => name.replace(/\.[^.]+$/, ""));
   try {
+    // Etapa 1.2 (2/3): one card per arte — a file grouped into an arte is
+    // found through the card that lists it (data-arte-arquivos).
     await page.waitForFunction((bases) => bases.every((base) => {
-      const card = document.querySelector(`.stamp-card[data-filename="${CSS.escape(base)}"]`);
-      return card && !["pending", "processing"].includes(card.dataset.status);
+      const card = [...document.querySelectorAll(".stamp-card")].find((c) =>
+        c.dataset.filename === base || (c.dataset.arteArquivos || "").split("|").includes(base));
+      return card && !["pending", "processing"].includes(card.dataset.status) && card.dataset.arteEmFila !== "true";
     }), bases, { timeout });
   } catch {
     const states = await page.$$eval(".stamp-card", (cards) => cards.slice(0, 10).map((c) => `${c.dataset.filename}=${c.dataset.status}`));
