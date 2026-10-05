@@ -702,6 +702,39 @@ serves (strings, like `Molde#grade`).
   the pedido on individual sizes.
 - E2E: `e2e/arquivos-tipo-grade.spec.js`.
 
+## An arte is an envelope of files (Etapa 1.2, 2/3)
+
+Decided 02/10/2026: **one arte per molde + referência + nome, one file per
+part × size**. `Arte` (table `artes`) is the envelope; each file stays an
+`Arquivo` with `arte_id` — versions, processing, preview, the automatic size
+search and (until part 2) the client approval stay per file.
+
+- **The arte's fields are the same in every file** (`MembroDeArte::CAMPOS_DA_ARTE`:
+  client, molde, modelo, referência, nome). `after_update_commit` copies a
+  change to the other files (`compartilhar_com_a_arte!`), which then drop a
+  size of the old molde and queue their own search. ⚠️ Anything that writes
+  these fields with `update_columns` must call `compartilhar_com_a_arte!`
+  itself (`ajustar_referencia_e_nome!` does). Part (`peca_id`) and size
+  (`tamanho_id`) stay per file.
+- Every new non-corte `Arquivo` gets an arte of its own (`before_validation
+  on: :create` — before_create ran after the belongs_to autosave, so the arte
+  was never saved). Cortes have none.
+- **Gallery:** `principais_das_artes` keeps one file per arte (its first) —
+  one card, with `resumo_da_arte` ("2 files · Lateral 29-30, 31-32"). Any
+  file's broadcast redraws that card. Batch delete trashes the whole arte.
+- **Page:** `_arte_arquivos` lists `Arte#arquivos_por_parte`, with
+  `ArteArquivosController` (`acrescentar`, `juntar`, `separar`; artes:
+  editar). `JuntarArtesService` moves every file (trashed too) and refuses
+  moving one to another molde or client. `mesma_arte_em_outro_envelope`
+  suggests joining an arte with the same molde, referência and nome.
+- **Size from the file name:** `NomeDoArquivo` reads it (`tamanho`: "29-30",
+  "P"; measures dropped from the name) into `tamanho_rotulo` at upload;
+  `TamanhoAutoAssignService` tries it before the outline matcher when exactly
+  one size of the file's part's cortes serves it (`Tamanho#atende_rotulo?`).
+- Not yet: approval per arte (part 2), grouping at upload (part 3). Pedidos
+  still point at a file until Etapa 1.2 (3/3).
+- E2E: `e2e/artes-arquivos.spec.js`.
+
 ## Official catalog (Etapa 1.1, 3/5)
 
 Produto (with its grade of individual sizes) and Modelo (the category, with
@@ -997,7 +1030,7 @@ The plan renames things; until those stages land, the code keeps its names:
 | Referência, Nome (group artes: "20 · Bluey Azul") | `Referencia` (per molde) + `Arquivo#nome` — see "Referência, Nome and the full name"; not catalog, not versioned |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
-| Arte | `Arquivo` with `category: "artes"` |
+| Arte | `Arte` (the envelope) + its `Arquivo`s with `category: "artes"`, one per part × size |
 | Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual, with a grade type per corte: Par, Ímpar, P/M/G, Furada) |
 | Etiqueta DTF, Estampa corrida, Cor lisa | don't exist yet (Etapas 2.5–2.7); today uploaded as plain artes (samples only — the beta starts with an empty database) |
 

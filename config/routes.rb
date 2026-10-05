@@ -42,6 +42,12 @@ Rails.application.routes.draw do
     resource :nome_arte, only: :update, controller: "nomes_arte" do
       post :tornar_versao
     end
+    # The arte's files, one per part × size (Etapa 1.2, 2/3).
+    resource :arte, only: [], controller: "arte_arquivos" do
+      post :acrescentar
+      post :juntar
+      post :separar
+    end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
     member do

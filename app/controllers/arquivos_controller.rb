@@ -390,7 +390,9 @@ class ArquivosController < ApplicationController
     per_page = @view == "list" ? PER_PAGE_LIST : PER_PAGE_GRID
     @page = [ params[:page].to_i, 1 ].max
 
-    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).includes(:client, :tamanhos, approved_version: :image_metadata, molde: :modelo).order(created_at: :desc)
+    # Etapa 1.2 (2/3): one card per arte (its first file), not one per file.
+    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).principais_das_artes
+                  .includes(:client, :tamanhos, approved_version: :image_metadata, molde: :modelo).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil
     @page = @page.clamp(1, [ @total_pages, 1 ].max)

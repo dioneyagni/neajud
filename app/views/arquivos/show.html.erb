@@ -32,6 +32,7 @@
       <%= render "client_field" %>
       <%= render "molde_field" %>
       <%= render "nome_arte", arquivo: @arquivo %>
+      <%= render "arte_arquivos", arquivo: @arquivo if @arquivo.arte %>
 
       <% if @arquivo.category == "corte" && @arquivo.approved_version&.cut_layers&.any? %>
         <div class="stamp-detail-section stamp-detail-section--full">

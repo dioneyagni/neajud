@@ -55,4 +55,18 @@ module ArquivosHelper
 
     numeros.join("-")
   end
+
+  # The other files of an arte on its gallery card (Etapa 1.2, 2/3), nil for
+  # an arte of one file: "3 files · Lateral 29-30, 31-32 · Língua 29-30".
+  # Usage: resumo_da_arte(arquivo) # => "2 files · Lateral 29-30, 31-32"
+  def resumo_da_arte(arquivo)
+    return nil unless arquivo.arte
+
+    partes = arquivo.arte.arquivos_por_parte
+    total = partes.values.sum(&:size)
+    return nil if total < 2
+
+    tamanhos = partes.map { |peca, lista| [ peca&.nome || "No part", lista.map { |a| a.rotulo_de_tamanho || "?" }.join(", ") ].join(" ") }
+    "#{total} files · #{tamanhos.join(" · ")}"
+  end
 end

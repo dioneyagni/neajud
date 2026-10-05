@@ -49,6 +49,9 @@
     </div>
     <div class="stamp-card-body">
       <div class="stamp-card-name"><%= arquivo.filename %>.<%= arquivo.extension %></div>
+      <% if (resumo = resumo_da_arte(arquivo)) %>
+        <div class="stamp-card-arte" title="Files of this arte"><%= resumo %></div>
+      <% end %>
       <div class="stamp-card-meta">
         <% if arquivo.failed? || arquivo.unsupported_format? || arquivo.invalid_colorspace? %>
           <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= arquivo.status.humanize %></span>

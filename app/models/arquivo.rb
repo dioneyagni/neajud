@@ -4,6 +4,7 @@ class Arquivo < ApplicationRecord
   include ReferenciaAtiva
   include Aprovavel
   include NomeDeArte
+  include MembroDeArte
 
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy
@@ -296,7 +297,7 @@ class Arquivo < ApplicationRecord
   # the user had already opened the page and reset an open editor.
   # Usage: arquivo.broadcast_status_change
   def broadcast_status_change
-    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(self), partial: "arquivos/card", locals: { arquivo: self }
+    broadcast_arquivo_card
     return if pending? || processing?
 
     broadcast_refresh
@@ -341,8 +342,11 @@ class Arquivo < ApplicationRecord
     self.tipo_corte ||= "corte_estampa" if corte?
   end
 
+  # The gallery shows one card per arte, its first file's (Etapa 1.2, 2/3):
+  # a change in any file of the arte redraws that card.
   def broadcast_arquivo_card
-    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(self), partial: "arquivos/card", locals: { arquivo: self }
+    cartao = arte&.principal || self
+    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(cartao), partial: "arquivos/card", locals: { arquivo: cartao }
   end
 
   def destroy_arquivo_with_versions

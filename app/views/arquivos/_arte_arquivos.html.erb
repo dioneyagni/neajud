@@ -1,0 +1,90 @@
+<%# Etapa 1.2 (2/3): an arte has one file per part × size; this is the list,
+    the same on the page of any of them. Join/separate fix files grouped apart
+    or together by mistake (decided 02/10/2026). %>
+<% partes = arquivo.arte.arquivos_por_parte %>
+<% total = partes.values.sum(&:size) %>
+<div class="stamp-detail-section stamp-detail-section--full" id="arte-arquivos">
+  <h3>Files of this arte <span class="badge-count"><%= total %></span></h3>
+
+  <% partes.each do |peca, lista| %>
+    <div class="arte-parte" data-parte="<%= peca&.nome || "" %>">
+      <h4><%= peca&.nome || "Part not known yet" %></h4>
+      <ul class="arte-arquivos-lista">
+        <% lista.each do |membro| %>
+          <li class="arte-arquivo<%= " arte-arquivo--atual" if membro == arquivo %>" data-arquivo-uuid="<%= membro.uuid %>">
+            <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
+            <% if membro == arquivo %>
+              <span class="arte-arquivo-nome"><%= membro.filename %>.<%= membro.extension %> (this file)</span>
+            <% else %>
+              <%= link_to "#{membro.filename}.#{membro.extension}", arquivo_path(membro), class: "arte-arquivo-nome" %>
+            <% end %>
+            <% if membro.pending? || membro.processing? %>
+              <span class="stamp-card-badge badge-<%= membro.status %>"><%= processamento_label(membro.status) %></span>
+            <% end %>
+            <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
+            <% if total > 1 && pode?(:artes, :editar) %>
+              <%= button_to "Separate", separar_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm",
+                    form: { class: "arte-separar" }, data: { turbo_confirm: "Take #{membro.filename} out of this arte into an arte of its own?" } %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if pode?(:artes, :editar) %>
+    <% sugestoes = arquivo.mesma_arte_em_outro_envelope.to_a %>
+    <% sugestoes.each do |outra| %>
+      <div class="arte-sugestao-juntar">
+        <p>⚠ <strong><%= outra.arte.titulo %></strong> looks like this same arte in other sizes.</p>
+        <%= button_to "Join this arte into it", juntar_arquivo_arte_path(arquivo), params: { destino_uuid: outra.uuid },
+              class: "btn btn-primary btn-sm" %>
+      </div>
+    <% end %>
+
+    <details class="arte-acrescentar">
+      <summary>Add a file (another part or size)</summary>
+      <%= form_with url: acrescentar_arquivo_arte_path(arquivo), method: :post, multipart: true, data: { turbo: false }, class: "arte-acrescentar-form" do %>
+        <input type="file" name="original_file" required>
+        <% if arquivo.molde %>
+          <% cortes = Arquivo.cortes_do_molde(arquivo.molde).includes(:peca, :tamanhos).order(:id) %>
+          <select name="tamanho_uuid" required>
+            <option value="">Part and size…</option>
+            <% cortes.each do |corte| %>
+              <optgroup label="<%= corte.peca&.nome || corte.filename %>">
+                <% corte.tamanhos.each do |t| %>
+                  <option value="<%= t.uuid %>"><%= corte.peca&.nome %> <%= t.nome %></option>
+                <% end %>
+              </optgroup>
+            <% end %>
+          </select>
+        <% else %>
+          <select name="peca_uuid">
+            <option value="">Part (optional)</option>
+            <% Peca.ativos.order(:nome).each do |peca| %>
+              <option value="<%= peca.uuid %>"><%= peca.nome %></option>
+            <% end %>
+          </select>
+          <input type="text" name="tamanho_rotulo" placeholder="Size (29-30, P…)">
+        <% end %>
+        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+      <% end %>
+    </details>
+
+    <% candidatas = arquivo.artes_para_juntar.to_a %>
+    <% if candidatas.any? %>
+      <details class="arte-juntar">
+        <summary>Join with another arte</summary>
+        <%= form_with url: juntar_arquivo_arte_path(arquivo), method: :post, class: "arte-juntar-form" do %>
+          <select name="destino_uuid" required>
+            <option value="">Arte to join into…</option>
+            <% candidatas.each do |outra| %>
+              <option value="<%= outra.uuid %>"><%= outra.arte.titulo %> (<%= outra.filename %>)</option>
+            <% end %>
+          </select>
+          <button type="submit" class="btn btn-primary btn-sm" data-turbo-confirm="All files of this arte move into the chosen one and take its molde, client, reference and name.">Join</button>
+        <% end %>
+      </details>
+    <% end %>
+  <% end %>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_120000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -118,6 +118,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
   create_table "arquivos", force: :cascade do |t|
     t.integer "annotated_seconds"
     t.integer "approved_version_id"
+    t.integer "arte_id"
     t.string "batch_id"
     t.datetime "buscando_tamanho_desde"
     t.string "category"
@@ -143,11 +144,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.integer "tamanho_id"
+    t.string "tamanho_rotulo"
     t.string "tipo_corte"
     t.string "tipo_grade"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
+    t.index ["arte_id"], name: "index_arquivos_on_arte_id"
     t.index ["client_id"], name: "index_arquivos_on_client_id"
     t.index ["deleted_at"], name: "index_arquivos_on_deleted_at"
     t.index ["modelo_id"], name: "index_arquivos_on_modelo_id"
@@ -157,6 +160,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
     t.index ["tamanho_id"], name: "index_arquivos_on_tamanho_id"
     t.index ["tipo_corte"], name: "index_arquivos_on_tipo_corte"
     t.index ["uuid"], name: "index_arquivos_on_uuid", unique: true
+  end
+
+  create_table "artes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["uuid"], name: "index_artes_on_uuid", unique: true
   end
 
   create_table "bans", force: :cascade do |t|
@@ -532,6 +542,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
   add_foreign_key "arquivo_vinculo_logs", "pedidos"
   add_foreign_key "arquivo_vinculo_logs", "users"
   add_foreign_key "arquivos", "arquivo_versions", column: "approved_version_id"
+  add_foreign_key "arquivos", "artes"
   add_foreign_key "arquivos", "clients"
   add_foreign_key "arquivos", "modelos"
   add_foreign_key "arquivos", "moldes"

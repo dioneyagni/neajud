@@ -55,6 +55,13 @@ class ArquivoUploadService
     @arquivo.mime_type = @upload.content_type if @arquivo.mime_type.blank?
     @arquivo.category = FileCategory.for_extension(@arquivo.extension) if @arquivo.category.blank?
     @arquivo.category_notes = FileCategory.notes(@arquivo.extension, @arquivo.category) if @arquivo.category_notes.blank?
+    @arquivo.tamanho_rotulo ||= tamanho_do_nome unless @arquivo.corte?
+  end
+
+  # Etapa 1.2 (2/3): the size in the name ("…-29_30", "…-P") is tried first
+  # when the automatic search looks for the file's tamanho.
+  def tamanho_do_nome
+    NomeDoArquivo.ler(@upload.original_filename, partes: Peca.pluck(:nome))[:tamanho]
   end
 
   def tamanho_ok?
