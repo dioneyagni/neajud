@@ -1,6 +1,7 @@
 <%# Etapa 1.2 (2/3): an arte has one file per part × size; this is the list,
     the same on the page of any of them. Bring/separate fix files grouped apart
-    or together by mistake (decided 02/10/2026; with previews 05/10/2026). %>
+    or together by mistake (decided 02/10/2026; with previews 05/10/2026). Each
+    part's piloto (the editable master) comes first (parte 2b, 05/10/2026). %>
 <% partes = arquivo.arte.arquivos_por_parte %>
 <% total = partes.values.sum(&:size) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="arte-arquivos">
@@ -11,13 +12,22 @@
       <h4><%= peca&.nome || "Part not known yet" %></h4>
       <ul class="arte-arquivos-lista">
         <% lista.each do |membro| %>
-          <li class="arte-arquivo<%= " arte-arquivo--atual" if membro == arquivo %>" data-arquivo-uuid="<%= membro.uuid %>">
+          <li class="arte-arquivo<%= " arte-arquivo--atual" if membro == arquivo %><%= " arte-arquivo--piloto" if membro.piloto? %>" data-arquivo-uuid="<%= membro.uuid %>" data-papel="<%= membro.papel %>">
             <%= miniatura_do_arquivo(membro, classe: "arte-arquivo-thumb") %>
-            <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
+            <% if membro.piloto? %>
+              <span class="arte-arquivo-tamanho" title="The editable master file of this part">★ Piloto</span>
+            <% else %>
+              <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
+            <% end %>
             <% if membro == arquivo %>
               <span class="arte-arquivo-nome"><%= membro.filename %>.<%= membro.extension %> (this file)</span>
             <% else %>
               <%= link_to "#{membro.filename}.#{membro.extension}", arquivo_path(membro), class: "arte-arquivo-nome" %>
+            <% end %>
+            <% if membro.piloto? %>
+              <span class="arte-arquivo-peso"><%= [ membro.rotulo_de_tamanho, peso_do_arquivo(membro) ].compact.join(" · ") %></span>
+            <% elsif membro.anterior_ao_piloto? %>
+              <span class="arte-arquivo-aprovacao arte-arquivo-aprovacao--alterado" title="Made before the piloto's newest version: it still has the old drawing">⚠ before the current piloto</span>
             <% end %>
             <% if arquivo.arte.depois_da_aprovacao?(membro) %>
               <span class="arte-arquivo-aprovacao" title="The client approved the arte before this file was added">after the approval</span>
@@ -28,6 +38,14 @@
               <span class="stamp-card-badge badge-<%= membro.status %>"><%= processamento_label(membro.status) %></span>
             <% end %>
             <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
+            <% if pode?(:artes, :editar) %>
+              <% if membro.piloto? %>
+                <%= button_to "Back to production", voltar_para_producao_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm", form: { class: "arte-acao-inline arte-voltar-producao" } %>
+              <% else %>
+                <%= button_to "Make it the piloto", tornar_piloto_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm", form: { class: "arte-acao-inline arte-tornar-piloto" },
+                      data: { turbo_confirm: "Make #{membro.filename} the piloto (editable master) of #{membro.resolved_peca&.nome || "its part"}?" } %>
+              <% end %>
+            <% end %>
             <% if total > 1 && pode?(:artes, :editar) %>
               <%= button_to "Separate", separar_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm",
                     form: { class: "arte-separar" }, data: { turbo_confirm: "Take #{membro.filename} out of this arte into an arte of its own?" } %>

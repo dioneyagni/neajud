@@ -106,6 +106,20 @@ runSpec("Artes: files per part and size", async ({ page, test }) => {
     await page.locator("#aprovacao-section .badge-aprovacao--aprovada").waitFor();
   });
 
+  // Etapa 1.2 (2/3, parte 2b): each part's piloto, the editable master.
+  await test("Making a file the piloto lists it first, as the piloto; back to production undoes it", async () => {
+    const linha = linhas().filter({ hasText: "33-34" });
+    const uuid = await linha.getAttribute("data-arquivo-uuid");
+    await Promise.all([ page.waitForResponse((r) => r.url().endsWith("/arte/tornar_piloto")), linha.locator(".arte-tornar-piloto button").click() ]);
+    await page.getByText("is now the piloto of").waitFor();
+    const primeira = linhas().first();
+    if ((await primeira.getAttribute("data-arquivo-uuid")) !== uuid) throw new Error("The piloto should come first in its part");
+    if ((await primeira.locator(".arte-arquivo-tamanho").innerText()).trim() !== "★ Piloto") throw new Error("The piloto should be labelled ★ Piloto");
+
+    await Promise.all([ page.waitForResponse((r) => r.url().endsWith("/arte/voltar_para_producao")), primeira.locator('button:has-text("Back to production")').click() ]);
+    await page.getByText("is a production file again").waitFor();
+  });
+
   await test("Separating a file makes it an arte of its own again", async () => {
     const linha = linhas().filter({ hasText: "31-32" });
     await Promise.all([ page.waitForResponse((r) => r.url().endsWith("/arte/separar")), linha.locator(".arte-separar button").click() ]);

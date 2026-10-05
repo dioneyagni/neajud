@@ -15,9 +15,17 @@
             <%= button_to "Make it a new version of that arte", tornar_versao_arquivo_nome_arte_path(arquivo, original_uuid: repetida_de.uuid),
                   class: "btn btn-primary btn-sm", form: { style: "display:inline-block" },
                   data: { turbo_confirm: "Make this file version #{repetida_de.next_version_number} of #{repetida_de.filename}? This record goes to the trash." } %>
+            <%# Etapa 1.2 (2/3, parte 2b): or the older one is the editable master. %>
+            <%= button_to "Make #{repetida_de.filename} the piloto of this part", tornar_piloto_arquivo_arte_path(repetida_de, junto_de: arquivo.uuid),
+                  class: "btn btn-secondary btn-sm", form: { style: "display:inline-block" },
+                  data: { turbo_confirm: "Keep both: #{repetida_de.filename} becomes the piloto (editable master) and this file stays the production one." } %>
           <% end %>
         <% else %>
           A newer file has the same full name: <%= link_to repetida_de.filename, arquivo_path(repetida_de) %> (its page offers to make it a new version of this one).
+          <% if pode_editar_arquivo?(arquivo) %>
+            <%= button_to "Make this file the piloto of this part", tornar_piloto_arquivo_arte_path(arquivo, junto_de: repetida_de.uuid),
+                  class: "btn btn-secondary btn-sm", form: { style: "display:inline-block" } %>
+          <% end %>
         <% end %>
       </div>
     <% end %>

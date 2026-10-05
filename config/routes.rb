@@ -47,6 +47,8 @@ Rails.application.routes.draw do
       post :acrescentar
       post :trazer
       post :separar
+      post :tornar_piloto
+      post :voltar_para_producao
     end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes

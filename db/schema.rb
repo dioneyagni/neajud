@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_180000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -140,6 +140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
     t.string "nome"
     t.string "organize_error"
     t.boolean "organized", default: false, null: false
+    t.string "papel", default: "producao", null: false
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
     t.datetime "preparando_tamanhos_desde"

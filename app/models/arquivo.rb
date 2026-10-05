@@ -4,6 +4,7 @@ class Arquivo < ApplicationRecord
   include ReferenciaAtiva
   include NomeDeArte
   include MembroDeArte
+  include PapelNaArte
 
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy

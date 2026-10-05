@@ -24,6 +24,13 @@ module ArquivosHelper
     preview_arquivo_path(arquivo) if arquivo.preview_file.present?
   end
 
+  # The size on disk of a file's version in use: the piloto is the heavy one.
+  # Usage: peso_do_arquivo(piloto) # => "78.1 MB"
+  def peso_do_arquivo(arquivo)
+    caminho = arquivo.approved_original_path
+    number_to_human_size(File.size(caminho)) if caminho && File.exist?(caminho)
+  end
+
   # A small preview of a file (the arte's file list and join cards, Etapa
   # 1.2 2/3), lazy so a long list doesn't load every image; the format icon
   # while there is none (queued, failed, not an image).

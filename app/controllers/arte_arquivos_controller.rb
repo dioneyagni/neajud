@@ -1,5 +1,6 @@
 # The files of an arte, one per part × size (Etapa 1.2, 2/3), from the arte
-# page: add a file, bring other artes into this one, take a file out.
+# page: add a file, bring other artes into this one, take a file out, choose
+# each part's piloto.
 class ArteArquivosController < ApplicationController
   before_action :set_arquivo
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
@@ -37,6 +38,25 @@ class ArteArquivosController < ApplicationController
     redirect_to @arquivo, notice: "#{@arquivo.filename} is now an arte of its own."
   rescue ArgumentError => e
     redirect_to @arquivo, alert: e.message
+  end
+
+  # Makes this file its part's piloto (Etapa 1.2, 2/3 parte 2b). junto_de: a
+  # file of the arte it belongs to — from the "same arte uploaded again"
+  # offer, when the piloto was uploaded as another arte, that arte joins first.
+  # Usage: POST /arquivos/:uuid/arte/tornar_piloto (junto_de)
+  def tornar_piloto
+    destino = Arquivo.ativos.por_uuid!(params[:junto_de]) if params[:junto_de].present?
+    JuntarArtesService.call(origem: @arquivo, destino: destino) if destino && destino.arte_id != @arquivo.arte_id
+    anterior = @arquivo.reload.tornar_piloto!
+    redirect_to destino || @arquivo, notice: "#{@arquivo.filename} is now the piloto of #{@arquivo.resolved_peca&.nome || "its part"}#{" (#{anterior.filename} went back to production)" if anterior}."
+  rescue JuntarArtesService::Recusado, ActiveRecord::RecordInvalid => e
+    redirect_to destino || @arquivo, alert: e.message
+  end
+
+  # Usage: POST /arquivos/:uuid/arte/voltar_para_producao
+  def voltar_para_producao
+    @arquivo.voltar_para_producao!
+    redirect_to @arquivo, notice: "#{@arquivo.filename} is a production file again."
   end
 
   private

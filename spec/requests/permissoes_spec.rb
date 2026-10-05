@@ -29,6 +29,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "take a file out of its arte", "artes", 2, -> { post separar_arquivo_arte_path(arte) } ],
     [ "bring other artes into an arte", "artes", 2, -> { post trazer_arquivo_arte_path(arte), params: { origem_uuids: [ arte.uuid ] } } ],
     [ "add a file to an arte", "artes", 2, -> { post acrescentar_arquivo_arte_path(arte) } ],
+    [ "make a file its part's piloto", "artes", 2, -> { post tornar_piloto_arquivo_arte_path(arte) } ],
+    [ "send a piloto back to production", "artes", 2, -> { post voltar_para_producao_arquivo_arte_path(arte) } ],
     [ "trash an arte", "artes", 3, -> { delete arquivo_path(arte) } ],
     [ "open a corte (Catálogo)", "catalogo", 1, -> { get arquivo_path(corte) } ],
     [ "change a corte's cut type (Catálogo)", "catalogo", 2, -> { patch update_tipo_corte_arquivo_path(corte), params: { tipo_corte: "apenas_corte" } } ],
