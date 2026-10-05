@@ -45,7 +45,7 @@ Rails.application.routes.draw do
     # The arte's files, one per part × size (Etapa 1.2, 2/3).
     resource :arte, only: [], controller: "arte_arquivos" do
       post :acrescentar
-      post :juntar
+      post :trazer
       post :separar
     end
     resources :aprovacoes, only: %i[new create]

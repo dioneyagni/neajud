@@ -1,5 +1,5 @@
 # The files of an arte, one per part × size (Etapa 1.2, 2/3), from the arte
-# page: add a file, join this arte into another, take a file out.
+# page: add a file, bring other artes into this one, take a file out.
 class ArteArquivosController < ApplicationController
   before_action :set_arquivo
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
@@ -16,13 +16,19 @@ class ArteArquivosController < ApplicationController
     redirect_to @arquivo, notice: "#{novo.filename} added to this arte#{" (#{novo.rotulo_de_tamanho})" if novo.rotulo_de_tamanho}."
   end
 
-  # Usage: POST /arquivos/:uuid/arte/juntar (destino_uuid)
-  def juntar
-    destino = Arquivo.ativos.por_uuid!(params[:destino_uuid])
-    JuntarArtesService.call(origem: @arquivo, destino: destino)
-    redirect_to destino, notice: "Joined: #{@arquivo.filename} is now a file of #{destino.arte.titulo}."
-  rescue JuntarArtesService::Recusado => e
-    redirect_to @arquivo, alert: e.message
+  # Brings the marked artes into this one (decided 05/10/2026: from the P's
+  # page, mark the M and the G). All are checked before any moves, so a
+  # refused one leaves everything as it was.
+  # Usage: POST /arquivos/:uuid/arte/trazer (origem_uuids[])
+  def trazer
+    origens = Arquivo.ativos.where(uuid: Array(params[:origem_uuids])).to_a
+    return redirect_to @arquivo, alert: "Mark the artes to bring into this one." if origens.empty?
+
+    erros = origens.filter_map { |origem| JuntarArtesService.erro(origem: origem, destino: @arquivo) }
+    return redirect_to @arquivo, alert: "Nothing was joined: #{erros.to_sentence}" if erros.any?
+
+    origens.each { |origem| JuntarArtesService.call(origem: origem, destino: @arquivo) }
+    redirect_to @arquivo, notice: "Joined into this arte: #{origens.map(&:filename).to_sentence}."
   end
 
   # Usage: POST /arquivos/:uuid/arte/separar

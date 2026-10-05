@@ -76,15 +76,22 @@ RSpec.describe MembroDeArte do
     end
   end
 
-  describe "#artes_para_juntar and #mesma_arte_em_outro_envelope" do
-    it "offers the molde's other artes, and points out the one with the same name" do
+  describe "#artes_para_trazer and #mesma_arte_em_outro_envelope" do
+    it "offers artes without molde or of this molde, and points out the one with the same name" do
       referencia = Referencia.do_molde!(molde, "19")
       arquivo = create(:arquivo, molde: molde, referencia: referencia, nome: "Bluey Azul")
       mesma = create(:arquivo, molde: molde, referencia: referencia, nome: "BLUEY AZUL")
-      outra = create(:arquivo, molde: molde, referencia: referencia, nome: "Gato")
+      sem_molde = create(:arquivo, nome: "Bluey Azul")
       create(:arquivo, molde: create(:molde, client: client), nome: "Bluey Azul")
-      expect(arquivo.artes_para_juntar).to contain_exactly(mesma, outra)
+      create(:arquivo, client: create(:client))
+      expect(arquivo.artes_para_trazer).to contain_exactly(mesma, sem_molde)
       expect(arquivo.mesma_arte_em_outro_envelope).to eq([ mesma ])
+    end
+
+    it "offers only artes without molde and client to an arte that has neither" do
+      sem_nada = create(:arquivo)
+      create(:arquivo, molde: molde)
+      expect(create(:arquivo).artes_para_trazer).to eq([ sem_nada ])
     end
   end
 

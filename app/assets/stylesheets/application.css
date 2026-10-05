@@ -3002,6 +3002,92 @@ li.aprovacao--cancelada {
   background: #eef4fd;
 }
 
+.arte-arquivo-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+.arte-arquivo-thumb--icone,
+.arte-candidata-thumb--icone {
+  padding: 8px;
+}
+
+.arte-candidatas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.arte-candidata {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.arte-candidata--card {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0.4rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.arte-candidata--card[hidden] {
+  display: none;
+}
+
+.arte-candidata--card:has(input:checked) {
+  border-color: #1a73e8;
+  background: #eef4fd;
+}
+
+.arte-candidata--card input[type="checkbox"] {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+}
+
+.arte-candidata-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.arte-candidata--card .arte-candidata-thumb {
+  width: 100%;
+  height: 110px;
+}
+
+.arte-candidata-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.arte-candidata-texto span {
+  color: #5f6368;
+}
+
+.arte-juntar-busca {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.3rem 0.5rem;
+}
+
 .arte-arquivo-tamanho {
   min-width: 4rem;
   font-weight: 600;

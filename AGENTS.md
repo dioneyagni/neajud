@@ -722,11 +722,21 @@ search and (until part 2) the client approval stay per file.
 - **Gallery:** `principais_das_artes` keeps one file per arte (its first) —
   one card, with `resumo_da_arte` ("2 files · Lateral 29-30, 31-32"). Any
   file's broadcast redraws that card. Batch delete trashes the whole arte.
-- **Page:** `_arte_arquivos` lists `Arte#arquivos_por_parte`, with
-  `ArteArquivosController` (`acrescentar`, `juntar`, `separar`; artes:
-  editar). `JuntarArtesService` moves every file (trashed too) and refuses
-  moving one to another molde or client. `mesma_arte_em_outro_envelope`
-  suggests joining an arte with the same molde, referência and nome.
+- **Page:** `_arte_arquivos` lists `Arte#arquivos_por_parte`, each file with
+  its thumbnail (`miniatura_do_arquivo`, lazy), with `ArteArquivosController`
+  (`acrescentar`, `trazer`, `separar`; artes: editar). `trazer` brings the
+  **marked** artes into this one (decided 05/10/2026: from the P's page mark
+  the M and the G) — preview cards with a text filter (`trazer-artes`
+  Stimulus controller), all checked with `JuntarArtesService.erro` before any
+  moves. `JuntarArtesService` moves every file (trashed too) and refuses
+  moving one to another molde or client; candidates are `artes_para_trazer`.
+  `mesma_arte_em_outro_envelope` suggests, with its preview, an arte with
+  the same molde, referência and nome.
+- ⚠️ A cold test server (eager_load off) processing two uploads at once can
+  fail one job with `undefined method 'arquivo_path'` while rendering the
+  card broadcast (seen only when running a spec by hand right after booting
+  the server; never in `bin/e2e` or CI, which eager-loads). Specs that need a
+  preview assert `data-status="processed"` so it can't pass unnoticed.
 - **Size from the file name:** `NomeDoArquivo` reads it (`tamanho`: "29-30",
   "P"; measures dropped from the name) into `tamanho_rotulo` at upload;
   `TamanhoAutoAssignService` tries it before the outline matcher when exactly

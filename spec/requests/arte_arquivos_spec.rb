@@ -40,6 +40,8 @@ RSpec.describe "Arte files", type: :request do
       outro = create(:arquivo, arte: arquivo.arte, filename: "a-31_32", peca: lateral, tamanho_rotulo: "31-32")
       get arquivo_path(arquivo)
       expect(response.body).to include("Files of this arte", "a-29_30.tif (this file)", arquivo_path(outro), separar_arquivo_arte_path(outro))
+      # Each file's thumbnail (the format icon while it has no preview).
+      expect(Nokogiri::HTML(response.body).css("#arte-arquivos .arte-arquivo .arte-arquivo-thumb").size).to eq(2)
     end
 
     it "offers to join the same arte uploaded apart in another size" do
@@ -47,7 +49,10 @@ RSpec.describe "Arte files", type: :request do
       arquivo = create(:arquivo, molde: molde, referencia: referencia, nome: "Bluey")
       outra = create(:arquivo, molde: molde, referencia: referencia, nome: "bluey")
       get arquivo_path(arquivo)
-      expect(response.body).to include("looks like this same arte in other sizes", %(value="#{outra.uuid}"))
+      sugestao = Nokogiri::HTML(response.body).at_css(%(.arte-sugestao-juntar[data-arquivo-uuid="#{outra.uuid}"]))
+      expect(sugestao.text).to include("looks like the same arte in other sizes")
+      expect(sugestao.at_css("form")["action"]).to eq(trazer_arquivo_arte_path(arquivo))
+      expect(sugestao.at_css(".arte-candidata-thumb")).to be_present
     end
   end
 
@@ -88,19 +93,27 @@ RSpec.describe "Arte files", type: :request do
     end
   end
 
-  describe "POST juntar and separar" do
-    it "joins this arte into the chosen one and opens it" do
-      destino = create(:arquivo, molde: molde)
-      origem = create(:arquivo)
-      post juntar_arquivo_arte_path(origem), params: { destino_uuid: destino.uuid }
+  describe "POST trazer and separar" do
+    it "brings the marked artes into this one" do
+      destino = create(:arquivo, molde: molde, nome: "ARCOVERDE")
+      m, g = create(:arquivo, tamanho_rotulo: "M"), create(:arquivo, tamanho_rotulo: "G")
+      post trazer_arquivo_arte_path(destino), params: { origem_uuids: [ m.uuid, g.uuid ] }
       expect(response).to redirect_to(arquivo_path(destino))
-      expect([ origem.reload.arte_id, origem.molde_id ]).to eq([ destino.arte_id, molde.id ])
+      expect([ m.reload, g.reload ].map { |a| [ a.arte_id, a.molde_id, a.nome ] }).to eq([ [ destino.arte_id, molde.id, "ARCOVERDE" ] ] * 2)
     end
 
-    it "explains a refused join on the arte's page" do
-      origem = create(:arquivo, molde: molde)
-      post juntar_arquivo_arte_path(origem), params: { destino_uuid: create(:arquivo, molde: create(:molde)).uuid }
-      expect([ response, flash[:alert] ]).to match([ redirect_to(arquivo_path(origem)), /expected the same molde/ ])
+    it "moves none when one of the marked can't come, saying which" do
+      destino = create(:arquivo, molde: molde)
+      livre = create(:arquivo)
+      outro_molde = create(:arquivo, molde: create(:molde), filename: "de-outro-molde")
+      post trazer_arquivo_arte_path(destino), params: { origem_uuids: [ livre.uuid, outro_molde.uuid ] }
+      expect(flash[:alert]).to include("Nothing was joined", "de-outro-molde")
+      expect(livre.reload.arte_id).not_to eq(destino.arte_id)
+    end
+
+    it "asks to mark something when nothing was marked" do
+      post trazer_arquivo_arte_path(create(:arquivo))
+      expect(flash[:alert]).to eq("Mark the artes to bring into this one.")
     end
 
     it "takes a file out into an arte of its own, and refuses the only file" do

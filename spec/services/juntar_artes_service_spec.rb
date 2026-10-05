@@ -35,4 +35,12 @@ RSpec.describe JuntarArtesService do
     expect { described_class.call(origem: arquivo, destino: irmao) }.to raise_error(JuntarArtesService::Recusado, /already in this arte/)
     expect { described_class.call(origem: arquivo, destino: create(:arquivo, :corte)) }.to raise_error(JuntarArtesService::Recusado, /must both be artes/)
   end
+
+  it ".erro tells why a join would be refused without moving anything" do
+    origem = create(:arquivo, molde: molde)
+    destino = create(:arquivo, molde: create(:molde))
+    expect(described_class.erro(origem: origem, destino: destino)).to match(/expected the same molde/)
+    expect(described_class.erro(origem: create(:arquivo), destino: destino)).to be_nil
+    expect(origem.reload.arte_id).not_to eq(destino.arte_id)
+  end
 end

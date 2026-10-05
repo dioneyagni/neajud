@@ -61,15 +61,14 @@ module MembroDeArte
     atualizar_rascunhos_sem_cliente if mudou_cliente
   end
 
-  # Other artes this one can be joined into (one file each, its first): of
-  # the same molde and client when it has them (JuntarArtesService refuses
-  # moving files to another molde or client).
-  # Usage: arquivo.artes_para_juntar.map { |a| a.arte.titulo }
-  def artes_para_juntar
+  # Other artes that can be brought into this one (one file each, its
+  # first): without a molde or client, or with this arte's —
+  # JuntarArtesService refuses moving a file to another molde or client.
+  # Usage: arquivo.artes_para_trazer.map { |a| a.arte.titulo }
+  def artes_para_trazer
     candidatas = Arquivo.ativos.where(category: "artes").where.not(arte_id: [ arte_id, nil ])
-    candidatas = candidatas.where(molde_id: molde_id) if molde_id
-    candidatas = candidatas.where(client_id: client_id) if client_id
-    candidatas.principais_das_artes.includes(:arte, :referencia, molde: :modelo).order(:filename).limit(100)
+    candidatas.where(molde_id: [ nil, molde_id ].uniq, client_id: [ nil, client_id ].uniq)
+              .principais_das_artes.includes(:arte, :referencia, :approved_version, molde: :modelo).order(:filename).limit(100)
   end
 
   # The same arte uploaded apart in another size: same molde, referência and
@@ -78,7 +77,7 @@ module MembroDeArte
   def mesma_arte_em_outro_envelope
     return Arquivo.none unless molde_id && nome.present?
 
-    candidatas = artes_para_juntar.where(referencia_id: referencia_id).to_a
+    candidatas = artes_para_trazer.where(molde_id: molde_id, referencia_id: referencia_id).to_a
     Arquivo.where(id: candidatas.select { |outra| TextoComparavel.iguais?(outra.nome, nome) }.map(&:id))
   end
 

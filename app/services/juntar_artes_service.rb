@@ -17,6 +17,16 @@ class JuntarArtesService
     new(origem, destino).call
   end
 
+  # Why joining would be refused, or nil — to check several origins before
+  # moving any (ArteArquivosController#trazer).
+  # Usage: JuntarArtesService.erro(origem: m, destino: p) # => nil
+  def self.erro(origem:, destino:)
+    new(origem, destino).send(:validar!)
+    nil
+  rescue Recusado => e
+    e.message
+  end
+
   def initialize(origem, destino)
     @origem = origem
     @destino = destino
@@ -39,6 +49,6 @@ class JuntarArtesService
   end
 
   def recusar_diferenca(campo, de, para)
-    raise Recusado, "This arte is in #{campo} #{de.inspect} and the other in #{para.inspect}; expected the same #{campo}, or none on this arte (join from the other arte's page instead)"
+    raise Recusado, "#{@origem.filename.inspect} is in #{campo} #{de.inspect} and this arte in #{para.inspect}; expected the same #{campo}, or none on #{@origem.filename.inspect}"
   end
 end

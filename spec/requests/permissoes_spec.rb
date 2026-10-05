@@ -27,7 +27,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "set an arte's referência and name", "artes", 2, -> { patch arquivo_nome_arte_path(arte), params: { nome: "X" } } ],
     [ "join a repeated arte as a new version", "artes", 2, -> { post tornar_versao_arquivo_nome_arte_path(arte), params: { original_uuid: arte.uuid } } ],
     [ "take a file out of its arte", "artes", 2, -> { post separar_arquivo_arte_path(arte) } ],
-    [ "join an arte into another", "artes", 2, -> { post juntar_arquivo_arte_path(arte), params: { destino_uuid: arte.uuid } } ],
+    [ "bring other artes into an arte", "artes", 2, -> { post trazer_arquivo_arte_path(arte), params: { origem_uuids: [ arte.uuid ] } } ],
     [ "add a file to an arte", "artes", 2, -> { post acrescentar_arquivo_arte_path(arte) } ],
     [ "trash an arte", "artes", 3, -> { delete arquivo_path(arte) } ],
     [ "open a corte (Catálogo)", "catalogo", 1, -> { get arquivo_path(corte) } ],

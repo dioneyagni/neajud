@@ -32,17 +32,38 @@ runSpec("Artes: files per part and size", async ({ page, test }) => {
     }
     await page.goto(BASE_URL);
     if ((await cards().count()) !== 2) throw new Error(`Expected 2 cards, got ${await cards().count()}`);
+    // Both must have a preview: the join cards below show it.
+    const estados = await cards().evaluateAll((els) => els.map((el) => el.dataset.status));
+    if (estados.some((e) => e !== "processed")) throw new Error(`Expected both files processed, got ${estados.join(", ")}`);
     await abrirCard(nomes.p);
     const tamanho = (await linhas().first().locator(".arte-arquivo-tamanho").innerText()).trim();
     if (tamanho !== "29-30") throw new Error(`Expected the size 29-30 read from the name, got "${tamanho}"`);
   });
 
-  await test("Joining one into the other leaves one card and both files on the arte page", async () => {
+  await test("Bringing the other arte in: filter, mark its preview card, join", async () => {
     await page.locator(".arte-juntar summary").click();
-    const opcao = page.locator('.arte-juntar-form select[name="destino_uuid"] option').filter({ hasText: nomes.g });
-    await page.selectOption('.arte-juntar-form select[name="destino_uuid"]', await opcao.getAttribute("value"));
-    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator('.arte-juntar-form button[type="submit"]').click() ]);
-    await page.getByText("Joined:").waitFor();
+    const botao = page.locator('.arte-juntar-form button[type="submit"]');
+    if (!(await botao.isDisabled())) throw new Error("Nothing marked yet: the button must be disabled");
+
+    // The filter leaves only the cards whose title, file or sizes match.
+    await page.fill(".arte-juntar-busca", "31_32");
+    const visiveis = page.locator(".arte-candidata--card:visible");
+    await visiveis.first().waitFor();
+    const textos = await visiveis.allInnerTexts();
+    if (!textos.length || !textos.every((t) => t.includes("31_32"))) throw new Error(`The filter should leave only the 31_32 arte, got ${JSON.stringify(textos)}`);
+
+    const card = page.locator(".arte-candidata--card").filter({ hasText: nomes.g });
+    // The file's own preview (not the format icon shown while there is none), loaded.
+    const img = card.locator("img");
+    if (!(await img.getAttribute("src")).includes("/preview")) throw new Error(`The candidate shows no preview: ${await img.getAttribute("src")}`);
+    // loading="lazy": wait for it rather than read it right away.
+    await page.waitForFunction((el) => el.complete && el.naturalWidth > 0, await img.elementHandle(), { timeout: 5000 });
+    await card.click();
+    if ((await botao.innerText()).trim() !== "Bring the marked arte") throw new Error(`Unexpected button text: ${await botao.innerText()}`);
+    await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), botao.click() ]);
+    await page.getByText("Joined into this arte:").waitFor();
+    // Each file of the arte has its thumbnail.
+    if ((await page.locator("#arte-arquivos .arte-arquivo .arte-arquivo-thumb").count()) !== 2) throw new Error("Each file should show its thumbnail");
 
     const tamanhos = await linhas().locator(".arte-arquivo-tamanho").allInnerTexts();
     if (tamanhos.join("|") !== "29-30|31-32") throw new Error(`Expected 29-30|31-32 in the arte, got ${tamanhos.join("|")}`);
