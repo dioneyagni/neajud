@@ -12,6 +12,9 @@
     </div>
     <div class="list-item-name">
       <%= arquivo.filename %>.<span class="list-item-ext"><%= arquivo.extension %></span>
+      <% if (resumo = resumo_da_arte(arquivo)) %>
+        <div class="stamp-card-arte"><%= resumo %></div>
+      <% end %>
     </div>
     <div class="list-item-client">
       <%= arquivo.client&.name || "—" %>

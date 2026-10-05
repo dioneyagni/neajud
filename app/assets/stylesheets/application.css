@@ -325,6 +325,16 @@ section {
   margin-bottom: 0.35rem;
 }
 
+/* Etapa 1.2 (2/3): the other files of the arte behind a card */
+.stamp-card-arte {
+  font-size: 0.75rem;
+  color: #5f6368;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.3rem;
+}
+
 .stamp-card-meta {
   font-size: 0.78rem;
   color: #5f6368;
@@ -2958,4 +2968,155 @@ body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
 
 li.aprovacao--cancelada {
   color: #9aa0a6;
+}
+
+/* Etapa 1.2 (2/3): the files of an arte, one per part × size */
+.arte-parte h4 {
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.9rem;
+}
+
+.arte-arquivos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.arte-arquivo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.3rem 0.5rem;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.arte-arquivo--atual {
+  border-color: #1a73e8;
+  background: #eef4fd;
+}
+
+.arte-arquivo-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+.arte-arquivo-thumb--icone,
+.arte-candidata-thumb--icone {
+  padding: 8px;
+}
+
+.arte-candidatas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.arte-candidata {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.arte-candidata--card {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0.4rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.arte-candidata--card[hidden] {
+  display: none;
+}
+
+.arte-candidata--card:has(input:checked) {
+  border-color: #1a73e8;
+  background: #eef4fd;
+}
+
+.arte-candidata--card input[type="checkbox"] {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+}
+
+.arte-candidata-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.arte-candidata--card .arte-candidata-thumb {
+  width: 100%;
+  height: 110px;
+}
+
+.arte-candidata-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.arte-candidata-texto span {
+  color: #5f6368;
+}
+
+.arte-juntar-busca {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.3rem 0.5rem;
+}
+
+.arte-arquivo-tamanho {
+  min-width: 4rem;
+  font-weight: 600;
+}
+
+.arte-arquivo .arte-separar {
+  display: inline;
+}
+
+.arte-sugestao-juntar {
+  margin: 0.6rem 0;
+  padding: 0.5rem 0.7rem;
+  background: #fff8e1;
+  border: 1px solid #f0d58a;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.arte-acrescentar,
+.arte-juntar {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.arte-acrescentar-form,
+.arte-juntar-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
 }

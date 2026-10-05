@@ -47,4 +47,32 @@ RSpec.describe TamanhoAutoAssignService do
     assign(lonely, match: nil)
     expect(lonely.reload.tamanho_id).to be_nil
   end
+
+  describe "by the size read from the file name (Etapa 1.2, 2/3)" do
+    let!(:par) { create(:tamanho, arquivo: corte, nome: "29-30", numeros: %w[29 30], position: 2) }
+
+    it "takes the one size that serves it, before the outline matcher" do
+      arte.update!(tamanho_rotulo: "30")
+      matcher = FakeMoldMatcher.new(first_tamanho)
+      described_class.call(arte, matcher: matcher)
+      expect([ arte.reload.tamanho, matcher.calls ]).to eq([ par, 0 ])
+    end
+
+    it "only looks in the file's part's cortes when the part is known" do
+      lingua = create(:peca)
+      outro = create(:arquivo, :corte, organized: true, modelo: modelo, client: molde.client, peca: lingua)
+      da_lingua = create(:tamanho, arquivo: outro, nome: "29-30", numeros: %w[29 30])
+      arte.update!(tamanho_rotulo: "29-30", peca: lingua)
+      assign(arte)
+      expect(arte.reload.tamanho).to eq(da_lingua)
+    end
+
+    it "falls back to the matcher when two sizes could serve it" do
+      outro = create(:arquivo, :corte, organized: true, modelo: modelo, client: molde.client, peca: create(:peca))
+      create(:tamanho, arquivo: outro, nome: "29-30", numeros: %w[29 30])
+      arte.update!(tamanho_rotulo: "29-30")
+      assign(arte, match: first_tamanho)
+      expect(arte.reload.tamanho).to eq(first_tamanho)
+    end
+  end
 end

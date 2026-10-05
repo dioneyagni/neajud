@@ -1,5 +1,5 @@
 # Moves a list of arquivos (by uuid) to the trash for the gallery's batch
-# delete. Returns [trashed_uuids, errors], where errors holds unknown uuids.
+# delete — each with the other files of its arte. Returns [trashed_uuids, errors], where errors holds unknown uuids.
 # Files in storage stay (Etapa 0.4: nothing is physically deleted; restore
 # from /lixeira).
 #
@@ -30,7 +30,8 @@ class ArquivoBatchDestroyService
     arquivo = Arquivo.ativos.find_by(uuid: uuid)
     return @errors << uuid unless arquivo
 
-    arquivo.excluir!(**@autoria)
+    # A gallery card is a whole arte (Etapa 1.2, 2/3): all its files go.
+    [ arquivo, *arquivo.irmaos.ativos ].each { |membro| membro.excluir!(**@autoria) }
     @trashed_uuids << uuid
   end
 end

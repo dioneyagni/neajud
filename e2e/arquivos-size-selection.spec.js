@@ -121,9 +121,9 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       // Go to arte arquivo show page
       const arteCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
       await arteCard.waitFor({ timeout: 10000 });
-      await arteCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      // Wait for the arquivo page itself: the gallery also has an h2 (headed
+      // run 05/10/2026 read the gallery and found no #size-selection-section).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arteCard.locator("a").first().click() ]);
 
       arteUuid = await page.evaluate(() => window.location.pathname.split("/").pop());
 
@@ -227,9 +227,9 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
 
       const orgCard = page.locator(".stamp-card").filter({ hasText: "e2e-comp-org" }).first();
       await orgCard.waitFor({ timeout: 10000 });
-      await orgCard.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      // Wait for the arquivo page itself: the gallery also has an h2 (headed
+      // run 05/10/2026 read the gallery and found no #size-selection-section).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), orgCard.locator("a").first().click() ]);
 
       orgUuid = await page.evaluate(() => window.location.pathname.split("/").pop());
 
@@ -278,9 +278,9 @@ runSpec("Arquivos E2E: size selection", async ({ page, test }) => {
       await page.waitForTimeout(500);
       const arteCard2 = page.locator(".stamp-card").filter({ hasText: "e2e-comp-arte" }).first();
       await arteCard2.waitFor({ timeout: 10000 });
-      await arteCard2.locator("a").first().click();
-      await page.waitForSelector("h2", { timeout: 10000 });
-      await page.waitForTimeout(500);
+      // Wait for the arquivo page itself: the gallery also has an h2 (headed
+      // run 05/10/2026 read the gallery and found no #size-selection-section).
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), arteCard2.locator("a").first().click() ]);
 
       // Find the organized corte's tamanho through the arte's molde — the same
       // query Size Selection makes (the molde's cortes, 01/10/2026).

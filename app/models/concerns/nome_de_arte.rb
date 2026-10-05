@@ -42,7 +42,11 @@ module NomeDeArte
 
     self.referencia = nil if referencia && referencia.molde_id != molde_id
     preencher_pelo_nome_do_arquivo if molde
-    update_columns(referencia_id: referencia_id, nome: nome) if referencia_id_changed? || nome_changed?
+    return unless referencia_id_changed? || nome_changed?
+
+    update_columns(referencia_id: referencia_id, nome: nome)
+    # update_columns skips the callback that keeps the arte's files in step.
+    compartilhar_com_a_arte!
   end
 
   # Names already used in this arte's referência (or molde, without one), for
