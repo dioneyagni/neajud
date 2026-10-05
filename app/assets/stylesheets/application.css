@@ -3120,3 +3120,23 @@ li.aprovacao--cancelada {
   align-items: center;
   margin-top: 0.4rem;
 }
+
+/* Etapa 1.2 (2/3, parte 2): a file the arte's approval didn't see */
+.arte-arquivo-aprovacao {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: #e8f0fe;
+  color: #1a4f9c;
+}
+
+.arte-arquivo-aprovacao--alterado {
+  background: #fff3cd;
+  color: #7a5b00;
+}
+
+.aprovacao-alterada {
+  margin-left: 0.5rem;
+  color: #7a5b00;
+  font-size: 0.85rem;
+}

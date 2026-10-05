@@ -123,4 +123,45 @@ RSpec.describe "Aprovações de arte", type: :request do
       expect(response.body).not_to include("Send for approval", "Register approval")
     end
   end
+
+  describe "per arte (Etapa 1.2, 2/3)" do
+    let(:user) { @usuario_logado }
+
+    def com_versao(arquivo, numero = 1)
+      arquivo.tap { |a| a.update!(approved_version: create(:arquivo_version, arquivo: a, version_number: numero, status: :processed)) }
+    end
+
+    it "sending from one file sends the whole arte; the other file's page shows it waiting" do
+      lateral = com_versao(create(:arquivo, filename: "lateral"))
+      lingua = com_versao(create(:arquivo, arte: lateral.arte, filename: "lingua"))
+      post arquivo_solicitacoes_path(lateral)
+      expect(flash[:notice]).to include("sent for approval (2 files)")
+      get arquivo_path(lingua)
+      expect(response.body).to include("Aguardando aprovação")
+    end
+
+    it "the gallery card shows the arte's state; the file list marks a file added after the approval" do
+      lateral = com_versao(create(:arquivo, filename: "lateral"))
+      SolicitacaoAprovacao.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user)
+      AprovacaoArte.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user, canal: "whatsapp", aprovado_em: Date.current)
+      novo = com_versao(create(:arquivo, arte: lateral.arte, filename: "novo"))
+
+      get arquivos_path
+      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{lateral.id}")
+      expect(card.at_css(".badge-aprovacao--aprovada").text).to eq("✅ Aprovada")
+      get arquivo_path(lateral)
+      linha = Nokogiri::HTML(response.body).at_css(%(.arte-arquivo[data-arquivo-uuid="#{novo.uuid}"]))
+      expect(linha.text).to include("after the approval")
+    end
+
+    it "a new version of one file: not sent again, the file marked as the one that changed" do
+      lateral = com_versao(create(:arquivo, filename: "lateral"))
+      lingua = com_versao(create(:arquivo, arte: lateral.arte, filename: "lingua"))
+      SolicitacaoAprovacao.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user)
+      AprovacaoArte.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user, canal: "whatsapp", aprovado_em: Date.current)
+      com_versao(lingua, 2)
+      get arquivo_path(lateral)
+      expect(response.body).to include("Changed after the last approval", "changed after the approval")
+    end
+  end
 end

@@ -19,7 +19,7 @@ class AprovacoesController < ApplicationController
     @aprovacao = RegistrarAprovacaoService.call(@arte, user: Current.user, dados: aprovacao_params, anexo: params.dig(:aprovacao, :anexo))
     return render :new, status: :unprocessable_content unless @aprovacao.persisted?
 
-    redirect_to voltar_para, notice: "Approval of #{@arte.filename} (v#{@aprovacao.arquivo_version.version_number}) registered."
+    redirect_to voltar_para, notice: "Approval of #{@arte.arte.titulo} registered (#{@aprovacao.arquivo_version_ids.size} #{"file".pluralize(@aprovacao.arquivo_version_ids.size)})."
   end
 
   def cancelar

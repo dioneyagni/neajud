@@ -45,7 +45,7 @@ RSpec.describe RegistrarAprovacaoService do
   end
 
   it "refuses an arte that was not sent for approval" do
-    arte.solicitacoes_aprovacao.each { |s| s.cancelar!(por: user) }
+    arte.arte.solicitacoes_aprovacao.each { |s| s.cancelar!(por: user) }
     aprovacao = described_class.call(arte.reload, user: user, dados: dados)
     expect(aprovacao.errors[:base]).to include("#{arte.filename} is not sent for approval; send it for approval first")
   end

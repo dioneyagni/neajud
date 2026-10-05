@@ -7,6 +7,7 @@
 # Usage: arquivo.arte.arquivos_por_parte # => { <Peca Lateral> => [<Arquivo 29-30>, …], nil => […] }
 class Arte < ApplicationRecord
   include GeraUuid
+  include Aprovavel
 
   has_many :arquivos, dependent: :restrict_with_error
 

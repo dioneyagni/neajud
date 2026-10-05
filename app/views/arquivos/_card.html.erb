@@ -58,6 +58,8 @@
         <% elsif arquivo.pending? || arquivo.processing? %>
           <span class="stamp-card-badge badge-<%= arquivo.status %>"><%= processamento_label(arquivo.status) %></span>
         <% end %>
+        <%# The arte's client approval (Etapa 1.2, 2/3). %>
+        <%= selo_aprovacao(arquivo.arte, compacto: true) if arquivo.arte %>
         <% if arquivo.annotated_seconds || arquivo.estimated_seconds&.positive? %>
           <span><%= format_time(arquivo.annotated_seconds || arquivo.estimated_seconds) %></span>
         <% end %>

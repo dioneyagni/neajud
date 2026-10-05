@@ -34,7 +34,11 @@ class JuntarArtesService
 
   def call
     validar!
-    Arquivo.where(arte_id: @origem.arte_id).update_all(arte_id: @destino.arte_id, updated_at: Time.current)
+    origem = @origem.arte_id
+    # The approval history comes along (Etapa 1.2, 2/3): the latest record
+    # decides the joined arte's state, and files it didn't see show as added
+    # after the approval.
+    [ Arquivo, AprovacaoArte, SolicitacaoAprovacao ].each { |modelo| modelo.where(arte_id: origem).update_all(arte_id: @destino.arte_id, updated_at: Time.current) }
     @destino.compartilhar_com_a_arte!
     @destino.arte
   end

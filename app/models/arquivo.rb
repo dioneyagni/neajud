@@ -2,7 +2,6 @@ class Arquivo < ApplicationRecord
   include GeraUuid
   include Excluivel
   include ReferenciaAtiva
-  include Aprovavel
   include NomeDeArte
   include MembroDeArte
 
@@ -13,6 +12,12 @@ class Arquivo < ApplicationRecord
   has_many :moldes, through: :arquivo_moldes
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :restrict_with_error
   has_many :item_pedido_pecas, dependent: :restrict_with_error
+  # The approval records registered from this file's page; the state is the
+  # arte's (Aprovavel, Etapa 1.2 2/3).
+  has_many :aprovacoes_registradas, class_name: "AprovacaoArte", dependent: :destroy
+  has_many :solicitacoes_registradas, class_name: "SolicitacaoAprovacao", dependent: :destroy
+  delegate :estado_aprovacao, :rotulo_estado_aprovacao, :aprovacao_vigente, :solicitacao_vigente,
+           :alterada_depois_da_aprovacao?, to: :arte, allow_nil: true
   has_many :vinculo_logs, -> { order(created_at: :desc) }, class_name: "ArquivoVinculoLog", dependent: :destroy
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true
