@@ -112,7 +112,14 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
   }
 
   // Submits the open modal and returns the pedido uuid from adicionar_item.
+  // Etapa 1.2 (3/3): a molde without organized DXF lists the product's whole
+  // grade by number, all at 0 (the single "Quantidade" used to start at 1).
+  async function pedirUmPar() {
+    if (await page.locator(".add-to-order-grade-input").count()) await page.locator('.add-to-order-grade-input[data-tamanho-nome="30"]').fill("1");
+  }
+
   async function submitModal() {
+    await pedirUmPar();
     const responsePromise = page.waitForResponse((r) => r.url().endsWith("/pedidos/adicionar_item"));
     await page.locator("[data-add-to-order-target='submitBtn']").click();
     const json = await (await responsePromise).json();
@@ -211,6 +218,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       await lingua.locator(".add-to-order-peca-check").uncheck();
       await waitForOpacity(pecaCard(names.lingua), "dimmed");
 
+      await pedirUmPar();
       const requestPromise = page.waitForRequest((r) => r.url().endsWith("/pedidos/adicionar_item") && r.method() === "POST");
       await page.locator("[data-add-to-order-target='submitBtn']").click();
       const body = (await requestPromise).postData() || "";

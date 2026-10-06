@@ -28,25 +28,40 @@ RSpec.describe Arte do
   end
 
   describe "#tamanhos_do_pedido (Etapa 1.2, 3/3)" do
-    it "is the molde's stretch of the grade, one by one" do
+    it "is the product's whole grade without an organized corte; the molde's stretch doesn't enter" do
       arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "24", tamanho_final: "27")).arte
-      expect(arte.tamanhos_do_pedido).to eq(%w[24 25 26 27])
+      expect(arte.tamanhos_do_pedido).to eq((18..46).map(&:to_s))
     end
 
-    it "without a stretch, the numbers the molde's cortes serve; with old cortes, their size names" do
-      molde = create(:molde)
+    # Decided 05/10/2026: pre-listed with the corte's numbers.
+    def corte_do_molde(molde, *tamanhos)
       corte = create(:arquivo, :corte, organized: true, client: molde.client, modelo: molde.modelo).tap { |c| c.moldes << molde }
-      create(:tamanho, arquivo: corte, nome: "31-32", numeros: %w[31 32], position: 2)
-      create(:tamanho, arquivo: corte, nome: "29-30", numeros: %w[29 30], position: 1)
-      arte = create(:arquivo, molde: molde).arte
-      expect(arte.tamanhos_do_pedido).to eq(%w[29 30 31 32])
-      Tamanho.update_all(numeros: [])
-      expect(arte.tamanhos_do_pedido).to eq(%w[29-30 31-32])
+      tamanhos.each_with_index { |(nome, numeros), i| create(:tamanho, arquivo: corte, nome: nome, numeros: numeros || [], position: i + 1) }
     end
 
-    it "the whole product's grade may be asked, to add a number outside the stretch" do
-      arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "24", tamanho_final: "27")).arte
-      expect(arte.grade_completa_do_pedido).to eq((18..46).map(&:to_s))
+    it "lists the numbers the molde's cortes serve" do
+      molde = create(:molde)
+      corte_do_molde(molde, [ "29-30", %w[29 30] ], [ "31-32", %w[31 32] ])
+      expect(create(:arquivo, molde: molde).arte.tamanhos_do_pedido).to eq(%w[29 30 31 32])
+    end
+
+    it "deduces an old corte's numbers from its size names (24, 26 → 23 … 26)" do
+      molde = create(:molde)
+      corte_do_molde(molde, [ "24" ], [ "26" ])
+      expect(create(:arquivo, molde: molde).arte.tamanhos_do_pedido).to eq(%w[23 24 25 26])
+    end
+
+    it "ignores the molde's stretch when there are cortes" do
+      molde = create(:molde, tamanho_inicial: "24", tamanho_final: "26")
+      corte_do_molde(molde, [ "23-24", %w[23 24] ], [ "25-26", %w[25 26] ], [ "27-28", %w[27 28] ])
+      expect(create(:arquivo, molde: molde).arte.tamanhos_do_pedido).to eq(%w[23 24 25 26 27 28])
+    end
+
+    it "the whole product's grade may be asked, to add a number outside the cortes'" do
+      molde = create(:molde)
+      corte_do_molde(molde, [ "29-30", %w[29 30] ])
+      arte = create(:arquivo, molde: molde).arte
+      expect([ arte.tamanhos_do_pedido, arte.grade_completa_do_pedido ]).to eq([ %w[29 30], (18..46).map(&:to_s) ])
     end
 
     it "is empty without a molde (the pedido takes a single total)" do

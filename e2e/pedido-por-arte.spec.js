@@ -7,8 +7,9 @@ const { BASE_URL, runSpec } = require("./support/runner");
 const { modeloOficial } = require("./support/catalogo");
 
 // Etapa 1.2 (3/3, parte 1; decided 05/10/2026): an item is an arte, its grade
-// by individual size (the molde's stretch), and it can be added from the
-// pedido page by molde → referência → arte, not only from the gallery.
+// by individual size — the numbers its molde's organized DXF serve, "+ before
+// / after" from the product's grade — and it can be added from the pedido
+// page by molde → referência → arte, not only from the gallery.
 runSpec("Pedido: items are artes, by individual size", async ({ page, test }) => {
   const U = `${Date.now()}`.slice(-6);
   const nomes = { cliente: `Pedido Arte ${U}`, molde: `PA${U}`, arquivo: `20-PEDIDO${U}-29_30.tif` };
@@ -28,14 +29,24 @@ runSpec("Pedido: items are artes, by individual size", async ({ page, test }) =>
   }
 
   try {
-    await test("Setup: an arte in a molde from 29 to 31", async () => {
+    await test("Setup: an arte in a molde whose organized DXF is Par 29-30", async () => {
       await page.goto(BASE_URL);
       const tenis = await modeloOficial(page, "Tenis");
       await post("/clients", { "client[name]": nomes.cliente, "client[responsible]": "T" });
       const clienteUuid = await buscar(`/clients/search?q=${encodeURIComponent(nomes.cliente)}`, "name", nomes.cliente);
-      await post("/moldes", { "molde[sufixo]": nomes.molde, "molde[client_uuid]": clienteUuid, "molde[modelo_uuid]": tenis.id,
-        "molde[tamanho_inicial]": "29", "molde[tamanho_final]": "31" });
+      await post("/moldes", { "molde[sufixo]": nomes.molde, "molde[client_uuid]": clienteUuid, "molde[modelo_uuid]": tenis.id });
       const moldeUuid = await buscar(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`, "sufixo", nomes.molde);
+
+      // The DXF the grade comes from: organized as Par, one size 29-30.
+      const dxf = path.join(pasta, `PA${U}.dxf`);
+      fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "29-30.dxf"), dxf);
+      await uploadFileAndWait(page, dxf);
+      const corteUuid = (await page.locator(".stamp-card").filter({ hasText: `PA${U}` }).first().locator("a").first().getAttribute("href")).split("/").pop();
+      const organizado = await post(`/arquivos/${corteUuid}/organize`, { _method: "patch", modelo_uuid: tenis.id, tipo_grade: "par",
+        "tamanhos[0][tamanhos]": "30", "tamanhos[0][width_mm]": "150", "tamanhos[0][height_mm]": "250", "tamanhos[0][area_mm2]": "8000" });
+      const ligado = await post(`/arquivos/${corteUuid}/add_molde`, { molde_uuid: moldeUuid });
+      if (!organizado.ok || !ligado.ok) throw new Error(`organize ok=${organizado.ok}, add_molde ok=${ligado.ok}`);
+      await waitForQueuedTask(page, `/arquivos/${corteUuid}/preparacao_tamanhos.json`);
 
       const caminho = path.join(pasta, nomes.arquivo);
       fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "02-no_spot.tif"), caminho);
@@ -66,21 +77,21 @@ runSpec("Pedido: items are artes, by individual size", async ({ page, test }) =>
       const modal = page.locator(".add-to-order-dialog");
       await modal.waitFor();
       const tamanhos = await modal.locator(".add-to-order-grade-input").evaluateAll((els) => els.map((el) => el.dataset.tamanhoNome));
-      if (tamanhos.join("|") !== "29|30|31") throw new Error(`The grade should be the molde's numbers, got ${tamanhos.join("|")}`);
+      if (tamanhos.join("|") !== "29|30") throw new Error(`The grade should be the DXF's numbers, got ${tamanhos.join("|")}`);
       await modal.locator('.add-to-order-grade-input[data-tamanho-nome="29"]').fill("4");
       await modal.locator('.add-to-order-grade-input[data-tamanho-nome="30"]').fill("6");
-      // "+ 28" / "+ 32": the product's next numbers outside the molde's stretch;
+      // "+ 28" / "+ 31": the product's next numbers outside the DXF's;
       // adding one keeps what was typed.
-      if ((await modal.locator(".grade-numeros-mais").allInnerTexts()).join("|") !== "+ 28|+ 32") throw new Error("Expected + 28 and + 32");
-      await modal.locator('.grade-numeros-mais:has-text("+ 32")').click();
-      await modal.locator('.add-to-order-grade-input[data-tamanho-nome="32"]').fill("1");
+      if ((await modal.locator(".grade-numeros-mais").allInnerTexts()).join("|") !== "+ 28|+ 31") throw new Error("Expected + 28 and + 31");
+      await modal.locator('.grade-numeros-mais:has-text("+ 31")').click();
+      await modal.locator('.add-to-order-grade-input[data-tamanho-nome="31"]').fill("1");
       if ((await modal.locator('.add-to-order-grade-input[data-tamanho-nome="29"]').inputValue()) !== "4") throw new Error("Adding a number lost what was typed");
       await Promise.all([ page.waitForEvent("load"), modal.locator('button:has-text("Adicionar")').click() ]);
 
       const item = page.locator(".pedido-item").filter({ hasText: `PEDIDO${U}` });
       await item.waitFor();
       const grade = await item.locator(".grade-qtd-input").evaluateAll((els) => els.map((el) => `${el.dataset.tamanhoNome}=${el.value}`));
-      if (grade.join("|") !== "29=4|30=6|31=0|32=1") throw new Error(`Unexpected grade on the pedido: ${grade.join("|")}`);
+      if (grade.join("|") !== "29=4|30=6|31=1") throw new Error(`Unexpected grade on the pedido: ${grade.join("|")}`);
     });
     // Decided 05/10/2026: number over quantity on wide screens, side by side on narrow ones.
     await test("The grade is a responsive table: number over quantity, side by side on a phone", async () => {

@@ -189,7 +189,7 @@ RSpec.describe "Pedidos", type: :request do
       molde = create(:molde, partes: [ lateral, lingua ])
       arte = create(:arquivo, category: "artes", molde: molde, peca: lateral)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "_total" => "1" } }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "30" => "1" } }
 
       rows = ItemPedido.last.item_pedido_pecas
       expect(rows.map { |r| [ r.peca.nome, r.arquivo, r.estado ] })
@@ -202,7 +202,7 @@ RSpec.describe "Pedidos", type: :request do
       arte_lateral = create(:arquivo, category: "artes", molde: molde, peca: lateral)
       arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "_total" => "1" } }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "30" => "1" } }
 
       expect(ItemPedido.last.item_pedido_pecas.map { |r| [ r.peca.nome, r.estado ] })
         .to eq([ [ "Lateral", :incluida ], [ "Língua", :excluida ] ])
