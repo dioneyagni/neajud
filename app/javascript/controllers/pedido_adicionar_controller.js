@@ -39,7 +39,8 @@ export default class extends Controller {
       <button type="button" class="btn btn-sm btn-primary" data-action="click->add-to-order#open"
               data-add-to-order-arte-uuid="${arte.arquivo_uuid}" data-add-to-order-arte-filename="${this.escapar(arte.titulo)}"
               data-add-to-order-arte-client="${this.escapar(arte.client || "")}" data-add-to-order-arte-client-uuid="${arte.client_uuid || ""}"
-              data-add-to-order-arte-preview="${arte.preview || ""}" data-add-to-order-tamanhos="${this.escapar(JSON.stringify(arte.tamanhos))}">Adicionar</button>
+              data-add-to-order-arte-preview="${arte.preview || ""}" data-add-to-order-tamanhos="${this.escapar(JSON.stringify(arte.tamanhos))}"
+              data-add-to-order-grade-completa="${this.escapar(JSON.stringify(arte.grade_completa))}">Adicionar</button>
     </div>`
   }
 

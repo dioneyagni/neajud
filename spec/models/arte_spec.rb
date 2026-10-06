@@ -44,6 +44,11 @@ RSpec.describe Arte do
       expect(arte.tamanhos_do_pedido).to eq(%w[29-30 31-32])
     end
 
+    it "the whole product's grade may be asked, to add a number outside the stretch" do
+      arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "24", tamanho_final: "27")).arte
+      expect(arte.grade_completa_do_pedido).to eq((18..46).map(&:to_s))
+    end
+
     it "is empty without a molde (the pedido takes a single total)" do
       expect(create(:arquivo).arte.tamanhos_do_pedido).to eq([])
     end

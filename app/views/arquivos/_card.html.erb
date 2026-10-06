@@ -78,6 +78,7 @@
             data-add-to-order-arte-client-uuid="<%= arquivo.client&.uuid %>"
             data-add-to-order-arte-preview="<%= arquivo.preview_file.present? ? preview_arquivo_path(arquivo) : "" %>"
             data-add-to-order-tamanhos="<%= tamanhos_for_arte(arquivo).to_json %>"
+            data-add-to-order-grade-completa="<%= grade_completa_for_arte(arquivo).to_json %>"
             title="Adicionar ao Pedido">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="16" width="16" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
       Pedido

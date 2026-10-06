@@ -56,6 +56,13 @@ module ArquivosHelper
     arquivo.arte.tamanhos_do_pedido.map { |nome| { nome: nome } }
   end
 
+  # Usage: grade_completa_for_arte(arquivo) # => ["18", …, "46"]
+  def grade_completa_for_arte(arquivo)
+    return [] unless arquivo.category == "artes" && arquivo.arte
+
+    arquivo.arte.grade_completa_do_pedido
+  end
+
   # The grade shown in the Mold Organization form: the corte's own, else the
   # one deduced from the detected names (Etapa 1.2, 1/3) — nil when nothing
   # can be deduced ("Size 1").

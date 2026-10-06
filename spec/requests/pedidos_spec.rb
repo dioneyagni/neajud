@@ -164,10 +164,12 @@ RSpec.describe "Pedidos", type: :request do
       expect([ item.arte, item.grades.order(:tamanho_nome).map { |g| [ g.tamanho_nome, g.quantidade ] } ]).to eq([ arte.arte, [ [ "29", 3 ], [ "30", 2 ] ] ])
     end
 
-    it "refuses a size outside the arte's grade, naming it and the expected ones" do
+    it "refuses a size outside the product's grade, naming it; takes one just outside the molde's stretch" do
       arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "29", tamanho_final: "30"))
       post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "29-30" => "3" } }
-      expect([ response.status, response.parsed_body["error"] ]).to eq([ 422, "Sizes 29-30 are not in this arte's grade; expected some of 29, 30" ])
+      expect([ response.status, response.parsed_body["error"] ]).to match([ 422, /\ASizes 29-30 are not in this arte's grade; expected some of 18, 19, / ])
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "31" => "1" } }
+      expect(response).to have_http_status(:success)
     end
 
     it "adds to the pedido it is asked for (the pedido page's picker)" do

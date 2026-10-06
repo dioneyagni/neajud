@@ -107,20 +107,24 @@
         </div>
       <% end %>
 
-      <% grades_map = item.grades.index_by(&:tamanho_nome) %>
-      <div class="grade-cards">
-        <% tamanhos_for_arte(item.arquivo).each do |t| %>
-          <% grade = grades_map[t[:nome]] %>
+      <%# Etapa 1.2 (3/3): by number, the molde's stretch first, "+ before /
+          after" from the product's grade (grade-por-numero). %>
+      <% tamanhos = tamanhos_for_arte(item.arquivo).map { |t| t[:nome] } %>
+      <% if tamanhos.any? %>
+        <%= tag.div data: { controller: "grade-por-numero",
+              grade_por_numero_tamanhos_value: tamanhos.to_json,
+              grade_por_numero_completa_value: grade_completa_for_arte(item.arquivo).to_json,
+              grade_por_numero_quantidades_value: item.grades.to_h { |g| [ g.tamanho_nome, g.quantidade ] }.to_json,
+              grade_por_numero_input_class_value: "grade-card-input grade-qtd-input" } %>
+      <% else %>
+        <% total = item.grades.find_by(tamanho_nome: ProducaoPedidoService::TOTAL_KEY) %>
+        <div class="grade-cards">
           <div class="grade-card">
-            <span class="grade-card-label"><%= t[:nome] %></span>
-            <input type="number"
-                   class="grade-card-input grade-qtd-input"
-                   data-tamanho-nome="<%= t[:nome] %>"
-                   value="<%= grade&.quantidade || 0 %>"
-                   min="0" step="1">
+            <span class="grade-card-label">Quantidade</span>
+            <input type="number" class="grade-card-input grade-qtd-input" data-tamanho-nome="<%= ProducaoPedidoService::TOTAL_KEY %>" value="<%= total&.quantidade || 0 %>" min="0" step="1">
           </div>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
 
       <% corte = item.arquivo.corte || item.arquivo.corte_via_molde %>
       <% if corte %>

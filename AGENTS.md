@@ -316,7 +316,11 @@ Decided 05/10/2026, in three parts; part 1 is done:
   them from the arte. Its grade is by **individual size**
   (`Arte#tamanhos_do_pedido`: the molde's `grade`; without one, the numbers
   its cortes serve; with old cortes, their size names; no molde → one
-  `_total`). `adicionar_item` / `atualizar_item` refuse other sizes.
+  `_total`), listed first; "+ 23" / "+ 35" add the product's next numbers
+  (`Arte#grade_completa_do_pedido`, decided 05/10/2026), and
+  `adicionar_item` / `atualizar_item` refuse sizes outside it. The grade is a
+  responsive table (`grade_por_numero_controller.js`: number over quantity,
+  side by side under 600px), shared by the modal and the pedido page.
 - Production maps a number to the corte's size serving it
   (`Tamanho#atende_rotulo?`: "29" → 29-30) until part 3 groups by corte size.
 - Added from the gallery card or from the pedido page (molde → referência →

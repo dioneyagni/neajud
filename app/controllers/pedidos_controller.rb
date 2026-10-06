@@ -207,12 +207,13 @@ class PedidosController < ApplicationController
     Pedido.ativos.find_by(uuid: session[:current_pedido_uuid]) || Pedido.create!(status: "rascunho")
   end
 
-  # Etapa 1.2 (3/3): the grade is by the arte's individual sizes
-  # (Arte#tamanhos_do_pedido), or a single "_total" when it has none.
+  # Etapa 1.2 (3/3): the grade is by the arte's individual sizes — any of
+  # its product's grade (Arte#grade_completa_do_pedido) — or a single
+  # "_total" when it has none.
   def erro_de_grade(arte, grade_params)
     return nil unless grade_params.respond_to?(:each)
 
-    permitidos = arte&.tamanhos_do_pedido.presence || [ ProducaoPedidoService::TOTAL_KEY ]
+    permitidos = arte&.grade_completa_do_pedido.presence || [ ProducaoPedidoService::TOTAL_KEY ]
     estranhos = grade_params.to_unsafe_h.keys - permitidos
     "Sizes #{estranhos.join(", ")} are not in this arte's grade; expected some of #{permitidos.join(", ")}" if estranhos.any?
   end
@@ -229,7 +230,8 @@ class PedidosController < ApplicationController
       arquivo_uuid: arquivo.uuid, titulo: arquivo.arte.titulo, filename: arquivo.filename,
       client: arquivo.client&.name, client_uuid: arquivo.client&.uuid,
       preview: (preview_arquivo_path(arquivo) if arquivo.preview_file.present?),
-      resumo: helpers.resumo_da_arte(arquivo), tamanhos: helpers.tamanhos_for_arte(arquivo)
+      resumo: helpers.resumo_da_arte(arquivo), tamanhos: helpers.tamanhos_for_arte(arquivo),
+      grade_completa: helpers.grade_completa_for_arte(arquivo)
     }
   end
 

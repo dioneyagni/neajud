@@ -51,6 +51,19 @@ class Arte < ApplicationRecord
     numeros.any? ? numeros.sort_by(&:to_i) : tamanhos.map(&:nome).uniq
   end
 
+  # Every size a pedido may ask (decided 05/10/2026): the product's whole
+  # grade, so "+ 23" / "+ 35" can add a number just outside the molde's
+  # stretch (tamanhos_do_pedido, the ones listed first).
+  # Usage: arte.grade_completa_do_pedido # => ["18", …, "46"]
+  # Empty when nothing is listed (the pedido takes a single total then).
+  def grade_completa_do_pedido
+    listados = tamanhos_do_pedido
+    return [] if listados.empty?
+
+    completa = principal&.molde&.modelo&.produto&.grade.to_a
+    (listados - completa).empty? ? completa : listados
+  end
+
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.
   # Usage: arte.titulo # => "001-TNS · 19 · BLUEY PTO"

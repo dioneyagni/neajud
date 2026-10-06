@@ -69,12 +69,34 @@ runSpec("Pedido: items are artes, by individual size", async ({ page, test }) =>
       if (tamanhos.join("|") !== "29|30|31") throw new Error(`The grade should be the molde's numbers, got ${tamanhos.join("|")}`);
       await modal.locator('.add-to-order-grade-input[data-tamanho-nome="29"]').fill("4");
       await modal.locator('.add-to-order-grade-input[data-tamanho-nome="30"]').fill("6");
+      // "+ 28" / "+ 32": the product's next numbers outside the molde's stretch;
+      // adding one keeps what was typed.
+      if ((await modal.locator(".grade-numeros-mais").allInnerTexts()).join("|") !== "+ 28|+ 32") throw new Error("Expected + 28 and + 32");
+      await modal.locator('.grade-numeros-mais:has-text("+ 32")').click();
+      await modal.locator('.add-to-order-grade-input[data-tamanho-nome="32"]').fill("1");
+      if ((await modal.locator('.add-to-order-grade-input[data-tamanho-nome="29"]').inputValue()) !== "4") throw new Error("Adding a number lost what was typed");
       await Promise.all([ page.waitForEvent("load"), modal.locator('button:has-text("Adicionar")').click() ]);
 
       const item = page.locator(".pedido-item").filter({ hasText: `PEDIDO${U}` });
       await item.waitFor();
       const grade = await item.locator(".grade-qtd-input").evaluateAll((els) => els.map((el) => `${el.dataset.tamanhoNome}=${el.value}`));
-      if (grade.join("|") !== "29=4|30=6|31=0") throw new Error(`Unexpected grade on the pedido: ${grade.join("|")}`);
+      if (grade.join("|") !== "29=4|30=6|31=0|32=1") throw new Error(`Unexpected grade on the pedido: ${grade.join("|")}`);
+    });
+    // Decided 05/10/2026: number over quantity on wide screens, side by side on narrow ones.
+    await test("The grade is a responsive table: number over quantity, side by side on a phone", async () => {
+      const celula = page.locator(".pedido-item").filter({ hasText: `PEDIDO${U}` }).locator(".grade-numero").first();
+      const posicoes = async () => celula.evaluate((el) => {
+        const r = el.querySelector(".grade-numero-rotulo").getBoundingClientRect();
+        const i = el.querySelector("input").getBoundingClientRect();
+        return { embaixo: i.top >= r.bottom - 1, aoLado: i.left >= r.right - 1 };
+      });
+      if (!(await posicoes()).embaixo) throw new Error("On a wide screen the quantity should be under the number");
+      await page.setViewportSize({ width: 390, height: 800 });
+      try {
+        if (!(await posicoes()).aoLado) throw new Error("On a phone the quantity should be beside the number");
+      } finally {
+        await page.setViewportSize({ width: 1280, height: 800 });
+      }
     });
   } finally {
     fs.rmSync(pasta, { recursive: true, force: true });
