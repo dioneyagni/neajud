@@ -59,7 +59,7 @@ RSpec.describe ItemPedido, type: :model do
       item.compor_pecas!(slots)
       rows = item.item_pedido_pecas.reload
       expect(rows.map { |r| [ r.peca, r.arquivo, r.position, r.estado ] })
-        .to eq([ [ lateral, item.arquivo, 0, :incluida ], [ lingua, nil, 1, :pendente ] ])
+        .to eq([ [ lateral, item.arquivo, 0, :incluida ], [ lingua, nil, 1, :incluida ] ])
     end
   end
 
@@ -70,7 +70,7 @@ RSpec.describe ItemPedido, type: :model do
       create(:item_pedido_peca, item_pedido: source, arquivo: nil, position: 1)
       copy = create(:item_pedido)
       copy.copiar_pecas_de!(source)
-      expect(copy.item_pedido_pecas.reload.map(&:estado)).to eq([ :excluida, :pendente ])
+      expect(copy.item_pedido_pecas.reload.map(&:estado)).to eq([ :excluida, :incluida ])
     end
   end
 
@@ -81,7 +81,7 @@ RSpec.describe ItemPedido, type: :model do
       dropped = create(:item_pedido_peca, item_pedido: item, position: 1)
       pending = create(:item_pedido_peca, item_pedido: item, arquivo: nil, position: 2)
       item.excluir_pecas!([ dropped.arquivo.uuid, "unknown" ])
-      expect([ kept, dropped, pending ].map { |r| r.reload.estado }).to eq([ :incluida, :excluida, :pendente ])
+      expect([ kept, dropped, pending ].map { |r| r.reload.estado }).to eq([ :incluida, :excluida, :incluida ])
     end
 
     it "does nothing when no uuids are given" do

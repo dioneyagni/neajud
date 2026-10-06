@@ -3,20 +3,24 @@ const fs = require("fs");
 const { execSync } = require("child_process");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
+const { waitForQueuedTask } = require("./support/wait");
 const { imageHasVisiblePixels } = require("./support/pixels");
 const { modeloOficial, adicionarPartes } = require("./support/catalogo");
 
-// "Adicionar ao Pedido" lists every piece of the arte's molde: checked
-// pieces go to production, unchecked ones are excluded, and pieces without
-// arte are pending (no checkbox).
-runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", async ({ page, test }) => {
+// "Adicionar ao Pedido" lists every part of the arte's molde; checked parts
+// go to production, unchecked ones are excluded. Etapa 1.2 (3/3, parte 2;
+// decided 05/10/2026): the pedido reads the arte — each ordered number of a
+// part finds its DXF size and the arte's file of that size, or is a
+// pendência settled inside the arte ("Enviar arquivo", "Trazer de outra arte").
+runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", async ({ page, test }) => {
   const UNIQ = `PP${Date.now()}`;
   const names = { lateral: `Lateral ${UNIQ}`, lingua: `Lingua ${UNIQ}` };
   const tempFiles = [];
 
-  // Solid-color TIF with an e2e- prefix, so bin/e2e cleans it if we abort.
+  // Solid-color TIF named with its size (…-29_30, read as 29-30) and an e2e-
+  // prefix, so bin/e2e cleans it if we abort.
   function makeArte(label, color) {
-    const file = path.join(__dirname, `e2e-${label}-${UNIQ}.tif`);
+    const file = path.join(__dirname, `e2e-${label}-${UNIQ}-29_30.tif`);
     execSync(`convert -size 60x60 xc:${color} 'TIFF:${file}'`);
     tempFiles.push(file);
     return file;
@@ -51,7 +55,6 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       lateral: await findId(`/pecas/search?q=${encodeURIComponent(names.lateral)}`, "nome", names.lateral),
       lingua: await findId(`/pecas/search?q=${encodeURIComponent(names.lingua)}`, "nome", names.lingua),
     };
-    // Etapa 1.1 (3/5): an official modelo; the parts go on the molde.
     const modeloId = (await modeloOficial(page, "Tenis")).id;
     const clientName = `Cliente ${UNIQ}`;
     await postForm("/clients", [[ "client[name]", clientName ], [ "client[responsible]", "E2E" ]]);
@@ -66,11 +69,26 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     return { pecaIds, moldeId, modeloId, clientId };
   }
 
+  // The part's DXF, organized as Par with one size (29-30), linked to the molde.
+  async function corteOrganizado(label, pecaId) {
+    const dxf = path.join(__dirname, `e2e-dxf-${label}-${UNIQ}.dxf`);
+    fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "29-30.dxf"), dxf);
+    tempFiles.push(dxf);
+    await page.goto(BASE_URL);
+    await uploadFileAndWait(page, dxf);
+    const uuid = (await page.locator(".stamp-card").filter({ hasText: `e2e-dxf-${label}-${UNIQ}` }).first().locator("a").first().getAttribute("href")).split("/").pop();
+    const organizado = await postForm(`/arquivos/${uuid}/organize`, [[ "_method", "patch" ], [ "modelo_uuid", molde.modeloId ], [ "peca_uuid", pecaId ],
+      [ "tipo_grade", "par" ], [ "tamanhos[0][tamanhos]", "30" ], [ "tamanhos[0][width_mm]", "150" ], [ "tamanhos[0][height_mm]", "250" ], [ "tamanhos[0][area_mm2]", "8000" ]]);
+    const ligado = await postForm(`/arquivos/${uuid}/add_molde`, [[ "molde_uuid", molde.moldeId ]]);
+    if (organizado >= 400 || ligado >= 400) throw new Error(`DXF ${label}: organize HTTP ${organizado}, add_molde HTTP ${ligado}`);
+    await waitForQueuedTask(page, `/arquivos/${uuid}/preparacao_tamanhos.json`);
+  }
+
   function cardFor(file) {
     return page.locator(".stamp-card").filter({ hasText: path.basename(file, ".tif") }).first();
   }
 
-  // Uploads the arte and links it to the molde + peça (update_molde).
+  // Uploads the arte file and links it to the molde + peça (update_molde).
   async function uploadArte(file, moldeId, pecaId) {
     await page.goto(BASE_URL);
     await uploadFileAndWait(page, file);
@@ -81,6 +99,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
       if (pecaId) fields.push([ "peca_uuid", pecaId ]);
       const status = await postForm(`/arquivos/${uuid}/update_molde`, fields);
       if (status >= 400) throw new Error(`update_molde failed for ${uuid}: HTTP ${status}`);
+      await waitForQueuedTask(page, `/arquivos/${uuid}/busca_tamanho.json`);
     }
     return uuid;
   }
@@ -98,7 +117,7 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
   // Waits out the CSS opacity transition instead of reading a mid-fade value.
   // state: "dimmed" (opacity < 0.5, unchecked) or "visible" (opacity 1).
   async function waitForOpacity(locator, state) {
-    const nome = (await locator.innerText()).replace(/\s+/g, " ").trim();
+    const nome = (await locator.locator(".pedido-peca-nome, .add-to-order-peca-nome").first().innerText().catch(() => "")).trim();
     const handle = await locator.elementHandle();
     try {
       await page.waitForFunction(({ el, state }) => {
@@ -111,13 +130,12 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     }
   }
 
-  // Submits the open modal and returns the pedido uuid from adicionar_item.
-  // Etapa 1.2 (3/3): a molde without organized DXF lists the product's whole
-  // grade by number, all at 0 (the single "Quantidade" used to start at 1).
+  // Etapa 1.2 (3/3): the grade is by number; one pair of the 30 (Par 29-30).
   async function pedirUmPar() {
-    if (await page.locator(".add-to-order-grade-input").count()) await page.locator('.add-to-order-grade-input[data-tamanho-nome="30"]').fill("1");
+    await page.locator('.add-to-order-grade-input[data-tamanho-nome="30"]').fill("1");
   }
 
+  // Submits the open modal and returns the pedido uuid from adicionar_item.
   async function submitModal() {
     await pedirUmPar();
     const responsePromise = page.waitForResponse((r) => r.url().endsWith("/pedidos/adicionar_item"));
@@ -127,12 +145,12 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
     return json.pedido_uuid;
   }
 
-  // Piece card on the pedido page, inside the itemIndex-th item (creation order).
+  // Part card on the pedido page, inside the itemIndex-th item (creation order).
   function pedidoPeca(itemIndex, nome) {
-    return page.locator(".pedido-item").nth(itemIndex).locator(".pedido-peca").filter({ hasText: nome });
+    return page.locator(".pedido-item").nth(itemIndex).locator(".pedido-peca").filter({ has: page.locator(".pedido-peca-nome", { hasText: nome }) });
   }
 
-  // Clicks a piece checkbox on the pedido page and waits for the save.
+  // Clicks a part checkbox on the pedido page and waits for the save.
   async function togglePedidoPeca(card, checked) {
     const saved = page.waitForResponse((r) => r.url().includes("/alternar_peca"));
     await (checked ? card.locator(".pedido-peca-check").check() : card.locator(".pedido-peca-check").uncheck());
@@ -154,243 +172,149 @@ runSpec("Pedidos E2E: pieces of the molde (add-to-order modal + pedido page)", a
 
   let molde;
   let pedidoUuid;
-  let outroMoldeNome;
-  let outroUuid;
   const lateralFile = makeArte("lateral", "red");
   const linguaFile = makeArte("lingua", "blue");
   const loneFile = makeArte("lone", "green");
-  const outroFile = makeArte("outro", "orange");
   const terceiroFile = makeArte("terceiro", "purple");
   const uploadFile = makeArte("upload", "teal");
-  let linguaUuid;
 
   try {
-    await test("Setup: molde with Lateral + Língua and a Lateral arte", async () => {
+    await test("Setup: molde with Lateral + Língua, each with its organized DXF, and a Lateral arte of 29-30", async () => {
       molde = await setupMolde();
+      await corteOrganizado("lateral", molde.pecaIds.lateral);
+      await corteOrganizado("lingua", molde.pecaIds.lingua);
       await uploadArte(lateralFile, molde.moldeId, molde.pecaIds.lateral);
     });
 
-    await test("Modal lists both pieces; the one without arte is pending, without checkbox", async () => {
+    await test("Modal lists both parts; the one this arte has no file for is pending, without checkbox", async () => {
       await openModalFor(lateralFile);
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
       const count = await page.locator(".add-to-order-peca").count();
-      if (count !== 2) throw new Error(`Expected 2 pieces, got ${count}`);
-      if ((await pecaCard(names.lateral).locator(".add-to-order-peca-check").count()) !== 1) {
-        throw new Error("Lateral should have a checkbox");
-      }
+      if (count !== 2) throw new Error(`Expected 2 parts, got ${count}`);
+      if ((await pecaCard(names.lateral).locator(".add-to-order-peca-check").count()) !== 1) throw new Error("Lateral should have a checkbox");
       const pending = pecaCard(names.lingua);
       if (!(await pending.getAttribute("class")).includes("add-to-order-peca--pendente")) throw new Error("Língua should be pending");
-      if ((await pending.locator(".add-to-order-peca-check").count()) !== 0) throw new Error("Pending piece must not have a checkbox");
-      if (!(await pending.textContent()).includes("Pendente")) throw new Error("Pending badge missing");
+      if ((await pending.locator(".add-to-order-peca-check").count()) !== 0) throw new Error("Pending part must not have a checkbox");
     });
 
-    await test("The piece preview loads with visible pixels", async () => {
+    await test("The part preview loads with visible pixels", async () => {
       const src = await pecaCard(names.lateral).locator("img.add-to-order-peca-thumb").getAttribute("src");
       if (!src || !src.includes("/preview")) throw new Error(`Preview src missing: ${src}`);
-      const res = await page.evaluate(async (u) => { const r = await fetch(u); return [ r.status, r.headers.get("content-type") ]; }, src);
-      if (res[0] !== 200 || !String(res[1]).startsWith("image/")) throw new Error(`Preview response ${res}`);
-      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Piece preview has no visible pixels");
+      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Part preview has no visible pixels");
     });
 
-    await test("Cancel closes the modal and clears the pieces", async () => {
+    await test("Cancel closes the modal and clears the parts", async () => {
       await page.locator(".add-to-order-footer .btn-secondary").click();
       if (await page.locator(".add-to-order-dialog[open]").count()) throw new Error("Modal still open after Cancel");
-      if (await page.locator(".add-to-order-peca").count()) throw new Error("Pieces not cleared after Cancel");
+      if (await page.locator(".add-to-order-peca").count()) throw new Error("Parts not cleared after Cancel");
     });
 
-    await test("Adding while Língua has no arte stores it as pending on the pedido page", async () => {
+    await test("Added: the Lateral 30 comes from its file; the Língua 30 is a pendência with Enviar / Trazer", async () => {
       await openModalFor(lateralFile);
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
       pedidoUuid = await submitModal();
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const lateral = pedidoPeca(0, names.lateral);
+      await expectPedidoPeca(lateral, "incluida", true);
+      const linhaLateral = (await lateral.locator(".pedido-parte-tamanho").innerText()).replace(/\s+/g, " ");
+      if (!linhaLateral.includes("29-30") || !linhaLateral.includes("30×1") || !linhaLateral.includes(path.basename(lateralFile, ".tif"))) throw new Error(`Lateral line: ${linhaLateral}`);
       const lingua = pedidoPeca(0, names.lingua);
       await expectPedidoPeca(lingua, "pendente");
-      if (await lingua.locator(".pedido-peca-check").count()) throw new Error("Pending piece must not have a checkbox");
-      if (!(await lingua.innerText()).includes("sem arte")) throw new Error("Pending piece should say 'sem arte'");
-      await expectPedidoPeca(pedidoPeca(0, names.lateral), "incluida", true);
+      const linhaLingua = lingua.locator(".pedido-parte-tamanho");
+      if (!(await linhaLingua.innerText()).includes("sem arquivo de produção")) throw new Error("Língua 30 should be pending");
+      if ((await linhaLingua.locator("form.pedido-parte-enviar").count()) !== 1 || (await linhaLingua.locator("a.pedido-parte-trazer").count()) !== 1) throw new Error("Enviar / Trazer missing");
     });
 
-    await test("Unchecking a piece dims it and is sent as excluded on submit", async () => {
-      linguaUuid = await uploadArte(linguaFile, molde.moldeId, molde.pecaIds.lingua);
-      await openModalFor(lateralFile);
-      const lingua = pecaCard(names.lingua);
-      await lingua.locator(".add-to-order-peca-check").waitFor({ timeout: 5000 });
-      await lingua.locator(".add-to-order-peca-check").uncheck();
-      await waitForOpacity(pecaCard(names.lingua), "dimmed");
-
-      await pedirUmPar();
-      const requestPromise = page.waitForRequest((r) => r.url().endsWith("/pedidos/adicionar_item") && r.method() === "POST");
-      await page.locator("[data-add-to-order-target='submitBtn']").click();
-      const body = (await requestPromise).postData() || "";
-      if (!body.includes(linguaUuid)) throw new Error("Unchecked piece's arte uuid not sent as excluir_arquivos[]");
-      await page.locator(".add-to-order-dialog[open]").waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
-      if (await page.locator(".add-to-order-dialog[open]").count()) throw new Error("Modal should close after adding");
-    });
-
-    await test("Pedido page shows the pieces as chosen in the modal, previews with visible pixels", async () => {
-      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      await expectPedidoPeca(pedidoPeca(1, names.lateral), "incluida", true);
-      await expectPedidoPeca(pedidoPeca(1, names.lingua), "excluida", false);
-      await waitForOpacity(pedidoPeca(1, names.lingua), "dimmed");
-      for (const nome of [ names.lateral, names.lingua ]) {
-        const src = await pedidoPeca(1, nome).locator("img.pedido-peca-thumb").getAttribute("src");
-        if (!(await imageHasVisiblePixels(page, src))) throw new Error(`${nome} preview has no visible pixels`);
-      }
-    });
-
-    await test("Checking a piece on the pedido page saves it (survives reload)", async () => {
-      await togglePedidoPeca(pedidoPeca(1, names.lingua), true);
-      await waitForOpacity(pedidoPeca(1, names.lingua), "visible");
-      await page.reload();
-      await expectPedidoPeca(pedidoPeca(1, names.lingua), "incluida", true);
-    });
-
-    await test("Unchecking a piece on the pedido page saves it (survives reload)", async () => {
-      await togglePedidoPeca(pedidoPeca(1, names.lateral), false);
-      await waitForOpacity(pedidoPeca(1, names.lateral), "dimmed");
-      await page.reload();
-      await expectPedidoPeca(pedidoPeca(1, names.lateral), "excluida", false);
-    });
-
-    // State here: item 0 = Lateral checked + Língua pending; item 1 = Lateral
-    // unchecked + Língua checked. Each item was added with quantity 1.
-    await test("Produção lists only checked pieces, summed per peça", async () => {
-      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      const rows = await page.locator("turbo-frame#pedido-producao tbody tr").evaluateAll((trs) => trs.map((tr) => tr.dataset.peca));
-      if (JSON.stringify(rows) !== JSON.stringify([ names.lateral, names.lingua ])) throw new Error(`Rows ${JSON.stringify(rows)}`);
-      const lateralTotal = (await producaoRow(names.lateral).locator("td strong").innerText()).trim();
-      if (lateralTotal !== "1") throw new Error(`Lateral total should be 1 (only item 0 has it checked), got ${lateralTotal}`);
-    });
-
-    await test("Unchecking a piece removes it from Produção without reloading, re-checking brings it back", async () => {
-      await togglePedidoPeca(pedidoPeca(1, names.lingua), false);
-      await producaoRow(names.lingua).waitFor({ state: "detached", timeout: 5000 })
-        .catch(() => { throw new Error("Língua row still in Produção after unchecking"); });
-      await togglePedidoPeca(pedidoPeca(1, names.lingua), true);
-      await producaoRow(names.lingua).waitFor({ timeout: 5000 })
-        .catch(() => { throw new Error("Língua row did not come back after re-checking"); });
-    });
-
-    await test("A pending piece is listed and Confirmar is disabled on the pedido page", async () => {
-      const box = page.locator(".pedido-pendencias");
-      if (!(await box.innerText()).includes(names.lingua)) throw new Error("Pending Língua not listed");
-      const confirmar = page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`);
-      if (!(await confirmar.isDisabled())) throw new Error("Confirmar should be disabled while a piece is pending");
-    });
-
-    await test("The pedidos list shows a pending badge instead of Confirmar", async () => {
+    await test("A pendência is listed and Confirmar is disabled; the list shows a badge; the server refuses", async () => {
+      if (!(await page.locator(".pedido-pendencias").innerText()).includes(`${names.lingua} 30 (29-30) sem arquivo de produção`)) throw new Error("Pendência not listed");
+      if (!(await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled())) throw new Error("Confirmar should be disabled");
       await page.goto(`${BASE_URL}/pedidos`);
       const row = page.locator("tr").filter({ has: page.locator(`a[href="/pedidos/${pedidoUuid}"]`) });
-      // Counts every blocker: the pending Língua plus pieces whose arte has no corte in this scenario.
-      if (!/\d+ pendente/.test(await row.locator(".pedido-pendentes-badge").innerText())) throw new Error("Pending badge missing");
-      if (await row.locator(`a[href="/pedidos/${pedidoUuid}/confirmar"]`).count()) throw new Error("Confirmar link should be hidden");
-    });
-
-    await test("The server refuses to confirm while a piece is pending", async () => {
+      if (!/1 pendente/.test(await row.locator(".pedido-pendentes-badge").innerText())) throw new Error("Pending badge missing");
       const token = await csrf();
       await page.evaluate(async ({ uuid, token }) => {
         await fetch(`/pedidos/${uuid}/confirmar`, { method: "POST", headers: { "X-CSRF-Token": token } });
       }, { uuid: pedidoUuid, token });
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      const status = (await page.locator("h2 .badge").innerText()).trim();
-      if (status !== "rascunho") throw new Error(`Pedido should stay rascunho, got ${status}`);
+      if ((await page.locator("h2 .badge").innerText()).trim() !== "rascunho") throw new Error("Pedido should stay rascunho");
     });
 
-    await test("Setup: another molde of the same client with an arte without peça", async () => {
-      outroMoldeNome = `Outro ${UNIQ}`;
-      await page.goto(BASE_URL);
-      await postForm("/moldes", [[ "molde[sufixo]", outroMoldeNome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
-      const outroId = await findId(`/moldes/search?q=${encodeURIComponent(outroMoldeNome)}`, "sufixo", outroMoldeNome);
-      if (!outroId) throw new Error("Could not create the second molde");
-      await adicionarPartes(page, outroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
-      outroUuid = await uploadArte(outroFile, outroId, null);
-      // Group 1 is "the client's artes": give it the same client.
-      const status = await postForm(`/arquivos/${outroUuid}/update_client`, [[ "_method", "patch" ], [ "client_uuid", molde.clientId ]]);
-      if (status >= 400) throw new Error(`update_client failed: HTTP ${status}`);
-    });
-
-    await test("'Escolher arte' opens the picker with the three groups; the other molde's arte is in group 1", async () => {
+    await test("'Trazer de outra arte' opens the arte with the section open; bringing the Língua settles the pendência", async () => {
+      await uploadArte(linguaFile, molde.moldeId, molde.pecaIds.lingua);
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      await pedidoPeca(0, names.lingua).locator("a.pedido-peca-escolher").click();
-      await page.locator(".escolher-arte-grupo").first().waitFor({ timeout: 5000 });
-      const grupos = await page.locator(".escolher-arte-grupo").evaluateAll((els) => els.map((e) => e.dataset.grupo));
-      if (JSON.stringify(grupos) !== JSON.stringify([ "cliente_sem_peca", "cliente_sem_molde", "sem_cliente" ])) throw new Error(`Groups ${grupos}`);
-      const card = page.locator(`.escolher-arte-grupo[data-grupo="cliente_sem_peca"] .escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
-      if (!(await card.innerText()).includes(outroMoldeNome)) throw new Error("Group 1 should list the other molde's arte with its molde");
-      const src = await card.locator("img").getAttribute("src");
-      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Candidate preview has no visible pixels");
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}\?trazer=1/), pedidoPeca(0, names.lingua).locator("a.pedido-parte-trazer").click() ]);
+      if (!(await page.locator("details.arte-juntar").evaluate((d) => d.open))) throw new Error("The 'bring other artes' section should be open");
+      await page.locator(".arte-candidata--card").filter({ hasText: path.basename(linguaFile, ".tif") }).click();
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator('.arte-juntar-form button[type="submit"]').click() ]);
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const lingua = pedidoPeca(0, names.lingua);
+      await expectPedidoPeca(lingua, "incluida", true);
+      if (!(await lingua.locator(".pedido-parte-tamanho").innerText()).includes(path.basename(linguaFile, ".tif"))) throw new Error("Língua 30 should come from the brought file");
+      if (await page.locator(".pedido-pendencias").count()) throw new Error("No pendência should be left");
+      if (await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled()) throw new Error("Confirmar should be enabled");
     });
 
-    await test("Moving it asks for confirmation and completes the pending piece; Confirmar stays blocked by missing cortes", async () => {
-      let prompt = "";
-      page.once("dialog", (d) => { prompt = d.message(); });
-      const card = page.locator(`.escolher-arte-card[data-arquivo-uuid="${outroUuid}"]`);
-      await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`), card.locator("button").click() ]);
-      if (!prompt.includes(outroMoldeNome) || !prompt.includes("Mover para")) throw new Error(`Unexpected confirm prompt: "${prompt}"`);
-      await expectPedidoPeca(pedidoPeca(0, names.lingua), "incluida", true);
-      if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
-      // These artes have no corte (no tamanho chosen), so the new rule still blocks Confirmar.
-      const semCorte = await page.locator(".pedido-pendencia--sem_corte").allInnerTexts();
-      if (!semCorte.some((t) => t.includes("sem arquivo de corte"))) throw new Error("Pieces without corte should be listed");
-      if (!(await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled())) throw new Error("Confirmar should stay disabled: pieces without corte");
+    await test("Unchecking a part in the modal is sent as excluded", async () => {
+      await openModalFor(lateralFile);
+      const lingua = pecaCard(names.lingua);
+      await lingua.locator(".add-to-order-peca-check").waitFor({ timeout: 5000 });
+      await lingua.locator(".add-to-order-peca-check").uncheck();
+      await pedirUmPar();
+      const responsePromise = page.waitForResponse((r) => r.url().endsWith("/pedidos/adicionar_item"));
+      await page.locator("[data-add-to-order-target='submitBtn']").click();
+      if (!(await (await responsePromise).json()).ok) throw new Error("adicionar_item failed");
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await expectPedidoPeca(pedidoPeca(1, names.lateral), "incluida", true);
+      await expectPedidoPeca(pedidoPeca(1, names.lingua), "excluida", false);
+      await waitForOpacity(pedidoPeca(1, names.lingua), "dimmed");
+    });
+
+    await test("Checking and unchecking a part on the pedido page saves it (survives reload)", async () => {
+      await togglePedidoPeca(pedidoPeca(1, names.lingua), true);
+      await waitForOpacity(pedidoPeca(1, names.lingua), "visible");
+      await togglePedidoPeca(pedidoPeca(1, names.lateral), false);
+      await page.reload();
+      await expectPedidoPeca(pedidoPeca(1, names.lingua), "incluida", true);
+      await expectPedidoPeca(pedidoPeca(1, names.lateral), "excluida", false);
+    });
+
+    // State here: item 0 = Lateral + Língua checked; item 1 = Lateral unchecked
+    // + Língua checked. Each asks one 30.
+    await test("Produção lists only checked parts, summed per part; unchecking removes it without reloading", async () => {
+      const lateralTotal = (await producaoRow(names.lateral).locator("td strong").innerText()).trim();
       const linguaTotal = (await producaoRow(names.lingua).locator("td strong").innerText()).trim();
-      if (linguaTotal !== "2") throw new Error(`Língua total should now be 2 (both items), got ${linguaTotal}`);
+      if (lateralTotal !== "1" || linguaTotal !== "2") throw new Error(`Totals: Lateral ${lateralTotal} (expected 1), Língua ${linguaTotal} (expected 2)`);
+      await togglePedidoPeca(pedidoPeca(0, names.lateral), false);
+      await producaoRow(names.lateral).waitFor({ state: "detached", timeout: 5000 })
+        .catch(() => { throw new Error("Lateral row still in Produção after unchecking"); });
+      await togglePedidoPeca(pedidoPeca(0, names.lateral), true);
+      await producaoRow(names.lateral).waitFor({ timeout: 5000 });
     });
 
-    await test("The arte page records the move in its link history", async () => {
-      await page.goto(`${BASE_URL}/arquivos/${outroUuid}`);
-      const row = page.locator("#vinculo-history-section tbody tr").first();
-      const cells = (await row.locator("td").allInnerTexts()).map((t) => t.trim());
-      // The moldes show their code (Etapa 1.1, 4/5): "002-TNS Outro …".
-      if (!/^\d{3}-TNS /.test(cells[0]) || !cells[0].endsWith(outroMoldeNome) || !cells[1].endsWith(`Molde ${UNIQ}`) || cells[2] !== names.lingua) {
-        throw new Error(`History row ${JSON.stringify(cells)}`);
-      }
-      if (!(await row.getAttribute("class")).includes("vinculo-history-mudanca")) throw new Error("Move should be highlighted");
-    });
-
-    await test("Setup: a third molde whose Língua has no arte, added to the pedido", async () => {
-      const nome = `Terceiro ${UNIQ}`;
-      await page.goto(BASE_URL);
-      await postForm("/moldes", [[ "molde[sufixo]", nome ], [ "molde[client_uuid]", molde.clientId ], [ "molde[modelo_uuid]", molde.modeloId ]]);
-      const terceiroId = await findId(`/moldes/search?q=${encodeURIComponent(nome)}`, "sufixo", nome);
-      if (!terceiroId) throw new Error("Could not create the third molde");
-      await adicionarPartes(page, terceiroId, [ molde.pecaIds.lateral, molde.pecaIds.lingua ]);
-      await uploadArte(terceiroFile, terceiroId, molde.pecaIds.lateral);
+    await test("'Enviar arquivo' on a pendência uploads into the arte, with the part and size, and settles it", async () => {
+      await uploadArte(terceiroFile, molde.moldeId, molde.pecaIds.lateral);
       await openModalFor(terceiroFile);
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
-      const uuid = await submitModal();
-      if (uuid !== pedidoUuid) throw new Error(`Expected the same draft pedido, got ${uuid}`);
-    });
-
-    await test("'Enviar arquivo' on the pending piece uploads a new arte and completes it", async () => {
+      await submitModal();
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       const pending = pedidoPeca(2, names.lingua);
       await expectPedidoPeca(pending, "pendente");
       await Promise.all([
         page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`, { timeout: 30000 }),
-        pending.locator("form.pedido-peca-enviar input[type=file]").setInputFiles(uploadFile),
+        pending.locator("form.pedido-parte-enviar input[type=file]").setInputFiles(uploadFile),
       ]);
-      const notice = await page.textContent("body");
-      if (!notice.includes(path.basename(uploadFile, ".tif"))) throw new Error("Success notice with the uploaded file name missing");
+      await page.getByText("added to this arte (29-30)").waitFor();
       const lingua = pedidoPeca(2, names.lingua);
-      await expectPedidoPeca(lingua, "incluida", true);
-      const src = await lingua.locator("img.pedido-peca-thumb").getAttribute("src");
-      if (!(await imageHasVisiblePixels(page, src))) throw new Error("Uploaded arte preview has no visible pixels");
-      // No piece is without arte anymore; pieces without corte still block (PedidoBloqueiosService).
-      if (await page.locator(".pedido-pendencia--sem_arte").count()) throw new Error("No piece should be without arte anymore");
+      await expectPedidoPeca(lingua, "incluida");
+      if (!(await lingua.locator(".pedido-parte-tamanho").innerText()).includes(path.basename(uploadFile, ".tif"))) throw new Error("The Língua 30 should come from the uploaded file");
+      // Processing is queued: the part's thumbnail reloads the page once it is done.
+      const thumb = lingua.locator("img.pedido-peca-thumb");
+      await thumb.waitFor({ timeout: 45000 });
+      if (!(await imageHasVisiblePixels(page, await thumb.getAttribute("src")))) throw new Error("Uploaded file preview has no visible pixels");
     });
 
-    await test("Re-checking a piece restores it", async () => {
-      await openModalFor(lateralFile);
-      const check = pecaCard(names.lingua).locator(".add-to-order-peca-check");
-      await check.waitFor({ timeout: 5000 });
-      await check.uncheck();
-      await check.check();
-      await waitForOpacity(pecaCard(names.lingua), "visible");
-      await page.locator(".add-to-order-footer .btn-secondary").click();
-    });
-
-    await test("An arte without molde shows no piece picker", async () => {
+    await test("An arte without molde shows no part picker", async () => {
       await uploadArte(loneFile, null, null);
       await openModalFor(loneFile);
       await page.waitForFunction(() => {

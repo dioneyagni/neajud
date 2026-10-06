@@ -1,9 +1,11 @@
-# One piece (lateral, língua…) of the molde an ItemPedido orders.
-#   arquivo nil          → :pendente  (no arte yet; blocks confirming the pedido)
-#   incluida true        → :incluida  (goes to production)
-#   incluida false       → :excluida  (unchecked; the pedido goes to production
-#                                      without this piece)
-# peca nil means the arte's piece is unknown ("Sem peça").
+# One part (lateral, língua…) of the arte an ItemPedido orders, and whether
+# it goes to production:
+#   incluida true  → :incluida (goes to production)
+#   incluida false → :excluida (unchecked; the pedido goes without this part)
+# Where each number of it comes from — and what is missing — is ResolucaoDoItem
+# (Etapa 1.2, 3/3): the pedido reads the arte, so `arquivo` is only the file of
+# the part when the item was added (shown nowhere since). peca nil means the
+# part is unknown ("Sem peça").
 class ItemPedidoPeca < ApplicationRecord
   include GeraUuid
   include ReferenciaAtiva
@@ -15,13 +17,8 @@ class ItemPedidoPeca < ApplicationRecord
 
   validates :peca_id, uniqueness: { scope: :item_pedido_id }, allow_nil: true
 
-  scope :pendentes, -> { where(arquivo_id: nil) }
-  scope :para_producao, -> { where.not(arquivo_id: nil).where(incluida: true) }
-
   # Usage: item.item_pedido_pecas.first.estado # => :incluida
   def estado
-    return :pendente if arquivo.nil?
-
     incluida ? :incluida : :excluida
   end
 end

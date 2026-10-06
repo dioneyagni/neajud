@@ -1,0 +1,98 @@
+# Where each ordered number of a pedido item comes from (Etapa 1.2, 3/3 parte
+# 2; docs/plano.md "Tamanhos e grade"): for each part of the arte and each
+# number with quantity, the size of the part's DXF that serves it, and the
+# arte's file for that size — the production one, or the part's piloto for a
+# sample (an arte asked only in the piloto's size with no production file
+# for it, decided 05/10/2026), or a pendência:
+#   :sem_corte   — no organized DXF of the part serves the number;
+#   :sem_arquivo — the DXF serves it, the arte has no file of that size.
+# The pedido always reads the arte: a file added to it settles the pendência
+# in every draft that uses it.
+#
+# Usage: ResolucaoDoItem.call(item).each { |parte| parte.pendencias }
+class ResolucaoDoItem
+  Numero = Struct.new(:numero, :quantidade, :tamanho, :arquivo, :origem, :pendencia, keyword_init: true)
+  # arquivos: the arte's files of the part (its thumbnail when no number
+  # resolved to one yet).
+  Parte = Struct.new(:peca_row, :peca, :incluida, :numeros, :arquivos, keyword_init: true) do
+    def pendencias
+      numeros.select(&:pendencia)
+    end
+
+    # The numbers by DXF size, in the part's order: [[tamanho, [Numero…]], …];
+    # numbers no DXF serves come last (tamanho nil).
+    def por_tamanho
+      numeros.group_by(&:tamanho).sort_by { |tamanho, _| tamanho ? [ 0, tamanho.position.to_i ] : [ 1, 0 ] }
+    end
+  end
+
+  def self.call(item)
+    new(item).call
+  end
+
+  def initialize(item)
+    @item = item
+    @molde = item.arte&.principal&.molde
+  end
+
+  def call
+    pedidos = @item.grades.select { |g| g.quantidade.positive? }.sort_by { |g| [ g.tamanho_nome.to_i, g.tamanho_nome ] }
+    @item.item_pedido_pecas.map do |row|
+      Parte.new(peca_row: row, peca: row.peca, incluida: row.incluida, arquivos: arquivos_da_parte(row.peca),
+                numeros: pedidos.map { |grade| resolver(row.peca, grade, pedidos) })
+    end
+  end
+
+  private
+
+  def resolver(peca, grade, pedidos)
+    return pelo_total(peca, grade) if grade.tamanho_nome == ProducaoPedidoService::TOTAL_KEY
+
+    tamanho = tamanho_do_corte(peca, grade.tamanho_nome)
+    base = { numero: grade.tamanho_nome, quantidade: grade.quantidade, tamanho: tamanho }
+    return Numero.new(**base, pendencia: :sem_corte) unless tamanho
+
+    arquivo = arquivos_da_parte(peca).reject(&:piloto?).find { |a| serve?(a, tamanho) }
+    return Numero.new(**base, arquivo: arquivo, origem: :producao) if arquivo
+
+    piloto = arquivos_da_parte(peca).find(&:piloto?)
+    return Numero.new(**base, arquivo: piloto, origem: :piloto) if piloto && amostra?(peca, piloto, pedidos)
+
+    Numero.new(**base, pendencia: :sem_arquivo)
+  end
+
+  # The single total (an arte without molde, no grade by number): the size
+  # chosen on the file itself, as before Etapa 1.2.
+  def pelo_total(peca, grade)
+    arquivo = arquivos_da_parte(peca).find(&:tamanho)
+    base = { numero: grade.tamanho_nome, quantidade: grade.quantidade, tamanho: arquivo&.tamanho }
+    arquivo ? Numero.new(**base, arquivo: arquivo, origem: :producao) : Numero.new(**base, pendencia: :sem_corte)
+  end
+
+  # A sample: every ordered number falls in one size of this part's DXF, the
+  # one the piloto is in.
+  def amostra?(peca, piloto, pedidos)
+    tamanhos = pedidos.map { |grade| tamanho_do_corte(peca, grade.tamanho_nome) }.uniq
+    tamanhos.size == 1 && tamanhos.first && serve?(piloto, tamanhos.first)
+  end
+
+  def serve?(arquivo, tamanho)
+    return arquivo.tamanho_id == tamanho.id if arquivo.tamanho_id
+
+    arquivo.tamanho_rotulo.present? && tamanho.atende_rotulo?(arquivo.tamanho_rotulo)
+  end
+
+  def tamanho_do_corte(peca, numero)
+    (cortes_por_peca[peca&.id] || []).flat_map(&:tamanhos).find { |t| t.atende_rotulo?(numero) }
+  end
+
+  def cortes_por_peca
+    @cortes_por_peca ||= @molde ? Arquivo.cortes_do_molde(@molde).includes(:tamanhos).order(:id).group_by(&:peca_id) : {}
+  end
+
+  def arquivos_da_parte(peca)
+    @arquivos_por_peca ||= (@item.arte&.arquivos&.ativos&.includes(:peca, :approved_version, tamanho: { arquivo: :peca })&.order(:id).to_a || [])
+                           .group_by { |a| a.resolved_peca&.id }
+    @arquivos_por_peca[peca&.id] || []
+  end
+end

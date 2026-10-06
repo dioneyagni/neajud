@@ -19,7 +19,7 @@ class PedidosController < ApplicationController
     @pedido = Pedido.includes(itens_pedido: {
       arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { molde: :modelo }, approved_version: :image_metadata ],
       materia_prima: :grupo_material,
-      item_pedido_pecas: [ :peca, { arquivo: :approved_version } ]
+      item_pedido_pecas: :peca
     }).find_by!(uuid: params[:uuid])
   end
 
@@ -165,8 +165,6 @@ class PedidosController < ApplicationController
     return render json: { ok: false, error: error }, status: :unprocessable_content if error
 
     peca_row = @pedido.itens_pedido.find_by!(uuid: params[:id]).item_pedido_pecas.por_uuid!(params[:peca_uuid])
-    return render json: { ok: false, error: "Piece #{peca_row.uuid} has no arte (pending); it cannot be checked or unchecked" }, status: :unprocessable_content unless peca_row.arquivo
-
     peca_row.update!(incluida: params[:incluida] == "true")
     render json: { ok: true, estado: peca_row.estado }
   rescue ActiveRecord::RecordNotFound

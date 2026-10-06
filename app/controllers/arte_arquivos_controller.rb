@@ -5,16 +5,17 @@ class ArteArquivosController < ApplicationController
   before_action :set_arquivo
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
 
-  # Usage: POST /arquivos/:uuid/arte/acrescentar (original_file, tamanho_uuid | peca_uuid + tamanho_rotulo)
+  # voltar_para: a pedido's pendência sends the file from there (Etapa 1.2, 3/3).
+  # Usage: POST /arquivos/:uuid/arte/acrescentar (original_file, tamanho_uuid | peca_uuid + tamanho_rotulo, voltar_para)
   def acrescentar
     upload = params[:original_file]
-    return redirect_to @arquivo, alert: "Choose the file to add." unless upload.respond_to?(:original_filename)
-    return redirect_to @arquivo, alert: erro_de_categoria(upload) if erro_de_categoria(upload)
+    return redirect_to voltar_para, alert: "Choose the file to add." unless upload.respond_to?(:original_filename)
+    return redirect_to voltar_para, alert: erro_de_categoria(upload) if erro_de_categoria(upload)
 
     novo = ArquivoUploadService.call(upload, remote_ip: request.remote_ip, arquivo: novo_arquivo_da_arte)
-    return redirect_to @arquivo, alert: "Could not add #{upload.original_filename}: #{novo.errors.full_messages.to_sentence}" unless novo.persisted?
+    return redirect_to voltar_para, alert: "Could not add #{upload.original_filename}: #{novo.errors.full_messages.to_sentence}" unless novo.persisted?
 
-    redirect_to @arquivo, notice: "#{novo.filename} added to this arte#{" (#{novo.rotulo_de_tamanho})" if novo.rotulo_de_tamanho}."
+    redirect_to voltar_para, notice: "#{novo.filename} added to this arte#{" (#{novo.rotulo_de_tamanho})" if novo.rotulo_de_tamanho}."
   end
 
   # Brings the marked artes into this one (decided 05/10/2026: from the P's
@@ -60,6 +61,11 @@ class ArteArquivosController < ApplicationController
   end
 
   private
+
+  # Only paths of this app (url_from refuses other hosts), else the arte page.
+  def voltar_para
+    url_from(params[:voltar_para]) || arquivo_path(@arquivo)
+  end
 
   def set_arquivo
     @arquivo = Arquivo.ativos.where.not(category: "corte").por_uuid!(params[:arquivo_id])

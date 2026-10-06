@@ -323,8 +323,9 @@ Decided 05/10/2026, in three parts; part 1 is done:
   `adicionar_item` / `atualizar_item` refuse sizes outside it. The grade is a
   responsive table (`grade_por_numero_controller.js`: number over quantity,
   side by side under 600px), shared by the modal and the pedido page.
-- Production maps a number to the corte's size serving it
-  (`Tamanho#atende_rotulo?`: "29" → 29-30) until part 3 groups by corte size.
+- Part 2: where each number comes from and the pendências — see "Pedido
+  items are made of the arte's parts". Part 3 (production grouped by DXF
+  size) is next.
 - Added from the gallery card or from the pedido page (molde → referência →
   arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
   the same `add-to-order` modal with `pedido_uuid`).
@@ -333,47 +334,46 @@ Decided 05/10/2026, in three parts; part 1 is done:
   (`Pedido#editavel?`, `recusar_pedido_excluido`).
 - E2E: `e2e/pedido-por-arte.spec.js`.
 
-## Pedido items are made of the molde's pieces
+## Pedido items are made of the arte's parts
 
-Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its molde
-(e.g. lateral + língua of a tênis). The arte → peça link is
-`Arquivo#resolved_peca`: the corte's peça (via tamanho), else the arte's own
-`peca_id` (SQL mirror: `Arquivo.sem_peca_resolvida`).
+Adding an arte to a pedido stores one `ItemPedidoPeca` per part of its molde
+(e.g. lateral + língua of a tênis), from `MoldeComposicaoService` — the
+molde's own parts (`molde_pecas`), each with a file of **that same arte**
+(Etapa 1.2, 3/3: never another arte of the molde). A part is `incluida`
+(goes to production) or `excluida` (unchecked; the pedido goes without it).
 
-| Estado | Meaning | Production | Confirmar |
-|---|---|---|---|
-| `incluida` | has arte, checked | yes | allowed |
-| `excluida` | has arte, unchecked | the pedido goes without it | allowed |
-| `pendente` | no arte yet | no | **blocked** (UI + server) |
+Where each ordered number comes from is `ResolucaoDoItem` (part 2, decided
+05/10/2026 — the pedido always reads the arte): per part × number, the size of
+the part's organized DXF that serves it (`Tamanho#atende_rotulo?`) and the
+arte's production file of that size (`tamanho_id`, else the size read from
+its name) — or the part's **piloto** as a sample (only the piloto's size
+asked, no production file of it) — or a pendência:
 
-Confirming is also blocked by an item with total quantity 0, by a
-checked piece whose arte has no corte (no tamanho chosen) and by an item whose
-arte has no client (confirming splits the pedido by its artes' clients);
-adding or saving a grade at total 0 is refused outright.
+| Pendência | Meaning | Settled by |
+|---|---|---|
+| `:sem_corte` | no organized DXF of the part serves the number | organizing / linking the DXF |
+| `:sem_arquivo` | the DXF serves it, the arte has no file of that size | "Enviar arquivo" (into the arte, part + size filled, back to the pedido) or "Trazer de outra arte" (`/arquivos/:uuid?trazer=1`) |
+
+A file added to the arte settles the pendência in every draft that uses it.
+Confirming is blocked by those pendências of checked parts, an item with total
+0, an arte without client (confirming splits the pedido by its artes'
+clients) and the item's file in the trash; a grade at total 0 is refused
+outright. All blockers come from `PedidoBloqueiosService`
+(`Pedido#bloqueios_confirmacao`), which feeds the server guard, the pending
+box on the pedido page and the list badge. `Pedido#pecas_para_produzir`
+(`ProducaoPedidoService`, built on `ResolucaoDoItem`) is the **only** place
+production reads from.
 
 A draft created for an arte without client has no client: it adopts one
-(`Pedido#adotar_cliente_das_artes!`, from `Arquivo`'s
-`after_update_commit` on `client_id`) once every arte of it has the same
-client, and its page shows the client it will get ("MKS (das artes)", or
-"será dividido por cliente…"). An arte without client gets its molde's client
-when the molde is chosen (`Arquivo#herdar_cliente_do_molde`) — pedido
-ed6a2aba stayed without client because the arte page didn't do it (01/10/2026). All blockers come from
-`PedidoBloqueiosService` (`Pedido#bloqueios_confirmacao`), which feeds the
-server guard, the pending box on the pedido page and the list badge.
+(`Pedido#adotar_cliente_das_artes!`, from `Arquivo`'s `after_update_commit` on
+`client_id`) once every arte of it has the same client. An arte without client
+gets its molde's client when the molde is chosen (`Arquivo#herdar_cliente_do_molde`).
 
-- `MoldeComposicaoService` builds the pieces from the molde's own parts
-  (`molde_pecas`, chosen on the molde page — a modelo has none since Etapa
-  1.1, 3/5); the added arte always wins its own peça.
-- `Pedido#pecas_para_produzir` (`ProducaoPedidoService`) is the **only** place
-  production reads from — peça × tamanho over checked pieces.
-- A pending piece is completed by choosing an existing arte
-  (`ArteCandidatasService`: client's artes without peça → without molde →
-  without client) or uploading one (`ArquivoUploadService`); both link via
-  `VincularArteService`, which logs to `arquivo_vinculo_logs` ("Histórico de
-  vínculos" on the arte page) and fills the same pending peça in every draft
-  pedido of the molde. Moving an arte out of another molde requires an
-  explicit confirmation, enforced server-side.
-- E2E coverage: `e2e/pedidos-pecas.spec.js`.
+The old "Escolher arte" / "Enviar arte" per pending piece
+(`VincularArteService`, `ArteCandidatasService`) was removed in Etapa 1.2
+(3/3, parte 2); the arte page still shows its "Histórico de vínculos".
+
+- E2E coverage: `e2e/pedidos-pecas.spec.js`, `e2e/pedido-por-arte.spec.js`.
 
 ## ImageMagick gotchas (multi-frame TIFFs)
 
@@ -675,7 +675,7 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   always served as a download (`disposition: "attachment"`).
 - Sent from the arte page ("Client approval" → "Send for approval");
   registered from there or from a pedido (badge + "Registrar aprovação" on each
-  piece, only while waiting); `voltar_para` goes through `url_from`, so it
+  item, only while waiting — the approval is the arte's); `voltar_para` goes through `url_from`, so it
   can't redirect to another host.
 - Portuguese plurals the app routes on need an inflection
   (`config/initializers/inflections.rb`: materiais, funcoes, aprovacoes,

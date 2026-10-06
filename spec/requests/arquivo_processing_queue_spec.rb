@@ -85,8 +85,8 @@ RSpec.describe "Queued processing", type: :request do
       expect(Nokogiri::HTML(response.body).at_css(".processamento-status")["data-controller"]).to eq("processamento")
 
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
-      create(:item_pedido_peca, item_pedido: item, arquivo: queued)
+      item = create(:item_pedido, pedido: pedido, arquivo: queued)
+      create(:item_pedido_peca, item_pedido: item, peca: nil)
       get pedido_path(pedido)
       thumb = Nokogiri::HTML(response.body).at_css(".pedido-peca [data-controller='processamento']")
       expect(thumb.text).to include("processando")

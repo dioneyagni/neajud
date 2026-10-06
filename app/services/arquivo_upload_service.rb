@@ -1,7 +1,7 @@
 # The "new arquivo from an uploaded file" flow, shared by the gallery upload
-# (ArquivosController#create) and a pending piece's upload
-# (PedidoPecasController#enviar_arte): fill filename/extension/category from
-# the file, reject oversize files (reporting abuse) and extensions that don't
+# (ArquivosController#create) and adding a file to an arte
+# (ArteArquivosController#acrescentar, also from a pedido's pendência): fill
+# filename/extension/category from the file, reject oversize files (reporting abuse) and extensions that don't
 # match the real format, save, store version 1 and enqueue its processing —
 # never inside the request (plano Etapa 0.3). The version starts "pending".
 # Returns the arquivo: persisted on success, with errors otherwise.

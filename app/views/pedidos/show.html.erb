@@ -34,8 +34,8 @@
 <% end %>
 
 <% if pedido_editavel?(@pedido) %>
-  <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
-      without arte, items with total 0, checked pieces without corte. %>
+  <%# Everything that blocks confirming (PedidoBloqueiosService): items with
+      total 0, ordered numbers of a checked part without DXF or without file. %>
   <% bloqueios = @pedido.bloqueios_confirmacao %>
   <% if bloqueios.any? %>
     <div class="pedido-pendencias" role="alert">
@@ -93,12 +93,18 @@
        data-controller="grade-editor"
        data-grade-editor-item-uuid-value="<%= item.uuid %>"
        data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(@pedido, id: item.uuid) %>">
-    <%= render "item_pecas", item: item, pedido: @pedido %>
+    <%= render "item_partes", item: item, pedido: @pedido %>
 
     <div class="pedido-item-info">
       <div class="pedido-item-header">
         <strong><%= link_to item.arquivo.filename, item.arquivo %></strong> <%= selo_excluido(item.arquivo) %>
         <span class="pedido-item-client">(<%= item.arquivo.client&.name %>)</span>
+        <%# Client approval is the arte's (Etapa 1.2, 2/3): shown, never blocking. %>
+        <%= selo_aprovacao(item.arquivo, pedido: @pedido) %>
+        <% if item.arquivo.estado_aprovacao == :aguardando && pode_acao?(:aprovar_arte) && !item.arquivo.excluido? %>
+          <%= link_to "Registrar aprovação", new_arquivo_aprovacao_path(item.arquivo, voltar_para: resumo_pedido_path(@pedido)),
+                class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+        <% end %>
       </div>
 
       <% if item.materia_prima %>

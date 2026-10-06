@@ -1,14 +1,14 @@
 # What a pedido sends to production: one line per peça + corte with the
-# quantity per tamanho, summed over every item whose piece is checked and has
-# an arte. Lines are per corte (not just per peça) because the factory
+# quantity per ordered number, summed over every item whose part is checked
+# (Etapa 1.2, 3/3: read from ResolucaoDoItem — the number's DXF size in the
+# part). Lines are per corte (not just per peça) because the factory
 # downloads each size's DXF from a specific corte; two cortes for the same
-# peça would otherwise mix their quantities.
-# Unchecked pieces are left out (the pedido goes to production without them);
-# pending pieces (no arte) cannot be produced and block confirming instead.
+# peça would otherwise mix their quantities. A number no DXF serves stays in a
+# line without corte (it also blocks confirming). Unchecked parts are left out.
 # This is the single place production reads from — see Pedido#pecas_para_produzir.
 #
 # Usage: ProducaoPedidoService.call(pedido)
-#   # => [#<Linha peca=Lateral corte=<corte> quantidades={"35"=>10} downloads={"35"=>[<Tamanho 35>]}>]
+#   # => [#<Linha peca=Lateral corte=<corte> quantidades={"29"=>4, "30"=>6} downloads={"29"=>[<Tamanho 29-30>], …}>]
 class ProducaoPedidoService
   # Grade key used when an item has no tamanhos (a single total quantity).
   TOTAL_KEY = "_total".freeze
@@ -49,36 +49,24 @@ class ProducaoPedidoService
 
   def call
     linhas = {}
-    pecas_para_producao.each { |peca_row| somar(linhas, peca_row) }
+    @pedido.itens_pedido.includes(:grades, :arte, :arquivo, item_pedido_pecas: :peca).order(:id).each do |item|
+      ResolucaoDoItem.call(item).select(&:incluida).each { |parte| somar(linhas, parte) }
+    end
     linhas.values.sort_by { |linha| [ linha.peca ? 0 : 1, linha.peca&.nome.to_s, linha.corte&.filename.to_s ] }
   end
 
   private
 
-  def pecas_para_producao
-    ItemPedidoPeca.para_producao
-                  .joins(:item_pedido).where(itens_pedido: { pedido_id: @pedido.id })
-                  .includes(:peca, arquivo: { tamanho: { arquivo: :tamanhos } }, item_pedido: :grades)
-  end
-
-  def somar(linhas, peca_row)
-    corte = peca_row.arquivo.corte
-    linha = linhas[[ peca_row.peca_id, corte&.id ]] ||=
-      Linha.new(peca: peca_row.peca, corte: corte, quantidades: Hash.new(0), downloads: Hash.new { |h, k| h[k] = [] })
-    peca_row.item_pedido.grades.each do |grade|
-      linha.quantidades[grade.tamanho_nome] += grade.quantidade
-      registrar_download(linha, grade.tamanho_nome, peca_row.arquivo)
+  # Etapa 1.2 (3/3, parte 2): read from ResolucaoDoItem — each number goes to
+  # the DXF size that serves it in its part ("29" → 29-30).
+  def somar(linhas, parte)
+    parte.numeros.each do |numero|
+      corte = numero.tamanho&.arquivo
+      linha = linhas[[ parte.peca&.id, corte&.id ]] ||=
+        Linha.new(peca: parte.peca, corte: corte, quantidades: Hash.new(0), downloads: Hash.new { |h, k| h[k] = [] })
+      linha.quantidades[numero.numero] += numero.quantidade
+      lista = linha.downloads[numero.numero]
+      lista << numero.tamanho if numero.tamanho && !lista.include?(numero.tamanho)
     end
-  end
-
-  # A size maps to the corte's tamanho that serves it; the single-total
-  # column (no sizes in the grade) uses the size chosen on the arte itself.
-  def registrar_download(linha, tamanho_nome, arte)
-    return unless linha.corte
-
-    # Etapa 1.2 (3/3): the grade is by number; the corte's size serving it ("29" → 29-30).
-    tamanho = tamanho_nome == TOTAL_KEY ? arte.tamanho : linha.corte.tamanhos.find { |t| t.atende_rotulo?(tamanho_nome) }
-    lista = linha.downloads[tamanho_nome]
-    lista << tamanho if tamanho && !lista.include?(tamanho)
   end
 end
