@@ -1,0 +1,44 @@
+<%# One item of the pedido: the arte, then its matrix (grade × parts). %>
+<% arquivo = item.arquivo %>
+<% total = item.grades.sum(&:quantidade) %>
+<article class="pedido-item"
+         data-controller="grade-editor item-pecas"
+         data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(pedido, id: item.uuid) %>"
+         data-item-pecas-url-value="<%= alternar_peca_pedido_path(pedido, id: item.uuid) %>">
+  <div class="pedido-item-header">
+    <% if arquivo.preview_file.present? && !(arquivo.pending? || arquivo.processing?) %>
+      <img class="pedido-item-thumb" src="<%= preview_arquivo_path(arquivo) %>" alt="">
+    <% else %>
+      <span class="pedido-item-thumb pedido-item-thumb--vazio" aria-hidden="true"></span>
+    <% end %>
+    <div class="pedido-item-titulo">
+      <strong><%= link_to item.arte&.titulo.presence || arquivo.filename, arquivo %></strong> <%= selo_excluido(arquivo) %>
+      <div class="pedido-item-sub">
+        <% if arquivo.client %><span class="pedido-item-client"><%= arquivo.client.name %></span><% end %>
+        <%# Client approval is the arte's (Etapa 1.2, 2/3): shown, never blocking. %>
+        <%= selo_aprovacao(arquivo, pedido: pedido) %>
+        <% if arquivo.estado_aprovacao == :aguardando && pode_acao?(:aprovar_arte) && !arquivo.excluido? %>
+          <%= link_to "Registrar aprovação", new_arquivo_aprovacao_path(arquivo, voltar_para: resumo_pedido_path(pedido)),
+                class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+        <% end %>
+        <% if item.materia_prima %>
+          <span class="pedido-item-material">Material: <%= item.materia_prima.nome_completo %></span>
+        <% end %>
+      </div>
+    </div>
+    <strong class="pedido-item-total"><%= total %> <%= total == 1 ? "par" : "pares" %></strong>
+  </div>
+
+  <%= render "item_matriz", item: item, pedido: pedido %>
+  <p class="pedido-peca-erro" data-item-pecas-target="error" hidden></p>
+
+  <% if pedido_editavel?(pedido) %>
+    <div class="pedido-item-actions">
+      <%= button_to "Remover item", remover_item_pedido_path(pedido, id: item.uuid),
+            method: :delete, class: "btn btn-secondary btn-sm",
+            data: { turbo_confirm: "Remove this item?" } %>
+      <button type="button" class="btn btn-sm btn-primary grade-save-btn"
+              data-action="click->grade-editor#save">Salvar grade</button>
+    </div>
+  <% end %>
+</article>

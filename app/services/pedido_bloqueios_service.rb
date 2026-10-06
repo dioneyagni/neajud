@@ -15,7 +15,7 @@
 # Used by the confirm guard (server), the pending box and the list badge.
 #
 # Usage: PedidoBloqueiosService.call(pedido).map(&:descricao)
-#   # => ["Língua 33 (33-34) sem arquivo de produção na arte 001-TNS · 20 · Bluey"]
+#   # => ["Língua 33-34 (33×4, 34×2) sem arquivo de produção na arte 001-TNS · 20 · Bluey"]
 class PedidoBloqueiosService
   # tamanho: the DXF size missing a file (what "Enviar arquivo" fills).
   Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, keyword_init: true)
@@ -69,26 +69,30 @@ class PedidoBloqueiosService
     end
   end
 
+  # One entry per part × DXF size missing (Etapa 1.2, 3/3 parte 3a): one
+  # "Enviar arquivo" settles every number of that size.
   def pendencias_das_partes
     resolucoes.flat_map do |item, partes|
       partes.select(&:incluida).flat_map do |parte|
-        parte.pendencias.map { |numero| bloqueio_do_numero(item, parte, numero) }
+        parte.pendencias.group_by { |n| [ n.pendencia, n.tamanho ] }.map { |_, numeros| bloqueio_dos_numeros(item, parte, numeros) }
       end
     end
   end
 
-  def bloqueio_do_numero(item, parte, numero)
-    nome = "#{parte.peca&.nome || "Sem peça"} #{rotulo(numero.numero)}"
-    if numero.pendencia == :sem_corte
-      Bloqueio.new(tipo: :sem_corte, arquivo: item.arquivo, descricao: "#{nome}: nenhum corte organizado atende este tamanho (arte #{titulo(item)})")
+  def bloqueio_dos_numeros(item, parte, numeros)
+    peca = parte.peca&.nome || "Sem peça"
+    pedidos = numeros.map { |n| "#{rotulo(n.numero)}×#{n.quantidade}" }.join(", ")
+    tamanho = numeros.first.tamanho
+    if numeros.first.pendencia == :sem_corte
+      Bloqueio.new(tipo: :sem_corte, arquivo: item.arquivo, descricao: "#{peca} #{pedidos}: nenhum corte organizado atende (arte #{titulo(item)})")
     else
-      Bloqueio.new(tipo: :sem_arquivo, arquivo: item.arquivo, tamanho: numero.tamanho,
-                   descricao: "#{nome} (#{numero.tamanho.nome}) sem arquivo de produção na arte #{titulo(item)}")
+      Bloqueio.new(tipo: :sem_arquivo, arquivo: item.arquivo, tamanho: tamanho,
+                   descricao: "#{peca} #{tamanho.nome} (#{pedidos}) sem arquivo de produção na arte #{titulo(item)}")
     end
   end
 
   def rotulo(numero)
-    numero == ProducaoPedidoService::TOTAL_KEY ? "(sem tamanho)" : numero
+    numero == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : numero
   end
 
   def titulo(item)

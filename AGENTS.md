@@ -320,12 +320,24 @@ Decided 05/10/2026, in three parts; part 1 is done:
   the product's whole grade; the molde's stretch doesn't enter; no molde →
   one `_total`), listed first; "+ 23" / "+ 35" add the product's next numbers
   (`Arte#grade_completa_do_pedido`, decided 05/10/2026), and
-  `adicionar_item` / `atualizar_item` refuse sizes outside it. The grade is a
-  responsive table (`grade_por_numero_controller.js`: number over quantity,
-  side by side under 600px), shared by the modal and the pedido page.
+  `adicionar_item` / `atualizar_item` refuse sizes outside it. In the
+  add-to-order modal the grade is a responsive table
+  (`grade_por_numero_controller.js`: number over quantity, side by side under
+  600px).
 - Part 2: where each number comes from and the pendências — see "Pedido
-  items are made of the arte's parts". Part 3 (production grouped by DXF
-  size) is next.
+  items are made of the arte's parts".
+- Part 3 in three PRs (decided 06/10/2026, layout studied in a Design
+  canvas): **3a** the pedido page — two columns, each item a **matrix**
+  (`_item_matriz`: a column per number of the product's grade, rows "Pares"
+  and one per part with the DXF size ✓ / "sem arquivo"; columns outside the
+  DXF's numbers rendered `hidden`, "+ 28" shows them — `grade_matriz_controller.js`;
+  a CSS grid that flows by column on wide screens, by row under 600px), and a
+  side panel (`_painel`: totals, Confirmar, the pendências with "Enviar
+  arquivo" / "Trazer de outra arte", one per part × DXF size). Saving a grade
+  or (un)checking a part morph-refreshes the page. **3b** a Corte page (parte
+  × DXF size, its preview, pieces) with "peças por par" and "espelhada" per
+  molde part; **3c** an Impressão page, with a "lado" (direito/esquerdo) per
+  file of a mirrored part.
 - Added from the gallery card or from the pedido page (molde → referência →
   arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
   the same `add-to-order` modal with `pedido_uuid`).

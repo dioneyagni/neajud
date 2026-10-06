@@ -1,0 +1,74 @@
+<%# An item's grade and parts as one matrix (Etapa 1.2, 3/3 parte 3a, decided
+    06/10/2026): a column per number — its quantity ("Pares") and, per part,
+    the DXF size that serves it and whether the arte has the file
+    (ResolucaoDoItem). Columns outside the molde's DXF numbers come hidden;
+    "+ 28" / "+ 32" show them (grade-matriz). Wide screens lay numbers side by
+    side, narrow ones one per line (CSS grid flow). The pendências and what
+    settles them are in the side panel. %>
+<% colunas = colunas_do_item(item) %>
+<% partes = ResolucaoDoItem.call(item, colunas: colunas.ordem) %>
+<% editavel = pedido_editavel?(pedido) %>
+<% marcavel = editavel && partes.size > 1 %>
+<div class="pedido-matriz" data-controller="grade-matriz" data-grade-matriz-ordem-value="<%= colunas.ordem.to_json %>">
+  <button type="button" class="btn btn-sm btn-secondary grade-numeros-mais" data-grade-matriz-target="antes" data-action="grade-matriz#antes" hidden></button>
+  <div class="pedido-matriz-grade" style="--linhas: <%= partes.size + 2 %>; --partes: <%= partes.size %>">
+    <span class="pedido-matriz-canto">Nº</span>
+    <span class="pedido-matriz-rotulo">Pares</span>
+    <% partes.each do |parte| %>
+      <% em_fila = parte.arquivos.find { |a| a.pending? || a.processing? } %>
+      <div class="pedido-peca pedido-peca--<%= parte.incluida ? "incluida" : "excluida" %><%= " pedido-peca--pendente" if parte.pendencias.any? %>"
+           data-peca-uuid="<%= parte.peca_row.uuid %>" data-parte="<%= parte.peca&.nome %>">
+        <% if marcavel %>
+          <label class="pedido-peca-toggle">
+            <input type="checkbox" class="pedido-peca-check" data-action="change->item-pecas#toggle" <%= "checked" if parte.incluida %>>
+            <span class="pedido-peca-nome"><%= parte.peca&.nome || "Sem peça" %></span>
+          </label>
+        <% else %>
+          <span class="pedido-peca-nome"><%= parte.peca&.nome || "Sem peça" %></span>
+          <% unless parte.incluida %><span class="pedido-peca-excluida-label">excluída</span><% end %>
+        <% end %>
+        <% if em_fila %>
+          <%# Queued processing (Etapa 0.3): reload the page once the file is ready. %>
+          <span class="pedido-peca-processando" data-controller="processamento"
+                data-processamento-url-value="<%= processamento_arquivo_path(em_fila, format: :json) %>">processando…</span>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% colunas.ordem.each do |numero| %>
+      <% oculto = !colunas.visiveis.include?(numero) %>
+      <span class="pedido-matriz-numero" data-numero="<%= numero %>" <%= "hidden" if oculto %>><%= rotulo_do_numero(numero) %></span>
+      <% quantidade = item.grades.find { |g| g.tamanho_nome == numero }&.quantidade || 0 %>
+      <% if editavel %>
+        <span class="pedido-matriz-qtd" data-numero="<%= numero %>" <%= "hidden" if oculto %>>
+          <input type="number" class="grade-qtd-input" data-tamanho-nome="<%= numero %>"
+                 value="<%= quantidade %>" min="0" step="1" aria-label="Pares do <%= rotulo_do_numero(numero) %>">
+        </span>
+      <% else %>
+        <span class="pedido-matriz-qtd" data-numero="<%= numero %>" <%= "hidden" if oculto %>><%= quantidade %></span>
+      <% end %>
+      <% partes.each do |parte| %>
+        <% celula = parte.celula(numero) %>
+        <% estado = estado_da_celula(celula) %>
+        <span class="pedido-parte-numero pedido-parte-numero--<%= estado %><%= " pedido-parte-numero--excluida" unless parte.incluida %>"
+              data-numero="<%= numero %>" data-peca-uuid="<%= parte.peca_row.uuid %>" data-estado="<%= estado %>" <%= "hidden" if oculto %>>
+          <% case estado %>
+          <% when :producao, :piloto %>
+            <%= link_to arquivo_path(celula.arquivo), title: celula.arquivo.filename, class: "pedido-parte-arquivo" do %>
+              <%= celula.tamanho&.nome %> <%= estado == :piloto ? "piloto" : "✓" %>
+            <% end %>
+          <% when :sem_arquivo %>
+            <%= celula.tamanho.nome %> sem arquivo
+          <% when :sem_corte %>
+            sem corte
+          <% when :livre %>
+            <%= celula.tamanho.nome %>
+          <% else %>
+            —
+          <% end %>
+        </span>
+      <% end %>
+    <% end %>
+  </div>
+  <button type="button" class="btn btn-sm btn-secondary grade-numeros-mais" data-grade-matriz-target="depois" data-action="grade-matriz#depois" hidden></button>
+</div>

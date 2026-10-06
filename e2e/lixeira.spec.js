@@ -122,17 +122,17 @@ runSpec("Lixeira E2E Tests", async ({ page, test }) => {
     if ((await page.locator(".badge-excluido").count()) === 0) throw new Error("No badge next to the trashed arte in the pedido");
     const pendencias = await page.textContent(".pedido-pendencias");
     if (!pendencias.includes(`${arteName} está na lixeira`)) throw new Error(`Blocker missing; pendências: "${pendencias}"`);
-    if (!(await page.locator('button:has-text("Confirmar Pedido")').isDisabled())) throw new Error("Confirm is enabled with a trashed arte");
+    if (!(await page.locator('button:has-text("Confirmar pedido")').isDisabled())) throw new Error("Confirm is enabled with a trashed arte");
   });
 
   await test("Deleting the draft moves it to the trash; its page stays read-only", async () => {
-    await page.click('button:has-text("Excluir Rascunho")');
+    await page.click('button:has-text("Excluir rascunho")');
     await page.waitForURL("**/pedidos");
     if ((await page.textContent("body")).includes(pedidoUuid.slice(0, 8))) throw new Error("Trashed pedido still listed in /pedidos");
 
     await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     if ((await page.locator("h2 .badge-excluido").count()) !== 1) throw new Error("No badge on the trashed pedido");
-    if ((await page.locator('button:has-text("Excluir Rascunho")').count()) !== 0) throw new Error("Trashed pedido is still editable");
+    if ((await page.locator('button:has-text("Excluir rascunho")').count()) !== 0) throw new Error("Trashed pedido is still editable");
   });
 
   // Previews must show real pixels (AGENTS.md "Preventing false positives"),
@@ -167,7 +167,7 @@ runSpec("Lixeira E2E Tests", async ({ page, test }) => {
 
     await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     if ((await page.locator(".badge-excluido").count()) !== 0) throw new Error("Badge still shown after restoring");
-    if ((await page.locator('button:has-text("Excluir Rascunho")').count()) !== 1) throw new Error("Restored draft is not editable again");
+    if ((await page.locator('button:has-text("Excluir rascunho")').count()) !== 1) throw new Error("Restored draft is not editable again");
     await page.goto(BASE_URL);
     if ((await page.locator(`.stamp-card[data-filename="${arteName}"]`).count()) !== 1) throw new Error("Restored arte not back in the gallery");
   });

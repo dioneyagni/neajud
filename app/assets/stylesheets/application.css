@@ -1296,14 +1296,6 @@ section {
 
 /* ── Pedido show page ── */
 
-.pedido-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid #e0e0e0;
-  align-items: flex-start;
-}
-
 /* "Enviar arquivo" on a pedido's pendência (auto-submits on pick). */
 .pedido-peca-enviar-label {
   font-size: 0.75rem;
@@ -1320,25 +1312,6 @@ section {
 .vinculo-history-mudanca td:first-child {
   color: #b45309;
   font-weight: 600;
-}
-
-/* Pending pieces block confirming the pedido (pedidos/show). */
-.pedido-pendencias {
-  margin: 1rem 0 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px dashed #d97706;
-  border-radius: 6px;
-  background: #fffbeb;
-  font-size: 0.9rem;
-}
-
-.pedido-pendencias ul {
-  margin: 0.4rem 0 0;
-  padding-left: 1.2rem;
-}
-
-.pedido-pendencias-item {
-  color: #888;
 }
 
 .pedido-pendentes-badge {
@@ -1405,165 +1378,6 @@ section {
 .pedido-producao-vazia {
   color: #888;
   font-size: 0.9rem;
-}
-
-/* Pieces of the ordered molde, side by side (pedidos/_item_pecas). */
-/* Etapa 1.2 (3/3, parte 2): one band per part — thumbnail, name and
-   "incluir", then each DXF size with its numbers and file or pendência. */
-.pedido-item-pecas {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex: 0 1 470px;
-  min-width: 0;
-}
-
-.pedido-peca {
-  display: grid;
-  grid-template-columns: 64px 1fr auto;
-  column-gap: 0.6rem;
-  row-gap: 0.2rem;
-  align-items: start;
-  padding: 0.4rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  transition: opacity 0.15s, filter 0.15s;
-}
-
-.pedido-peca .pedido-peca-thumb {
-  grid-row: span 2;
-  width: 64px;
-  height: 64px;
-}
-
-.pedido-parte-tamanhos {
-  grid-column: 2 / -1;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.82rem;
-}
-
-.pedido-parte-tamanho {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  padding: 0.15rem 0;
-  border-top: 1px dashed #eee;
-  overflow-wrap: anywhere;
-}
-
-.pedido-parte-dxf {
-  min-width: 3.2rem;
-  font-weight: 600;
-}
-
-.pedido-parte-numeros {
-  color: #5f6368;
-}
-
-.pedido-parte-pendencia {
-  color: #a15c00;
-  font-weight: 600;
-}
-
-.pedido-parte-piloto {
-  padding: 0 0.35rem;
-  border-radius: 3px;
-  background: #fdecc8;
-  color: #7a4b00;
-  font-size: 0.75rem;
-}
-
-.pedido-parte-enviar {
-  display: inline;
-}
-
-/* Unchecked: the pedido goes to production without this piece. */
-.pedido-peca--excluida {
-  opacity: 0.3;
-  filter: grayscale(1);
-}
-
-/* No arte yet: must be completed before the pedido can be confirmed. */
-.pedido-peca--pendente {
-  border-style: dashed;
-  border-color: #d97706;
-}
-
-.pedido-peca-thumb {
-  width: 96px;
-  height: 96px;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.pedido-peca-thumb--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  color: #888;
-  background: #f5f5f5;
-}
-
-.pedido-peca-nome {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.pedido-peca-toggle {
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.pedido-peca-excluida-label {
-  font-size: 0.75rem;
-  color: #888;
-}
-
-.pedido-peca-erro {
-  flex-basis: 100%;
-  margin: 0;
-  font-size: 0.8rem;
-  color: #c62828;
-}
-
-.pedido-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.pedido-item-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.pedido-item-client {
-  color: #5f6368;
-  font-size: 0.85rem;
-}
-
-.pedido-item-material {
-  margin-top: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.pedido-item-corte {
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
-  color: #5f6368;
-}
-
-.pedido-item-actions {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .grade-cards {

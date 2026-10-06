@@ -1,8 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
+
+// Saves a pedido item's grade (PATCH atualizar_item). Once saved the page
+// morph-refreshes, so the matrix resolves the new numbers (which DXF size,
+// which file, what is missing) and the side panel recounts (Etapa 1.2, 3/3
+// parte 3a).
 
 export default class extends Controller {
   static values = {
-    itemUuid: String,
     saveUrl: String
   }
 
@@ -23,6 +28,7 @@ export default class extends Controller {
     const btn = this.element.querySelector(".grade-save-btn")
     this._showError("")
     if (btn) {
+      this.rotuloOriginal ||= btn.textContent
       btn.disabled = true
       btn.textContent = "Salvando..."
     }
@@ -37,15 +43,12 @@ export default class extends Controller {
         if (btn) {
           if (data.ok) {
             btn.textContent = "Salvo"
-            setTimeout(() => {
-              btn.textContent = "Salvar"
-              btn.disabled = false
-            }, 1500)
+            Turbo.visit(window.location.href, { action: "replace" })
           } else {
             this._showError(data.error)
             btn.textContent = "Erro!"
             setTimeout(() => {
-              btn.textContent = "Salvar"
+              btn.textContent = this.rotuloOriginal
               btn.disabled = false
             }, 3000)
           }
@@ -55,7 +58,7 @@ export default class extends Controller {
         if (btn) {
           btn.textContent = "Erro!"
           setTimeout(() => {
-            btn.textContent = "Salvar"
+            btn.textContent = this.rotuloOriginal
             btn.disabled = false
           }, 3000)
         }
