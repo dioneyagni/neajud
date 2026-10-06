@@ -37,7 +37,7 @@
                 <% if pendentes.positive? %>
                   <%= link_to "#{pendentes} pendente(s)", resumo_pedido_path(p),
                         class: "btn btn-sm pedido-pendentes-badge",
-                        title: "Pendências (sem arte, quantidade 0 ou sem corte) — resolva antes de confirmar" %>
+                        title: "Pendências (quantidade 0, número sem corte ou sem arquivo de produção) — resolva antes de confirmar" %>
                 <% elsif pode?(:pedidos, :editar) %>
                   <%= link_to "Confirmar", confirmar_pedido_path(p),
                         data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },

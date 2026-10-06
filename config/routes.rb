@@ -139,14 +139,6 @@ Rails.application.routes.draw do
       post :confirmar
       get :resumo
     end
-    # Pending pieces of a draft pedido: choose an existing arte to complete them.
-    resources :pecas, controller: "pedido_pecas", only: [] do
-      member do
-        get :escolher_arte
-        post :vincular_arte
-        post :enviar_arte
-      end
-    end
   end
 
   root "arquivos#index"

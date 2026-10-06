@@ -87,6 +87,22 @@ RSpec.describe "Arte files", type: :request do
       expect(flash[:notice]).to include("added to this arte (31-32)")
     end
 
+    # Etapa 1.2 (3/3, parte 2): a pedido's pendência sends the file and comes back.
+    it "returns to the pedido it came from, never to another host" do
+      arquivo = create(:arquivo)
+      post acrescentar_arquivo_arte_path(arquivo), params: { original_file: tif, tamanho_rotulo: "30", voltar_para: "/pedidos/abc/resumo" }
+      expect(response).to redirect_to("/pedidos/abc/resumo")
+      post acrescentar_arquivo_arte_path(arquivo), params: { original_file: tif, tamanho_rotulo: "31", voltar_para: "https://evil.example/x" }
+      expect(response).to redirect_to(arquivo_path(arquivo))
+    end
+
+    it "opens 'bring other artes' when asked (a pedido's Trazer de outra arte)" do
+      arquivo = create(:arquivo)
+      create(:arquivo)
+      get arquivo_path(arquivo, trazer: 1)
+      expect(Nokogiri::HTML(response.body).at_css("details.arte-juntar")["open"]).not_to be_nil
+    end
+
     it "takes a typed size and part while the arte has no molde" do
       peca = create(:peca)
       arquivo = create(:arquivo)

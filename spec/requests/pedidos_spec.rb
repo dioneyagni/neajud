@@ -8,6 +8,22 @@ RSpec.describe "Pedidos", type: :request do
     MateriaPrima.create!(grupo_material: grupo, cor_material: cor, largura: "1.40", gramatura: "100g")
   end
 
+  # Etapa 1.2 (3/3): a molde whose Lateral DXF is Par (29-30, 31-32) and an
+  # item of an arte with the Lateral production file of 29-30.
+  def item_com_dxf(pedido:, grade: { "30" => 3 }, partes: [ create(:peca, nome: "Lateral") ])
+    molde = create(:molde, partes: partes)
+    corte = create(:arquivo, :corte, organized: true, peca: partes.first, client: molde.client, modelo: molde.modelo, filename: "24 AO 34 - CABEDAL").tap do |c|
+      c.moldes << molde
+      create(:tamanho, arquivo: c, nome: "29-30", numeros: %w[29 30], position: 1)
+      create(:tamanho, arquivo: c, nome: "31-32", numeros: %w[31 32], position: 2)
+    end
+    arte = create(:arquivo, filename: "arte-lateral", molde: molde, client: molde.client, peca: partes.first, tamanho: corte.tamanhos.first)
+    create(:item_pedido, pedido: pedido, arquivo: arte).tap do |item|
+      item.compor_pecas!(MoldeComposicaoService.call(arte))
+      grade.each { |numero, qtd| item.grades.create!(tamanho_nome: numero, quantidade: qtd) }
+    end
+  end
+
   describe "GET /pedidos" do
     it "returns http success" do
       get pedidos_path
@@ -184,7 +200,7 @@ RSpec.describe "Pedidos", type: :request do
       expect(response.parsed_body["error"]).to include("expected a draft, got an old-grade pedido")
     end
 
-    it "stores every piece of the arte's molde, marking the ones without arte as pending" do
+    it "stores every part of the arte's molde, the arte's file of each (none yet for the Língua)" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
       molde = create(:molde, partes: [ lateral, lingua ])
       arte = create(:arquivo, category: "artes", molde: molde, peca: lateral)
@@ -193,14 +209,14 @@ RSpec.describe "Pedidos", type: :request do
 
       rows = ItemPedido.last.item_pedido_pecas
       expect(rows.map { |r| [ r.peca.nome, r.arquivo, r.estado ] })
-        .to eq([ [ "Lateral", arte, :incluida ], [ "Língua", nil, :pendente ] ])
+        .to eq([ [ "Lateral", arte, :incluida ], [ "Língua", nil, :incluida ] ])
     end
 
     it "stores the pieces left unchecked in the modal as excluded" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
       molde = create(:molde, partes: [ lateral, lingua ])
       arte_lateral = create(:arquivo, category: "artes", molde: molde, peca: lateral)
-      arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua)
+      arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua, arte: arte_lateral.arte)
 
       post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "30" => "1" } }
 
@@ -362,11 +378,12 @@ RSpec.describe "Pedidos", type: :request do
       expect(peca_row.reload.estado).to eq(:incluida)
     end
 
-    it "refuses a pending piece (no arte)" do
-      pending_row = create(:item_pedido_peca, item_pedido: item, arquivo: nil)
-      alternar("false", row: pending_row)
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(pending_row.reload.incluida).to be true
+    # Etapa 1.2 (3/3): a part without file can be left out too (its numbers
+    # then stop blocking).
+    it "checks and unchecks a part the arte has no file for" do
+      sem_arquivo = create(:item_pedido_peca, item_pedido: item, arquivo: nil)
+      alternar("false", row: sem_arquivo)
+      expect([ response.parsed_body["ok"], sem_arquivo.reload.incluida ]).to eq([ true, false ])
     end
 
     it "refuses a value other than true/false, naming it" do
@@ -387,17 +404,19 @@ RSpec.describe "Pedidos", type: :request do
     let(:pedido) { create(:pedido) }
     let(:item) { create(:item_pedido, pedido: pedido) }
 
-    it "shows each piece with its state and a checkbox for pieces with arte" do
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), position: 0)
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), incluida: false, position: 1)
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Calcanhar"), arquivo: nil, position: 2)
+    # Etapa 1.2 (3/3, parte 2): each part with where its numbers come from.
+    it "shows each part with its state, a checkbox, and per DXF size its file or what is missing" do
+      lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
+      outro = item_com_dxf(pedido: pedido, grade: { "29" => 4, "30" => 6, "31" => 2 }, partes: [ lateral, lingua ])
+      outro.item_pedido_pecas.find_by(peca: lingua).update!(incluida: false)
       get pedido_path(pedido)
-      html = Nokogiri::HTML(response.body)
-      cards = html.css(".pedido-peca")
-      expect(cards.map { |c| c[:class].split.last }).to eq(%w[pedido-peca--incluida pedido-peca--excluida pedido-peca--pendente])
-      expect(cards.map { |c| c.css(".pedido-peca-nome").text }).to eq(%w[Lateral Língua Calcanhar])
-      expect(cards.map { |c| c.css("input.pedido-peca-check").size }).to eq([ 1, 1, 0 ])
-      expect(cards[2].text).to include("sem arte", "Pendente")
+      cards = Nokogiri::HTML(response.body).css(".pedido-item .pedido-peca")
+      expect(cards.map { |c| c.css(".pedido-peca-nome").text }).to eq(%w[Lateral Língua])
+      expect(cards.map { |c| c[:class].split.include?("pedido-peca--excluida") }).to eq([ false, true ])
+      expect(cards.map { |c| c.css("input.pedido-peca-check").size }).to eq([ 1, 1 ])
+      linhas = cards.first.css(".pedido-parte-tamanho").map { |li| li.text.squish }
+      expect(linhas.first).to include("29-30", "29×4 · 30×6", "arte-lateral")
+      expect(linhas.second).to include("31-32", "31×2", "sem arquivo de produção", "Enviar arquivo", "Trazer de outra arte")
     end
 
     it "shows no checkboxes on a confirmed pedido" do
@@ -416,42 +435,20 @@ RSpec.describe "Pedidos", type: :request do
   end
 
   describe "GET /pedidos/:uuid/producao" do
-    it "renders the Produção frame with checked pieces only" do
+    it "renders the Produção frame with checked parts only, each number with its DXF size to download" do
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
-      item.grades.create!(tamanho_nome: "35", quantidade: 3)
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), position: 0)
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), incluida: false, position: 1)
+      lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
+      item = item_com_dxf(pedido: pedido, grade: { "30" => 2, "35" => 1 }, partes: [ lateral, lingua ])
+      item.item_pedido_pecas.find_by(peca: lingua).update!(incluida: false)
 
       get producao_pedido_path(pedido)
 
       html = Nokogiri::HTML(response.body)
       expect(html.at_css("turbo-frame#pedido-producao")).to be_present
-      expect(html.css("tbody tr").map { |tr| tr["data-peca"] }).to eq([ "Lateral" ])
-      expect(html.css("tbody tr td").map(&:text).map(&:strip).first(3)).to eq([ "Lateral", "3", "3" ])
-    end
-  end
-
-  describe "GET /pedidos/:uuid/producao downloads" do
-    it "turns each quantity into a download of that size's DXF, and warns on a size the corte lacks" do
-      lateral = create(:peca, nome: "Lateral")
-      corte = create(:arquivo, :corte, peca: lateral, filename: "24 AO 34 - CABEDAL")
-      t34 = create(:tamanho, arquivo: corte, nome: "34")
-      pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
-      item.grades.create!(tamanho_nome: "34", quantidade: 2)
-      item.grades.create!(tamanho_nome: "35", quantidade: 1)
-      create(:item_pedido_peca, item_pedido: item, peca: lateral, arquivo: create(:arquivo, tamanho: t34))
-
-      get producao_pedido_path(pedido)
-
-      row = Nokogiri::HTML(response.body).at_css("tbody tr")
-      link = row.at_css("td[data-tamanho='34'] a.producao-download")
-      expect(link["href"]).to eq(download_tamanho_path(t34))
-      expect(link["download"]).to eq("24 AO 34 - CABEDAL - 34.dxf")
-      expect(link["data-turbo"]).to eq("false")
-      expect(row.at_css("td[data-tamanho='35'] .producao-sem-dxf").text).to include("1", "sem DXF")
-      expect(row.at_css("td.producao-corte").text.strip).to eq("24 AO 34 - CABEDAL")
+      expect(html.css("tbody tr").map { |tr| [ tr["data-peca"], tr["data-corte"] ] }).to eq([ [ "Lateral", "" ], [ "Lateral", "24 AO 34 - CABEDAL" ] ])
+      row = html.at_css("tbody tr[data-corte='24 AO 34 - CABEDAL']")
+      link = row.at_css("td[data-tamanho='30'] a.producao-download")
+      expect([ link["href"], link["download"], link["data-turbo"] ]).to eq([ download_tamanho_path(Tamanho.find_by!(nome: "29-30")), "24 AO 34 - CABEDAL - 29-30.dxf", "false" ])
     end
   end
 
@@ -520,17 +517,15 @@ RSpec.describe "Pedidos", type: :request do
       expect(flash[:alert]).to include("Item zerado com quantidade total 0")
     end
 
-    it "refuses to confirm while a checked piece has no corte, listing it on the page" do
+    it "refuses to confirm while an ordered number has no file, listing it on the page with the arte" do
       pedido = create(:pedido)
-      item = create(:item_pedido, :com_quantidade, pedido: pedido)
-      create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Lateral"), arquivo: create(:arquivo, filename: "28-GATO ROSA"))
+      item = item_com_dxf(pedido: pedido, grade: { "31" => 1 })
       post confirmar_pedido_path(pedido)
       expect(pedido.reload.status).to eq("rascunho")
-      expect(flash[:alert]).to include("Lateral sem arquivo de corte (arte 28-GATO ROSA)")
+      expect(flash[:alert]).to include("Lateral 31 (31-32) sem arquivo de produção")
       get pedido_path(pedido)
-      li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_corte")
-      expect(li.text).to include("28-GATO ROSA")
-      expect(li.at_css("a")["href"]).to eq(arquivo_path(Arquivo.find_by!(filename: "28-GATO ROSA")))
+      li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_arquivo")
+      expect(li.at_css("a")["href"]).to eq(arquivo_path(item.arquivo))
     end
   end
 

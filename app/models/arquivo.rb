@@ -223,7 +223,7 @@ class Arquivo < ApplicationRecord
   end
 
   # 01/10/2026 (pedido ed6a2aba): an arte linked to a client's molde belongs
-  # to that client — VincularArteService already did it, the arte page didn't.
+  # to that client — linking it from a pedido already did it, the arte page didn't.
   def herdar_cliente_do_molde
     self.client = molde.client if category == "artes" && client_id.nil? && molde && will_save_change_to_molde_id?
   end

@@ -1,6 +1,7 @@
 # Lists the pieces an order item is made of, starting from the arte that was
-# added to the pedido: one Slot per peça of the arte's molde, each with the
-# molde's arte for that peça, or arquivo nil when none exists yet (pending).
+# added to the pedido: one Slot per peça of the arte's molde, each with a
+# file of that same arte for the peça, or arquivo nil when it has none
+# (pending; Etapa 1.2, 3/3: the arte, not the molde's other artes).
 # Pieces come from the molde's molde_pecas (its parts, chosen on the molde
 # page — Etapa 1.1, 3/5); nothing is written here. The added arte is always present, even when its peça is
 # unknown or not configured on the molde. An arte without molde is a
@@ -35,8 +36,11 @@ class MoldeComposicaoService
     @molde.molde_pecas.includes(:peca).order(:id).map(&:peca).reject(&:excluido?)
   end
 
+  # The files of the added arte's own envelope (Etapa 1.2, 3/3 parte 2): a
+  # part is filled by a file of this arte, never by another arte of the molde
+  # — the pedido reads the arte (decided 05/10/2026).
   def molde_artes
-    @molde_artes ||= Arquivo.ativos.where(category: "artes", molde_id: @molde.id)
+    @molde_artes ||= Arquivo.ativos.where(category: "artes", arte_id: @arte.arte_id, molde_id: @molde.id)
                              .includes(:peca, tamanho: { arquivo: :peca }).order(:id).to_a
   end
 

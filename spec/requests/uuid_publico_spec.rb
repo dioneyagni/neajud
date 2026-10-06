@@ -28,15 +28,6 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       get "/tamanhos/#{tamanho.id}/download"
       expect(response).to have_http_status(:not_found)
     end
-
-    it "opens a pedido's pending piece by its uuid" do
-      item = create(:item_pedido, pedido: create(:pedido), arquivo: create(:arquivo, molde: create(:molde)))
-      linha = create(:item_pedido_peca, item_pedido: item, arquivo: nil)
-      get "/pedidos/#{item.pedido.uuid}/pecas/#{linha.uuid}/escolher_arte"
-      expect(response).to have_http_status(:ok)
-      get "/pedidos/#{item.pedido.uuid}/pecas/#{linha.id}/escolher_arte"
-      expect(response).to have_http_status(:not_found)
-    end
   end
 
   describe "JSON endpoints answer uuids in id" do

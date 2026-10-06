@@ -106,7 +106,8 @@
     <% if candidatas.any? %>
       <%# Decided 05/10/2026: mark the other artes and bring them here (from the
           P's page, the M and the G), seeing each one's preview. %>
-      <details class="arte-juntar">
+      <%# Opened by a pedido's "Trazer de outra arte" (?trazer=1). %>
+      <details class="arte-juntar"<%= " open" if params[:trazer].present? %>>
         <summary>Bring other artes into this one</summary>
         <%= form_with url: trazer_arquivo_arte_path(arquivo), method: :post, class: "arte-juntar-form",
               data: { controller: "trazer-artes" } do %>

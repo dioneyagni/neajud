@@ -1,33 +1,11 @@
 require "rails_helper"
 
 RSpec.describe ItemPedidoPeca, type: :model do
+  # Etapa 1.2 (3/3): what is missing is ResolucaoDoItem's; a part is only
+  # checked or unchecked.
   describe "#estado" do
-    it "is :pendente when there is no arte, regardless of incluida" do
-      expect(build(:item_pedido_peca, arquivo: nil, incluida: true).estado).to eq(:pendente)
-      expect(build(:item_pedido_peca, arquivo: nil, incluida: false).estado).to eq(:pendente)
-    end
-
-    it "is :incluida when it has an arte and is checked" do
-      expect(build(:item_pedido_peca, incluida: true).estado).to eq(:incluida)
-    end
-
-    it "is :excluida when it has an arte and was unchecked" do
-      expect(build(:item_pedido_peca, incluida: false).estado).to eq(:excluida)
-    end
-  end
-
-  describe "scopes" do
-    let(:item) { create(:item_pedido) }
-    let!(:incluida) { create(:item_pedido_peca, item_pedido: item, incluida: true) }
-    let!(:excluida) { create(:item_pedido_peca, item_pedido: item, incluida: false) }
-    let!(:pendente) { create(:item_pedido_peca, item_pedido: item, arquivo: nil) }
-
-    it ".para_producao keeps only checked pieces that have an arte" do
-      expect(described_class.para_producao).to contain_exactly(incluida)
-    end
-
-    it ".pendentes keeps only pieces without arte" do
-      expect(described_class.pendentes).to contain_exactly(pendente)
+    it "is :incluida when checked and :excluida when unchecked" do
+      expect([ build(:item_pedido_peca, incluida: true).estado, build(:item_pedido_peca, incluida: false).estado ]).to eq(%i[incluida excluida])
     end
   end
 
