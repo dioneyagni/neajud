@@ -129,6 +129,7 @@ Rails.application.routes.draw do
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
     collection do
       post :adicionar_item
+      get :artes_para_adicionar
     end
     member do
       delete :remover_item

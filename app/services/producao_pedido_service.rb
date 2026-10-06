@@ -71,12 +71,13 @@ class ProducaoPedidoService
     end
   end
 
-  # A size maps to the corte's tamanho of the same name; the single-total
+  # A size maps to the corte's tamanho that serves it; the single-total
   # column (no sizes in the grade) uses the size chosen on the arte itself.
   def registrar_download(linha, tamanho_nome, arte)
     return unless linha.corte
 
-    tamanho = tamanho_nome == TOTAL_KEY ? arte.tamanho : linha.corte.tamanhos.find { |t| t.nome == tamanho_nome }
+    # Etapa 1.2 (3/3): the grade is by number; the corte's size serving it ("29" → 29-30).
+    tamanho = tamanho_nome == TOTAL_KEY ? arte.tamanho : linha.corte.tamanhos.find { |t| t.atende_rotulo?(tamanho_nome) }
     lista = linha.downloads[tamanho_nome]
     lista << tamanho if tamanho && !lista.include?(tamanho)
   end

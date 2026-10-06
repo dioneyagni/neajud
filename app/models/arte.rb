@@ -36,6 +36,46 @@ class Arte < ApplicationRecord
     arquivos.build(**compartilhados, **atributos)
   end
 
+  # The sizes a pedido asks this arte in, one by one (Etapa 1.2, 3/3;
+  # decided 05/10/2026: "from the DXF"): the numbers its molde's organized
+  # cortes serve; without any, the product's whole grade. The molde's
+  # stretch doesn't enter. Empty without a molde — the pedido then takes a
+  # single total.
+  # Usage: arte.tamanhos_do_pedido # => ["23", "24", …, "34"]
+  def tamanhos_do_pedido
+    molde = principal&.molde
+    return [] unless molde
+
+    numeros_dos_cortes(molde).presence || molde.modelo&.produto&.grade.to_a
+  end
+
+  # Every size a pedido may ask (decided 05/10/2026): the product's whole
+  # grade, so "+ 23" / "+ 35" can add a number just outside the molde's
+  # stretch (tamanhos_do_pedido, the ones listed first).
+  # Usage: arte.grade_completa_do_pedido # => ["18", …, "46"]
+  # Empty when nothing is listed (the pedido takes a single total then).
+  def grade_completa_do_pedido
+    listados = tamanhos_do_pedido
+    return [] if listados.empty?
+
+    completa = principal&.molde&.modelo&.produto&.grade.to_a
+    (listados - completa).empty? ? completa : listados
+  end
+
+  # Each corte's numbers: saved with its grade type, else deduced from its
+  # size names like the Mold Organization form ("24, 26…" → 23 … 34), else
+  # the names themselves (old cortes nothing can be deduced from).
+  def numeros_dos_cortes(molde)
+    Arquivo.cortes_do_molde(molde).includes(:tamanhos).flat_map do |corte|
+      tamanhos = corte.tamanhos.to_a
+      next tamanhos.flat_map(&:numeros) if tamanhos.any? { |t| t.numeros.any? }
+
+      deduzida = GradeDoCorte.deduzir(tamanhos.map(&:nome))
+      deduzida ? deduzida[:tamanhos].flat_map { |t| t[:numeros] } : tamanhos.map(&:nome)
+    end.uniq.sort_by { |n| [ n.to_i, n ] }
+  end
+  private :numeros_dos_cortes
+
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.
   # Usage: arte.titulo # => "001-TNS · 19 · BLUEY PTO"

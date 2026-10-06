@@ -18,6 +18,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list pedidos", "pedidos", 1, -> { get pedidos_path } ],
     [ "open a pedido", "pedidos", 1, -> { get resumo_pedido_path(pedido) } ],
     [ "create a pedido", "pedidos", 2, -> { post pedidos_path } ],
+    [ "list artes to add to a pedido", "pedidos", 2, -> { get artes_para_adicionar_pedidos_path(molde_uuid: molde.uuid), as: :json } ],
     [ "trash a pedido", "pedidos", 3, -> { delete pedido_path(pedido) } ],
     [ "list clients", "clientes", 1, -> { get clients_path } ],
     [ "register a client", "clientes", 2, -> { post clients_path, params: { client: { name: "Novo", responsible: "X" } } } ],

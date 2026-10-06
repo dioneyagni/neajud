@@ -28,6 +28,11 @@
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
 
+<% if @pedido.grade_antiga? %>
+  <%# Etapa 1.2 (3/3): grades by the corte's size name can't be split by number. %>
+  <p class="pedido-grade-antiga" role="note">Pedido no formato antigo (grade pelo tamanho do corte, ex: "29-30"): só leitura. Os pedidos agora são por arte e por número.</p>
+<% end %>
+
 <% if pedido_editavel?(@pedido) %>
   <%# Everything that blocks confirming (PedidoBloqueiosService): pieces
       without arte, items with total 0, checked pieces without corte. %>
@@ -59,6 +64,28 @@
   </div>
 <% end %>
 
+<% if pedido_editavel?(@pedido) %>
+  <%# Etapa 1.2 (3/3, decided 05/10/2026): an item enters by molde → referência
+      → arte here too, not only from the gallery's card. %>
+  <% moldes = (@pedido.client ? Molde.ativos.where(client: @pedido.client) : Molde.ativos).includes(:client).order(:nome) %>
+  <div class="pedido-adicionar" data-controller="add-to-order pedido-adicionar"
+       data-add-to-order-pedido-uuid-value="<%= @pedido.uuid %>"
+       data-pedido-adicionar-url-value="<%= artes_para_adicionar_pedidos_path(format: :json) %>">
+    <h3>Adicionar arte</h3>
+    <div class="pedido-adicionar-filtros">
+      <select data-pedido-adicionar-target="molde" data-action="change->pedido-adicionar#escolherMolde">
+        <option value="">Molde…</option>
+        <% moldes.each do |molde| %>
+          <option value="<%= molde.uuid %>"><%= molde.nome %><%= " (#{molde.client.name})" unless @pedido.client %></option>
+        <% end %>
+      </select>
+      <select data-pedido-adicionar-target="referencia" data-action="change->pedido-adicionar#escolherReferencia" hidden></select>
+    </div>
+    <div class="pedido-adicionar-artes" data-pedido-adicionar-target="artes"></div>
+    <%= render "pedidos/add_to_order_modal" %>
+  </div>
+<% end %>
+
 <h3 style="margin-top: 1.5rem;">Itens (<%= @pedido.itens_pedido.count %>)</h3>
 
 <% @pedido.itens_pedido.each do |item| %>
@@ -80,20 +107,24 @@
         </div>
       <% end %>
 
-      <% grades_map = item.grades.index_by(&:tamanho_nome) %>
-      <div class="grade-cards">
-        <% tamanhos_for_arte(item.arquivo).each do |t| %>
-          <% grade = grades_map[t[:nome]] %>
+      <%# Etapa 1.2 (3/3): by number, the molde's stretch first, "+ before /
+          after" from the product's grade (grade-por-numero). %>
+      <% tamanhos = tamanhos_for_arte(item.arquivo).map { |t| t[:nome] } %>
+      <% if tamanhos.any? %>
+        <%= tag.div data: { controller: "grade-por-numero",
+              grade_por_numero_tamanhos_value: tamanhos.to_json,
+              grade_por_numero_completa_value: grade_completa_for_arte(item.arquivo).to_json,
+              grade_por_numero_quantidades_value: item.grades.to_h { |g| [ g.tamanho_nome, g.quantidade ] }.to_json,
+              grade_por_numero_input_class_value: "grade-card-input grade-qtd-input" } %>
+      <% else %>
+        <% total = item.grades.find_by(tamanho_nome: ProducaoPedidoService::TOTAL_KEY) %>
+        <div class="grade-cards">
           <div class="grade-card">
-            <span class="grade-card-label"><%= t[:nome] %></span>
-            <input type="number"
-                   class="grade-card-input grade-qtd-input"
-                   data-tamanho-nome="<%= t[:nome] %>"
-                   value="<%= grade&.quantidade || 0 %>"
-                   min="0" step="1">
+            <span class="grade-card-label">Quantidade</span>
+            <input type="number" class="grade-card-input grade-qtd-input" data-tamanho-nome="<%= ProducaoPedidoService::TOTAL_KEY %>" value="<%= total&.quantidade || 0 %>" min="0" step="1">
           </div>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
 
       <% corte = item.arquivo.corte || item.arquivo.corte_via_molde %>
       <% if corte %>
@@ -120,7 +151,7 @@
 <% end %>
 
 <% if @pedido.itens_pedido.empty? %>
-  <p class="gallery-empty">No items yet. Go to the gallery and add artes to this pedido.</p>
+  <p class="gallery-empty">No items yet. Add an arte above, or from the gallery.</p>
 <% end %>
 
 <div class="back-link-wrapper" style="margin-top:1rem;">

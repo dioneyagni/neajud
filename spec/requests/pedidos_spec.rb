@@ -154,17 +154,34 @@ RSpec.describe "Pedidos", type: :request do
       expect(item.materia_prima_id).to eq(materia_prima.id)
     end
 
-    it "includes grade quantities" do
-      post adicionar_item_pedidos_path, params: {
-        arquivo_uuid: arquivo.uuid,
-        grade: { "P" => "3", "M" => "2" }
-      }
+    # Etapa 1.2 (3/3): by individual size, in the molde's stretch of the grade.
+    it "includes grade quantities by individual size, and the arte of the file" do
+      arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "29", tamanho_final: "31"))
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "29" => "3", "30" => "2" } }
 
       expect(response).to have_http_status(:success)
       item = ItemPedido.last
-      expect(item.grades.count).to eq(2)
-      expect(item.grades.find_by(tamanho_nome: "P").quantidade).to eq(3)
-      expect(item.grades.find_by(tamanho_nome: "M").quantidade).to eq(2)
+      expect([ item.arte, item.grades.order(:tamanho_nome).map { |g| [ g.tamanho_nome, g.quantidade ] } ]).to eq([ arte.arte, [ [ "29", 3 ], [ "30", 2 ] ] ])
+    end
+
+    it "refuses a size outside the product's grade, naming it; takes one just outside the molde's stretch" do
+      arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "29", tamanho_final: "30"))
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "29-30" => "3" } }
+      expect([ response.status, response.parsed_body["error"] ]).to match([ 422, /\ASizes 29-30 are not in this arte's grade; expected some of 18, 19, / ])
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "31" => "1" } }
+      expect(response).to have_http_status(:success)
+    end
+
+    it "adds to the pedido it is asked for (the pedido page's picker)" do
+      pedido = create(:pedido)
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, pedido_uuid: pedido.uuid, grade: { "_total" => "1" } }
+      expect(pedido.itens_pedido.count).to eq(1)
+    end
+
+    it "refuses adding to a pedido with the old grade" do
+      pedido = create(:pedido, grade_antiga: true)
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, pedido_uuid: pedido.uuid, grade: { "_total" => "1" } }
+      expect(response.parsed_body["error"]).to include("expected a draft, got an old-grade pedido")
     end
 
     it "stores every piece of the arte's molde, marking the ones without arte as pending" do
@@ -172,7 +189,7 @@ RSpec.describe "Pedidos", type: :request do
       molde = create(:molde, partes: [ lateral, lingua ])
       arte = create(:arquivo, category: "artes", molde: molde, peca: lateral)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "_total" => "1" } }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.uuid, grade: { "30" => "1" } }
 
       rows = ItemPedido.last.item_pedido_pecas
       expect(rows.map { |r| [ r.peca.nome, r.arquivo, r.estado ] })
@@ -185,7 +202,7 @@ RSpec.describe "Pedidos", type: :request do
       arte_lateral = create(:arquivo, category: "artes", molde: molde, peca: lateral)
       arte_lingua = create(:arquivo, category: "artes", molde: molde, peca: lingua)
 
-      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "_total" => "1" } }
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arte_lateral.uuid, excluir_arquivos: [ arte_lingua.uuid ], grade: { "30" => "1" } }
 
       expect(ItemPedido.last.item_pedido_pecas.map { |r| [ r.peca.nome, r.estado ] })
         .to eq([ [ "Lateral", :incluida ], [ "Língua", :excluida ] ])
@@ -487,7 +504,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "accepts atualizar_item zeroing one size while another keeps quantity" do
       pedido = create(:pedido)
-      item = create(:item_pedido, pedido: pedido)
+      item = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, molde: create(:molde, tamanho_inicial: "35", tamanho_final: "36")))
       item.grades.create!(tamanho_nome: "35", quantidade: 2)
       item.grades.create!(tamanho_nome: "36", quantidade: 1)
       patch atualizar_item_pedido_path(pedido, id: item.uuid), params: { grade: { "35" => "0" } }, as: :json
@@ -514,6 +531,35 @@ RSpec.describe "Pedidos", type: :request do
       li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_corte")
       expect(li.text).to include("28-GATO ROSA")
       expect(li.at_css("a")["href"]).to eq(arquivo_path(Arquivo.find_by!(filename: "28-GATO ROSA")))
+    end
+  end
+
+  describe "Etapa 1.2 (3/3): the pedido by arte" do
+    it "is calçado by default" do
+      expect(create(:pedido).tipo).to eq("calcado")
+    end
+
+    it "keeps an old-grade pedido read only, even restored, saying why" do
+      pedido = create(:pedido, grade_antiga: true)
+      item = create(:item_pedido, pedido: pedido)
+      patch atualizar_item_pedido_path(pedido, id: item.uuid), params: { grade: { "_total" => "2" } }, as: :json
+      expect(response.parsed_body["error"]).to include("has the old grade")
+      get resumo_pedido_path(pedido)
+      expect(response.body).to include("formato antigo")
+    end
+
+    it "lists a molde's referências and artes for the picker, narrowing by referência" do
+      molde = create(:molde)
+      vinte = Referencia.do_molde!(molde, "20")
+      bluey = create(:arquivo, molde: molde, referencia: vinte, nome: "Bluey")
+      create(:arquivo, arte: bluey.arte, molde: molde, referencia: vinte, nome: "Bluey")
+      gato = create(:arquivo, molde: molde, referencia: Referencia.do_molde!(molde, "21"), nome: "Gato")
+
+      get artes_para_adicionar_pedidos_path(molde_uuid: molde.uuid), as: :json
+      expect(response.parsed_body["referencias"].map { |r| r["nome"] }).to eq(%w[20 21])
+      expect(response.parsed_body["artes"].map { |a| a["arquivo_uuid"] }).to contain_exactly(bluey.uuid, gato.uuid)
+      get artes_para_adicionar_pedidos_path(molde_uuid: molde.uuid, referencia_uuid: vinte.uuid), as: :json
+      expect(response.parsed_body["artes"].map { |a| a["titulo"] }).to eq([ "#{molde.codigo} · 20 · Bluey" ])
     end
   end
 end

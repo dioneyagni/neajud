@@ -305,6 +305,34 @@ Key files:
 - `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
 - `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
 
+## Pedido by arte, grade by number (Etapa 1.2, 3/3)
+
+Decided 05/10/2026, in three parts; part 1 is done:
+
+- `pedidos.tipo` (`Pedido::TIPOS`: calcado; DTF and tecido in Fase 2) — one
+  type per pedido.
+- An item is an **arte** (`itens_pedido.arte_id`); `arquivo_id` is the file it
+  was added from, still what the pieces below start from until part 2 reads
+  them from the arte. Its grade is by **individual size**
+  (`Arte#tamanhos_do_pedido`, decided 05/10/2026: the numbers the molde's
+  **organized DXF** serve — saved with the grade type, else deduced from the
+  size names like the Mold Organization form; without an organized corte,
+  the product's whole grade; the molde's stretch doesn't enter; no molde →
+  one `_total`), listed first; "+ 23" / "+ 35" add the product's next numbers
+  (`Arte#grade_completa_do_pedido`, decided 05/10/2026), and
+  `adicionar_item` / `atualizar_item` refuse sizes outside it. The grade is a
+  responsive table (`grade_por_numero_controller.js`: number over quantity,
+  side by side under 600px), shared by the modal and the pedido page.
+- Production maps a number to the corte's size serving it
+  (`Tamanho#atende_rotulo?`: "29" → 29-30) until part 3 groups by corte size.
+- Added from the gallery card or from the pedido page (molde → referência →
+  arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
+  the same `add-to-order` modal with `pedido_uuid`).
+- Pedidos from before (grade by the corte's size name) went to the trash in
+  the migration, `grade_antiga: true` — read only even restored
+  (`Pedido#editavel?`, `recusar_pedido_excluido`).
+- E2E: `e2e/pedido-por-arte.spec.js`.
+
 ## Pedido items are made of the molde's pieces
 
 Adding an arte to a pedido stores one `ItemPedidoPeca` per peça of its molde

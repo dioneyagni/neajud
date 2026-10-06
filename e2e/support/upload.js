@@ -27,6 +27,10 @@ async function submitUploadAndWait(page, expectedCount, timeout = UPLOAD_TIMEOUT
   // processed) while the new 01-no_spot.psd was still processing.
   const uuids = (await page.$eval('form[data-controller="upload"]', (f) => f.dataset.uploadEnviados || "")).split(" ").filter(Boolean);
   if (uuids.length !== expectedCount) throw new Error(`Expected ${expectedCount} created files, the upload reported ${uuids.length}`);
+  // upload_controller.js reloads the gallery 1.5 s after "Upload complete";
+  // a page.reload of ours meeting it was aborted (ERR_ABORTED, 05/10/2026).
+  // Let that one happen first, then wait, then reload with the final states.
+  await page.waitForEvent("load", { timeout: 10000 });
   await waitForUploadedProcessed(page, uuids, names);
   await page.reload();
 }

@@ -11,7 +11,10 @@ export default class extends Controller {
     arteClient: String,
     arteClientUuid: String,
     artePreview: String,
-    tamanhos: Array
+    tamanhos: Array,
+    gradeCompleta: Array,
+    // The pedido page (Etapa 1.2, 3/3) adds to itself and reloads.
+    pedidoUuid: String
   }
 
   connect() {
@@ -31,6 +34,11 @@ export default class extends Controller {
       tamanhos = JSON.parse(btn.dataset.addToOrderTamanhos || "[]")
     } catch {}
     this.tamanhosValue = tamanhos
+    try {
+      this.gradeCompletaValue = JSON.parse(btn.dataset.addToOrderGradeCompleta || "[]")
+    } catch {
+      this.gradeCompletaValue = []
+    }
 
     this._updateComboboxUrl()
     this._populateModal()
@@ -101,6 +109,8 @@ export default class extends Controller {
       headers["X-CSRF-Token"] = csrfMeta.content
     }
 
+    if (this.pedidoUuidValue) formData.append("pedido_uuid", this.pedidoUuidValue)
+
     fetch("/pedidos/adicionar_item", {
       method: "POST",
       headers: headers,
@@ -113,6 +123,7 @@ export default class extends Controller {
             detail: { total_itens: data.total_itens }
           }))
           this.close()
+          if (this.pedidoUuidValue) window.location.reload()
         } else {
           this._showError(data.error || "Erro ao adicionar item")
         }
@@ -148,16 +159,12 @@ export default class extends Controller {
     if (!this.hasGradeContainerTarget) return
 
     if (this.tamanhosValue.length > 0) {
-      this.gradeContainerTarget.innerHTML = `
-        <div class="grade-cards">
-          ${this.tamanhosValue.map(t => `
-            <div class="grade-card">
-              <span class="grade-card-label">${t.nome}</span>
-              <input type="number" class="grade-card-input add-to-order-grade-input" data-tamanho-nome="${t.nome}" value="0" min="0" step="1">
-            </div>
-          `).join("")}
-        </div>
-      `
+      // Etapa 1.2 (3/3): by number, with "+ before / after" (grade-por-numero).
+      const atributo = (valor) => JSON.stringify(valor).replace(/"/g, "&quot;")
+      this.gradeContainerTarget.innerHTML = `<div data-controller="grade-por-numero"
+        data-grade-por-numero-tamanhos-value="${atributo(this.tamanhosValue.map(t => t.nome))}"
+        data-grade-por-numero-completa-value="${atributo(this.gradeCompletaValue)}"
+        data-grade-por-numero-input-class-value="grade-card-input add-to-order-grade-input"></div>`
     } else {
       this.gradeContainerTarget.innerHTML = `
         <div class="add-to-order-qtd-row">

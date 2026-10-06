@@ -97,4 +97,20 @@ RSpec.describe ProducaoPedidoService do
       expect(described_class.ordenar_tamanhos(%w[_total G 10 9 36 P 9])).to eq(%w[9 10 36 G P _total])
     end
   end
+
+  # Etapa 1.2 (3/3): the grade is by number; production finds the corte's
+  # size serving it.
+  it "maps each ordered number to the corte's size that serves it" do
+    peca = create(:peca)
+    corte = create(:arquivo, :corte, organized: true, peca: peca)
+    par = create(:tamanho, arquivo: corte, nome: "29-30", numeros: %w[29 30])
+    arte = create(:arquivo, tamanho: par, client: create(:client))
+    item = create(:item_pedido, arquivo: arte)
+    item.compor_pecas!(MoldeComposicaoService.call(arte))
+    item.grades.create!(tamanho_nome: "29", quantidade: 4)
+    item.grades.create!(tamanho_nome: "30", quantidade: 6)
+
+    linha = described_class.call(item.pedido).sole
+    expect([ linha.quantidades, linha.downloads.transform_values(&:to_a), linha.tamanhos_faltando ]).to eq([ { "29" => 4, "30" => 6 }, { "29" => [ par ], "30" => [ par ] }, [] ])
+  end
 end

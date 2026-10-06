@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_200000) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -291,12 +291,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_180000) do
 
   create_table "itens_pedido", force: :cascade do |t|
     t.integer "arquivo_id", null: false
+    t.integer "arte_id"
     t.datetime "created_at", null: false
     t.integer "materia_prima_id"
     t.integer "pedido_id", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_itens_pedido_on_arquivo_id"
+    t.index ["arte_id"], name: "index_itens_pedido_on_arte_id"
     t.index ["materia_prima_id"], name: "index_itens_pedido_on_materia_prima_id"
     t.index ["pedido_id"], name: "index_itens_pedido_on_pedido_id"
     t.index ["uuid"], name: "index_itens_pedido_on_uuid", unique: true
@@ -419,10 +421,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_180000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
+    t.boolean "grade_antiga", default: false, null: false
     t.text "observacoes"
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.string "status", default: "rascunho", null: false
+    t.string "tipo", default: "calcado", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["client_id"], name: "index_pedidos_on_client_id"
@@ -563,6 +567,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_180000) do
   add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "item_pedido_pecas", "pecas"
   add_foreign_key "itens_pedido", "arquivos"
+  add_foreign_key "itens_pedido", "artes"
   add_foreign_key "itens_pedido", "materia_primas"
   add_foreign_key "itens_pedido", "pedidos"
   add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"

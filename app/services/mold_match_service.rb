@@ -170,7 +170,7 @@ class MoldMatchService
   end
 
   def generate_outline(input_path)
-    output = Tempfile.new([ "outline", ".png" ]).path
+    output = caminho_temporario("outline")
     system("convert", input_path,
       "-resize", "#{PREVIEW_WIDTH}x>",
       "-colorspace", "Gray",
@@ -191,7 +191,7 @@ class MoldMatchService
     return nil unless dims_a && dims_b
 
     if dims_a != dims_b
-      resized = Tempfile.new([ "resized", ".png" ]).path
+      resized = caminho_temporario("resized")
       system("convert", img_a,
         "-resize", "#{dims_b[0]}x#{dims_b[1]}!",
         "-define", "png:color-type=6",
@@ -206,6 +206,13 @@ class MoldMatchService
 
     return nil unless [ 0, 1 ].include?($?.exitstatus)
     stderr.strip.to_i
+  end
+
+  # A path of our own, deleted by whoever uses it. Not Tempfile.new(...).path:
+  # the dropped Tempfile's finalizer deleted the file when the GC ran,
+  # sometimes mid-match, and the automatic search found nothing (05/10/2026).
+  def caminho_temporario(prefixo)
+    File.join(Dir.tmpdir, "#{prefixo}-#{SecureRandom.hex(8)}.png")
   end
 
   def image_dimensions(path)
