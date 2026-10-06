@@ -9,14 +9,25 @@
 # The pedido always reads the arte: a file added to it settles the pendência
 # in every draft that uses it.
 #
+# `colunas:` also gives each part the DXF size of numbers not ordered (yet):
+# the pedido page's matrix shows every column of the grade (Etapa 1.2, 3/3
+# parte 3a).
+#
 # Usage: ResolucaoDoItem.call(item).each { |parte| parte.pendencias }
+#        ResolucaoDoItem.call(item, colunas: %w[28 29 30]).first.celula("28")
 class ResolucaoDoItem
   Numero = Struct.new(:numero, :quantidade, :tamanho, :arquivo, :origem, :pendencia, keyword_init: true)
   # arquivos: the arte's files of the part (its thumbnail when no number
-  # resolved to one yet).
-  Parte = Struct.new(:peca_row, :peca, :incluida, :numeros, :arquivos, keyword_init: true) do
+  # resolved to one yet); tamanhos: number => DXF size, for the `colunas`.
+  Parte = Struct.new(:peca_row, :peca, :incluida, :numeros, :arquivos, :tamanhos, keyword_init: true) do
     def pendencias
       numeros.select(&:pendencia)
+    end
+
+    # The ordered number resolved, else just the DXF size that would serve it.
+    # Usage: parte.celula("28") # => #<Numero numero="28" quantidade=0 tamanho=…>
+    def celula(numero)
+      numeros.find { |n| n.numero == numero } || Numero.new(numero: numero, quantidade: 0, tamanho: tamanhos[numero])
     end
 
     # The numbers by DXF size, in the part's order: [[tamanho, [Numero…]], …];
@@ -26,12 +37,13 @@ class ResolucaoDoItem
     end
   end
 
-  def self.call(item)
-    new(item).call
+  def self.call(item, colunas: [])
+    new(item, colunas).call
   end
 
-  def initialize(item)
+  def initialize(item, colunas = [])
     @item = item
+    @colunas = colunas
     @molde = item.arte&.principal&.molde
   end
 
@@ -39,7 +51,8 @@ class ResolucaoDoItem
     pedidos = @item.grades.select { |g| g.quantidade.positive? }.sort_by { |g| [ g.tamanho_nome.to_i, g.tamanho_nome ] }
     @item.item_pedido_pecas.map do |row|
       Parte.new(peca_row: row, peca: row.peca, incluida: row.incluida, arquivos: arquivos_da_parte(row.peca),
-                numeros: pedidos.map { |grade| resolver(row.peca, grade, pedidos) })
+                numeros: pedidos.map { |grade| resolver(row.peca, grade, pedidos) },
+                tamanhos: @colunas.to_h { |numero| [ numero, tamanho_do_corte(row.peca, numero) ] })
     end
   end
 

@@ -81,7 +81,7 @@ RSpec.describe "Pedidos", type: :request do
       expect(response.body).not_to include(pedido.uuid.first(8))
       get resumo_pedido_path(pedido)
       expect(response.body).to include("badge-excluido")
-      expect(response.body).not_to include("Excluir Rascunho")
+      expect(response.body).not_to include("Excluir rascunho")
     end
 
     it "refuses to change a trashed pedido" do
@@ -400,23 +400,49 @@ RSpec.describe "Pedidos", type: :request do
     end
   end
 
-  describe "GET /pedidos/:uuid pieces frame" do
+  describe "GET /pedidos/:uuid item matrix" do
     let(:pedido) { create(:pedido) }
     let(:item) { create(:item_pedido, pedido: pedido) }
 
-    # Etapa 1.2 (3/3, parte 2): each part with where its numbers come from.
-    it "shows each part with its state, a checkbox, and per DXF size its file or what is missing" do
+    # Etapa 1.2 (3/3, parte 3a): the item is a matrix — a column per number,
+    # a row per part with where each number comes from.
+    it "shows the matrix: per part its state and checkbox, per number its quantity, DXF size and file" do
       lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
       outro = item_com_dxf(pedido: pedido, grade: { "29" => 4, "30" => 6, "31" => 2 }, partes: [ lateral, lingua ])
       outro.item_pedido_pecas.find_by(peca: lingua).update!(incluida: false)
       get pedido_path(pedido)
-      cards = Nokogiri::HTML(response.body).css(".pedido-item .pedido-peca")
-      expect(cards.map { |c| c.css(".pedido-peca-nome").text }).to eq(%w[Lateral Língua])
-      expect(cards.map { |c| c[:class].split.include?("pedido-peca--excluida") }).to eq([ false, true ])
-      expect(cards.map { |c| c.css("input.pedido-peca-check").size }).to eq([ 1, 1 ])
-      linhas = cards.first.css(".pedido-parte-tamanho").map { |li| li.text.squish }
-      expect(linhas.first).to include("29-30", "29×4 · 30×6", "arte-lateral")
-      expect(linhas.second).to include("31-32", "31×2", "sem arquivo de produção", "Enviar arquivo", "Trazer de outra arte")
+      html = Nokogiri::HTML(response.body)
+      partes = html.css(".pedido-item .pedido-peca")
+      expect(partes.map { |c| c.css(".pedido-peca-nome").text }).to eq(%w[Lateral Língua])
+      expect(partes.map { |c| c[:class].split.include?("pedido-peca--excluida") }).to eq([ false, true ])
+      expect(partes.map { |c| c.css("input.pedido-peca-check").size }).to eq([ 1, 1 ])
+
+      linha = outro.item_pedido_pecas.find_by(peca: lateral).uuid
+      celula = ->(numero) { html.at_css(".pedido-parte-numero[data-peca-uuid='#{linha}'][data-numero='#{numero}']") }
+      expect(%w[29 30 31 32].map { |n| celula.(n)["data-estado"] }).to eq(%w[producao producao sem_arquivo livre])
+      expect([ celula.("29").at_css("a")["title"], celula.("31").text.squish ]).to eq([ "arte-lateral", "31-32 sem arquivo" ])
+      quantidades = html.css(".pedido-matriz-qtd input").to_h { |i| [ i["data-tamanho-nome"], i["value"] ] }
+      expect(quantidades.values_at("29", "30", "31", "32")).to eq(%w[4 6 2 0])
+    end
+
+    # The product's grade is 18…46; only the DXF's numbers come shown, the
+    # rest wait behind "+ 28" / "+ 33" (grade-matriz).
+    it "hides the columns outside the molde's DXF numbers" do
+      item_com_dxf(pedido: pedido, grade: { "30" => 1 })
+      get pedido_path(pedido)
+      numeros = Nokogiri::HTML(response.body).css(".pedido-matriz-numero")
+      expect(numeros.reject { |n| n.key?("hidden") }.map(&:text)).to eq(%w[29 30 31 32])
+      expect(numeros.map(&:text)).to eq((18..46).map(&:to_s))
+    end
+
+    it "lists a missing file in the side panel with what settles it" do
+      outro = item_com_dxf(pedido: pedido, grade: { "31" => 2, "32" => 1 })
+      get pedido_path(pedido)
+      li = Nokogiri::HTML(response.body).at_css(".pedido-painel .pedido-pendencia--sem_arquivo")
+      expect(li.at_css(".pedido-pendencia-texto").text).to start_with("Lateral 31-32 (31×2, 32×1) sem arquivo de produção")
+      expect(li.at_css("form.pedido-parte-enviar")["action"]).to eq(acrescentar_arquivo_arte_path(outro.arquivo))
+      expect(li.at_css("input[name='tamanho_uuid']")["value"]).to eq(Tamanho.find_by!(nome: "31-32").uuid)
+      expect(li.at_css("a.pedido-parte-trazer")["href"]).to eq(arquivo_path(outro.arquivo, trazer: 1, anchor: "arte-arquivos"))
     end
 
     it "shows no checkboxes on a confirmed pedido" do
@@ -522,10 +548,10 @@ RSpec.describe "Pedidos", type: :request do
       item = item_com_dxf(pedido: pedido, grade: { "31" => 1 })
       post confirmar_pedido_path(pedido)
       expect(pedido.reload.status).to eq("rascunho")
-      expect(flash[:alert]).to include("Lateral 31 (31-32) sem arquivo de produção")
+      expect(flash[:alert]).to include("Lateral 31-32 (31×1) sem arquivo de produção")
       get pedido_path(pedido)
       li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_arquivo")
-      expect(li.at_css("a")["href"]).to eq(arquivo_path(item.arquivo))
+      expect(li.at_css("a.pedido-parte-trazer")["href"]).to start_with(arquivo_path(item.arquivo))
     end
   end
 

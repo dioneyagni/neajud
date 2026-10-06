@@ -58,6 +58,19 @@ RSpec.describe ResolucaoDoItem do
     expect(resumo(item_com(a, "29" => 1))["Lateral"].first.values_at(2, 3)).to eq([ "pelo-nome", :producao ])
   end
 
+  # Etapa 1.2 (3/3, parte 3a): the pedido page's matrix shows every column of
+  # the grade, ordered or not.
+  describe "#celula with colunas" do
+    it "gives an ordered number resolved and another just its DXF size" do
+      lat = corte(lateral, [ 29, 30 ], [ 31, 32 ])
+      a = arquivo(lateral, lat.tamanhos.first)
+      parte = described_class.call(item_com(a, "30" => 2), colunas: %w[28 30 32]).find { |p| p.peca == lateral }
+      expect(%w[28 30 32].map { |n| c = parte.celula(n); [ c.quantidade, c.tamanho&.nome, c.origem ] }).to eq(
+        [ [ 0, nil, nil ], [ 2, "29-30", :producao ], [ 0, "31-32", nil ] ]
+      )
+    end
+  end
+
   describe "the piloto as a sample" do
     let(:lat) { corte(lateral, [ 29, 30 ], [ 31, 32 ]) }
     let!(:piloto) { arquivo(lateral, lat.tamanhos.first, papel: "piloto").tap { |p| p.update!(filename: "piloto") } }

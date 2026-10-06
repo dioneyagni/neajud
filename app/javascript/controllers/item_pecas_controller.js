@@ -1,12 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
 
 // Checks/unchecks a piece of a pedido item and saves it right away
-// (PATCH alternar_peca). Unchecked = dimmed; the pedido goes to production
-// without that piece. If the server refuses, the change is undone and the
+// (PATCH alternar_peca). Unchecked = dimmed (its label and its row of the
+// matrix); the pedido goes to production without that piece, and its
+// pendências stop blocking — so the page morph-refreshes once saved (Etapa
+// 1.2, 3/3 parte 3a). If the server refuses, the change is undone and the
 // reason shown.
 export default class extends Controller {
   static targets = ["error"]
-  static values = { url: String, producaoUrl: String }
+  static values = { url: String }
 
   toggle(event) {
     const input = event.currentTarget
@@ -15,7 +18,7 @@ export default class extends Controller {
     this._hideError()
     input.disabled = true
     this._save(card.dataset.pecaUuid, input.checked)
-      .then(() => this._reloadProducao())
+      .then(() => Turbo.visit(window.location.href, { action: "replace" }))
       .catch(err => {
         input.checked = !input.checked
         this._paint(card, input.checked)
@@ -33,15 +36,6 @@ export default class extends Controller {
       .then(data => { if (!data.ok) throw new Error(data.error || "Não foi possível salvar a peça") })
   }
 
-  // Refreshes the "Produção" Turbo Frame so an unchecked piece leaves the
-  // production table right away.
-  _reloadProducao() {
-    const frame = document.getElementById("pedido-producao")
-    if (!frame || !this.hasProducaoUrlValue) return
-    if (frame.getAttribute("src") === this.producaoUrlValue) frame.reload()
-    else frame.src = this.producaoUrlValue
-  }
-
   _headers() {
     const csrf = document.querySelector("[name='csrf-token']")
     return csrf ? { "Accept": "application/json", "X-CSRF-Token": csrf.content } : { "Accept": "application/json" }
@@ -50,6 +44,8 @@ export default class extends Controller {
   _paint(card, incluida) {
     card.classList.toggle("pedido-peca--excluida", !incluida)
     card.classList.toggle("pedido-peca--incluida", incluida)
+    this.element.querySelectorAll(`.pedido-parte-numero[data-peca-uuid="${card.dataset.pecaUuid}"]`)
+      .forEach(cell => cell.classList.toggle("pedido-parte-numero--excluida", !incluida))
   }
 
   _showError(message) {

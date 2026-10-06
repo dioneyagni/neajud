@@ -144,7 +144,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       p = pedido
       entrar_com_funcao(niveis: { "pedidos" => 1 })
       get resumo_pedido_path(p)
-      expect(response.body).not_to include("Confirmar Pedido", "Excluir Rascunho")
+      expect(response.body).not_to include("Confirmar pedido", "Excluir rascunho")
     end
 
     it "the trash hides Restore from who can only see it" do

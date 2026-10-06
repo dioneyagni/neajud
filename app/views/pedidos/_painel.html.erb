@@ -1,0 +1,60 @@
+<%# The side panel (Etapa 1.2, 3/3 parte 3a): totals, confirming and what
+    still blocks it, each pendência with what settles it — "Enviar arquivo"
+    uploads into the arte with the part and size filled and comes back here;
+    "Trazer de outra arte" opens the arte page to bring files in. %>
+<% itens = pedido.itens_pedido.includes(:grades).to_a %>
+<aside class="pedido-painel">
+  <section class="pedido-painel-card pedido-resumo">
+    <h3>Resumo</h3>
+    <dl class="pedido-resumo-lista">
+      <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
+      <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
+    </dl>
+    <% if pedido_editavel?(pedido) %>
+      <% bloqueios = pedido.bloqueios_confirmacao %>
+      <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
+            class: "btn btn-primary pedido-confirmar", disabled: bloqueios.any?,
+            data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
+      <% if bloqueios.any? %>
+        <p class="pedido-confirmar-aviso">Resolva <%= bloqueios.size == 1 ? "1 pendência" : "#{bloqueios.size} pendências" %> para confirmar</p>
+      <% end %>
+      <% if pode?(:pedidos, :excluir) %>
+        <%= button_to "Excluir rascunho", pedido, method: :delete,
+              class: "btn btn-secondary btn-sm",
+              data: { turbo_confirm: "Move this draft to the trash?" } %>
+      <% end %>
+    <% end %>
+  </section>
+
+  <% if pedido_editavel?(pedido) && bloqueios.any? %>
+    <% pode_enviar = pode?(:artes, :editar) %>
+    <section class="pedido-painel-card pedido-pendencias" role="alert">
+      <h3>Falta para confirmar (<%= bloqueios.size %>)</h3>
+      <ul>
+        <% bloqueios.each do |bloqueio| %>
+          <li class="pedido-pendencia pedido-pendencia--<%= bloqueio.tipo %>">
+            <span class="pedido-pendencia-texto"><%= bloqueio.descricao %></span>
+            <div class="pedido-pendencia-acoes">
+              <% if bloqueio.tipo == :sem_arquivo && pode_enviar %>
+                <%# Not nested in any other form (see AGENTS.md "Nested forms gotcha"). %>
+                <%= form_with url: acrescentar_arquivo_arte_path(bloqueio.arquivo), multipart: true, class: "pedido-parte-enviar", data: { controller: "auto-submit", turbo: false } do %>
+                  <input type="hidden" name="tamanho_uuid" value="<%= bloqueio.tamanho.uuid %>">
+                  <input type="hidden" name="voltar_para" value="<%= resumo_pedido_path(pedido) %>">
+                  <label class="btn btn-sm btn-outline pedido-peca-enviar-label">
+                    Enviar arquivo
+                    <input type="file" name="original_file" hidden
+                           accept="<%= FileCategory.all["artes"][:extensions].map { |e| ".#{e}" }.join(",") %>"
+                           data-action="change->auto-submit#submit">
+                  </label>
+                <% end %>
+                <%= link_to "Trazer de outra arte", arquivo_path(bloqueio.arquivo, trazer: 1, anchor: "arte-arquivos"), class: "btn btn-sm btn-outline pedido-parte-trazer" %>
+              <% else %>
+                <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+</aside>

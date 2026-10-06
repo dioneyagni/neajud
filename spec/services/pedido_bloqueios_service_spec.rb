@@ -39,13 +39,20 @@ RSpec.describe PedidoBloqueiosService do
   # Etapa 1.2 (3/3, parte 2): the pendências come from ResolucaoDoItem.
   it "flags a number the DXF serves but the arte has no file of, naming the size, with the DXF size to fill" do
     item(grade: { "31" => 1 })
-    expect(bloqueios).to eq([ [ :sem_arquivo, "Lateral 31 (31-32) sem arquivo de produção na arte #{molde.codigo}" ] ])
+    expect(bloqueios).to eq([ [ :sem_arquivo, "Lateral 31-32 (31×1) sem arquivo de produção na arte #{molde.codigo}" ] ])
     expect(described_class.call(pedido).first.tamanho).to eq(corte.tamanhos.second)
   end
 
-  it "flags a number no organized DXF of the part serves" do
-    item(grade: { "35" => 1 })
-    expect(bloqueios).to eq([ [ :sem_corte, "Lateral 35: nenhum corte organizado atende este tamanho (arte #{molde.codigo})" ] ])
+  # Etapa 1.2 (3/3, parte 3a): one file settles every number of its size, so
+  # the page shows one pendência (one "Enviar arquivo") per part × DXF size.
+  it "groups the numbers of one DXF size into one pendência" do
+    item(grade: { "31" => 1, "32" => 3 })
+    expect(bloqueios).to eq([ [ :sem_arquivo, "Lateral 31-32 (31×1, 32×3) sem arquivo de produção na arte #{molde.codigo}" ] ])
+  end
+
+  it "flags the numbers no organized DXF of the part serves" do
+    item(grade: { "35" => 1, "36" => 2 })
+    expect(bloqueios).to eq([ [ :sem_corte, "Lateral 35×1, 36×2: nenhum corte organizado atende (arte #{molde.codigo})" ] ])
   end
 
   it "ignores an unchecked part (it doesn't go to production)" do

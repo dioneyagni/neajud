@@ -1,0 +1,317 @@
+/* The pedido page (Etapa 1.2, 3/3 parte 3a, decided 06/10/2026): items in
+   the main column, each a matrix of its grade × parts; the side panel with
+   totals, confirming and the pendências. */
+
+.pedido-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.pedido-principal {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pedido-painel {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Narrow screens: what is missing comes before the items. */
+@media (max-width: 860px) {
+  .pedido-painel {
+    order: -1;
+  }
+}
+
+.pedido-item,
+.pedido-painel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pedido-painel-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ── Item ── */
+
+.pedido-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pedido-item-thumb {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  object-fit: contain;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.pedido-item-thumb--vazio {
+  background: #f3f4f6;
+}
+
+.pedido-item-titulo {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pedido-item-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #5f6368;
+}
+
+.pedido-item-total {
+  white-space: nowrap;
+}
+
+.pedido-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pedido-peca-erro {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #c62828;
+}
+
+/* ── Matrix: one column per number on wide screens, one line per number on
+   narrow ones — the same cells, the grid flows the other way. ── */
+
+.pedido-matriz {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.pedido-matriz-grade {
+  display: grid;
+  grid-template-rows: repeat(var(--linhas), auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(4.5rem, auto);
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.pedido-matriz-grade > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.5rem;
+  border-right: 1px solid #eef0f2;
+  border-bottom: 1px solid #eef0f2;
+  font-size: 0.82rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pedido-matriz-grade > [hidden] {
+  display: none;
+}
+
+/* The label column stays in view while the numbers scroll. */
+.pedido-matriz-canto,
+.pedido-matriz-rotulo,
+.pedido-matriz-grade > .pedido-peca {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  justify-content: flex-start;
+  background: #fafbfc;
+  font-weight: 600;
+}
+
+.pedido-matriz-canto,
+.pedido-matriz-numero {
+  background: #f3f4f6;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.pedido-matriz-canto {
+  color: #5f6368;
+  font-size: 0.75rem;
+}
+
+.pedido-matriz-qtd input {
+  width: 3.4rem;
+  padding: 0.3rem 0.2rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.pedido-peca-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.pedido-peca-excluida-label,
+.pedido-peca-processando {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #888;
+}
+
+.pedido-parte-numero a {
+  color: inherit;
+}
+
+.pedido-parte-numero--producao {
+  background: #f1f9f3;
+  color: #1e6b34;
+}
+
+.pedido-parte-numero--piloto {
+  background: #e8f0fc;
+  color: #1a4b9c;
+}
+
+.pedido-parte-numero--sem_arquivo,
+.pedido-parte-numero--sem_corte {
+  background: #fff1d6;
+  color: #7a4500;
+  font-weight: 600;
+}
+
+.pedido-parte-numero--livre {
+  color: #9aa3ad;
+}
+
+.pedido-parte-numero--vazio {
+  color: #c0c4c9;
+}
+
+/* Unchecked: the pedido goes to production without this part. */
+.pedido-peca--excluida,
+.pedido-parte-numero--excluida {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+@media (max-width: 600px) {
+  .pedido-matriz {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pedido-matriz-grade {
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-template-columns: auto auto repeat(var(--partes), minmax(0, 1fr));
+  }
+
+  .pedido-matriz-grade > * {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .pedido-matriz-canto,
+  .pedido-matriz-rotulo,
+  .pedido-matriz-grade > .pedido-peca {
+    position: static;
+  }
+}
+
+/* ── Side panel ── */
+
+.pedido-resumo-lista {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem 0.75rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.pedido-resumo-lista dt {
+  color: #5f6368;
+}
+
+.pedido-resumo-lista dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.pedido-resumo form,
+.pedido-resumo .btn {
+  width: 100%;
+}
+
+.pedido-confirmar-aviso {
+  margin: -0.3rem 0 0;
+  font-size: 0.8rem;
+  color: #7a4500;
+  text-align: center;
+}
+
+.pedido-pendencias {
+  border-color: #f2d49a;
+  background: #fffbf2;
+}
+
+.pedido-pendencias h3 {
+  color: #7a4500;
+}
+
+.pedido-pendencias ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.88rem;
+}
+
+.pedido-pendencia-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.pedido-parte-enviar {
+  display: inline;
+}
+
+.pedido-pendencias-item {
+  font-size: 0.82rem;
+}

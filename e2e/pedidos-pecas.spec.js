@@ -145,17 +145,37 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     return json.pedido_uuid;
   }
 
-  // Part card on the pedido page, inside the itemIndex-th item (creation order).
+  // A part's label in the matrix of the itemIndex-th item (creation order).
   function pedidoPeca(itemIndex, nome) {
     return page.locator(".pedido-item").nth(itemIndex).locator(".pedido-peca").filter({ has: page.locator(".pedido-peca-nome", { hasText: nome }) });
   }
 
-  // Clicks a part checkbox on the pedido page and waits for the save.
+  // The matrix cell of a part × number (Etapa 1.2, 3/3 parte 3a).
+  async function celula(itemIndex, nome, numero) {
+    const uuid = await pedidoPeca(itemIndex, nome).getAttribute("data-peca-uuid");
+    return page.locator(".pedido-item").nth(itemIndex).locator(`.pedido-parte-numero[data-peca-uuid="${uuid}"][data-numero="${numero}"]`);
+  }
+
+  // The cell's state and the file it links to (title = file name).
+  async function expectCelula(cell, estado, filename) {
+    const atual = await cell.getAttribute("data-estado");
+    if (atual !== estado) throw new Error(`Expected ${estado}, got ${atual} ("${(await cell.innerText()).trim()}")`);
+    if (filename && (await cell.locator("a").getAttribute("title")) !== filename) throw new Error(`Cell should link to ${filename}`);
+  }
+
+  function pendencia(texto) {
+    return page.locator(".pedido-painel .pedido-pendencia").filter({ hasText: texto });
+  }
+
+  // Clicks a part checkbox on the pedido page, waits for the save and for the
+  // page refresh it triggers (the side panel recounts).
   async function togglePedidoPeca(card, checked) {
     const saved = page.waitForResponse((r) => r.url().includes("/alternar_peca"));
+    const refreshed = page.waitForResponse((r) => r.request().method() === "GET" && new URL(r.url()).pathname === `/pedidos/${pedidoUuid}`);
     await (checked ? card.locator(".pedido-peca-check").check() : card.locator(".pedido-peca-check").uncheck());
     const json = await (await saved).json();
     if (!json.ok) throw new Error(`alternar_peca failed: ${json.error}`);
+    await refreshed;
   }
 
   async function expectPedidoPeca(card, estado, checked) {
@@ -214,19 +234,17 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
       pedidoUuid = await submitModal();
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      const lateral = pedidoPeca(0, names.lateral);
-      await expectPedidoPeca(lateral, "incluida", true);
-      const linhaLateral = (await lateral.locator(".pedido-parte-tamanho").innerText()).replace(/\s+/g, " ");
-      if (!linhaLateral.includes("29-30") || !linhaLateral.includes("30×1") || !linhaLateral.includes(path.basename(lateralFile, ".tif"))) throw new Error(`Lateral line: ${linhaLateral}`);
-      const lingua = pedidoPeca(0, names.lingua);
-      await expectPedidoPeca(lingua, "pendente");
-      const linhaLingua = lingua.locator(".pedido-parte-tamanho");
-      if (!(await linhaLingua.innerText()).includes("sem arquivo de produção")) throw new Error("Língua 30 should be pending");
-      if ((await linhaLingua.locator("form.pedido-parte-enviar").count()) !== 1 || (await linhaLingua.locator("a.pedido-parte-trazer").count()) !== 1) throw new Error("Enviar / Trazer missing");
+      await expectPedidoPeca(pedidoPeca(0, names.lateral), "incluida", true);
+      await expectCelula(await celula(0, names.lateral, "30"), "producao", path.basename(lateralFile, ".tif"));
+      if ((await (await celula(0, names.lateral, "30")).innerText()).trim() !== "29-30 ✓") throw new Error("Lateral 30 should read 29-30 ✓");
+      await expectPedidoPeca(pedidoPeca(0, names.lingua), "pendente");
+      await expectCelula(await celula(0, names.lingua, "30"), "sem_arquivo");
+      const pendente = pendencia(`${names.lingua} 29-30 (30×1) sem arquivo de produção`);
+      if ((await pendente.locator("form.pedido-parte-enviar").count()) !== 1 || (await pendente.locator("a.pedido-parte-trazer").count()) !== 1) throw new Error("Enviar / Trazer missing");
     });
 
     await test("A pendência is listed and Confirmar is disabled; the list shows a badge; the server refuses", async () => {
-      if (!(await page.locator(".pedido-pendencias").innerText()).includes(`${names.lingua} 30 (29-30) sem arquivo de produção`)) throw new Error("Pendência not listed");
+      if ((await page.locator(".pedido-pendencias h3").innerText()).trim() !== "Falta para confirmar (1)") throw new Error("Pendência count missing");
       if (!(await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled())) throw new Error("Confirmar should be disabled");
       await page.goto(`${BASE_URL}/pedidos`);
       const row = page.locator("tr").filter({ has: page.locator(`a[href="/pedidos/${pedidoUuid}"]`) });
@@ -242,15 +260,14 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     await test("'Trazer de outra arte' opens the arte with the section open; bringing the Língua settles the pendência", async () => {
       await uploadArte(linguaFile, molde.moldeId, molde.pecaIds.lingua);
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}\?trazer=1/), pedidoPeca(0, names.lingua).locator("a.pedido-parte-trazer").click() ]);
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}\?trazer=1/), pendencia(names.lingua).locator("a.pedido-parte-trazer").click() ]);
       if (!(await page.locator("details.arte-juntar").evaluate((d) => d.open))) throw new Error("The 'bring other artes' section should be open");
       await page.locator(".arte-candidata--card").filter({ hasText: path.basename(linguaFile, ".tif") }).click();
       await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), page.locator('.arte-juntar-form button[type="submit"]').click() ]);
 
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      const lingua = pedidoPeca(0, names.lingua);
-      await expectPedidoPeca(lingua, "incluida", true);
-      if (!(await lingua.locator(".pedido-parte-tamanho").innerText()).includes(path.basename(linguaFile, ".tif"))) throw new Error("Língua 30 should come from the brought file");
+      await expectPedidoPeca(pedidoPeca(0, names.lingua), "incluida", true);
+      await expectCelula(await celula(0, names.lingua, "30"), "producao", path.basename(linguaFile, ".tif"));
       if (await page.locator(".pedido-pendencias").count()) throw new Error("No pendência should be left");
       if (await page.locator(`form[action$="/pedidos/${pedidoUuid}/confirmar"] button`).isDisabled()) throw new Error("Confirmar should be enabled");
     });
@@ -281,7 +298,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
 
     // State here: item 0 = Lateral + Língua checked; item 1 = Lateral unchecked
     // + Língua checked. Each asks one 30.
-    await test("Produção lists only checked parts, summed per part; unchecking removes it without reloading", async () => {
+    await test("Produção lists only checked parts, summed per part; unchecking removes it", async () => {
       const lateralTotal = (await producaoRow(names.lateral).locator("td strong").innerText()).trim();
       const linguaTotal = (await producaoRow(names.lingua).locator("td strong").innerText()).trim();
       if (lateralTotal !== "1" || linguaTotal !== "2") throw new Error(`Totals: Lateral ${lateralTotal} (expected 1), Língua ${linguaTotal} (expected 2)`);
@@ -298,20 +315,21 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       await pecaCard(names.lingua).waitFor({ timeout: 5000 });
       await submitModal();
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
-      const pending = pedidoPeca(2, names.lingua);
-      await expectPedidoPeca(pending, "pendente");
+      await expectPedidoPeca(pedidoPeca(2, names.lingua), "pendente");
+      // Items 0 and 1 are settled by now: this is the only pendência.
+      const pending = pendencia(names.lingua);
       await Promise.all([
         page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`, { timeout: 30000 }),
         pending.locator("form.pedido-parte-enviar input[type=file]").setInputFiles(uploadFile),
       ]);
       await page.getByText("added to this arte (29-30)").waitFor();
-      const lingua = pedidoPeca(2, names.lingua);
-      await expectPedidoPeca(lingua, "incluida");
-      if (!(await lingua.locator(".pedido-parte-tamanho").innerText()).includes(path.basename(uploadFile, ".tif"))) throw new Error("The Língua 30 should come from the uploaded file");
-      // Processing is queued: the part's thumbnail reloads the page once it is done.
-      const thumb = lingua.locator("img.pedido-peca-thumb");
-      await thumb.waitFor({ timeout: 45000 });
-      if (!(await imageHasVisiblePixels(page, await thumb.getAttribute("src")))) throw new Error("Uploaded file preview has no visible pixels");
+      await expectPedidoPeca(pedidoPeca(2, names.lingua), "incluida");
+      await expectCelula(await celula(2, names.lingua, "30"), "producao", path.basename(uploadFile, ".tif"));
+      // Processing is queued: the part's "processando…" reloads the page once
+      // it is done; then the file's preview has pixels.
+      await pedidoPeca(2, names.lingua).locator(".pedido-peca-processando").waitFor({ state: "detached", timeout: 45000 });
+      const href = await (await celula(2, names.lingua, "30")).locator("a").getAttribute("href");
+      if (!(await imageHasVisiblePixels(page, `${href}/preview`))) throw new Error("Uploaded file preview has no visible pixels");
     });
 
     await test("An arte without molde shows no part picker", async () => {
