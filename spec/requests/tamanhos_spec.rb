@@ -74,6 +74,26 @@ RSpec.describe "Tamanhos", type: :request do
   end
 
   # The sizes of the molde's own cortes of one piece (Arquivo.cortes_do_molde).
+  # Etapa 1.2 (3/3, parte 3b): the size's drawing on the Corte page.
+  describe "GET /tamanhos/:id/preview" do
+    it "serves the PNG next to the size's DXF, rebuilt from version and position" do
+      arquivo = create(:arquivo, extension: "dxf")
+      version = create(:arquivo_version, arquivo: arquivo, approved: true, extension: "dxf")
+      arquivo.update!(approved_version_id: version.id)
+      tamanho = create(:tamanho, arquivo: arquivo, nome: "../../x", position: 3, preview_file: "/etc/passwd")
+      FileUtils.mkdir_p(File.dirname(tamanho.preview_png_path(version)))
+      system("convert", "-size", "4x4", "xc:black", "PNG:#{tamanho.preview_png_path(version)}")
+
+      get preview_tamanho_path(tamanho)
+      expect([ response.status, response.media_type, response.body.byteslice(1, 3) ]).to eq([ 200, "image/png", "PNG" ])
+    end
+
+    it "answers 404 while the size has no drawing" do
+      get preview_tamanho_path(create(:tamanho))
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "GET /tamanhos/for_cascade" do
     let(:molde) { create(:molde) }
     let(:peca) { create(:peca) }

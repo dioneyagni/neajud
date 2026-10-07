@@ -116,6 +116,20 @@ RSpec.describe "Moldes", type: :request do
       expect(response).to redirect_to(molde_path(molde))
       expect(mp.reload.needs_cut).to be false
     end
+
+    # Etapa 1.2 (3/3, parte 3b): only what was sent changes.
+    it "saves pieces per pair and mirrored without touching needs_cut" do
+      mp = create(:molde_peca, needs_cut: false)
+      patch update_peca_config_molde_path(mp.molde), params: { molde_peca_uuid: mp.uuid, pecas_por_par: "4", espelhada: "true" }
+      expect(mp.reload.attributes.values_at("pecas_por_par", "espelhada", "needs_cut")).to eq([ 4, true, false ])
+    end
+
+    it "refuses a mirrored part with an odd number of pieces, saying why" do
+      mp = create(:molde_peca)
+      patch update_peca_config_molde_path(mp.molde), params: { molde_peca_uuid: mp.uuid, pecas_por_par: "3", espelhada: "true" }
+      expect(flash[:alert]).to include("got 3")
+      expect(mp.reload.pecas_por_par).to eq(2)
+    end
   end
 
   describe "POST /moldes" do

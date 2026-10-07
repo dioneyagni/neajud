@@ -13,6 +13,13 @@ class Tamanho < ApplicationRecord
     File.join(version.storage_dir, "tamanho_previews", "#{position}.dxf")
   end
 
+  # The size's drawing, made next to its DXF (DxfOrganizationService); nil
+  # without a version.
+  # Usage: tamanho.preview_png_path(corte.approved_version)
+  def preview_png_path(version)
+    version && File.join(version.storage_dir, "tamanho_previews", "#{position}.png")
+  end
+
   # Does this size serve the size read from a file name (Etapa 1.2, 2/3)?
   # Numbers must all be among the ones it serves ("30" or "29-30" → 29-30);
   # a label must be its name ("p" → P).

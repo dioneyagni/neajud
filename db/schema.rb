@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_013357) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -348,9 +348,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_200000) do
 
   create_table "molde_pecas", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.boolean "espelhada", default: false, null: false
     t.integer "molde_id", null: false
     t.boolean "needs_cut", default: true, null: false
     t.integer "peca_id", null: false
+    t.integer "pecas_por_par", default: 2, null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["molde_id", "peca_id"], name: "index_molde_pecas_on_molde_id_and_peca_id", unique: true

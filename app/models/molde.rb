@@ -106,7 +106,7 @@ class Molde < ApplicationRecord
   # Trashed peças and cortes are left out: they can't be linked anew.
   def copiar_partes_e_cortes_da_base
     variacao_de.molde_pecas.includes(:peca).reject { |p| p.peca.excluido? }.each do |parte|
-      molde_pecas.create!(peca: parte.peca, needs_cut: parte.needs_cut)
+      molde_pecas.create!(peca: parte.peca, needs_cut: parte.needs_cut, pecas_por_par: parte.pecas_por_par, espelhada: parte.espelhada)
     end
     variacao_de.arquivo_moldes.includes(:arquivo).reject { |l| l.arquivo.excluido? }.each do |ligacao|
       arquivo_moldes.create!(arquivo: ligacao.arquivo)

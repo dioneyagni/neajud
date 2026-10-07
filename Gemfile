@@ -48,6 +48,10 @@ gem "mini_magick"
 gem "image_processing"
 gem "rack-attack"
 
+# The Corte page's "Baixar os DXF (.zip)" (Etapa 1.2, 3/3 parte 3b): every
+# size's DXF of a pedido in one download. Pure Ruby, no system package.
+gem "rubyzip", require: "zip"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

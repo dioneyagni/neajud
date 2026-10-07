@@ -1,0 +1,69 @@
+<%# The factory's Corte page (Etapa 1.2, 3/3 parte 3b, decided 06/10/2026):
+    one line per part × DXF size — its drawing, the pieces to cut (pairs ×
+    the molde part's pieces per pair; right / left when mirrored) and its
+    DXF. Only what goes to the table: checked parts that cut. The artes are
+    not listed (the Impressão page, 3c, has them). %>
+<% linhas_por_peca = @linhas.group_by(&:peca) %>
+<% pares = @linhas.sum(&:pares) %>
+<% pecas = @linhas.sum(&:pecas) %>
+<% baixa = pode_acao?(:baixar_producao) %>
+
+<%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+
+<div class="corte-cabecalho">
+  <div>
+    <h2>Corte <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
+    <p class="corte-sub">
+      <%= @pedido.client&.name || "sem cliente" %> ·
+      <span data-corte="pares"><%= pares %> <%= pares == 1 ? "par" : "pares" %></span> ·
+      <span data-corte="pecas"><%= pecas %> <%= pecas == 1 ? "peça" : "peças" %></span> ·
+      uma linha por parte × tamanho do DXF
+    </p>
+  </div>
+  <% if baixa && @linhas.any?(&:tamanho) %>
+    <%= link_to "Baixar os DXF (.zip)", baixar_corte_pedido_path(@pedido), class: "btn btn-primary corte-zip", data: { turbo: false } %>
+  <% end %>
+</div>
+
+<% if @linhas.empty? %>
+  <p class="gallery-empty">Nenhuma parte para cortar neste pedido.</p>
+<% else %>
+  <table class="clients-table corte-tabela">
+    <thead>
+      <tr><th>Corte</th><th>Tamanho</th><th>Total</th><th class="corte-baixar">Baixar</th></tr>
+    </thead>
+    <tbody>
+      <% linhas_por_peca.each do |peca, linhas| %>
+        <tr class="corte-grupo"><td colspan="4"><%= peca&.nome || "Sem peça" %></td></tr>
+        <% linhas.each do |linha| %>
+          <% if linha.tamanho %>
+            <tr class="corte-linha" data-peca="<%= peca&.nome %>" data-tamanho="<%= linha.tamanho.nome %>">
+              <td>
+                <img class="corte-previa" src="<%= preview_tamanho_path(linha.tamanho) %>" alt="DXF <%= peca&.nome %> <%= linha.tamanho.nome %>" loading="lazy">
+              </td>
+              <td class="corte-tamanho"><%= linha.tamanho.nome %> <span class="corte-arquivo"><%= linha.corte.filename %> <%= selo_excluido(linha.corte) %></span></td>
+              <td class="corte-total">
+                <strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong>
+                <span class="corte-conta"><%= linha.espelhada ? "#{linha.por_lado} direito · #{linha.por_lado} esquerdo" : "#{linha.pares} #{linha.pares == 1 ? "par" : "pares"} × #{linha.pecas_por_par}" %></span>
+              </td>
+              <td class="corte-baixar">
+                <% if baixa %>
+                  <%= link_to "DXF", download_tamanho_path(linha.tamanho), class: "btn btn-sm btn-outline corte-dxf",
+                        download: "#{linha.corte.filename} - #{linha.tamanho.nome}.dxf", data: { turbo: false } %>
+                <% end %>
+              </td>
+            </tr>
+          <% else %>
+            <%# Numbers no organized DXF serves: they block confirming, and
+                the table can't cut them yet. %>
+            <tr class="corte-linha corte-linha--sem-dxf" data-peca="<%= peca&.nome %>">
+              <td colspan="2">⚠ sem DXF: <%= linha.quantidades.map { |n, q| "#{rotulo_do_numero(n)}×#{q}" }.join(", ") %></td>
+              <td class="corte-total"><strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong></td>
+              <td class="corte-baixar"><%= link_to "Resolver no pedido", resumo_pedido_path(@pedido) %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

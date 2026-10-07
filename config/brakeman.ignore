@@ -17,8 +17,12 @@
       "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb."
     },
     {
-      "fingerprint": "f02355f7a162787e2bb9fb2b87ab22c09cf0dc1b42553f721895207e60375557",
-      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb. Fingerprint changed in Etapa 1.1 (Tamanho.find -> Tamanho.por_uuid!)."
+      "fingerprint": "97738e34395e1fd1c55dca6ee5d34d9b4fbf6ff8c3f0900d65d544f975b6f7dd",
+      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb. Fingerprint changed in Etapa 1.1 (Tamanho.find -> Tamanho.por_uuid!). Fingerprint changed in Etapa 1.2 (3/3, parte 3b): the extraction moved to DxfDoTamanho.caminho!, shared with the Corte page's zip."
+    },
+    {
+      "fingerprint": "9efa3638fce1952935b488f6c9b754f3589f31892a989d39e0338b341b868b2b",
+      "note": "TamanhosController#preview (Etapa 1.2, 3/3 parte 3b): Tamanho#preview_png_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.png - uuid is SecureRandom, version_number and position are integers; rebuilt on purpose instead of reading the preview_file column, and never tamanho.nome. Regression spec in spec/requests/tamanhos_spec.rb (a nome of ../../x and a preview_file of /etc/passwd still serve the size's PNG)."
     }
   ]
 }

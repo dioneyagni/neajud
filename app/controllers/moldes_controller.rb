@@ -53,11 +53,15 @@ class MoldesController < ApplicationController
     redirect_to molde_path(@molde), notice: "Part \"#{parte.peca.nome}\" removed."
   end
 
+  # A part's "corta / não corta" (toggle) or, Etapa 1.2 (3/3, parte 3b), its
+  # pieces per pair and whether they are mirrored: only what was sent changes.
   def update_peca_config
     mp = @molde.molde_pecas.por_uuid!(params[:molde_peca_uuid])
-    mp.update!(needs_cut: params[:needs_cut] == "true")
-
-    redirect_to molde_path(@molde), notice: "Piece configuration updated."
+    if mp.update(config_da_parte)
+      redirect_to molde_path(@molde), notice: "Piece configuration updated."
+    else
+      redirect_to molde_path(@molde), alert: "#{mp.peca.nome}: #{mp.errors.full_messages.to_sentence}"
+    end
   end
 
   def search
@@ -97,6 +101,14 @@ class MoldesController < ApplicationController
   end
 
   private
+
+  def config_da_parte
+    config = {}
+    config[:needs_cut] = params[:needs_cut] == "true" if params.key?(:needs_cut)
+    config[:pecas_por_par] = params[:pecas_por_par] if params.key?(:pecas_por_par)
+    config[:espelhada] = params[:espelhada] == "true" if params.key?(:espelhada)
+    config
+  end
 
   def set_molde
     @molde = Molde.por_uuid!(params[:id])

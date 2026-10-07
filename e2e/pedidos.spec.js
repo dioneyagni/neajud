@@ -245,9 +245,14 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     if (!pedidosBody.includes("rascunho")) throw new Error("Draft pedido not found on pedidos page");
   });
 
-  // The factory floor downloads each size's DXF straight from Produção.
+  // The factory floor downloads each size's DXF from the pedido's Corte page
+  // (Etapa 1.2, 3/3 parte 3b), reached from the pedido's side panel.
+  async function abrirCorte() {
+    await Promise.all([ page.waitForURL(/\/pedidos\/[0-9a-f-]{36}\/corte$/), page.locator("a.pedido-ir-corte").click() ]);
+  }
+
   async function downloadProducaoDxf() {
-    const link = page.locator("turbo-frame#pedido-producao a.producao-download").first();
+    const link = page.locator("tr.corte-linha a.corte-dxf").first();
     await link.waitFor({ timeout: 5000 });
     const [download] = await Promise.all([ page.waitForEvent("download", { timeout: 15000 }), link.click() ]);
     const filename = download.suggestedFilename();
@@ -258,12 +263,20 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
 
   let pedidoConfirmadoPath = null;
 
-  await test("Produção: the quantity downloads the DXF of just that size", async () => {
+  await test("Corte: the size's line downloads its DXF; the zip has every size", async () => {
     await page.goto(`${BASE_URL}/pedidos`);
     await page.locator("a").filter({ hasText: "Resumo" }).first().click();
-    await page.locator("turbo-frame#pedido-producao").waitFor({ timeout: 5000 });
+    await page.locator("a.pedido-ir-corte").waitFor({ timeout: 5000 });
     pedidoConfirmadoPath = new URL(page.url()).pathname.replace(/\/resumo$/, "");
+    await abrirCorte();
+    // The size's drawing loads (PNG made with its DXF).
+    const previa = page.locator("tr.corte-linha img.corte-previa").first();
+    if (!(await previa.evaluate((img) => img.complete && img.naturalWidth > 0))) await previa.evaluate((img) => new Promise((ok, erro) => { img.onload = ok; img.onerror = () => erro(new Error(`Preview failed: ${img.src}`)); }));
     await downloadProducaoDxf();
+    const [zip] = await Promise.all([ page.waitForEvent("download", { timeout: 30000 }), page.locator("a.corte-zip").click() ]);
+    if (!/^Corte [0-9a-f]{8}\.zip$/.test(zip.suggestedFilename())) throw new Error(`Unexpected zip name: ${zip.suggestedFilename()}`);
+    const bytes = fs.readFileSync(await zip.path());
+    if (bytes.subarray(0, 2).toString() !== "PK" || !bytes.includes(Buffer.from(` - e2e-corte-${UNIQ}.dxf`))) throw new Error("The zip should hold the size's DXF, named by part, size and corte");
   });
 
   // Used to look for input[value="Confirmar Pedido"] — button_to renders a
@@ -307,11 +320,12 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     if (!body.includes("Pedido confirmed")) throw new Error(`Pedido not confirmed. Body preview: ${body.slice(0, 300)}`);
   });
 
-  await test("Produção downloads still work on the confirmed pedido (factory floor)", async () => {
+  await test("Corte downloads still work on the confirmed pedido (factory floor)", async () => {
     if (!pedidoConfirmadoPath) throw new Error("Pedido path not captured");
     await page.goto(`${BASE_URL}${pedidoConfirmadoPath}`);
     const status = (await page.locator("h2 .badge").innerText()).trim();
     if (status !== "confirmado") throw new Error(`Expected confirmado, got ${status}`);
+    await abrirCorte();
     await downloadProducaoDxf();
   });
 

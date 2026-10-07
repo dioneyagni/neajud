@@ -12,7 +12,8 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       "client" => [ :client, ->(r) { "/clients/#{r}" } ],
       "modelo" => [ :modelo, ->(r) { "/modelos/#{r}" } ],
       "peça (edit)" => [ :peca, ->(r) { "/pecas/#{r}/edit" } ],
-      "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ]
+      "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ],
+      "pedido's Corte page" => [ :pedido, ->(r) { "/pedidos/#{r}/corte" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
         registro = create(factory)
@@ -26,6 +27,12 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     it "refuses a tamanho download by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/download"
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "refuses a tamanho drawing by integer id" do
+      tamanho = create(:tamanho)
+      get "/tamanhos/#{tamanho.id}/preview"
       expect(response).to have_http_status(:not_found)
     end
   end

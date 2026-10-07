@@ -73,6 +73,22 @@
                       Não corta
                     </span>
                   <% end %>
+
+                  <%# Etapa 1.2 (3/3, parte 3b): production counts pieces —
+                      how many this part takes per pair, and whether they are
+                      mirrored (half right, half left). %>
+                  <% if pode?(:catalogo, :editar) %>
+                    <%= form_with url: update_peca_config_molde_path(@molde, molde_peca_uuid: mp.uuid), method: :patch, class: "molde-peca-pecas" do %>
+                      <label>Peças por par
+                        <input type="number" name="pecas_por_par" value="<%= mp.pecas_por_par %>" min="1" step="1" class="molde-peca-pecas-qtd">
+                      </label>
+                      <input type="hidden" name="espelhada" value="false">
+                      <label><input type="checkbox" name="espelhada" value="true" <%= "checked" if mp.espelhada %>> espelhada (direito / esquerdo)</label>
+                      <button type="submit" class="btn btn-sm btn-secondary">Salvar</button>
+                    <% end %>
+                  <% else %>
+                    <span class="molde-peca-pecas"><%= mp.pecas_por_par %> por par<%= " · espelhada" if mp.espelhada %></span>
+                  <% end %>
                 </div>
 
                 <% if pode?(:catalogo, :editar) %>

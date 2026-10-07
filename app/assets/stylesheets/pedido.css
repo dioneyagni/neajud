@@ -315,3 +315,84 @@
 .pedido-pendencias-item {
   font-size: 0.82rem;
 }
+
+.pedido-ir-corte {
+  text-align: center;
+}
+
+/* ── The factory's Corte page (Etapa 1.2, 3/3 parte 3b) ── */
+
+.corte-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.corte-codigo {
+  font-size: 0.8em;
+  color: #5f6368;
+}
+
+.corte-sub {
+  margin: 0.2rem 0 0;
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.corte-tabela {
+  width: 100%;
+}
+
+.corte-tabela td {
+  vertical-align: middle;
+}
+
+.corte-grupo td {
+  background: #fafbfc;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.corte-previa {
+  display: block;
+  width: 120px;
+  height: 72px;
+  object-fit: contain;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.corte-tamanho {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.corte-arquivo {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #5f6368;
+}
+
+.corte-total strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.corte-conta {
+  font-size: 0.8rem;
+  color: #5f6368;
+}
+
+.corte-tabela .corte-baixar {
+  text-align: right;
+}
+
+.corte-linha--sem-dxf td {
+  background: #fff8e8;
+  color: #7a4500;
+}

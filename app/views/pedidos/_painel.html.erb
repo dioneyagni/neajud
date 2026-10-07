@@ -10,6 +10,10 @@
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
       <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
     </dl>
+    <%# Etapa 1.2 (3/3, parte 3b): production has its own page, for the factory. %>
+    <% if itens.any? %>
+      <%= link_to "Corte (fábrica) →", corte_pedido_path(pedido), class: "btn btn-secondary pedido-ir-corte" %>
+    <% end %>
     <% if pedido_editavel?(pedido) %>
       <% bloqueios = pedido.bloqueios_confirmacao %>
       <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
