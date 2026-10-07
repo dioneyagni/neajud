@@ -17,6 +17,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
   REQUISITOS = [
     [ "list pedidos", "pedidos", 1, -> { get pedidos_path } ],
     [ "open a pedido", "pedidos", 1, -> { get resumo_pedido_path(pedido) } ],
+    [ "open a pedido's Corte page", "pedidos", 1, -> { get corte_pedido_path(pedido) } ],
+    [ "see a size's drawing", "pedidos", 1, -> { get preview_tamanho_path(tamanho) } ],
+    [ "set a molde part's pieces per pair", "catalogo", 2, -> { patch update_peca_config_molde_path(molde, molde_peca_uuid: molde.molde_pecas.create!(peca: create(:peca)).uuid), params: { pecas_por_par: "2" } } ],
     [ "create a pedido", "pedidos", 2, -> { post pedidos_path } ],
     [ "list artes to add to a pedido", "pedidos", 2, -> { get artes_para_adicionar_pedidos_path(molde_uuid: molde.uuid), as: :json } ],
     [ "trash a pedido", "pedidos", 3, -> { delete pedido_path(pedido) } ],
@@ -67,6 +70,12 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     it "downloading a size's DXF needs baixar_producao" do
       entrar_com_funcao(niveis: { "catalogo" => 3 })
       get download_tamanho_path(tamanho)
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "the Corte page's zip of DXFs needs baixar_producao" do
+      entrar_com_funcao(niveis: { "pedidos" => 3 })
+      get baixar_corte_pedido_path(pedido)
       expect(response).to have_http_status(:forbidden)
     end
 

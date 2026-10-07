@@ -1327,59 +1327,6 @@ section {
   color: #c62828;
 }
 
-/* What goes to production: peça × tamanho (pedidos/_producao). */
-.pedido-producao {
-  margin-top: 1.5rem;
-}
-
-.pedido-producao-tabela td,
-.pedido-producao-tabela th {
-  text-align: center;
-}
-
-.pedido-producao-tabela td:first-child,
-.pedido-producao-tabela th:first-child {
-  text-align: left;
-}
-
-/* Each quantity downloads that size's DXF (factory floor). */
-.producao-download {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.15rem 0.45rem;
-  border: 1px solid #1a73e8;
-  border-radius: 4px;
-  color: #1a73e8;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.producao-download:hover {
-  background: #e8f0fe;
-}
-
-.producao-download-tamanho {
-  font-size: 0.75rem;
-  color: #5f6368;
-}
-
-.producao-sem-dxf {
-  color: #b45309;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.producao-corte {
-  font-size: 0.85rem;
-  color: #5f6368;
-}
-
-.pedido-producao-vazia {
-  color: #888;
-  font-size: 0.9rem;
-}
-
 .grade-cards {
   display: flex;
   flex-wrap: wrap;
@@ -2510,10 +2457,28 @@ section {
 
 .molde-peca-info {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   flex: 1;
   min-width: 0;
+}
+
+/* Etapa 1.2 (3/3, parte 3b): pieces per pair and "espelhada" of a part. */
+.molde-peca-pecas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #5f6368;
+}
+
+.molde-peca-pecas-qtd {
+  width: 3.5rem;
+  margin-left: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  font: inherit;
 }
 
 .molde-peca-name {

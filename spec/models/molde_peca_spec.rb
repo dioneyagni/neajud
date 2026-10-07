@@ -27,6 +27,21 @@ RSpec.describe MoldePeca, type: :model do
     end
   end
 
+  # Etapa 1.2 (3/3, parte 3b): production counts pieces.
+  describe "pieces per pair" do
+    it "is 2 per pair, not mirrored, by default; pecas_para multiplies the pairs" do
+      mp = create(:molde_peca)
+      expect([ mp.pecas_por_par, mp.espelhada, mp.pecas_para(10) ]).to eq([ 2, false, 20 ])
+    end
+
+    it "refuses zero pieces, and a mirrored part with an odd number (half right, half left)" do
+      expect(build(:molde_peca, pecas_por_par: 0)).not_to be_valid
+      impar = build(:molde_peca, pecas_por_par: 3, espelhada: true)
+      expect(impar).not_to be_valid
+      expect(impar.errors[:espelhada].first).to include("got 3")
+    end
+  end
+
   describe "defaults" do
     it "sets needs_cut to true" do
       mp = create(:molde_peca)

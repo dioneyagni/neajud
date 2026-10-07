@@ -68,10 +68,6 @@
         <%= render "pedidos/add_to_order_modal" %>
       </div>
     <% end %>
-
-    <% if @pedido.itens_pedido.any? %>
-      <%= render "producao", pedido: @pedido %>
-    <% end %>
   </div>
 
   <%= render "painel", pedido: @pedido %>

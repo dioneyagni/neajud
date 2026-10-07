@@ -62,13 +62,14 @@ RSpec.describe Molde do
 
     before do
       base.molde_pecas.find_by(peca: lingua).update!(needs_cut: false)
+      base.molde_pecas.find_by(peca: lateral).update!(pecas_por_par: 4, espelhada: true)
       create(:arquivo, :corte, organized: true, peca: lingua).moldes << base
     end
 
-    it "is born with the base's modelo, grade, parts (and cut flag) and corte links" do
+    it "is born with the base's modelo, grade, parts (cut flag, pieces per pair, mirrored) and corte links" do
       furado = Molde.create!(client: mks, variacao_de: base, sufixo: "Furado")
       expect([ furado.modelo, furado.grade.values_at(0, -1) ]).to eq([ base.modelo, %w[24 34] ])
-      expect(furado.molde_pecas.map { |p| [ p.peca.nome, p.needs_cut ] }).to eq([ [ "Lateral", true ], [ "Língua", false ] ])
+      expect(furado.molde_pecas.map { |p| [ p.peca.nome, p.needs_cut, p.pecas_por_par, p.espelhada ] }).to eq([ [ "Lateral", true, 4, true ], [ "Língua", false, 2, false ] ])
       expect(furado.vinculated_arquivos).to eq(base.vinculated_arquivos)
       expect(furado.nome).to eq("002-#{base.modelo.abreviacao} Furado")
     end

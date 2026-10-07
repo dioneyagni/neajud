@@ -460,21 +460,56 @@ RSpec.describe "Pedidos", type: :request do
     end
   end
 
-  describe "GET /pedidos/:uuid/producao" do
-    it "renders the Produção frame with checked parts only, each number with its DXF size to download" do
-      pedido = create(:pedido)
-      lateral, lingua = create(:peca, nome: "Lateral"), create(:peca, nome: "Língua")
-      item = item_com_dxf(pedido: pedido, grade: { "30" => 2, "35" => 1 }, partes: [ lateral, lingua ])
-      item.item_pedido_pecas.find_by(peca: lingua).update!(incluida: false)
+  # Etapa 1.2 (3/3, parte 3b, decided 06/10/2026): the factory's Corte page.
+  describe "GET /pedidos/:uuid/corte" do
+    let(:pedido) { create(:pedido) }
+    let(:lateral) { create(:peca, nome: "Lateral") }
+    let(:lingua) { create(:peca, nome: "Língua") }
+    let!(:item) { item_com_dxf(pedido: pedido, grade: { "30" => 2, "31" => 1 }, partes: [ lateral, lingua ]) }
 
-      get producao_pedido_path(pedido)
-
+    it "lists per part × DXF size its drawing, the pieces (right / left when mirrored) and the DXF" do
+      item.arquivo.molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true)
+      get corte_pedido_path(pedido)
       html = Nokogiri::HTML(response.body)
-      expect(html.at_css("turbo-frame#pedido-producao")).to be_present
-      expect(html.css("tbody tr").map { |tr| [ tr["data-peca"], tr["data-corte"] ] }).to eq([ [ "Lateral", "" ], [ "Lateral", "24 AO 34 - CABEDAL" ] ])
-      row = html.at_css("tbody tr[data-corte='24 AO 34 - CABEDAL']")
-      link = row.at_css("td[data-tamanho='30'] a.producao-download")
-      expect([ link["href"], link["download"], link["data-turbo"] ]).to eq([ download_tamanho_path(Tamanho.find_by!(nome: "29-30")), "24 AO 34 - CABEDAL - 29-30.dxf", "false" ])
+      linhas = html.css("tr.corte-linha").map { |tr| [ tr["data-peca"], tr["data-tamanho"], tr.at_css(".corte-total").text.squish ] }
+      expect(linhas).to eq([
+        [ "Lateral", "29-30", "4 peças 2 direito · 2 esquerdo" ],
+        [ "Lateral", "31-32", "2 peças 1 direito · 1 esquerdo" ],
+        # The Língua has no DXF in this molde: what it misses, to resolve.
+        [ "Língua", nil, "6 peças" ]
+      ])
+      tamanho = Tamanho.find_by!(nome: "29-30")
+      linha = html.at_css("tr.corte-linha[data-tamanho='29-30']")
+      expect([ linha.at_css("img.corte-previa")["src"], linha.at_css("a.corte-dxf")["href"] ]).to eq([ preview_tamanho_path(tamanho), download_tamanho_path(tamanho) ])
+      expect(html.at_css("a.corte-zip")["href"]).to eq(baixar_corte_pedido_path(pedido))
+    end
+
+    it "is linked from the pedido page" do
+      get resumo_pedido_path(pedido)
+      expect(Nokogiri::HTML(response.body).at_css("a.pedido-ir-corte")["href"]).to eq(corte_pedido_path(pedido))
+    end
+
+    it "zips every size's DXF, named by part, size and corte" do
+      corte = Tamanho.find_by!(nome: "29-30").arquivo
+      version = create(:arquivo_version, arquivo: corte, approved: true, extension: "dxf", original_file: "corte.dxf")
+      corte.update!(approved_version_id: version.id)
+      FileUtils.mkdir_p(File.join(version.storage_dir, "original"))
+      File.write(version.original_path, "ORIGINAL")
+      corte.tamanhos.each do |t|
+        FileUtils.mkdir_p(File.dirname(t.dxf_extraido_path(version)))
+        File.write(t.dxf_extraido_path(version), "DXF #{t.nome}")
+      end
+
+      get baixar_corte_pedido_path(pedido)
+      expect(response.headers["Content-Disposition"]).to include("Corte #{pedido.uuid.first(8)}.zip")
+      lidos = Zip::File.open_buffer(StringIO.new(response.body)).entries.to_h { |e| [ e.name, e.get_input_stream.read ] }
+      expect(lidos).to eq("Lateral 29-30 - 24 AO 34 - CABEDAL.dxf" => "DXF 29-30", "Lateral 31-32 - 24 AO 34 - CABEDAL.dxf" => "DXF 31-32")
+    end
+
+    it "goes back to the page, saying why, when a corte has no file" do
+      get baixar_corte_pedido_path(pedido)
+      expect(response).to redirect_to(corte_pedido_path(pedido))
+      expect(flash[:alert]).to include("has no original file")
     end
   end
 

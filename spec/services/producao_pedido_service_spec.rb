@@ -30,26 +30,39 @@ RSpec.describe ProducaoPedidoService do
   end
 
   def tabela
-    described_class.call(pedido).map { |l| [ l.peca&.nome, l.corte&.filename, l.quantidades.to_h, l.downloads.transform_values { |ts| ts.map(&:nome) } ] }
+    described_class.call(pedido).map { |l| [ l.peca&.nome, l.tamanho&.nome, l.quantidades.to_h, l.pecas ] }
   end
 
-  it "lists each checked part per DXF, each number with the DXF size that serves it" do
+  it "lists each checked part per DXF size, with the numbers it serves and the pieces (2 per pair)" do
     item("29" => 4, "30" => 6, "31" => 2)
     expect(tabela).to eq([
-      [ "Lateral", "LATERAL", { "29" => 4, "30" => 6, "31" => 2 }, { "29" => [ "29-30" ], "30" => [ "29-30" ], "31" => [ "31-32" ] } ],
-      # The Língua DXF (Ímpar 30-31) doesn't serve the 29: a line without DXF.
-      [ "Língua", nil, { "29" => 4 }, { "29" => [] } ],
-      [ "Língua", "LINGUA", { "30" => 6, "31" => 2 }, { "30" => [ "30-31" ], "31" => [ "30-31" ] } ]
+      [ "Lateral", "29-30", { "29" => 4, "30" => 6 }, 20 ],
+      [ "Lateral", "31-32", { "31" => 2 }, 4 ],
+      [ "Língua", "30-31", { "30" => 6, "31" => 2 }, 16 ],
+      # The Língua DXF (Ímpar 30-31) doesn't serve the 29: a line without size.
+      [ "Língua", nil, { "29" => 4 }, 8 ]
     ])
   end
 
   it "sums the same part across items and leaves unchecked parts out" do
     item("30" => 1)
     item("30" => 2).item_pedido_pecas.where(peca: lingua).update_all(incluida: false)
-    expect(tabela.map { |peca, _, q, _| [ peca, q ] }).to eq([ [ "Lateral", { "30" => 3 } ], [ "Língua", { "30" => 1 } ] ])
+    expect(tabela.map { |peca, tamanho, q, _| [ peca, tamanho, q ] }).to eq([ [ "Lateral", "29-30", { "30" => 3 } ], [ "Língua", "30-31", { "30" => 1 } ] ])
   end
 
-  it "orders numeric sizes by value, the single-total column last" do
-    expect(described_class.ordenar_tamanhos(%w[36 _total 4 P])).to eq(%w[4 36 P _total])
+  # Etapa 1.2 (3/3, parte 3b, decided 06/10/2026): pieces per pair and
+  # mirrored come from the molde's part; "não corta" never reaches the table.
+  it "counts pieces by the molde part, half right and half left when mirrored" do
+    molde.molde_pecas.find_by(peca: lateral).update!(pecas_por_par: 4, espelhada: true)
+    item("30" => 5)
+    lateral_30 = described_class.call(pedido).first
+    expect([ lateral_30.pares, lateral_30.pecas, lateral_30.por_lado ]).to eq([ 5, 20, 10 ])
+    expect(described_class.call(pedido).second.por_lado).to be_nil
+  end
+
+  it "leaves out a part marked não corta on the molde" do
+    molde.molde_pecas.find_by(peca: lingua).update!(needs_cut: false)
+    item("30" => 1)
+    expect(tabela.map(&:first)).to eq([ "Lateral" ])
   end
 end

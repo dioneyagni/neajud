@@ -334,10 +334,18 @@ Decided 05/10/2026, in three parts; part 1 is done:
   a CSS grid that flows by column on wide screens, by row under 600px), and a
   side panel (`_painel`: totals, Confirmar, the pendências with "Enviar
   arquivo" / "Trazer de outra arte", one per part × DXF size). Saving a grade
-  or (un)checking a part morph-refreshes the page. **3b** a Corte page (parte
-  × DXF size, its preview, pieces) with "peças por par" and "espelhada" per
-  molde part; **3c** an Impressão page, with a "lado" (direito/esquerdo) per
-  file of a mirrored part.
+  or (un)checking a part morph-refreshes the page. **3b** the factory's
+  Corte page (`/pedidos/:uuid/corte`, linked from the panel): one line per
+  part × DXF size with its drawing (`/tamanhos/:id/preview`, the PNG made with
+  the size's DXF, path rebuilt from version + position), the pieces and the
+  DXF; "Baixar os DXF (.zip)" (`baixar_corte`, `baixar_producao`) zips every
+  size (`ZipDeArquivos`, the rubyzip wrapper; `DxfDoTamanho` extracts a
+  size's DXF for both downloads). Pieces = pairs × the molde part's
+  `pecas_por_par` (default 2), half right / half left when `espelhada`
+  (needs an even number); parts "não corta" are left out (decided
+  06/10/2026). Both are edited per part on the molde page. **3c** an
+  Impressão page, with a "lado" (direito/esquerdo) per file of a mirrored
+  part.
 - Added from the gallery card or from the pedido page (molde → referência →
   arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
   the same `add-to-order` modal with `pedido_uuid`).
@@ -373,7 +381,8 @@ clients) and the item's file in the trash; a grade at total 0 is refused
 outright. All blockers come from `PedidoBloqueiosService`
 (`Pedido#bloqueios_confirmacao`), which feeds the server guard, the pending
 box on the pedido page and the list badge. `Pedido#pecas_para_produzir`
-(`ProducaoPedidoService`, built on `ResolucaoDoItem`) is the **only** place
+(`ProducaoPedidoService`, built on `ResolucaoDoItem`: lines per part × DXF
+size, in pieces, without "não corta" parts) is the **only** place
 production reads from.
 
 A draft created for an arte without client has no client: it adopts one

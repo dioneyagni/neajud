@@ -1,46 +1,45 @@
-# What a pedido sends to production: one line per peça + corte with the
-# quantity per ordered number, summed over every item whose part is checked
-# (Etapa 1.2, 3/3: read from ResolucaoDoItem — the number's DXF size in the
-# part). Lines are per corte (not just per peça) because the factory
-# downloads each size's DXF from a specific corte; two cortes for the same
-# peça would otherwise mix their quantities. A number no DXF serves stays in a
-# line without corte (it also blocks confirming). Unchecked parts are left out.
+# What a pedido sends to the cutting table (Etapa 1.2, 3/3 parte 3b, decided
+# 06/10/2026): one line per part × DXF size, with the ordered numbers it
+# serves summed over every item whose part is checked, and the pieces to cut
+# — pairs × the molde part's pecas_por_par, half right and half left when
+# espelhada. Read from ResolucaoDoItem (the number's DXF size in the part).
+# Parts marked "não corta" on the molde are left out (decided 06/10/2026:
+# they never reach the table; they are printed only). Numbers no DXF serves
+# stay in a line without size (they also block confirming).
 # This is the single place production reads from — see Pedido#pecas_para_produzir.
 #
 # Usage: ProducaoPedidoService.call(pedido)
-#   # => [#<Linha peca=Lateral corte=<corte> quantidades={"29"=>4, "30"=>6} downloads={"29"=>[<Tamanho 29-30>], …}>]
+#   # => [#<Linha peca=Lateral tamanho=<29-30> quantidades={"29"=>4, "30"=>6} pecas_por_par=2 espelhada=true>]
 class ProducaoPedidoService
   # Grade key used when an item has no tamanhos (a single total quantity).
   TOTAL_KEY = "_total".freeze
 
-  # downloads: tamanho name → the corte's Tamanho records to download for it
-  # (empty = the corte has no such size: no DXF, blocks confirming).
-  Linha = Struct.new(:peca, :corte, :quantidades, :downloads, keyword_init: true) do
-    def total
+  Linha = Struct.new(:peca, :tamanho, :quantidades, :pecas_por_par, :espelhada, keyword_init: true) do
+    def corte
+      tamanho&.arquivo
+    end
+
+    def pares
       quantidades.values.sum
     end
 
-    # Usage: linha.tamanhos_faltando # => ["35"]
-    def tamanhos_faltando
-      return [] unless corte
+    # Usage: linha.pecas # => 20 (10 pairs × 2)
+    def pecas
+      pares * pecas_por_par
+    end
 
-      quantidades.select { |_, qtd| qtd.positive? }.keys.select { |nome| downloads[nome].empty? }
+    # Pieces of each side of a mirrored part (nil when not mirrored).
+    # Usage: linha.por_lado # => 10
+    def por_lado
+      espelhada ? pecas / 2 : nil
     end
   end
+
+  # A part with no molde part (an arte without molde): one piece per foot.
+  CONFIG_PADRAO = { pecas_por_par: 2, espelhada: false, needs_cut: true }.freeze
 
   def self.call(pedido)
     new(pedido).call
-  end
-
-  # Numeric sizes first by value ("9" before "10"), then others by name,
-  # the single-total column last.
-  # Usage: ProducaoPedidoService.ordenar_tamanhos(%w[36 _total 4 P]) # => ["4", "36", "P", "_total"]
-  def self.ordenar_tamanhos(nomes)
-    nomes.uniq.sort_by do |nome|
-      next [ 2, 0, "" ] if nome == TOTAL_KEY
-
-      nome.match?(/\A\d+(\.\d+)?\z/) ? [ 0, nome.to_f, nome ] : [ 1, 0, nome ]
-    end
   end
 
   def initialize(pedido)
@@ -50,23 +49,32 @@ class ProducaoPedidoService
   def call
     linhas = {}
     @pedido.itens_pedido.includes(:grades, :arte, :arquivo, item_pedido_pecas: :peca).order(:id).each do |item|
-      ResolucaoDoItem.call(item).select(&:incluida).each { |parte| somar(linhas, parte) }
+      ResolucaoDoItem.call(item).select(&:incluida).each do |parte|
+        config = config_da_parte(item, parte.peca)
+        somar(linhas, parte, config) if config[:needs_cut]
+      end
     end
-    linhas.values.sort_by { |linha| [ linha.peca ? 0 : 1, linha.peca&.nome.to_s, linha.corte&.filename.to_s ] }
+    linhas.values.sort_by { |l| [ l.peca ? 0 : 1, l.peca&.nome.to_s, l.tamanho ? 0 : 1, l.corte&.filename.to_s, l.tamanho&.position.to_i ] }
   end
 
   private
 
-  # Etapa 1.2 (3/3, parte 2): read from ResolucaoDoItem — each number goes to
-  # the DXF size that serves it in its part ("29" → 29-30).
-  def somar(linhas, parte)
+  def somar(linhas, parte, config)
     parte.numeros.each do |numero|
-      corte = numero.tamanho&.arquivo
-      linha = linhas[[ parte.peca&.id, corte&.id ]] ||=
-        Linha.new(peca: parte.peca, corte: corte, quantidades: Hash.new(0), downloads: Hash.new { |h, k| h[k] = [] })
+      chave = [ parte.peca&.id, numero.tamanho&.id, config[:pecas_por_par], config[:espelhada] ]
+      linha = linhas[chave] ||= Linha.new(peca: parte.peca, tamanho: numero.tamanho, quantidades: Hash.new(0),
+                                          pecas_por_par: config[:pecas_por_par], espelhada: config[:espelhada])
       linha.quantidades[numero.numero] += numero.quantidade
-      lista = linha.downloads[numero.numero]
-      lista << numero.tamanho if numero.tamanho && !lista.include?(numero.tamanho)
+    end
+  end
+
+  # The item's molde part: pieces per pair, mirrored, cut or not.
+  def config_da_parte(item, peca)
+    molde = item.arte&.principal&.molde
+    @configs ||= {}
+    @configs[[ molde&.id, peca&.id ]] ||= begin
+      parte = molde && peca && molde.molde_pecas.find_by(peca: peca)
+      parte ? { pecas_por_par: parte.pecas_por_par, espelhada: parte.espelhada, needs_cut: parte.needs_cut } : CONFIG_PADRAO
     end
   end
 end

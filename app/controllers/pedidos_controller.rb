@@ -1,8 +1,9 @@
 class PedidosController < ApplicationController
-  exige :pedidos, :ver, only: %i[index show resumo producao]
+  exige :pedidos, :ver, only: %i[index show resumo corte]
+  exige_acao :baixar_producao, only: :baixar_corte
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca producao]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
   def index
@@ -173,8 +174,21 @@ class PedidosController < ApplicationController
 
   # The "Produção" section alone, reloaded (Turbo Frame) when a piece is
   # checked/unchecked on the pedido page.
-  def producao
-    render partial: "producao", locals: { pedido: @pedido }
+  # The factory's Corte page (Etapa 1.2, 3/3 parte 3b): one line per part ×
+  # DXF size, its drawing, the pieces to cut and the DXF.
+  def corte
+    @linhas = @pedido.pecas_para_produzir
+  end
+
+  # Every DXF size of the Corte page in one .zip, named by part and size.
+  # Usage: GET /pedidos/:uuid/baixar_corte → "Corte a1b2c3d4.zip"
+  def baixar_corte
+    linhas = @pedido.pecas_para_produzir.select(&:tamanho).uniq(&:tamanho)
+    entradas = linhas.to_h { |linha| [ nome_no_zip(linha), DxfDoTamanho.caminho!(linha.tamanho) ] }
+    send_data ZipDeArquivos.gerar(entradas), type: "application/zip", disposition: "attachment",
+              filename: "Corte #{@pedido.uuid.first(8)}.zip"
+  rescue ActionController::MissingFile => e
+    redirect_to corte_pedido_path(@pedido), alert: "Não foi possível montar o zip: #{e.message}"
   end
 
   def resumo
@@ -195,6 +209,13 @@ class PedidosController < ApplicationController
   end
 
   private
+
+  # "Lateral 29-30 - 24 AO 34 CABEDAL.dxf" — part, size and corte, without
+  # path characters (the names are typed by users).
+  def nome_no_zip(linha)
+    nome = "#{linha.peca&.nome || "Sem peça"} #{linha.tamanho.nome} - #{linha.corte.filename}"
+    "#{I18n.transliterate(nome).gsub(%r{[/\\:*?"<>|]}, "-")}.dxf"
+  end
 
   # The pedido page adds to itself; the gallery to the client's draft, else
   # the one in session, else a new one.

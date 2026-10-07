@@ -186,8 +186,23 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     }
   }
 
-  function producaoRow(nome) {
-    return page.locator("turbo-frame#pedido-producao tbody tr").filter({ hasText: nome });
+  // The pedido's Corte page (Etapa 1.2, 3/3 parte 3b): the line of a part.
+  async function abrirCorte() {
+    await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/corte`);
+  }
+
+  function linhaDoCorte(nome) {
+    return page.locator(`tr.corte-linha[data-peca="${nome}"]`);
+  }
+
+  // A molde part's pieces per pair / mirrored, saved from the molde page.
+  async function configurarParte(nome, { pecasPorPar, espelhada }) {
+    await page.goto(`${BASE_URL}/moldes/${molde.moldeId}`);
+    const form = page.locator(`.molde-peca-row[data-parte="${nome}"] form.molde-peca-pecas`);
+    await form.locator('input[name="pecas_por_par"]').fill(String(pecasPorPar));
+    await (espelhada ? form.locator('input[type=checkbox][name="espelhada"]').check() : form.locator('input[type=checkbox][name="espelhada"]').uncheck());
+    await Promise.all([ page.waitForURL(`**/moldes/${molde.moldeId}`), form.locator('button[type="submit"]').click() ]);
+    await page.getByText("Piece configuration updated.").waitFor();
   }
 
   let molde;
@@ -297,16 +312,54 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     });
 
     // State here: item 0 = Lateral + Língua checked; item 1 = Lateral unchecked
-    // + Língua checked. Each asks one 30.
-    await test("Produção lists only checked parts, summed per part; unchecking removes it", async () => {
-      const lateralTotal = (await producaoRow(names.lateral).locator("td strong").innerText()).trim();
-      const linguaTotal = (await producaoRow(names.lingua).locator("td strong").innerText()).trim();
-      if (lateralTotal !== "1" || linguaTotal !== "2") throw new Error(`Totals: Lateral ${lateralTotal} (expected 1), Língua ${linguaTotal} (expected 2)`);
+    // + Língua checked. Each asks one 30 (DXF 29-30).
+    await test("Corte lists only checked parts per DXF size, in pieces (2 per pair)", async () => {
+      await abrirCorte();
+      const lateral = (await linhaDoCorte(names.lateral).locator(".corte-total").innerText()).replace(/\s+/g, " ").trim();
+      const lingua = (await linhaDoCorte(names.lingua).locator(".corte-total").innerText()).replace(/\s+/g, " ").trim();
+      if (lateral !== "2 peças 1 par × 2" || lingua !== "4 peças 2 pares × 2") throw new Error(`Lines: Lateral "${lateral}", Língua "${lingua}"`);
+      if ((await linhaDoCorte(names.lateral).getAttribute("data-tamanho")) !== "29-30") throw new Error("Lateral should be cut in its DXF 29-30");
+    });
+
+    await test("Unchecking a part on the pedido takes it off the Corte page", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       await togglePedidoPeca(pedidoPeca(0, names.lateral), false);
-      await producaoRow(names.lateral).waitFor({ state: "detached", timeout: 5000 })
-        .catch(() => { throw new Error("Lateral row still in Produção after unchecking"); });
+      await abrirCorte();
+      if (await linhaDoCorte(names.lateral).count()) throw new Error("Lateral still on the Corte page after unchecking");
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       await togglePedidoPeca(pedidoPeca(0, names.lateral), true);
-      await producaoRow(names.lateral).waitFor({ timeout: 5000 });
+    });
+
+    // Decided 06/10/2026: each molde part says how many pieces a pair takes
+    // and whether they are mirrored; a "não corta" part never reaches the table.
+    await test("The molde's pieces per pair and 'espelhada' change the Corte page; 'não corta' leaves it", async () => {
+      await configurarParte(names.lateral, { pecasPorPar: 4, espelhada: true });
+      await abrirCorte();
+      const lateral = (await linhaDoCorte(names.lateral).locator(".corte-total").innerText()).replace(/\s+/g, " ").trim();
+      if (lateral !== "4 peças 2 direito · 2 esquerdo") throw new Error(`Lateral line: "${lateral}"`);
+
+      // The "Cortar / Não corta" switch saves and reloads the molde page.
+      const alternarCorte = async () => {
+        await page.goto(`${BASE_URL}/moldes/${molde.moldeId}`);
+        await Promise.all([ page.waitForEvent("load"), page.locator(`.molde-peca-row[data-parte="${names.lingua}"] .toggle-slider`).click() ]);
+      };
+      await alternarCorte();
+      if ((await page.locator(`.molde-peca-row[data-parte="${names.lingua}"] .toggle-label`).innerText()).trim() !== "Não corta") throw new Error("Língua should be 'Não corta'");
+      await abrirCorte();
+      if (await linhaDoCorte(names.lingua).count()) throw new Error("A 'não corta' part should not be on the Corte page");
+
+      await alternarCorte();
+      await configurarParte(names.lateral, { pecasPorPar: 2, espelhada: false });
+    });
+
+    await test("An odd number of pieces on a mirrored part is refused, saying why", async () => {
+      await page.goto(`${BASE_URL}/moldes/${molde.moldeId}`);
+      const form = page.locator(`.molde-peca-row[data-parte="${names.lateral}"] form.molde-peca-pecas`);
+      await form.locator('input[name="pecas_por_par"]').fill("3");
+      await form.locator('input[type=checkbox][name="espelhada"]').check();
+      await Promise.all([ page.waitForURL(`**/moldes/${molde.moldeId}`), form.locator('button[type="submit"]').click() ]);
+      await page.getByText("needs an even number of pieces per pair").waitFor();
+      if ((await form.locator('input[name="pecas_por_par"]').inputValue()) !== "2") throw new Error("The refused value should not be saved");
     });
 
     await test("'Enviar arquivo' on a pendência uploads into the arte, with the part and size, and settles it", async () => {

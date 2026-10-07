@@ -21,6 +21,7 @@ Rails.application.routes.draw do
   resources :tamanhos, only: [] do
     member do
       get :download
+      get :preview
     end
     collection do
       get :for_cascade
@@ -135,7 +136,8 @@ Rails.application.routes.draw do
       delete :remover_item
       patch :atualizar_item
       patch :alternar_peca
-      get :producao
+      get :corte
+      get :baixar_corte
       post :confirmar
       get :resumo
     end
