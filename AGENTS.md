@@ -990,7 +990,10 @@ vanishing mid-spec, not real failures. Run them one after the other.
 - `bin/e2e` only ever stops a **leftover test server** on the E2E port
   (checked via `RAILS_ENV=test` in `/proc/<pid>/environ`). Anything else on
   that port — a dev server, another app — is refused with a message, never
-  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`.
+  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`. Zombies
+  (`<defunct>`, exited but not reaped) are ignored: their environ can't be
+  read, and taking one for "a non-test process" failed CI after every spec
+  passed (PR #133). Step 5 also waits for its own server to free the port.
 - Running one spec by hand:
   `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
   `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).
