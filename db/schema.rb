@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_103658) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_183332) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -227,7 +227,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_103658) do
 
   create_table "empresas", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "largura_papel_mm", default: 1600, null: false
     t.string "nome", null: false
+    t.integer "tolerancia_abaixo_pct", default: 10, null: false
+    t.integer "tolerancia_acima_pct", default: 25, null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
@@ -496,6 +499,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_103658) do
     t.datetime "created_at", null: false
     t.decimal "height_mm", precision: 10, scale: 2
     t.decimal "inner_lines_mm"
+    t.json "metros_por_peca", default: {}, null: false
     t.string "nome", null: false
     t.json "numeros", default: [], null: false
     t.decimal "perimeter_mm"

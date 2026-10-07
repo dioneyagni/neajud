@@ -43,4 +43,13 @@ module PedidosHelper
     else "#{linha.arquivo.filename}.#{linha.arquivo.extension}"
     end
   end
+
+  # The expected metragem of a production line (Etapa 2.2, 1/3), or why there
+  # is none yet.
+  # Usage: metragem_esperada(0.37, "tecido") # => "≈ 0,37 m de tecido"
+  def metragem_esperada(metros, material, falta: "metragem ainda não calculada")
+    return falta unless metros
+
+    "≈ #{number_with_precision(metros, precision: 2, separator: ",")} m de #{material}"
+  end
 end

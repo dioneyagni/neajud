@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   resources :funcoes, only: %i[index create destroy], param: :uuid do
     collection { patch :atualizar }
   end
+  # The dono's production parameters (Etapa 2.2, 1/3).
+  resource :parametros, only: %i[edit update], controller: "parametros_empresa"
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
        constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes/ }

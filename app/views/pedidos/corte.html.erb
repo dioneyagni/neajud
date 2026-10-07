@@ -7,6 +7,7 @@
 <% pares = @linhas.sum(&:pares) %>
 <% pecas = @linhas.sum(&:pecas) %>
 <% baixa = pode_acao?(:baixar_producao) %>
+<% metros = @linhas.filter_map(&:metros_esperados) %>
 
 <%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
 
@@ -17,6 +18,7 @@
       <%= @pedido.client&.name || "sem cliente" %> ·
       <span data-corte="pares"><%= pares %> <%= pares == 1 ? "par" : "pares" %></span> ·
       <span data-corte="pecas"><%= pecas %> <%= pecas == 1 ? "peça" : "peças" %></span> ·
+      <% if metros.any? %><span data-corte="metros"><%= metragem_esperada(metros.sum.round(2), "tecido") %></span> ·<% end %>
       uma linha por parte × tamanho do DXF
     </p>
   </div>
@@ -41,10 +43,17 @@
               <td>
                 <img class="corte-previa" src="<%= preview_tamanho_path(linha.tamanho) %>" alt="DXF <%= peca&.nome %> <%= linha.tamanho.nome %>" loading="lazy">
               </td>
-              <td class="corte-tamanho"><%= linha.tamanho.nome %> <span class="corte-arquivo"><%= linha.corte.filename %> <%= selo_excluido(linha.corte) %></span></td>
+              <td class="corte-tamanho"><%= linha.tamanho.nome %>
+                <span class="corte-arquivo"><%= linha.corte.filename %> <%= selo_excluido(linha.corte) %></span>
+                <span class="corte-arquivo corte-material"><%= linha.materia_prima&.nome_completo || "sem material no pedido" %></span>
+              </td>
               <td class="corte-total">
                 <strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong>
                 <span class="corte-conta"><%= linha.espelhada ? "#{linha.por_lado} direito · #{linha.por_lado} esquerdo" : "#{linha.pares} #{linha.pares == 1 ? "par" : "pares"} × #{linha.pecas_por_par}" %></span>
+                <%# Etapa 2.2 (1/3): what the baixa will be checked against. %>
+                <span class="corte-conta corte-metros" data-metros="<%= linha.metros_esperados %>">
+                  <%= metragem_esperada(linha.metros_esperados, "tecido", falta: linha.materia_prima ? "metragem ainda não calculada" : "sem material: sem metragem") %>
+                </span>
               </td>
               <td class="corte-baixar">
                 <% if baixa %>

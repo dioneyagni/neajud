@@ -269,9 +269,12 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     await page.locator("a.pedido-ir-corte").waitFor({ timeout: 5000 });
     pedidoConfirmadoPath = new URL(page.url()).pathname.replace(/\/resumo$/, "");
     await abrirCorte();
-    // The size's drawing loads (PNG made with its DXF).
-    const previa = page.locator("tr.corte-linha img.corte-previa").first();
-    if (!(await previa.evaluate((img) => img.complete && img.naturalWidth > 0))) await previa.evaluate((img) => new Promise((ok, erro) => { img.onload = ok; img.onerror = () => erro(new Error(`Preview failed: ${img.src}`)); }));
+    // The size's drawing loads (PNG made with its DXF). Polled, not onload:
+    // the image could finish between a check and attaching onload, and the
+    // run hung for an hour waiting for an event already gone (07/10/2026).
+    const previa = await page.locator("tr.corte-linha img.corte-previa").first().elementHandle();
+    await page.waitForFunction((img) => img.complete && img.naturalWidth > 0, previa, { timeout: 10000 })
+      .catch(async () => { throw new Error(`Preview did not load: ${await previa.getAttribute("src")}`); });
     await downloadProducaoDxf();
     const [zip] = await Promise.all([ page.waitForEvent("download", { timeout: 30000 }), page.locator("a.corte-zip").click() ]);
     if (!/^Corte [0-9a-f]{8}\.zip$/.test(zip.suggestedFilename())) throw new Error(`Unexpected zip name: ${zip.suggestedFilename()}`);

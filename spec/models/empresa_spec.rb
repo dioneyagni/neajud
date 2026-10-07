@@ -13,4 +13,13 @@ RSpec.describe Empresa do
     empresa = create(:empresa)
     expect(Empresa.atual).to eq(empresa)
   end
+
+  # Etapa 2.2 (1/3): the dono's production parameters.
+  it "starts with a 1,60 m paper and a band of -10% / +25%, refusing nonsense" do
+    empresa = Empresa.atual || create(:empresa)
+    expect(empresa.attributes.values_at("largura_papel_mm", "tolerancia_abaixo_pct", "tolerancia_acima_pct")).to eq([ 1600, 10, 25 ])
+    empresa.assign_attributes(largura_papel_mm: 0, tolerancia_abaixo_pct: 101)
+    expect(empresa).not_to be_valid
+    expect(empresa.errors.attribute_names).to contain_exactly(:largura_papel_mm, :tolerancia_abaixo_pct)
+  end
 end

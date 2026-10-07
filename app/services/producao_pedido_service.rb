@@ -5,7 +5,9 @@
 # espelhada. Read from ResolucaoDoItem (the number's DXF size in the part).
 # Parts marked "não corta" on the molde are left out (decided 06/10/2026:
 # they never reach the table; they are printed only). Numbers no DXF serves
-# stay in a line without size (they also block confirming).
+# stay in a line without size (they also block confirming). Lines are also
+# per material (Etapa 2.2, 1/3): each roll is a cut of its own, and its width
+# gives the expected metragem (the size's meters per piece × pieces).
 # This is the single place production reads from — see Pedido#pecas_para_produzir.
 #
 # Usage: ProducaoPedidoService.call(pedido)
@@ -14,7 +16,7 @@ class ProducaoPedidoService
   # Grade key used when an item has no tamanhos (a single total quantity).
   TOTAL_KEY = "_total".freeze
 
-  Linha = Struct.new(:peca, :tamanho, :quantidades, :pecas_por_par, :espelhada, keyword_init: true) do
+  Linha = Struct.new(:peca, :tamanho, :materia_prima, :quantidades, :pecas_por_par, :espelhada, keyword_init: true) do
     def corte
       tamanho&.arquivo
     end
@@ -33,6 +35,15 @@ class ProducaoPedidoService
     def por_lado
       espelhada ? pecas / 2 : nil
     end
+
+    # Meters of fabric this line should take, on its material's roll; nil
+    # without material, size or a computed fit (EncaixeDoTamanho).
+    # Usage: linha.metros_esperados # => 0.3662 (shown rounded, summed unrounded)
+    def metros_esperados
+      largura = materia_prima&.largura_mm
+      por_peca = largura && tamanho&.metros_por_peca_em(largura)
+      por_peca && (por_peca * pecas).round(4)
+    end
   end
 
   def self.call(pedido)
@@ -45,9 +56,9 @@ class ProducaoPedidoService
 
   def call
     linhas = {}
-    @pedido.itens_pedido.includes(:grades, :arte, :arquivo, item_pedido_pecas: :peca).order(:id).each do |item|
+    @pedido.itens_pedido.includes(:grades, :arte, :arquivo, :materia_prima, item_pedido_pecas: :peca).order(:id).each do |item|
       ResolucaoDoItem.call(item).select(&:incluida).each do |parte|
-        somar(linhas, parte, parte.config) if parte.config[:needs_cut]
+        somar(linhas, parte, item.materia_prima) if parte.config[:needs_cut]
       end
     end
     linhas.values.sort_by { |l| [ l.peca ? 0 : 1, l.peca&.nome.to_s, l.tamanho ? 0 : 1, l.corte&.filename.to_s, l.tamanho&.position.to_i ] }
@@ -55,10 +66,11 @@ class ProducaoPedidoService
 
   private
 
-  def somar(linhas, parte, config)
+  def somar(linhas, parte, materia_prima)
+    config = parte.config
     parte.numeros.each do |numero|
-      chave = [ parte.peca&.id, numero.tamanho&.id, config[:pecas_por_par], config[:espelhada] ]
-      linha = linhas[chave] ||= Linha.new(peca: parte.peca, tamanho: numero.tamanho, quantidades: Hash.new(0),
+      chave = [ parte.peca&.id, numero.tamanho&.id, materia_prima&.id, config[:pecas_por_par], config[:espelhada] ]
+      linha = linhas[chave] ||= Linha.new(peca: parte.peca, tamanho: numero.tamanho, materia_prima: materia_prima, quantidades: Hash.new(0),
                                           pecas_por_par: config[:pecas_por_par], espelhada: config[:espelhada])
       linha.quantidades[numero.numero] += numero.quantidade
     end
