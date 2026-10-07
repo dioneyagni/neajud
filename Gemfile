@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.3"
+gem "rails", "~> 8.1.4"
 # Pin below json 3.x: it changes JSON.parse's arity in a way activesupport
 # 8.1.3's session decryption calls with (ActiveSupport::JSON.decode ->
 # ActiveSupport::Messages::Metadata#deserialize_from_json), raising
