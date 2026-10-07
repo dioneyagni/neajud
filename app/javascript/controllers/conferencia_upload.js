@@ -1,6 +1,7 @@
 // The upload's conference (Etapa 1.2, 2/3 parte 3): the groups the server
 // proposed (POST /arquivos/agrupamento), edited before anything is sent —
-// each file's part, size and piloto, separate a file, join two groups, or
+// each file's part, size, side (DIR / ESQ, Etapa 1.2, 3/3 parte 3c) and
+// piloto, separate a file, join two groups, or
 // add a group to an existing arte (suggested, never chosen for the user).
 // Plain module: upload_controller.js owns the files and the sending.
 export default class ConferenciaDoUpload {
@@ -19,7 +20,7 @@ export default class ConferenciaDoUpload {
   // Returns true when the list must be drawn again.
   aplicar(evento) {
     const alvo = evento.currentTarget
-    const acao = { parte: "escolherParte", tamanho: "editarTamanho", piloto: "marcarPiloto", separar: "separar", juntar: "juntar", existente: "escolherExistente" }[alvo.dataset.acao]
+    const acao = { parte: "escolherParte", tamanho: "editarTamanho", lado: "escolherLado", piloto: "marcarPiloto", separar: "separar", juntar: "juntar", existente: "escolherExistente" }[alvo.dataset.acao]
     return acao ? this[acao](alvo) : false
   }
 
@@ -32,6 +33,11 @@ export default class ConferenciaDoUpload {
 
   editarTamanho(alvo) {
     this.arquivo(alvo.dataset.indice).tamanho = alvo.value.trim() || null
+    return false
+  }
+
+  escolherLado(alvo) {
+    this.arquivo(alvo.dataset.indice).lado = alvo.value || null
     return false
   }
 
@@ -71,7 +77,7 @@ export default class ConferenciaDoUpload {
       const precisaDeArte = grupo.arquivos.length > 1 || grupo.arquivos.some(a => a.piloto)
       const arteUuid = grupo.existente || (precisaDeArte ? await criarArte() : null)
       for (const a of grupo.arquivos) {
-        plano.push({ indice: a.indice, campos: { arte_uuid: arteUuid, peca_uuid: a.parte_uuid, tamanho_rotulo: a.tamanho, papel: a.piloto ? "piloto" : null } })
+        plano.push({ indice: a.indice, campos: { arte_uuid: arteUuid, peca_uuid: a.parte_uuid, tamanho_rotulo: a.tamanho, lado: a.lado, papel: a.piloto ? "piloto" : null } })
       }
     }
     return plano
@@ -111,6 +117,7 @@ export default class ConferenciaDoUpload {
       <span class="upload-file-size">${(arquivo.size / 1048576).toFixed(1)} MB</span>
       <select class="conferencia-parte${a.parte_uuid ? "" : " conferencia-parte--vazia"}" data-acao="parte" data-indice="${a.indice}" data-action="change->upload#conferir"><option value="">Part…</option>${opcoes}</select>
       <input type="text" class="conferencia-tamanho" placeholder="Size" value="${this.escapar(a.tamanho || "")}" data-acao="tamanho" data-indice="${a.indice}" data-action="input->upload#conferir">
+      <select class="conferencia-lado" title="Side of a mirrored part" data-acao="lado" data-indice="${a.indice}" data-action="change->upload#conferir">${[["", "Side…"], ["direito", "DIR"], ["esquerdo", "ESQ"]].map(([v, t]) => `<option value="${v}" ${(a.lado || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
       <span class="upload-file-status"></span>
       ${grupo.arquivos.length > 1 ? `<button type="button" class="conferencia-separar" data-acao="separar" data-indice="${a.indice}" data-nome="${this.escapar(arquivo.name)}" data-action="click->upload#conferir">Separate</button>` : ""}
       <button type="button" class="upload-file-remove" data-action="click->upload#removeFile" data-index="${a.indice}">×</button>

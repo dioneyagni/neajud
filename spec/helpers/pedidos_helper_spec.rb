@@ -48,4 +48,17 @@ RSpec.describe PedidosHelper, type: :helper do
       expect(estados).to eq(%i[sem_arquivo piloto livre vazio])
     end
   end
+
+  describe "#arquivo_da_linha_de_impressao" do
+    linha = ImpressaoPedidoService::Linha
+
+    it "names the file, or what is missing" do
+      arquivo = build(:arquivo, filename: "lat-esq", extension: "tif")
+      textos = [
+        linha.new(arquivo: arquivo), linha.new(pendencia: :sem_lado, lado: "direito"),
+        linha.new(pendencia: :sem_arquivo), linha.new(pendencia: :sem_corte)
+      ].map { |l| helper.arquivo_da_linha_de_impressao(l) }
+      expect(textos).to eq([ "lat-esq.tif", "sem o arquivo DIR", "sem arquivo de produção", "nenhum corte organizado atende" ])
+    end
+  end
 end

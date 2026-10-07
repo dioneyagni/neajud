@@ -104,9 +104,23 @@ save_requests_log() {
 # PIDs listening on the E2E port (lsof, falling back to fuser). Always exits
 # 0: a free port is not an error, and `set -e` would abort on grep's exit 1.
 e2e_port_pids() {
-  lsof -t -iTCP:"$E2E_PORT" -sTCP:LISTEN 2>/dev/null \
-    || fuser "$E2E_PORT"/tcp 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' \
-    || true
+  local pid
+  for pid in $(lsof -t -iTCP:"$E2E_PORT" -sTCP:LISTEN 2>/dev/null \
+      || fuser "$E2E_PORT"/tcp 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' \
+      || true); do
+    is_zombie "$pid" || echo "$pid"
+  done
+}
+
+# A process that exited but wasn't reaped yet ("<defunct>") holds no port,
+# and its /proc/<pid>/environ can't be read — is_test_server took it for a
+# non-test process and the run failed after every spec passed (CI
+# 07/10/2026, PR #133: "3374 [ruby] <defunct>" while the server shut down).
+is_zombie() {
+  case "$(ps -o stat= -p "$1" 2>/dev/null)" in
+    Z*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # Only a leftover *test* server may be stopped. Anything else on the E2E port
@@ -124,6 +138,8 @@ stop_e2e_port() {
   pids="$(e2e_port_pids)"
   [ -z "$pids" ] && return 0
   for pid in $pids; do
+    # It may have exited between the listing and this check (see is_zombie).
+    is_zombie "$pid" && continue
     if ! is_test_server "$pid"; then
       echo "ERROR: port $E2E_PORT is used by a non-test process, refusing to stop it: $(ps -o pid=,args= -p "$pid" | cut -c1-100)" >&2
       echo "       Stop it yourself or run with another port: E2E_PORT=3002 bash bin/e2e" >&2
@@ -225,6 +241,12 @@ echo "       Exit code: $EXIT_CODE"
 echo "[5/5] Stopping server (PID $SERVER_PID)..."
 clean_e2e_artifacts
 kill $SERVER_PID 2>/dev/null || true
+# Let our own server (and its Puma / Solid Queue children) let go of the
+# port before the leftover check, instead of judging processes mid-shutdown.
+for _ in $(seq 1 20); do
+  [ -z "$(e2e_port_pids)" ] && break
+  sleep 0.5
+done
 stop_e2e_port
 echo "       Done."
 

@@ -55,6 +55,14 @@ RSpec.describe PedidoBloqueiosService do
     expect(bloqueios).to eq([ [ :sem_corte, "Lateral 35×1, 36×2: nenhum corte organizado atende (arte #{molde.codigo})" ] ])
   end
 
+  # Etapa 1.2 (3/3, parte 3c): a mirrored part with one side's file only.
+  it "flags the missing side of a mirrored part, with the size and the side to send" do
+    molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true)
+    item(grade: { "29" => 2 }).arquivo.update!(lado: "esquerdo")
+    expect(bloqueios).to eq([ [ :sem_lado, "Lateral 29-30 (29×2) sem o arquivo DIR (direito) na arte #{molde.codigo}" ] ])
+    expect(described_class.call(pedido).first.to_h.values_at(:tamanho, :lado)).to eq([ corte.tamanhos.first, "direito" ])
+  end
+
   it "ignores an unchecked part (it doesn't go to production)" do
     item(grade: { "31" => 1 }).item_pedido_pecas.update_all(incluida: false)
     expect(bloqueios).to be_empty

@@ -19,6 +19,19 @@
             <% else %>
               <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
             <% end %>
+            <%# Etapa 1.2 (3/3, parte 3c): the side of a mirrored part's file. %>
+            <% if pode?(:artes, :editar) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>
+              <%= form_with url: definir_lado_arquivo_arte_path(membro), method: :patch, class: "arte-acao-inline arte-lado", data: { controller: "auto-submit", turbo: false } do %>
+                <select name="lado" aria-label="Side of <%= membro.filename %>" data-action="change->auto-submit#submit">
+                  <option value="">no side</option>
+                  <% LadoNaArte::ABREVIACOES.each do |lado, abreviado| %>
+                    <option value="<%= lado %>" <%= "selected" if membro.lado == lado %>><%= abreviado %></option>
+                  <% end %>
+                </select>
+              <% end %>
+            <% elsif membro.lado %>
+              <span class="arte-arquivo-lado"><%= membro.lado_abreviado %></span>
+            <% end %>
             <% if membro == arquivo %>
               <span class="arte-arquivo-nome"><%= membro.filename %>.<%= membro.extension %> (this file)</span>
             <% else %>
@@ -98,6 +111,12 @@
           </select>
           <input type="text" name="tamanho_rotulo" placeholder="Size (29-30, P…)">
         <% end %>
+        <select name="lado" aria-label="Side">
+          <option value="">Side (mirrored parts)</option>
+          <% LadoNaArte::ABREVIACOES.each do |lado, abreviado| %>
+            <option value="<%= lado %>"><%= abreviado %></option>
+          <% end %>
+        </select>
         <button type="submit" class="btn btn-primary btn-sm">Add</button>
       <% end %>
     </details>

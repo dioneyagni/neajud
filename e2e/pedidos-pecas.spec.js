@@ -212,6 +212,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
   const loneFile = makeArte("lone", "green");
   const terceiroFile = makeArte("terceiro", "purple");
   const uploadFile = makeArte("upload", "teal");
+  const direitoFile = makeArte("direito", "orange");
 
   try {
     await test("Setup: molde with Lateral + Língua, each with its organized DXF, and a Lateral arte of 29-30", async () => {
@@ -383,6 +384,52 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       await pedidoPeca(2, names.lingua).locator(".pedido-peca-processando").waitFor({ state: "detached", timeout: 45000 });
       const href = await (await celula(2, names.lingua, "30")).locator("a").getAttribute("href");
       if (!(await imageHasVisiblePixels(page, `${href}/preview`))) throw new Error("Uploaded file preview has no visible pixels");
+    });
+
+    // Etapa 1.2 (3/3, parte 3c, decided 06/10/2026): the printer's page, per
+    // arte, one line per file, in pieces. Item 0 asks one 30 of Lateral +
+    // Língua (2 pieces each); item 1 the same arte, Lateral unchecked.
+    await test("Impressão lists per arte each file to print, in pieces; the zip has the artes", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/impressao`), page.locator("a.pedido-ir-impressao").click() ]);
+      const primeira = page.locator(".impressao-arte").first();
+      const lateral = (await primeira.locator(`tr.impressao-linha[data-peca="${names.lateral}"] .corte-total strong`).innerText()).trim();
+      const lingua = (await primeira.locator(`tr.impressao-linha[data-peca="${names.lingua}"] .corte-total strong`).innerText()).trim();
+      if (lateral !== "2 peças" || lingua !== "2 peças") throw new Error(`Lines: Lateral ${lateral}, Língua ${lingua}`);
+      const [arte] = await Promise.all([ page.waitForEvent("download"), primeira.locator("a.impressao-baixar").first().click() ]);
+      if (!arte.suggestedFilename().endsWith(".tif")) throw new Error(`Unexpected arte download: ${arte.suggestedFilename()}`);
+      const [zip] = await Promise.all([ page.waitForEvent("download", { timeout: 30000 }), page.locator("a.impressao-zip").click() ]);
+      const bytes = fs.readFileSync(await zip.path());
+      if (bytes.subarray(0, 2).toString() !== "PK" || !bytes.includes(Buffer.from("_29-30.tif"))) throw new Error("The zip should hold the artes under their full names");
+    });
+
+    // Decided 07/10/2026: a file without side serves both sides; once one
+    // file has a side, the other side is a pendência of its own.
+    await test("A mirrored part: one side's file asks for the other; 'Enviar arquivo DIR' settles it; Impressão prints each side", async () => {
+      await configurarParte(names.lateral, { pecasPorPar: 2, espelhada: true });
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      const arteDaLateral = await (await celula(0, names.lateral, "30")).locator("a").getAttribute("href");
+      await page.goto(`${BASE_URL}${arteDaLateral}`);
+      const lado = page.locator(`.arte-arquivo[data-arquivo-uuid="${arteDaLateral.split("/").pop()}"] form.arte-lado select`);
+      await Promise.all([ page.waitForURL(`**${arteDaLateral}`), lado.selectOption("esquerdo") ]);
+      await page.getByText("side ESQ").waitFor();
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await expectCelula(await celula(0, names.lateral, "30"), "sem_lado");
+      const pendente = pendencia(`${names.lateral} 29-30 (30×1) sem o arquivo DIR`);
+      if ((await pendente.locator(".pedido-peca-enviar-label").innerText()).trim() !== "Enviar arquivo DIR") throw new Error("The pendência should send the DIR");
+      await Promise.all([
+        page.waitForURL(`**/pedidos/${pedidoUuid}/resumo`, { timeout: 30000 }),
+        pendente.locator("form.pedido-parte-enviar input[type=file]").setInputFiles(direitoFile),
+      ]);
+      await expectCelula(await celula(0, names.lateral, "30"), "producao");
+      if (!(await (await celula(0, names.lateral, "30")).innerText()).includes("DIR ESQ")) throw new Error("The cell should show both sides");
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/impressao`);
+      const lados = await page.locator(".impressao-arte").first().locator(`tr.impressao-linha[data-peca="${names.lateral}"]`)
+        .evaluateAll((trs) => trs.map((tr) => `${tr.dataset.lado}=${tr.querySelector(".corte-total strong").textContent.trim()}`));
+      if (lados.join("|") !== "direito=1 peça|esquerdo=1 peça") throw new Error(`Sides printed: ${lados.join("|")}`);
+      await configurarParte(names.lateral, { pecasPorPar: 2, espelhada: false });
     });
 
     await test("An arte without molde shows no part picker", async () => {

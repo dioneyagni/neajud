@@ -50,6 +50,7 @@ Rails.application.routes.draw do
       post :separar
       post :tornar_piloto
       post :voltar_para_producao
+      patch :definir_lado
     end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
@@ -138,6 +139,8 @@ Rails.application.routes.draw do
       patch :alternar_peca
       get :corte
       get :baixar_corte
+      get :impressao
+      get :baixar_impressao
       post :confirmar
       get :resumo
     end

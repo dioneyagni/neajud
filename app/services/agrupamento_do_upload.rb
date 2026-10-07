@@ -4,7 +4,8 @@
 # measure and copy leftovers, compared ignoring case and accents — are one
 # arte. Cortes and names without a nome stay alone.
 #
-# Each file comes back with the part and size read from its name and whether
+# Each file comes back with the part, size and side (DIR / ESQ, Etapa 1.2,
+# 3/3 parte 3c) read from its name and whether
 # it looks like its part's piloto: an editable format (PSD/AI/CDR), else
 # 3 times or more the median weight of the other files of the part (decided
 # 05/10/2026). Each group lists existing artes with the same referência and
@@ -16,7 +17,7 @@ class AgrupamentoDoUpload
   EDITAVEIS = %w[psd ai cdr].freeze
   PESO_DO_PILOTO = 3
 
-  ArquivoLido = Struct.new(:indice, :nome, :bytes, :parte, :tamanho, :piloto, keyword_init: true)
+  ArquivoLido = Struct.new(:indice, :nome, :bytes, :parte, :tamanho, :lado, :piloto, keyword_init: true)
   Grupo = Struct.new(:chave, :referencia, :nome, :arquivos, :existentes, keyword_init: true) do
     def titulo
       [ referencia, nome ].compact.join(" · ")
@@ -46,7 +47,7 @@ class AgrupamentoDoUpload
       chave = chave_de(entrada[:nome], lido, indice)
       grupo = grupos[chave] ||= novo_grupo(chave, lido)
       grupo.arquivos << ArquivoLido.new(indice: indice, nome: entrada[:nome], bytes: entrada[:bytes].to_i,
-                                        parte: @pecas[lido[:parte]], tamanho: lido[:tamanho], piloto: false)
+                                        parte: @pecas[lido[:parte]], tamanho: lido[:tamanho], lado: lido[:lado], piloto: false)
     end.values
   end
 

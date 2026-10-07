@@ -73,6 +73,20 @@ runSpec("Upload: grouping into artes", async ({ page, test }) => {
       if ((await page.locator(`.arte-parte[data-parte="${pecas.lin}"] .arte-arquivo`).count()) !== 2) throw new Error(`Expected 2 files in ${pecas.lin}`);
     });
 
+    // Etapa 1.2 (3/3, parte 3c, decided 07/10/2026): "…-DIR" / "…-ESQ" is the
+    // side of a mirrored part's file — one arte, each file with its side.
+    await test("A part's right and left: one group, the side read from the name and saved", async () => {
+      await escolher([ arquivo(`32-ONCA${U}-${pecas.lat}-29_30-DIR.tif`), arquivo(`32-ONCA${U}-${pecas.lat}-29_30-ESQ.tif`) ]);
+      if ((await page.locator(".conferencia-grupo").count()) !== 1) throw new Error("DIR and ESQ should be one arte");
+      const lado = (nome) => linha(nome).locator("select.conferencia-lado option:checked").innerText();
+      if ((await lado("-DIR")) !== "DIR" || (await lado("-ESQ")) !== "ESQ") throw new Error(`Sides read: ${await lado("-DIR")} / ${await lado("-ESQ")}`);
+      await submitUploadAndWait(page, 2, 120000);
+      const card = page.locator(".stamp-card").filter({ hasText: `ONCA${U}` });
+      await Promise.all([ page.waitForURL(/\/arquivos\/[0-9a-f-]{36}$/), card.locator("a").first().click() ]);
+      const lados = await page.locator(`.arte-parte[data-parte="${pecas.lat}"] form.arte-lado select`).evaluateAll((s) => s.map((el) => el.value).sort());
+      if (lados.join("|") !== "direito|esquerdo") throw new Error(`Saved sides: ${lados.join("|")}`);
+    });
+
     await test("More sizes later: the conference offers the existing arte, and adds them to it when chosen", async () => {
       await escolher([ arquivo(`31-GATO${U}-${pecas.lat}-27_28.tif`), arquivo(`31-GATO${U}-${pecas.lat}-29_30.tif`) ]);
       const existente = page.locator(".conferencia-existente").filter({ hasText: `GATO${U}` });

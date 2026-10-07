@@ -404,6 +404,7 @@ class ArquivosController < ApplicationController
     atributos = arquivo_params.to_h.symbolize_keys
     atributos[:peca] = Peca.ativos.por_uuid!(dados[:peca_uuid]) if dados[:peca_uuid].present?
     atributos[:tamanho_rotulo] = dados[:tamanho_rotulo].to_s.squish if dados[:tamanho_rotulo].present?
+    atributos[:lado] = dados[:lado] if dados[:lado].present?
     arte = Arte.por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
     arte ? arte.novo_arquivo(**atributos) : Arquivo.new(atributos)
   end

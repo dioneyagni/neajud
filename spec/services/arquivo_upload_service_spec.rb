@@ -28,6 +28,18 @@ RSpec.describe ArquivoUploadService do
     FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, arquivo.uuid)) if arquivo&.persisted?
   end
 
+  # Etapa 1.2 (3/3, parte 3c): "…-ESQ" in the name is the side; one already
+  # set (the upload's conference) wins.
+  it "reads the side from the file name unless it was set" do
+    caminho = tmp.join("upload-spec-20-BLUEY-LATERAL-29_30-ESQ.tif").to_s
+    FileUtils.cp(fixtures.join("02-no_spot.tif"), caminho)
+    lido = described_class.call(upload(caminho), remote_ip: "1.2.3.4")
+    escolhido = described_class.call(upload(caminho), remote_ip: "1.2.3.4", arquivo: Arquivo.new(lado: "direito"))
+    expect([ lido.lado, escolhido.lado ]).to eq(%w[esquerdo direito])
+  ensure
+    [ lido, escolhido ].compact.select(&:persisted?).each { |a| FileUtils.rm_rf(File.join(ArquivoVersion::STORAGE_BASE, a.uuid)) }
+  end
+
   it "keeps attributes set on the arquivo it is given" do
     client = create(:client)
     arquivo = described_class.call(upload(fixtures.join("02-no_spot.tif")), remote_ip: "1.2.3.4", arquivo: Arquivo.new(client: client))

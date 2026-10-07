@@ -35,9 +35,6 @@ class ProducaoPedidoService
     end
   end
 
-  # A part with no molde part (an arte without molde): one piece per foot.
-  CONFIG_PADRAO = { pecas_por_par: 2, espelhada: false, needs_cut: true }.freeze
-
   def self.call(pedido)
     new(pedido).call
   end
@@ -50,8 +47,7 @@ class ProducaoPedidoService
     linhas = {}
     @pedido.itens_pedido.includes(:grades, :arte, :arquivo, item_pedido_pecas: :peca).order(:id).each do |item|
       ResolucaoDoItem.call(item).select(&:incluida).each do |parte|
-        config = config_da_parte(item, parte.peca)
-        somar(linhas, parte, config) if config[:needs_cut]
+        somar(linhas, parte, parte.config) if parte.config[:needs_cut]
       end
     end
     linhas.values.sort_by { |l| [ l.peca ? 0 : 1, l.peca&.nome.to_s, l.tamanho ? 0 : 1, l.corte&.filename.to_s, l.tamanho&.position.to_i ] }
@@ -65,16 +61,6 @@ class ProducaoPedidoService
       linha = linhas[chave] ||= Linha.new(peca: parte.peca, tamanho: numero.tamanho, quantidades: Hash.new(0),
                                           pecas_por_par: config[:pecas_por_par], espelhada: config[:espelhada])
       linha.quantidades[numero.numero] += numero.quantidade
-    end
-  end
-
-  # The item's molde part: pieces per pair, mirrored, cut or not.
-  def config_da_parte(item, peca)
-    molde = item.arte&.principal&.molde
-    @configs ||= {}
-    @configs[[ molde&.id, peca&.id ]] ||= begin
-      parte = molde && peca && molde.molde_pecas.find_by(peca: peca)
-      parte ? { pecas_por_par: parte.pecas_por_par, espelhada: parte.espelhada, needs_cut: parte.needs_cut } : CONFIG_PADRAO
     end
   end
 end

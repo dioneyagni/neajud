@@ -1,7 +1,7 @@
 # An arte's Referência + Nome and the full name they make (Etapa 1.1, 5/5).
 # The full name is computed, never stored — molde code, referência, nome,
 # part, size, empty pieces skipped:
-#   001-TNS_19_Bluey Azul_Lateral_29-30
+#   001-TNS_19_Bluey Azul_Lateral_29-30 (+ "_ESQ" / "_DIR" on a side, Etapa 1.2, 3/3 parte 3c)
 # With accents on screen, without them in a downloaded file's name.
 #
 # Two artes with the same full name are the same arte uploaded twice: the
@@ -20,7 +20,7 @@ module NomeDeArte
   def nome_completo(para_arquivo: false)
     return nil unless arte_com_molde?
 
-    texto = [ molde.codigo, referencia&.nome, nome, resolved_peca&.nome, tamanho&.nome ].map(&:presence).compact.join("_")
+    texto = [ molde.codigo, referencia&.nome, nome, resolved_peca&.nome, tamanho&.nome, lado_abreviado ].map(&:presence).compact.join("_")
     para_arquivo ? I18n.transliterate(texto).gsub(%r{[/\\:*?"<>|]}, "-") : texto
   end
 
@@ -29,7 +29,8 @@ module NomeDeArte
     # A piloto shares its size with a production file on purpose (Etapa 1.2, 2/3).
     return Arquivo.none unless arte_com_molde? && tamanho_id && nome.present? && !piloto?
 
-    candidatas = Arquivo.ativos.where(category: "artes", molde_id: molde_id, referencia_id: referencia_id, tamanho_id: tamanho_id, papel: "producao").where.not(id: id)
+    # The right and the left of a mirrored part share the size on purpose (Etapa 1.2, 3/3 parte 3c).
+    candidatas = Arquivo.ativos.where(category: "artes", molde_id: molde_id, referencia_id: referencia_id, tamanho_id: tamanho_id, lado: lado, papel: "producao").where.not(id: id)
     Arquivo.where(id: candidatas.select { |outra| TextoComparavel.iguais?(outra.nome, nome) }.map(&:id)).order(:created_at)
   end
 

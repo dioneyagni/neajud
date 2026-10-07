@@ -10,9 +10,13 @@
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
       <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
     </dl>
-    <%# Etapa 1.2 (3/3, parte 3b): production has its own page, for the factory. %>
+    <%# Etapa 1.2 (3/3, partes 3b e 3c): production has its own pages, for the
+        cutting table and for the printer. %>
     <% if itens.any? %>
-      <%= link_to "Corte (fábrica) →", corte_pedido_path(pedido), class: "btn btn-secondary pedido-ir-corte" %>
+      <div class="pedido-ir-producao">
+        <%= link_to "Corte →", corte_pedido_path(pedido), class: "btn btn-secondary pedido-ir-corte" %>
+        <%= link_to "Impressão →", impressao_pedido_path(pedido), class: "btn btn-secondary pedido-ir-impressao" %>
+      </div>
     <% end %>
     <% if pedido_editavel?(pedido) %>
       <% bloqueios = pedido.bloqueios_confirmacao %>
@@ -39,13 +43,14 @@
           <li class="pedido-pendencia pedido-pendencia--<%= bloqueio.tipo %>">
             <span class="pedido-pendencia-texto"><%= bloqueio.descricao %></span>
             <div class="pedido-pendencia-acoes">
-              <% if bloqueio.tipo == :sem_arquivo && pode_enviar %>
+              <% if %i[sem_arquivo sem_lado].include?(bloqueio.tipo) && pode_enviar %>
                 <%# Not nested in any other form (see AGENTS.md "Nested forms gotcha"). %>
                 <%= form_with url: acrescentar_arquivo_arte_path(bloqueio.arquivo), multipart: true, class: "pedido-parte-enviar", data: { controller: "auto-submit", turbo: false } do %>
                   <input type="hidden" name="tamanho_uuid" value="<%= bloqueio.tamanho.uuid %>">
+                  <% if bloqueio.lado %><input type="hidden" name="lado" value="<%= bloqueio.lado %>"><% end %>
                   <input type="hidden" name="voltar_para" value="<%= resumo_pedido_path(pedido) %>">
                   <label class="btn btn-sm btn-outline pedido-peca-enviar-label">
-                    Enviar arquivo
+                    Enviar arquivo<%= " #{LadoNaArte::ABREVIACOES[bloqueio.lado]}" if bloqueio.lado %>
                     <input type="file" name="original_file" hidden
                            accept="<%= FileCategory.all["artes"][:extensions].map { |e| ".#{e}" }.join(",") %>"
                            data-action="change->auto-submit#submit">

@@ -110,6 +110,13 @@ RSpec.describe "Arte files", type: :request do
       expect(Arquivo.order(:id).last.attributes.values_at("arte_id", "peca_id", "tamanho_rotulo")).to eq([ arquivo.arte_id, peca.id, "P" ])
     end
 
+    # Etapa 1.2 (3/3, parte 3c): a pedido's "Enviar arquivo DIR" sends the side.
+    it "takes the side of a mirrored part's file" do
+      arquivo = create(:arquivo)
+      post acrescentar_arquivo_arte_path(arquivo), params: { original_file: tif, tamanho_rotulo: "30", lado: "direito" }
+      expect(Arquivo.order(:id).last.lado).to eq("direito")
+    end
+
     it "refuses a size of another molde's corte" do
       alheio = create(:tamanho, arquivo: create(:arquivo, :corte, organized: true))
       arquivo = create(:arquivo, molde: molde)
@@ -191,6 +198,34 @@ RSpec.describe "Arte files", type: :request do
       expect([ antigo.reload.arte_id, antigo.papel ]).to eq([ novo.arte_id, "piloto" ])
       get arquivo_path(novo)
       expect(response.body).not_to include("same arte uploaded again")
+    end
+  end
+
+  # Etapa 1.2 (3/3, parte 3c): a file's side, from the arte page.
+  describe "PATCH definir_lado" do
+    it "sets and clears the side" do
+      arquivo = create(:arquivo)
+      patch definir_lado_arquivo_arte_path(arquivo), params: { lado: "esquerdo" }
+      expect([ arquivo.reload.lado, flash[:notice] ]).to eq([ "esquerdo", "#{arquivo.filename}: side ESQ." ])
+      patch definir_lado_arquivo_arte_path(arquivo), params: { lado: "" }
+      expect(arquivo.reload.lado).to be_nil
+    end
+
+    it "refuses a side that isn't one, naming it" do
+      arquivo = create(:arquivo)
+      patch definir_lado_arquivo_arte_path(arquivo), params: { lado: "cima" }
+      expect([ arquivo.reload.lado, flash[:alert] ]).to eq([ nil, "Lado cima is not a side; expected direito or esquerdo" ])
+    end
+
+    it "offers the side only on a mirrored part's files" do
+      lateral = create(:peca, nome: "Lateral")
+      com_molde = create(:molde, client: client, partes: [ lateral ])
+      arquivo = create(:arquivo, molde: com_molde, peca: lateral)
+      get arquivo_path(arquivo)
+      expect(Nokogiri::HTML(response.body).css("form.arte-lado")).to be_empty
+      com_molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true)
+      get arquivo_path(arquivo)
+      expect(Nokogiri::HTML(response.body).at_css("form.arte-lado")["action"]).to eq(definir_lado_arquivo_arte_path(arquivo))
     end
   end
 end

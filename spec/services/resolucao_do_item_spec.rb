@@ -71,6 +71,55 @@ RSpec.describe ResolucaoDoItem do
     end
   end
 
+  # Etapa 1.2 (3/3, parte 3c, decided 07/10/2026): a mirrored part may have
+  # a file per side; a file without side serves both until one with a side
+  # arrives in that size.
+  describe "a mirrored part's sides" do
+    let(:lat) { corte(lateral, [ 29, 30 ]) }
+    before { molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true) }
+
+    def lateral_30(*lados)
+      primeiro = nil
+      lados.each do |lado|
+        a = arquivo(lateral, lat.tamanhos.first, arte: primeiro&.arte)
+        a.update!(lado: lado, filename: "lat-#{lado || "sem-lado"}")
+        primeiro ||= a
+      end
+      parte = described_class.call(item_com(primeiro, "30" => 2)).find { |p| p.peca == lateral }
+      parte.numeros.first
+    end
+
+    it "takes a file without side for both sides" do
+      numero = lateral_30(nil)
+      expect([ numero.arquivo.filename, numero.lados, numero.pendencia ]).to eq([ "lat-sem-lado", nil, nil ])
+    end
+
+    it "needs the other side once one file has a side" do
+      numero = lateral_30(nil, "esquerdo")
+      expect([ numero.pendencia, numero.lado_faltando, numero.lados.transform_values { |a| a&.filename } ]).to eq(
+        [ :sem_lado, "direito", { "direito" => nil, "esquerdo" => "lat-esquerdo" } ]
+      )
+    end
+
+    it "is settled with a file of each side" do
+      numero = lateral_30("direito", "esquerdo")
+      expect([ numero.pendencia, numero.origem, numero.lados.transform_values(&:filename) ]).to eq(
+        [ nil, :producao, { "direito" => "lat-direito", "esquerdo" => "lat-esquerdo" } ]
+      )
+    end
+
+    it "ignores sides on a part that isn't mirrored" do
+      molde.molde_pecas.find_by(peca: lateral).update!(espelhada: false)
+      numero = lateral_30("esquerdo")
+      expect([ numero.pendencia, numero.lados, numero.arquivo.filename ]).to eq([ nil, nil, "lat-esquerdo" ])
+    end
+
+    it "carries the molde part's config on each part" do
+      a = arquivo(lateral, lat.tamanhos.first)
+      expect(described_class.call(item_com(a, "30" => 1)).find { |p| p.peca == lateral }.config).to eq(pecas_por_par: 2, espelhada: true, needs_cut: true)
+    end
+  end
+
   describe "the piloto as a sample" do
     let(:lat) { corte(lateral, [ 29, 30 ], [ 31, 32 ]) }
     let!(:piloto) { arquivo(lateral, lat.tamanhos.first, papel: "piloto").tap { |p| p.update!(filename: "piloto") } }

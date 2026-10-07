@@ -343,9 +343,21 @@ Decided 05/10/2026, in three parts; part 1 is done:
   size's DXF for both downloads). Pieces = pairs × the molde part's
   `pecas_por_par` (default 2), half right / half left when `espelhada`
   (needs an even number); parts "não corta" are left out (decided
-  06/10/2026). Both are edited per part on the molde page. **3c** an
-  Impressão page, with a "lado" (direito/esquerdo) per file of a mirrored
-  part.
+  06/10/2026). Both are edited per part on the molde page (they live in
+  `ResolucaoDoItem::Parte#config`). **3c** the printer's Impressão page
+  (`/pedidos/:uuid/impressao`, `ImpressaoPedidoService`): per arte, one line
+  per file to print (part, DXF size, side) in pieces, "não corta" parts
+  included, what is missing as a line; "Baixar as artes (.zip)"
+  (`baixar_impressao`) is written to disk (`ZipDeArquivos.gravar`, stored,
+  in `tmp/zips/`, cleaned after an hour by `ZipsTemporarios`) — artes go up
+  to 1 GB. **Sides** (`arquivos.lado`, `LadoNaArte`: direito / esquerdo):
+  a mirrored part may have a file per side; a file without side serves both
+  until one with a side arrives in that size, then the other side is a
+  pendência `:sem_lado` ("Enviar arquivo DIR"; decided 07/10/2026). Read
+  from the name as its own piece, "DIR" / "ESQ" or spelled out
+  (`NomeDoArquivo`), chosen in the upload's conference or on the arte page
+  (`definir_lado`); in the full name ("…_Lateral_29-30_ESQ") and in "the
+  same arte uploaded again" (the other side is never a repeat).
 - Added from the gallery card or from the pedido page (molde → referência →
   arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
   the same `add-to-order` modal with `pedido_uuid`).
@@ -978,7 +990,10 @@ vanishing mid-spec, not real failures. Run them one after the other.
 - `bin/e2e` only ever stops a **leftover test server** on the E2E port
   (checked via `RAILS_ENV=test` in `/proc/<pid>/environ`). Anything else on
   that port — a dev server, another app — is refused with a message, never
-  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`.
+  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`. Zombies
+  (`<defunct>`, exited but not reaped) are ignored: their environ can't be
+  read, and taking one for "a non-test process" failed CI after every spec
+  passed (PR #133). Step 5 also waits for its own server to free the port.
 - Running one spec by hand:
   `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
   `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).

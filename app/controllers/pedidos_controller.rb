@@ -1,9 +1,9 @@
 class PedidosController < ApplicationController
-  exige :pedidos, :ver, only: %i[index show resumo corte]
-  exige_acao :baixar_producao, only: :baixar_corte
+  exige :pedidos, :ver, only: %i[index show resumo corte impressao]
+  exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
   def index
@@ -191,6 +191,24 @@ class PedidosController < ApplicationController
     redirect_to corte_pedido_path(@pedido), alert: "Não foi possível montar o zip: #{e.message}"
   end
 
+  # The printer's Impressão page (Etapa 1.2, 3/3 parte 3c): per arte, one
+  # line per file to print, in pieces.
+  def impressao
+    @grupos = ImpressaoPedidoService.call(@pedido)
+  end
+
+  # Every file of the Impressão page in one .zip, under its full name — built
+  # on disk (artes go up to 1 GB), old ones cleaned first.
+  # Usage: GET /pedidos/:uuid/baixar_impressao → "Impressao a1b2c3d4.zip"
+  def baixar_impressao
+    arquivos = ImpressaoPedidoService.call(@pedido).flat_map(&:linhas).filter_map(&:arquivo).uniq
+    destino = ZipsTemporarios.novo_caminho
+    ZipDeArquivos.gravar(entradas_de_impressao(arquivos), destino)
+    send_file destino, type: "application/zip", disposition: "attachment", filename: "Impressao #{@pedido.uuid.first(8)}.zip"
+  rescue Errno::ENOENT => e
+    redirect_to impressao_pedido_path(@pedido), alert: "Não foi possível montar o zip: #{e.message}"
+  end
+
   def resumo
     render :show
   end
@@ -209,6 +227,17 @@ class PedidosController < ApplicationController
   end
 
   private
+
+  # Each file under its full name (NomeDeArte, without accents or path
+  # characters), numbered when two would collide.
+  def entradas_de_impressao(arquivos)
+    arquivos.each_with_object({}) do |arquivo, entradas|
+      base = arquivo.nome_completo(para_arquivo: true) || arquivo.filename
+      nome = "#{base}.#{arquivo.approved_version.extension}"
+      nome = "#{base} (#{entradas.size + 1}).#{arquivo.approved_version.extension}" if entradas.key?(nome)
+      entradas[nome] = arquivo.approved_original_path.to_s
+    end
+  end
 
   # "Lateral 29-30 - 24 AO 34 CABEDAL.dxf" — part, size and corte, without
   # path characters (the names are typed by users).
