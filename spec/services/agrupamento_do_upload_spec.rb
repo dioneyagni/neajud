@@ -25,6 +25,13 @@ RSpec.describe AgrupamentoDoUpload do
     ])
   end
 
+  # Etapa 1.2 (3/3, parte 3c, decided 07/10/2026): "…-ESQ" / "…-DIR".
+  it "groups a mirrored part's right and left into one arte, reading each side" do
+    grupos = agrupar([ "20-BLUEY-LATERAL-29_30-DIR.tif" ], [ "20-BLUEY-LATERAL-29_30-ESQ.tif" ])[:grupos]
+    expect(grupos.size).to eq(1)
+    expect(grupos.first.arquivos.map { |a| [ a.tamanho, a.lado ] }).to eq([ [ "29-30", "direito" ], [ "29-30", "esquerdo" ] ])
+  end
+
   it "suggests the piloto per part: 3 times the median weight of the others, or an editable format" do
     grupo = agrupar([ "20-x-LATERAL.tif", 78 * mb ], [ "20-x-LATERAL-23_24.tif", 5 * mb ], [ "20-x-LATERAL-25_26.tif", 5 * mb ],
                     [ "20-x-LINGUA.psd", 3 * mb ], [ "20-x-LINGUA-23_24.tif", 5 * mb ])[:grupos].first

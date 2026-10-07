@@ -20,7 +20,7 @@ class AgrupamentosUploadController < ApplicationController
   def grupo_json(grupo)
     {
       titulo: grupo.titulo,
-      arquivos: grupo.arquivos.map { |a| { indice: a.indice, parte_uuid: a.parte&.uuid, tamanho: a.tamanho, piloto: a.piloto } },
+      arquivos: grupo.arquivos.map { |a| { indice: a.indice, parte_uuid: a.parte&.uuid, tamanho: a.tamanho, lado: a.lado, piloto: a.piloto } },
       existentes: grupo.existentes.map { |arquivo| existente_json(arquivo) }
     }
   end

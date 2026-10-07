@@ -10,15 +10,18 @@
 #   :sem_corte  — a number of a checked part that no organized DXF of the
 #                 part serves (Etapa 1.2, 3/3: ResolucaoDoItem);
 #   :sem_arquivo — a number the DXF serves but the arte has no file for (nor a
-#                 piloto that covers it as a sample).
+#                 piloto that covers it as a sample);
+#   :sem_lado   — a mirrored part has that size's file of one side only
+#                 (Etapa 1.2, 3/3 parte 3c).
 # Unchecked parts never block: the pedido goes to production without them.
 # Used by the confirm guard (server), the pending box and the list badge.
 #
 # Usage: PedidoBloqueiosService.call(pedido).map(&:descricao)
 #   # => ["Língua 33-34 (33×4, 34×2) sem arquivo de produção na arte 001-TNS · 20 · Bluey"]
 class PedidoBloqueiosService
-  # tamanho: the DXF size missing a file (what "Enviar arquivo" fills).
-  Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, keyword_init: true)
+  # tamanho: the DXF size missing a file (what "Enviar arquivo" fills);
+  # lado: the side missing, for :sem_lado.
+  Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, :lado, keyword_init: true)
 
   def self.call(pedido)
     new(pedido).call
@@ -74,7 +77,7 @@ class PedidoBloqueiosService
   def pendencias_das_partes
     resolucoes.flat_map do |item, partes|
       partes.select(&:incluida).flat_map do |parte|
-        parte.pendencias.group_by { |n| [ n.pendencia, n.tamanho ] }.map { |_, numeros| bloqueio_dos_numeros(item, parte, numeros) }
+        parte.pendencias.group_by { |n| [ n.pendencia, n.tamanho, n.lado_faltando ] }.map { |_, numeros| bloqueio_dos_numeros(item, parte, numeros) }
       end
     end
   end
@@ -83,8 +86,13 @@ class PedidoBloqueiosService
     peca = parte.peca&.nome || "Sem peça"
     pedidos = numeros.map { |n| "#{rotulo(n.numero)}×#{n.quantidade}" }.join(", ")
     tamanho = numeros.first.tamanho
-    if numeros.first.pendencia == :sem_corte
+    case numeros.first.pendencia
+    when :sem_corte
       Bloqueio.new(tipo: :sem_corte, arquivo: item.arquivo, descricao: "#{peca} #{pedidos}: nenhum corte organizado atende (arte #{titulo(item)})")
+    when :sem_lado
+      lado = numeros.first.lado_faltando
+      Bloqueio.new(tipo: :sem_lado, arquivo: item.arquivo, tamanho: tamanho, lado: lado,
+                   descricao: "#{peca} #{tamanho.nome} (#{pedidos}) sem o arquivo #{LadoNaArte::ABREVIACOES[lado]} (#{lado}) na arte #{titulo(item)}")
     else
       Bloqueio.new(tipo: :sem_arquivo, arquivo: item.arquivo, tamanho: tamanho,
                    descricao: "#{peca} #{tamanho.nome} (#{pedidos}) sem arquivo de produção na arte #{titulo(item)}")

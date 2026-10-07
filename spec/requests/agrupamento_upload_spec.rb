@@ -30,6 +30,15 @@ RSpec.describe "Upload grouping", type: :request do
     expect(corpo["pecas"]).to include({ "uuid" => lateral.uuid, "nome" => "Lateral" })
   end
 
+  # Etapa 1.2 (3/3, parte 3c): the side read from the name, and sent back.
+  it "answers each file's side, and the upload saves the side chosen" do
+    post agrupamento_arquivos_path, params: { arquivos: [ { nome: "20-BLUEY-LATERAL-29_30-ESQ.tif", bytes: 1 }, { nome: "20-BLUEY-LATERAL-29_30-DIR.tif", bytes: 1 } ] }, as: :json
+    expect(response.parsed_body["grupos"].sole["arquivos"].map { |a| a["lado"] }).to eq(%w[esquerdo direito])
+
+    post arquivos_path, params: { arquivo: { original_file: upload("20-x.tif"), arte_uuid: Arte.create!.uuid, lado: "direito" } }
+    expect(Arquivo.order(:id).last.lado).to eq("direito")
+  end
+
   it "creates an empty arte for a group" do
     expect { post artes_path, as: :json }.to change(Arte, :count).by(1)
     expect(response.parsed_body["uuid"]).to eq(Arte.last.uuid)

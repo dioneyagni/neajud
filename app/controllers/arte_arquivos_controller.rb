@@ -1,12 +1,12 @@
 # The files of an arte, one per part × size (Etapa 1.2, 2/3), from the arte
 # page: add a file, bring other artes into this one, take a file out, choose
-# each part's piloto.
+# each part's piloto, set a file's side (Etapa 1.2, 3/3 parte 3c).
 class ArteArquivosController < ApplicationController
   before_action :set_arquivo
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
 
   # voltar_para: a pedido's pendência sends the file from there (Etapa 1.2, 3/3).
-  # Usage: POST /arquivos/:uuid/arte/acrescentar (original_file, tamanho_uuid | peca_uuid + tamanho_rotulo, voltar_para)
+  # Usage: POST /arquivos/:uuid/arte/acrescentar (original_file, tamanho_uuid | peca_uuid + tamanho_rotulo, lado, voltar_para)
   def acrescentar
     upload = params[:original_file]
     return redirect_to voltar_para, alert: "Choose the file to add." unless upload.respond_to?(:original_filename)
@@ -60,6 +60,16 @@ class ArteArquivosController < ApplicationController
     redirect_to @arquivo, notice: "#{@arquivo.filename} is a production file again."
   end
 
+  # The side of a file of a mirrored part; blank = no side (serves both).
+  # Usage: PATCH /arquivos/:uuid/arte/definir_lado (lado: "esquerdo")
+  def definir_lado
+    if @arquivo.update(lado: params[:lado].presence)
+      redirect_to voltar_para, notice: "#{@arquivo.filename}: #{@arquivo.lado ? "side #{@arquivo.lado_abreviado}" : "no side (serves both)"}."
+    else
+      redirect_to voltar_para, alert: @arquivo.errors.full_messages.to_sentence
+    end
+  end
+
   private
 
   # Only paths of this app (url_from refuses other hosts), else the arte page.
@@ -82,6 +92,7 @@ class ArteArquivosController < ApplicationController
   # cortes when the arte has a molde, else from what was typed.
   def novo_arquivo_da_arte
     novo = @arquivo.arte.novo_arquivo
+    novo.lado = params[:lado].presence
     tamanho = tamanho_escolhido
     return com_tamanho_do_corte(novo, tamanho) if tamanho
 

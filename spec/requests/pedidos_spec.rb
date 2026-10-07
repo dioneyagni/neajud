@@ -513,6 +513,57 @@ RSpec.describe "Pedidos", type: :request do
     end
   end
 
+  # Etapa 1.2 (3/3, parte 3c, decided 06/10/2026): the printer's page.
+  describe "GET /pedidos/:uuid/impressao" do
+    let(:pedido) { create(:pedido) }
+    let(:lateral) { create(:peca, nome: "Lateral") }
+    let!(:item) { item_com_dxf(pedido: pedido, grade: { "30" => 2, "31" => 1 }, partes: [ lateral ]) }
+
+    it "lists per arte each file to print, in pieces, and what is missing" do
+      get impressao_pedido_path(pedido)
+      linhas = Nokogiri::HTML(response.body).css("tr.impressao-linha").map { |tr| [ tr["data-tamanho"], tr["data-estado"], tr.at_css(".corte-total strong").text ] }
+      expect(linhas).to eq([ [ "29-30", "producao", "4 peças" ], [ "31-32", "sem_arquivo", "2 peças" ] ])
+      expect(Nokogiri::HTML(response.body).at_css("a.impressao-baixar")["href"]).to eq(download_arquivo_path(item.arquivo))
+    end
+
+    it "is linked from the pedido page, next to the Corte" do
+      get resumo_pedido_path(pedido)
+      expect(Nokogiri::HTML(response.body).at_css("a.pedido-ir-impressao")["href"]).to eq(impressao_pedido_path(pedido))
+    end
+
+    it "lists a mirrored part's missing side, and the pedido sends that side" do
+      item.arquivo.molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true)
+      item.arquivo.update!(lado: "esquerdo")
+      get impressao_pedido_path(pedido)
+      falta = Nokogiri::HTML(response.body).at_css("tr.impressao-linha[data-estado='sem_lado']")
+      expect([ falta["data-lado"], falta.at_css(".corte-arquivo").text.squish ]).to eq([ "direito", "sem o arquivo DIR" ])
+
+      get resumo_pedido_path(pedido)
+      li = Nokogiri::HTML(response.body).at_css(".pedido-pendencia--sem_lado")
+      expect([ li.at_css("input[name='lado']")["value"], li.at_css(".pedido-peca-enviar-label").text.squish ]).to eq([ "direito", "Enviar arquivo DIR" ])
+    end
+
+    it "zips the files to print under their full names" do
+      version = create(:arquivo_version, arquivo: item.arquivo, approved: true, extension: "tif", original_file: "x.tif")
+      item.arquivo.update!(approved_version_id: version.id)
+      FileUtils.mkdir_p(File.dirname(version.original_path))
+      File.write(version.original_path, "TIFF")
+
+      get baixar_impressao_pedido_path(pedido)
+      expect(response.headers["Content-Disposition"]).to include("Impressao #{pedido.uuid.first(8)}.zip")
+      lidos = Zip::File.open_buffer(StringIO.new(response.body)).entries.to_h { |e| [ e.name, e.get_input_stream.read ] }
+      expect(lidos).to eq("#{item.arquivo.nome_completo(para_arquivo: true)}.tif" => "TIFF")
+    end
+
+    it "goes back to the page, saying why, when a file is missing on disk" do
+      version = create(:arquivo_version, arquivo: item.arquivo, approved: true, extension: "tif", original_file: "sumiu.tif")
+      item.arquivo.update!(approved_version_id: version.id)
+      get baixar_impressao_pedido_path(pedido)
+      expect(response).to redirect_to(impressao_pedido_path(pedido))
+      expect(flash[:alert]).to include("sumiu.tif")
+    end
+  end
+
   describe "pending pieces on the pedido pages" do
     let(:pedido) { create(:pedido) }
 

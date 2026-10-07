@@ -1,0 +1,95 @@
+<%# The printer's Impressão page (Etapa 1.2, 3/3 parte 3c, decided 06/10/2026):
+    per arte, one line per file to print — part, size and side — with the
+    pieces (pairs × the molde part's pieces per pair; a side's file prints
+    half; one file of a mirrored part prints both sides, mirrored). Parts
+    "não corta" are printed too. What is missing is a line to resolve. %>
+<% linhas = @grupos.flat_map(&:linhas) %>
+<% pares = @grupos.sum { |g| g.item.grades.sum(&:quantidade) } %>
+<% pecas = linhas.sum(&:pecas) %>
+<% faltando = linhas.count(&:pendencia) %>
+<% baixa = pode_acao?(:baixar_producao) %>
+
+<%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+
+<div class="corte-cabecalho">
+  <div>
+    <h2>Impressão <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
+    <p class="corte-sub">
+      <%= @pedido.client&.name || "sem cliente" %> ·
+      <%= @grupos.size %> <%= @grupos.size == 1 ? "arte" : "artes" %> ·
+      <span data-impressao="pares"><%= pares %> <%= pares == 1 ? "par" : "pares" %></span> ·
+      <span data-impressao="pecas"><%= pecas %> <%= pecas == 1 ? "peça" : "peças" %></span> ·
+      uma linha por arquivo a imprimir
+    </p>
+  </div>
+  <div class="impressao-acoes">
+    <% if faltando.positive? %>
+      <span class="badge impressao-faltando"><%= faltando == 1 ? "1 arquivo faltando" : "#{faltando} arquivos faltando" %></span>
+    <% end %>
+    <%= link_to "Corte →", corte_pedido_path(@pedido), class: "btn btn-secondary" %>
+    <% if baixa && linhas.any?(&:arquivo) %>
+      <%= link_to "Baixar as artes (.zip)", baixar_impressao_pedido_path(@pedido), class: "btn btn-primary impressao-zip", data: { turbo: false } %>
+    <% end %>
+  </div>
+</div>
+
+<% @grupos.each do |grupo| %>
+  <% arte = grupo.item.arquivo %>
+  <section class="impressao-arte" data-arte="<%= grupo.item.arte&.titulo %>">
+    <div class="impressao-arte-topo">
+      <div>
+        <strong><%= link_to grupo.item.arte&.titulo.presence || arte.filename, arte %></strong>
+        <% pares_da_arte = grupo.item.grades.sum(&:quantidade) %>
+        <div class="corte-sub"><%= pares_da_arte %> <%= pares_da_arte == 1 ? "par" : "pares" %> <%= selo_aprovacao(arte, pedido: @pedido) %></div>
+      </div>
+    </div>
+    <table class="clients-table corte-tabela impressao-tabela">
+      <thead>
+        <tr><th>Arquivo</th><th>Parte · tamanho</th><th>Imprimir</th><th class="corte-baixar">Baixar</th></tr>
+      </thead>
+      <tbody>
+        <% grupo.linhas.each do |linha| %>
+          <tr class="impressao-linha<%= " impressao-linha--falta" if linha.pendencia %>"
+              data-peca="<%= linha.peca&.nome %>" data-tamanho="<%= linha.tamanho&.nome %>" data-lado="<%= linha.lado %>" data-estado="<%= linha.pendencia || linha.origem %>">
+            <td>
+              <% if linha.arquivo %>
+                <%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %>
+              <% else %>
+                <span class="impressao-thumb impressao-thumb--vazia" aria-hidden="true"></span>
+              <% end %>
+            </td>
+            <td>
+              <strong><%= linha.peca&.nome || "Sem peça" %></strong> <span class="corte-tamanho"><%= linha.tamanho&.nome %></span>
+              <% if linha.lado %><span class="impressao-lado"><%= LadoNaArte::ABREVIACOES[linha.lado] %></span><% end %>
+              <% if linha.origem == :piloto %><span class="pedido-parte-piloto" title="Arte pedida só no tamanho do piloto, sem arquivo de produção">piloto (amostra)</span><% end %>
+              <span class="corte-arquivo"><%= arquivo_da_linha_de_impressao(linha) %></span>
+            </td>
+            <td class="corte-total">
+              <strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong>
+              <span class="corte-conta">
+                <% if linha.por_lado %>
+                  <%= linha.por_lado %> direito · <%= linha.por_lado %> esquerdo (espelhar)
+                <% elsif linha.lado %>
+                  <%= linha.pares %> <%= linha.pares == 1 ? "par" : "pares" %>, só o <%= linha.lado %>
+                <% else %>
+                  <%= linha.pares %> <%= linha.pares == 1 ? "par" : "pares" %> × <%= linha.pecas_por_par %>
+                <% end %>
+              </span>
+            </td>
+            <td class="corte-baixar">
+              <% if linha.arquivo %>
+                <%= link_to "Arte", download_arquivo_path(linha.arquivo), class: "btn btn-sm btn-outline impressao-baixar", data: { turbo: false } %>
+              <% else %>
+                <%= link_to "Resolver no pedido", resumo_pedido_path(@pedido) %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>
+
+<% if @grupos.empty? %>
+  <p class="gallery-empty">Nenhuma arte neste pedido.</p>
+<% end %>

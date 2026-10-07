@@ -55,8 +55,11 @@
           <% case estado %>
           <% when :producao, :piloto %>
             <%= link_to arquivo_path(celula.arquivo), title: celula.arquivo.filename, class: "pedido-parte-arquivo" do %>
-              <%= celula.tamanho&.nome %> <%= estado == :piloto ? "piloto" : "✓" %>
+              <%= celula.tamanho&.nome %> <%= estado == :piloto ? "piloto" : "✓" %><%= " DIR ESQ" if celula.lados %>
             <% end %>
+          <% when :sem_lado %>
+            <%# Etapa 1.2 (3/3, parte 3c): one side's file is there, the other's isn't. %>
+            <%= celula.tamanho.nome %> sem <%= LadoNaArte::ABREVIACOES[celula.lado_faltando] %>
           <% when :sem_arquivo %>
             <%= celula.tamanho.nome %> sem arquivo
           <% when :sem_corte %>

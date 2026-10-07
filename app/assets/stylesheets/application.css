@@ -2852,6 +2852,12 @@ li.aprovacao--cancelada {
   font-weight: 600;
 }
 
+.arte-arquivo-lado {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1a4b9c;
+}
+
 .arte-arquivo .arte-separar,
 .arte-arquivo .arte-acao-inline {
   display: inline;
@@ -2956,6 +2962,11 @@ li.aprovacao--cancelada {
 
 .conferencia-tamanho {
   width: 6rem;
+}
+
+/* Etapa 1.2 (3/3, parte 3c): DIR / ESQ of a mirrored part's file. */
+.conferencia-lado {
+  width: 5.5rem;
 }
 
 .conferencia-existentes {

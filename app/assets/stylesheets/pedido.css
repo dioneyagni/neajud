@@ -205,6 +205,7 @@
 }
 
 .pedido-parte-numero--sem_arquivo,
+.pedido-parte-numero--sem_lado,
 .pedido-parte-numero--sem_corte {
   background: #fff1d6;
   color: #7a4500;
@@ -316,7 +317,13 @@
   font-size: 0.82rem;
 }
 
-.pedido-ir-corte {
+.pedido-ir-producao {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pedido-ir-producao .btn {
+  flex: 1;
   text-align: center;
 }
 
@@ -395,4 +402,63 @@
 .corte-linha--sem-dxf td {
   background: #fff8e8;
   color: #7a4500;
+}
+
+/* ── The printer's Impressão page (Etapa 1.2, 3/3 parte 3c) ── */
+
+.impressao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.impressao-faltando {
+  background: #fff1d6;
+  color: #7a4500;
+}
+
+.impressao-arte {
+  margin-bottom: 1rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: #fff;
+  overflow-x: auto;
+}
+
+.impressao-arte-topo {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.impressao-thumb {
+  display: block;
+  width: 96px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+
+.impressao-thumb--vazia {
+  border: 1px dashed #f2d49a;
+  background: #fffbf2;
+}
+
+.impressao-lado {
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: #e8f0fc;
+  color: #1a4b9c;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.impressao-linha--falta td {
+  background: #fff8e8;
+}
+
+.impressao-linha--falta .corte-arquivo {
+  color: #7a4500;
+  font-weight: 600;
 }

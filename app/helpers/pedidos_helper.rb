@@ -24,12 +24,23 @@ module PedidosHelper
   end
 
   # The cell's state, also its CSS modifier: a pendência (sem_corte,
-  # sem_arquivo), where the file comes from (producao, piloto), or — a number
+  # sem_arquivo, sem_lado), where the file comes from (producao, piloto), or — a number
   # not ordered — whether a DXF size serves it (livre) or not (vazio).
   # Usage: estado_da_celula(parte.celula("30")) # => :sem_arquivo
   def estado_da_celula(numero)
     return numero.pendencia || numero.origem if numero.quantidade.positive?
 
     numero.tamanho ? :livre : :vazio
+  end
+
+  # The Impressão page's file column: the file's name, or what is missing.
+  # Usage: arquivo_da_linha_de_impressao(linha) # => "sem o arquivo DIR"
+  def arquivo_da_linha_de_impressao(linha)
+    case linha.pendencia
+    when :sem_lado then "sem o arquivo #{LadoNaArte::ABREVIACOES[linha.lado]}"
+    when :sem_arquivo then "sem arquivo de produção"
+    when :sem_corte then "nenhum corte organizado atende"
+    else "#{linha.arquivo.filename}.#{linha.arquivo.extension}"
+    end
   end
 end
