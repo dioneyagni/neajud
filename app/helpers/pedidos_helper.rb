@@ -52,4 +52,13 @@ module PedidosHelper
 
     "≈ #{number_with_precision(metros, precision: 2, separator: ",")} m de #{material}"
   end
+
+  # Why a Corte line has no expected metragem yet (Etapa 2.2, 1/3).
+  # Usage: falta_de_metragem_do_corte(linha) # => "giro do corte não marcado"
+  def falta_de_metragem_do_corte(linha)
+    return "sem material: sem metragem" unless linha.materia_prima
+    return "giro do corte não marcado" if linha.corte && linha.corte.giro.nil?
+
+    "metragem ainda não calculada"
+  end
 end

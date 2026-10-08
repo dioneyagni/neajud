@@ -133,7 +133,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_134142) do
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
-    t.string "giro", default: "180", null: false
+    t.string "giro"
     t.string "lado"
     t.string "mime_type", null: false
     t.integer "modelo_id"

@@ -4,7 +4,7 @@
 # allows), computed once per
 # width and kept in tamanhos.metros_por_peca, cleared when the size's DXF is
 # extracted again. Reads the DXF PreparacaoTamanhosJob extracted; without
-# it, nothing is computed (nil).
+# it, or while the corte's giro isn't marked, nothing is computed (nil).
 #
 # Usage: EncaixeDoTamanho.call(tamanho, 1400) # => 0.01831
 class EncaixeDoTamanho
@@ -22,7 +22,7 @@ class EncaixeDoTamanho
   def call
     guardado = @tamanho.metros_por_peca_em(@largura_mm)
     return guardado if guardado
-    return nil unless dxf && File.exist?(dxf)
+    return nil unless @tamanho.arquivo.giro && dxf && File.exist?(dxf)
 
     calcular.tap { |metros| guardar(metros) if metros }
   end

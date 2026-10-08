@@ -385,7 +385,10 @@ from the files themselves. 1/3 is done:
   about 70% of the fabric, between the pieces' area and their bounding
   boxes. The turn is the corte's "Giro no encaixe" (`arquivos.giro`,
   `GiroNoEncaixe`, set on the corte page, decided 08/10/2026): `nenhum`,
-  `180` (default) or `90` (0°/90°/180°/270°); changing it redoes the sizes.
+  `180` or `90` (0°/90°/180°/270°), **no default** — whoever uploads the corte
+  marks it (it isn't always the same; some TNS/BT laterals go with the long
+  side along the roll); until then nothing is computed and the card shows
+  "giro não marcado". Changing it redoes the sizes.
   `--svg out.svg` draws the fit to check it by eye. The length is the
   average reach of the strips used (a leftover edge no piece reaches is not
   length). After changing the fit itself: `REFAZER=1 bin/rails

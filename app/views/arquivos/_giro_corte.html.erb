@@ -1,14 +1,21 @@
 <%# How this corte's pieces may turn in the fit that gives each size's
-    meters per piece (Etapa 2.2, 1/3; decided 08/10/2026). %>
+    meters per piece (Etapa 2.2, 1/3; decided 08/10/2026), right above the
+    size list. No <form>: the list is inside the organize form, and a form
+    inside a form breaks it (AGENTS.md "Nested forms gotcha") — the radios
+    save through giro-corte (fetch). %>
 <h3>Giro no encaixe</h3>
 <p class="giro-corte-ajuda">Como as peças podem girar no tecido ao calcular o consumo de cada tamanho.</p>
-<%= form_with url: update_giro_arquivo_path(arquivo), method: :patch, class: "giro-corte", data: { controller: "auto-submit", turbo: false } do %>
+<% if arquivo.giro.nil? %>
+  <p class="giro-corte-pendente">⚠ Giro não marcado: o consumo dos tamanhos só é calculado depois de marcar.</p>
+<% end %>
+<div class="giro-corte" data-controller="giro-corte" data-giro-corte-url-value="<%= update_giro_arquivo_path(arquivo) %>">
   <fieldset class="tipo-corte-fieldset" <%= "disabled" unless pode_editar_arquivo?(arquivo) %>>
     <% GiroNoEncaixe::GIROS.each do |giro, rotulo| %>
       <label class="tipo-corte-radio">
-        <input type="radio" name="giro" value="<%= giro %>" <%= "checked" if arquivo.giro == giro %> data-action="change->auto-submit#submit">
+        <input type="radio" name="giro_no_encaixe" value="<%= giro %>" <%= "checked" if arquivo.giro == giro %> data-action="change->giro-corte#salvar">
         <span><%= rotulo %></span>
       </label>
     <% end %>
   </fieldset>
-<% end %>
+  <p class="giro-corte-erro" data-giro-corte-target="erro" hidden></p>
+</div>

@@ -494,7 +494,7 @@ RSpec.describe "Pedidos", type: :request do
     it "shows each line's expected metragem on the item's material, and the total" do
       material = MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Tactel"), cor_material: CorMaterial.create!(nome: "Azul"), largura: "1.40 m", gramatura: "80g")
       item.update!(materia_prima: material)
-      Tamanho.find_by!(nome: "29-30").update!(metros_por_peca: { "1400" => 0.02 })
+      Tamanho.find_by!(nome: "29-30").tap { |t| t.update!(metros_por_peca: { "1400" => 0.02 }) }.arquivo.update!(giro: "180")
       get corte_pedido_path(pedido)
       html = Nokogiri::HTML(response.body)
       expect(html.at_css("tr.corte-linha[data-tamanho='29-30'] .corte-metros").text.squish).to eq("≈ 0,08 m de tecido")

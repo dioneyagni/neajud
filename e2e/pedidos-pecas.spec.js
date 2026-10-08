@@ -451,20 +451,22 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     });
 
     // Etapa 2.2 (1/3, decided 08/10/2026): each corte says how its pieces may
-    // turn in the fit that gives its consumption (180° by default).
+    // turn in the fit that gives its consumption. No default — whoever
+    // uploads it marks it; until then the page and the card warn, and the
+    // sizes have no consumption.
     await test("The corte page sets how its pieces may turn in the fit: não pode girar | 180° | 90°", async () => {
       await page.goto(`${BASE_URL}/arquivos/${cortes.lateral}`);
-      const marcado = () => page.locator("form.giro-corte input[name=giro]:checked").getAttribute("value");
-      if ((await marcado()) !== "180") throw new Error(`A corte starts at 180°, got ${await marcado()}`);
-      // Each size lists its pieces per meter of fabric (on the widths of the
-      // materials registered by earlier specs), or says it isn't computed yet.
-      const consumo = (await page.locator(".tamanho-list--readonly .tamanho-consumo").first().innerText()).trim();
-      if (!/^(\d,\d\d m: \d+,\d peças\/m( · )?)+$|^consumo ainda não calculado$/.test(consumo)) throw new Error(`Size consumption: "${consumo}"`);
-      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('form.giro-corte label:has-text("90°")').click() ]);
+      const marcado = () => page.locator(".giro-corte input[name=giro_no_encaixe]:checked").count();
+      if ((await marcado()) !== 0) throw new Error("A corte starts with no turn marked");
+      await page.locator(".giro-corte-pendente", { hasText: "Giro não marcado" }).waitFor();
+      const semGiro = (await page.locator(".tamanho-list--readonly .tamanho-consumo").first().innerText()).trim();
+      if (semGiro !== "giro não marcado: sem consumo") throw new Error(`Size consumption without a turn: "${semGiro}"`);
+      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('.giro-corte label:has-text("90°")').click() ]);
       await page.getByText("Giro no encaixe: 90°.").waitFor();
       await page.reload();
-      if ((await marcado()) !== "90") throw new Error("The 90° choice should be saved");
-      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('form.giro-corte label:has-text("180°")').click() ]);
+      if ((await page.locator(".giro-corte input[name=giro_no_encaixe]:checked").getAttribute("value")) !== "90") throw new Error("The 90° choice should be saved");
+      if (await page.locator(".giro-corte-pendente").count()) throw new Error("The warning should go once the turn is marked");
+      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('.giro-corte label:has-text("180°")').click() ]);
       await page.getByText("Giro no encaixe: 180°.").waitFor();
     });
 

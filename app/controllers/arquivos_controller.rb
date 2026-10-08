@@ -188,15 +188,16 @@ class ArquivosController < ApplicationController
   end
 
   # How the corte's pieces may turn in the fit (Etapa 2.2, 1/3): saving it
-  # recomputes the sizes' meters per piece in the background.
+  # recomputes the sizes' meters per piece in the background. JSON from the
+  # corte page's radios (giro-corte), which reload the page after.
   # Usage: PATCH /arquivos/:uuid/update_giro (giro: "nenhum" | "180" | "90")
   def update_giro
-    return redirect_to @arquivo, alert: "Only a corte has a turn in the fit." unless @arquivo.corte?
+    return responder_giro(false, "Only a corte has a turn in the fit.") unless @arquivo.corte?
 
     @arquivo.definir_giro!(params[:giro])
-    redirect_to @arquivo, notice: "Giro no encaixe: #{GiroNoEncaixe::GIROS[@arquivo.giro]}. Recalculando o consumo dos tamanhos."
+    responder_giro(true, "Giro no encaixe: #{GiroNoEncaixe::GIROS[@arquivo.giro]}. Recalculando o consumo dos tamanhos.")
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to @arquivo, alert: e.record.errors.full_messages.to_sentence
+    responder_giro(false, e.record.errors.full_messages.to_sentence)
   end
 
   def update_time
@@ -343,6 +344,15 @@ class ArquivosController < ApplicationController
   end
 
   private
+
+  # The flash survives the JSON answer: the page reloads and shows it.
+  def responder_giro(ok, mensagem)
+    flash[ok ? :notice : :alert] = mensagem
+    respond_to do |format|
+      format.json { render json: ok ? { ok: true, giro: @arquivo.giro } : { ok: false, error: mensagem }, status: ok ? :ok : :unprocessable_content }
+      format.html { redirect_to @arquivo }
+    end
+  end
 
   def composicao_slot_json(slot)
     arte = slot.arquivo

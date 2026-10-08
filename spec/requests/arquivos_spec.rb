@@ -488,10 +488,12 @@ RSpec.describe "Arquivos", type: :request do
   # Etapa 2.2 (1/3, decided 08/10/2026): the corte page's "Giro no encaixe".
   describe "PATCH /arquivos/:id/update_giro" do
     it "saves how the corte's pieces may turn, from the corte page" do
-      corte = create(:arquivo, :corte)
+      corte = create(:arquivo, :corte, organized: true)
       get arquivo_path(corte)
-      expect(Nokogiri::HTML(response.body).css("form.giro-corte input[name=giro]").map { |r| [ r["value"], r.key?("checked") ] })
-        .to eq([ [ "nenhum", false ], [ "180", true ], [ "90", false ] ])
+      html = Nokogiri::HTML(response.body)
+      expect(html.css(".giro-corte input[name=giro_no_encaixe]").map { |r| [ r["value"], r.key?("checked") ] })
+        .to eq([ [ "nenhum", false ], [ "180", false ], [ "90", false ] ])
+      expect(html.at_css(".giro-corte-pendente").text).to include("Giro não marcado")
       patch update_giro_arquivo_path(corte), params: { giro: "90" }
       expect([ corte.reload.giro, flash[:notice] ]).to eq([ "90", "Giro no encaixe: 90°. Recalculando o consumo dos tamanhos." ])
     end
@@ -503,10 +505,35 @@ RSpec.describe "Arquivos", type: :request do
       expect(Nokogiri::HTML(response.body).at_css(".tamanho-list--readonly .tamanho-consumo").text.squish).to eq("1,40 m: 50,0 peças/m")
     end
 
+    # The radios sit inside the organize form: a <form> of their own would
+    # close it (AGENTS.md "Nested forms gotcha"); they save by fetch, as JSON.
+    it "is right above the size list, inside the organize form without a form of its own, and answers JSON" do
+      corte = create(:arquivo, :corte, organized: true)
+      create(:tamanho, arquivo: corte)
+      get arquivo_path(corte)
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css("form.mold-organization-form #giro-corte-section form")).to be_nil
+      expect(html.at_css("#giro-corte-section").next_element["class"]).to include("tamanho-list--readonly")
+      patch update_giro_arquivo_path(corte), params: { giro: "180" }, as: :json
+      expect([ response.parsed_body, flash[:notice] ]).to eq([ { "ok" => true, "giro" => "180" }, "Giro no encaixe: 180°. Recalculando o consumo dos tamanhos." ])
+      patch update_giro_arquivo_path(corte), params: { giro: "45" }, as: :json
+      expect([ response.status, response.parsed_body["error"] ]).to eq([ 422, "Giro 45 is not a turn; expected nenhum, 180 or 90" ])
+    end
+
+    # Decided 08/10/2026: an organized corte warns until its turn is marked.
+    it "warns on the gallery card until the turn is marked" do
+      corte = create(:arquivo, :corte, organized: true)
+      get arquivos_path
+      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.id} img[alt='Giro não marcado']")).to be_present
+      corte.update!(giro: "90")
+      get arquivos_path
+      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.id} img[alt='Giro não marcado']")).to be_nil
+    end
+
     it "refuses a turn that isn't one, and an arte" do
       corte = create(:arquivo, :corte)
       patch update_giro_arquivo_path(corte), params: { giro: "45" }
-      expect([ corte.reload.giro, flash[:alert] ]).to eq([ "180", "Giro 45 is not a turn; expected nenhum, 180 or 90" ])
+      expect([ corte.reload.giro, flash[:alert] ]).to eq([ nil, "Giro 45 is not a turn; expected nenhum, 180 or 90" ])
       patch update_giro_arquivo_path(create(:arquivo)), params: { giro: "90" }
       expect(flash[:alert]).to eq("Only a corte has a turn in the fit.")
     end

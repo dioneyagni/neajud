@@ -52,7 +52,7 @@
                 <span class="corte-conta"><%= linha.espelhada ? "#{linha.por_lado} direito · #{linha.por_lado} esquerdo" : "#{linha.pares} #{linha.pares == 1 ? "par" : "pares"} × #{linha.pecas_por_par}" %></span>
                 <%# Etapa 2.2 (1/3): what the baixa will be checked against. %>
                 <span class="corte-conta corte-metros" data-metros="<%= linha.metros_esperados %>">
-                  <%= metragem_esperada(linha.metros_esperados, "tecido", falta: linha.materia_prima ? "metragem ainda não calculada" : "sem material: sem metragem") %>
+                  <%= metragem_esperada(linha.metros_esperados, "tecido", falta: falta_de_metragem_do_corte(linha)) %>
                 </span>
               </td>
               <td class="corte-baixar">

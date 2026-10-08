@@ -2,9 +2,9 @@ require "rails_helper"
 
 # Etapa 2.2 (1/3, decided 08/10/2026): how a corte's pieces may turn in the fit.
 RSpec.describe GiroNoEncaixe do
-  it "is 180° by default and takes only nenhum, 180 or 90, naming a wrong value" do
+  it "starts unmarked and takes only nenhum, 180 or 90, naming a wrong value" do
     corte = create(:arquivo, :corte)
-    expect(corte.giro).to eq("180")
+    expect([ corte.giro, corte.valid? ]).to eq([ nil, true ])
     corte.giro = "45"
     expect(corte).not_to be_valid
     expect(corte.errors[:giro].first).to include("45 is not a turn")

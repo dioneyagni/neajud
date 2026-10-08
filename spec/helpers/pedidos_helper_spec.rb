@@ -61,4 +61,17 @@ RSpec.describe PedidosHelper, type: :helper do
       expect(textos).to eq([ "lat-esq.tif", "sem o arquivo DIR", "sem arquivo de produção", "nenhum corte organizado atende" ])
     end
   end
+
+  describe "#falta_de_metragem_do_corte" do
+    linha = ProducaoPedidoService::Linha
+
+    it "says why a Corte line has no expected metragem" do
+      corte = build(:arquivo, :corte)
+      tamanho = build(:tamanho, arquivo: corte)
+      textos = [ linha.new(tamanho: tamanho), linha.new(tamanho: tamanho, materia_prima: MateriaPrima.new) ].map { |l| helper.falta_de_metragem_do_corte(l) }
+      corte.giro = "180"
+      textos << helper.falta_de_metragem_do_corte(linha.new(tamanho: tamanho, materia_prima: MateriaPrima.new))
+      expect(textos).to eq([ "sem material: sem metragem", "giro do corte não marcado", "metragem ainda não calculada" ])
+    end
+  end
 end

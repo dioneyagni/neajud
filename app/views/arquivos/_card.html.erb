@@ -42,6 +42,11 @@
         <% if arquivo.extension == "dxf" && !arquivo.organized? %>
           <%= image_tag "icons/status/not-organized.svg", class: "stamp-card-status-icon", alt: "Not Organized" %>
         <% end %>
+        <%# Etapa 2.2 (1/3, decided 08/10/2026): whoever uploads the corte marks
+            how its pieces turn; until then its consumption isn't computed. %>
+        <% if arquivo.corte? && arquivo.organized? && arquivo.giro.nil? %>
+          <%= image_tag "icons/status/no-giro.svg", class: "stamp-card-status-icon", alt: "Giro não marcado", title: "Giro no encaixe não marcado" %>
+        <% end %>
         <% if arquivo.organize_error.present? %>
           <%= image_tag "icons/status/stacked-cuts.svg", class: "stamp-card-status-icon", alt: "Stacked Cuts" %>
         <% end %>

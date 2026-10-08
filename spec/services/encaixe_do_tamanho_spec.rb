@@ -3,7 +3,7 @@ require "rails_helper"
 # Etapa 2.2 (1/3, decided 07/10/2026): meters of roll per piece, from a simple
 # nesting of the size's DXF (bin/encaixe-dxf.js), kept per width.
 RSpec.describe EncaixeDoTamanho do
-  let(:corte) { create(:arquivo, :corte, extension: "dxf") }
+  let(:corte) { create(:arquivo, :corte, extension: "dxf", giro: "180") }
   let(:version) { create(:arquivo_version, arquivo: corte, approved: true, extension: "dxf") }
   let(:tamanho) { create(:tamanho, arquivo: corte, nome: "29-30", position: 1) }
 
@@ -28,6 +28,14 @@ RSpec.describe EncaixeDoTamanho do
   it "turns a piece 180° to fit it into the previous one" do
     desenhar([ 0, 0 ], [ 100, 0 ], [ 0, 100 ])
     expect(described_class.call(tamanho, 1400)).to be < 0.1 / 14 * 0.7
+  end
+
+  # Decided 08/10/2026: no default turn; until it is marked, nothing is computed.
+  it "computes nothing while the corte's giro isn't marked" do
+    desenhar([ 0, 0 ], [ 100, 0 ], [ 100, 100 ], [ 0, 100 ])
+    corte.update!(giro: nil)
+    expect(Open3).not_to receive(:capture3)
+    expect(described_class.call(tamanho, 1400)).to be_nil
   end
 
   it "keeps a width already computed without running Node again" do

@@ -3144,3 +3144,27 @@ li.aprovacao--cancelada {
   font-size: 0.8rem;
   color: #1a4b9c;
 }
+
+.giro-corte-pendente {
+  color: #8e44ad;
+  font-weight: 600;
+}
+
+.giro-corte-bloco {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafbfc;
+}
+
+.giro-corte-bloco h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.giro-corte-bloco .tipo-corte-fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
