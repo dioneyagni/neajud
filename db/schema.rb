@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_183332) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_134142) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -133,6 +133,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_183332) do
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
+    t.string "giro", default: "180", null: false
     t.string "lado"
     t.string "mime_type", null: false
     t.integer "modelo_id"

@@ -84,6 +84,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     const ligado = await postForm(`/arquivos/${uuid}/add_molde`, [[ "molde_uuid", molde.moldeId ]]);
     if (organizado >= 400 || ligado >= 400) throw new Error(`DXF ${label}: organize HTTP ${organizado}, add_molde HTTP ${ligado}`);
     await waitForQueuedTask(page, `/arquivos/${uuid}/preparacao_tamanhos.json`);
+    return uuid;
   }
 
   function cardFor(file) {
@@ -216,6 +217,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
 
   let molde;
   let pedidoUuid;
+  const cortes = {};
   const lateralFile = makeArte("lateral", "red");
   const linguaFile = makeArte("lingua", "blue");
   const loneFile = makeArte("lone", "green");
@@ -226,7 +228,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
   try {
     await test("Setup: molde with Lateral + Língua, each with its organized DXF, and a Lateral arte of 29-30", async () => {
       molde = await setupMolde();
-      await corteOrganizado("lateral", molde.pecaIds.lateral);
+      cortes.lateral = await corteOrganizado("lateral", molde.pecaIds.lateral);
       await corteOrganizado("lingua", molde.pecaIds.lingua);
       await uploadArte(lateralFile, molde.moldeId, molde.pecaIds.lateral);
     });
@@ -446,6 +448,24 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/corte`);
       const corte = (await linhaDoCorte(names.lateral).first().locator(".corte-metros").innerText()).trim();
       if (corte !== "sem material: sem metragem") throw new Error(`Corte without material: "${corte}"`);
+    });
+
+    // Etapa 2.2 (1/3, decided 08/10/2026): each corte says how its pieces may
+    // turn in the fit that gives its consumption (180° by default).
+    await test("The corte page sets how its pieces may turn in the fit: não pode girar | 180° | 90°", async () => {
+      await page.goto(`${BASE_URL}/arquivos/${cortes.lateral}`);
+      const marcado = () => page.locator("form.giro-corte input[name=giro]:checked").getAttribute("value");
+      if ((await marcado()) !== "180") throw new Error(`A corte starts at 180°, got ${await marcado()}`);
+      // Each size lists its pieces per meter of fabric (on the widths of the
+      // materials registered by earlier specs), or says it isn't computed yet.
+      const consumo = (await page.locator(".tamanho-list--readonly .tamanho-consumo").first().innerText()).trim();
+      if (!/^(\d,\d\d m: \d+,\d peças\/m( · )?)+$|^consumo ainda não calculado$/.test(consumo)) throw new Error(`Size consumption: "${consumo}"`);
+      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('form.giro-corte label:has-text("90°")').click() ]);
+      await page.getByText("Giro no encaixe: 90°.").waitFor();
+      await page.reload();
+      if ((await marcado()) !== "90") throw new Error("The 90° choice should be saved");
+      await Promise.all([ page.waitForURL(`**/arquivos/${cortes.lateral}`), page.locator('form.giro-corte label:has-text("180°")').click() ]);
+      await page.getByText("Giro no encaixe: 180°.").waitFor();
     });
 
     // Decided 07/10/2026: a file without side serves both sides; once one

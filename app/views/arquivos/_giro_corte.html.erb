@@ -1,0 +1,14 @@
+<%# How this corte's pieces may turn in the fit that gives each size's
+    meters per piece (Etapa 2.2, 1/3; decided 08/10/2026). %>
+<h3>Giro no encaixe</h3>
+<p class="giro-corte-ajuda">Como as peças podem girar no tecido ao calcular o consumo de cada tamanho.</p>
+<%= form_with url: update_giro_arquivo_path(arquivo), method: :patch, class: "giro-corte", data: { controller: "auto-submit", turbo: false } do %>
+  <fieldset class="tipo-corte-fieldset" <%= "disabled" unless pode_editar_arquivo?(arquivo) %>>
+    <% GiroNoEncaixe::GIROS.each do |giro, rotulo| %>
+      <label class="tipo-corte-radio">
+        <input type="radio" name="giro" value="<%= giro %>" <%= "checked" if arquivo.giro == giro %> data-action="change->auto-submit#submit">
+        <span><%= rotulo %></span>
+      </label>
+    <% end %>
+  </fieldset>
+<% end %>

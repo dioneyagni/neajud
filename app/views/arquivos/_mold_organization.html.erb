@@ -125,6 +125,10 @@
               · <abbr title="Perimeter">P</abbr> <%= number_with_delimiter(t.perimeter_mm&.round(1)) %> mm
               · <abbr title="Total line (perimeter + inner lines)">L</abbr> <%= number_with_delimiter(t.total_line_mm&.round(1)) %> mm
             </span>
+            <%# Etapa 2.2 (1/3): pieces per meter of each fabric width, from the fit. %>
+            <span class="tamanho-consumo" title="Peças por metro de tecido em cada largura cadastrada (giro: <%= GiroNoEncaixe::GIROS[arquivo.giro] %>)">
+              <%= pecas_por_metro_do_tamanho(t) || "consumo ainda não calculado" %>
+            </span>
             <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf", data: { turbo: false } %>
           </div>
         <% end %>

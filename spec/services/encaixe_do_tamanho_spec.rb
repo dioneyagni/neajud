@@ -41,4 +41,33 @@ RSpec.describe EncaixeDoTamanho do
     expect(described_class.call(tamanho, 1400)).to be_nil
     expect(described_class.call(create(:tamanho, arquivo: corte, position: 2), 1400)).to be_nil
   end
+
+  # Decided 08/10/2026: each corte says how its pieces may turn in the fit.
+  describe "the corte's giro" do
+    it "turns a piece 90° when allowed: 300 × 100 mm on a 450 mm roll" do
+      desenhar([ 0, 0 ], [ 300, 0 ], [ 300, 100 ], [ 0, 100 ])
+      corte.update!(giro: "nenhum")
+      sem_giro = described_class.call(tamanho, 450)
+      tamanho.update!(metros_por_peca: {})
+      corte.update!(giro: "90")
+      # As drawn, one across (0,1 m each); turned, four of 100 mm across (0,075 m).
+      expect([ sem_giro, described_class.call(tamanho, 450) ]).to match([ be_within(0.002).of(0.1), be_within(0.002).of(0.075) ])
+    end
+
+    it "fits a piece wider than the roll only when it may turn 90°" do
+      desenhar([ 0, 0 ], [ 500, 0 ], [ 500, 100 ], [ 0, 100 ])
+      expect(described_class.call(tamanho, 400)).to be_nil
+      corte.update!(giro: "90")
+      expect(described_class.call(tamanho, 400)).to be_within(0.003).of(0.125)
+    end
+  end
+
+  # To check a fit by eye (the decision of 08/10/2026 was made on these drawings).
+  it "draws the fit with --svg" do
+    desenhar([ 0, 0 ], [ 100, 0 ], [ 0, 100 ])
+    svg = File.join(version.storage_dir, "encaixe.svg")
+    _, _, status = Open3.capture3("node", described_class::SCRIPT, tamanho.dxf_extraido_path(version), "1400", "--svg", svg)
+    desenho = File.read(svg)
+    expect([ status.success?, desenho.start_with?("<svg"), desenho.scan("<polygon").size > 100 ]).to eq([ true, true, true ])
+  end
 end

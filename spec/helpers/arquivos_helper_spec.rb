@@ -40,4 +40,12 @@ RSpec.describe ArquivosHelper, type: :helper do
       expect(helper.consumo_de_papel(create(:arquivo), 1600)).to be_nil
     end
   end
+
+  describe "#pecas_por_metro_do_tamanho" do
+    it "lists pieces per meter on each fitted width, nil while none was computed" do
+      expect(helper.pecas_por_metro_do_tamanho(build(:tamanho, metros_por_peca: { "1600" => 0.01551, "1250" => 0.01971 })))
+        .to eq("1,25 m: 50,7 peças/m · 1,60 m: 64,5 peças/m")
+      expect(helper.pecas_por_metro_do_tamanho(build(:tamanho))).to be_nil
+    end
+  end
 end

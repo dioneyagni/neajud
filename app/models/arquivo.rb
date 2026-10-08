@@ -6,6 +6,7 @@ class Arquivo < ApplicationRecord
   include MembroDeArte
   include PapelNaArte
   include LadoNaArte
+  include GiroNoEncaixe
 
   has_many :arquivo_time_logs, dependent: :destroy
   has_many :arquivo_versions, dependent: :destroy

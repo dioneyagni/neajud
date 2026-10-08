@@ -53,6 +53,9 @@
         <div id="tipo-corte-section" class="stamp-detail-section stamp-detail-section--full">
           <%= render "tipo_corte", arquivo: @arquivo %>
         </div>
+        <div id="giro-corte-section" class="stamp-detail-section stamp-detail-section--full">
+          <%= render "giro_corte", arquivo: @arquivo %>
+        </div>
       <% end %>
 
       <% if @arquivo.category == "artes" %>

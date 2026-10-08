@@ -62,6 +62,7 @@ Rails.application.routes.draw do
       patch :update_molde
       patch :update_tamanho
       patch :update_tipo_corte
+      patch :update_giro
       post :add_molde
       delete :remove_molde
       get :preview

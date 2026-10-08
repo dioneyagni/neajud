@@ -485,6 +485,33 @@ RSpec.describe "Arquivos", type: :request do
     end
   end
 
+  # Etapa 2.2 (1/3, decided 08/10/2026): the corte page's "Giro no encaixe".
+  describe "PATCH /arquivos/:id/update_giro" do
+    it "saves how the corte's pieces may turn, from the corte page" do
+      corte = create(:arquivo, :corte)
+      get arquivo_path(corte)
+      expect(Nokogiri::HTML(response.body).css("form.giro-corte input[name=giro]").map { |r| [ r["value"], r.key?("checked") ] })
+        .to eq([ [ "nenhum", false ], [ "180", true ], [ "90", false ] ])
+      patch update_giro_arquivo_path(corte), params: { giro: "90" }
+      expect([ corte.reload.giro, flash[:notice] ]).to eq([ "90", "Giro no encaixe: 90°. Recalculando o consumo dos tamanhos." ])
+    end
+
+    it "shows each size's pieces per meter of fabric in the size list" do
+      corte = create(:arquivo, :corte, organized: true)
+      create(:tamanho, arquivo: corte, nome: "29-30", metros_por_peca: { "1400" => 0.02 })
+      get arquivo_path(corte)
+      expect(Nokogiri::HTML(response.body).at_css(".tamanho-list--readonly .tamanho-consumo").text.squish).to eq("1,40 m: 50,0 peças/m")
+    end
+
+    it "refuses a turn that isn't one, and an arte" do
+      corte = create(:arquivo, :corte)
+      patch update_giro_arquivo_path(corte), params: { giro: "45" }
+      expect([ corte.reload.giro, flash[:alert] ]).to eq([ "180", "Giro 45 is not a turn; expected nenhum, 180 or 90" ])
+      patch update_giro_arquivo_path(create(:arquivo)), params: { giro: "90" }
+      expect(flash[:alert]).to eq("Only a corte has a turn in the fit.")
+    end
+  end
+
   describe "POST /arquivos/:id/upload_version" do
     it "uploads a new version and redirects" do
       arquivo = create(:arquivo, extension: "tif")

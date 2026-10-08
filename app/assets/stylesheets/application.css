@@ -3138,3 +3138,9 @@ li.aprovacao--cancelada {
   color: #1a4b9c;
   white-space: nowrap;
 }
+
+/* Etapa 2.2 (1/3): pieces per meter of a DXF size, in the corte's size list. */
+.tamanho-consumo {
+  font-size: 0.8rem;
+  color: #1a4b9c;
+}
