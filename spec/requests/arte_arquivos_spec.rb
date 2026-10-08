@@ -72,6 +72,17 @@ RSpec.describe "Arte files", type: :request do
     end
   end
 
+  # Etapa 2.2 (1/3): each file shows how much paper one piece takes.
+  it "shows each file's paper per piece on the paper's width" do
+    arquivo = create(:arquivo)
+    version = create(:arquivo_version, arquivo: arquivo)
+    ArquivoImageMetadata.create!(arquivo_version: version, width_px: 3000, height_px: 600, dpi: 300)
+    arquivo.update!(approved_version: version)
+    get arquivo_path(arquivo)
+    consumo = Nokogiri::HTML(response.body).at_css(".arte-arquivo[data-arquivo-uuid='#{arquivo.uuid}'] .arte-arquivo-consumo")
+    expect([ consumo.text, consumo["title"] ]).to eq([ "118,1 por metro · 0,85% do metro", "On the 1600 mm paper (Parâmetros), without turning the arte" ])
+  end
+
   describe "POST acrescentar" do
     it "adds a file of the molde's part and size to the arte, sharing its fields" do
       peca = create(:peca)

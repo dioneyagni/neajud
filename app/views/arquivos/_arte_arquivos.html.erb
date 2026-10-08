@@ -3,6 +3,7 @@
     or together by mistake (decided 02/10/2026; with previews 05/10/2026). Each
     part's piloto (the editable master) comes first (parte 2b, 05/10/2026). %>
 <% partes = arquivo.arte.arquivos_por_parte %>
+<% largura_papel = Empresa.atual&.largura_papel_mm %>
 <% total = partes.values.sum(&:size) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="arte-arquivos">
   <h3>Files of this arte <span class="badge-count"><%= total %></span></h3>
@@ -36,6 +37,10 @@
               <span class="arte-arquivo-nome"><%= membro.filename %>.<%= membro.extension %> (this file)</span>
             <% else %>
               <%= link_to "#{membro.filename}.#{membro.extension}", arquivo_path(membro), class: "arte-arquivo-nome" %>
+            <% end %>
+            <%# Etapa 2.2 (1/3): how much paper one printed piece takes. %>
+            <% if (consumo = consumo_de_papel(membro, largura_papel)) %>
+              <span class="arte-arquivo-consumo" title="On the <%= largura_papel %> mm paper (Parâmetros), without turning the arte"><%= consumo %></span>
             <% end %>
             <% if membro.piloto? %>
               <span class="arte-arquivo-peso"><%= [ membro.rotulo_de_tamanho, peso_do_arquivo(membro) ].compact.join(" · ") %></span>

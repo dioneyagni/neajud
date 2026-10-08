@@ -106,4 +106,16 @@ module ArquivosHelper
     tamanhos = partes.map { |peca, lista| [ peca&.nome || "No part", lista.map { |a| a.rotulo_de_tamanho || "?" }.join(", ") ].join(" ") }
     "#{total} files · #{tamanhos.join(" · ")}"
   end
+
+  # How much paper one printed piece of this file takes on the paper's width
+  # (Etapa 2.2, 1/3): pieces per meter and the share of a meter; nil without
+  # the file's size/DPI or when it doesn't fit the roll.
+  # Usage: consumo_de_papel(arquivo, 1600) # => "40,8 por metro · 2,45% do metro"
+  def consumo_de_papel(arquivo, largura_mm)
+    metros = largura_mm && arquivo.approved_version&.metros_por_peca(largura_mm)
+    return nil unless metros
+
+    por_metro = number_with_precision(1 / metros, precision: 1, separator: ",")
+    "#{por_metro} por metro · #{number_with_precision(metros * 100, precision: 2, separator: ",")}% do metro"
+  end
 end

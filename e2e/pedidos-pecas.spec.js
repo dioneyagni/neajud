@@ -436,6 +436,13 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       await salvar(1600);
       if (!(estreito > larguraPadrao)) throw new Error(`A 200 mm roll should take more paper: ${estreito} vs ${larguraPadrao}`);
 
+      // The arte page shows the same: how much paper one piece of each file
+      // takes (a 15,24 cm arte: ten across 1,60 m, 15,24 mm of paper each).
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
+      await page.goto(`${BASE_URL}${await (await celula(0, names.lateral, "30")).locator("a").getAttribute("href")}`);
+      const consumo = (await page.locator(".arte-arquivo--atual .arte-arquivo-consumo").innerText()).trim();
+      if (!/^65,6 por metro · 1,52% do metro$/.test(consumo)) throw new Error(`Paper per piece on the arte page: "${consumo}"`);
+
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/corte`);
       const corte = (await linhaDoCorte(names.lateral).first().locator(".corte-metros").innerText()).trim();
       if (corte !== "sem material: sem metragem") throw new Error(`Corte without material: "${corte}"`);

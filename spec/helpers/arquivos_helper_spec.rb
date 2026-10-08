@@ -29,4 +29,15 @@ RSpec.describe ArquivosHelper, type: :helper do
         .to eq([ "29-30", "33-34", "", "Size 1" ])
     end
   end
+
+  # Etapa 2.2 (1/3): paper per printed piece, on the arte page.
+  describe "#consumo_de_papel" do
+    it "gives pieces per meter and the share of a meter, nil without the file's size" do
+      version = create(:arquivo_version)
+      ArquivoImageMetadata.create!(arquivo_version: version, width_px: 3000, height_px: 600, dpi: 300)
+      arquivo = version.arquivo.tap { |a| a.update!(approved_version: version) }
+      expect(helper.consumo_de_papel(arquivo, 1600)).to eq("118,1 por metro · 0,85% do metro")
+      expect(helper.consumo_de_papel(create(:arquivo), 1600)).to be_nil
+    end
+  end
 end
