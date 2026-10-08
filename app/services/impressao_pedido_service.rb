@@ -9,7 +9,9 @@
 #
 # Usage: ImpressaoPedidoService.call(pedido).first.linhas.first.pecas # => 20
 class ImpressaoPedidoService
-  Linha = Struct.new(:peca, :tamanho, :arquivo, :lado, :origem, :pendencia, :quantidades, :pecas_por_par, :espelhada, keyword_init: true) do
+  # corta: the molde part goes to the cutting table (Etapa 2.2, 2/3: the
+  # Estamparia waits for its Corte line only then).
+  Linha = Struct.new(:peca, :tamanho, :arquivo, :lado, :origem, :pendencia, :quantidades, :pecas_por_par, :espelhada, :corta, keyword_init: true) do
     def pares
       quantidades.values.sum
     end
@@ -71,7 +73,7 @@ class ImpressaoPedidoService
     chave = [ parte.peca&.id, numero.tamanho&.id, arquivo&.id, lado, pendencia ]
     linha = linhas[chave] ||= Linha.new(peca: parte.peca, tamanho: numero.tamanho, arquivo: arquivo, lado: lado,
                                         origem: (numero.origem || :producao if arquivo), pendencia: pendencia, quantidades: Hash.new(0),
-                                        pecas_por_par: parte.config[:pecas_por_par], espelhada: parte.config[:espelhada])
+                                        pecas_por_par: parte.config[:pecas_por_par], espelhada: parte.config[:espelhada], corta: parte.config[:needs_cut])
     linha.quantidades[numero.numero] += numero.quantidade
   end
 end

@@ -1,9 +1,9 @@
 class PedidosController < ApplicationController
-  exige :pedidos, :ver, only: %i[index show resumo corte impressao]
+  exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
   def index
@@ -178,6 +178,8 @@ class PedidosController < ApplicationController
   # DXF size, its drawing, the pieces to cut and the DXF.
   def corte
     @linhas = @pedido.pecas_para_produzir
+    @etapa = EtapasProducao.etapa(@pedido.tipo, "corte")
+    @situacoes = RegistrarBaixaService.situacao(@pedido, "corte")
   end
 
   # Every DXF size of the Corte page in one .zip, named by part and size.
@@ -195,6 +197,8 @@ class PedidosController < ApplicationController
   # line per file to print, in pieces.
   def impressao
     @grupos = ImpressaoPedidoService.call(@pedido)
+    @etapa = EtapasProducao.etapa(@pedido.tipo, "impressao")
+    @situacoes = RegistrarBaixaService.situacao(@pedido, "impressao")
   end
 
   # Every file of the Impressão page in one .zip, under its full name — built
@@ -207,6 +211,21 @@ class PedidosController < ApplicationController
     send_file destino, type: "application/zip", disposition: "attachment", filename: "Impressao #{@pedido.uuid.first(8)}.zip"
   rescue Errno::ENOENT => e
     redirect_to impressao_pedido_path(@pedido), alert: "Não foi possível montar o zip: #{e.message}"
+  end
+
+  # The page of a production stage that has none of its own (Etapa 2.2,
+  # 2/3): Estamparia and Conferência, on the Impressão's lines. Impressão and
+  # Corte keep their pages.
+  # Usage: GET /pedidos/:uuid/etapas/estamparia
+  def etapa
+    @etapa = EtapasProducao.etapa(@pedido.tipo, params[:etapa])
+    return redirect_to impressao_pedido_path(@pedido) if @etapa.chave == "impressao"
+    return redirect_to corte_pedido_path(@pedido) if @etapa.chave == "corte"
+
+    @grupos = ImpressaoPedidoService.call(@pedido)
+    @situacoes = RegistrarBaixaService.situacao(@pedido, @etapa.chave)
+  rescue EtapasProducao::Invalida
+    head :not_found
   end
 
   def resumo

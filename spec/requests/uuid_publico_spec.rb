@@ -14,7 +14,8 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       "peça (edit)" => [ :peca, ->(r) { "/pecas/#{r}/edit" } ],
       "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ],
       "pedido's Corte page" => [ :pedido, ->(r) { "/pedidos/#{r}/corte" } ],
-      "pedido's Impressão page" => [ :pedido, ->(r) { "/pedidos/#{r}/impressao" } ]
+      "pedido's Impressão page" => [ :pedido, ->(r) { "/pedidos/#{r}/impressao" } ],
+      "pedido's Estamparia page" => [ :pedido, ->(r) { "/pedidos/#{r}/etapas/estamparia" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
         registro = create(factory)

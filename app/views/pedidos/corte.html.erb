@@ -10,6 +10,7 @@
 <% metros = @linhas.filter_map(&:metros_esperados) %>
 
 <%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+<%= render "pedidos/etapas_nav", pedido: @pedido, atual: "corte" %>
 
 <div class="corte-cabecalho">
   <div>
@@ -27,16 +28,18 @@
   <% end %>
 </div>
 
+<%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
+
 <% if @linhas.empty? %>
   <p class="gallery-empty">Nenhuma parte para cortar neste pedido.</p>
 <% else %>
   <table class="clients-table corte-tabela">
     <thead>
-      <tr><th>Corte</th><th>Tamanho</th><th>Total</th><th class="corte-baixar">Baixar</th></tr>
+      <tr><th>Corte</th><th>Tamanho</th><th>Total</th><th class="corte-baixar">Baixar</th><th class="etapa-situacao">Corte</th></tr>
     </thead>
     <tbody>
       <% linhas_por_peca.each do |peca, linhas| %>
-        <tr class="corte-grupo"><td colspan="4"><%= peca&.nome || "Sem peça" %></td></tr>
+        <tr class="corte-grupo"><td colspan="5"><%= peca&.nome || "Sem peça" %></td></tr>
         <% linhas.each do |linha| %>
           <% if linha.tamanho %>
             <tr class="corte-linha" data-peca="<%= peca&.nome %>" data-tamanho="<%= linha.tamanho.nome %>">
@@ -61,6 +64,9 @@
                         download: "#{linha.corte.filename} - #{linha.tamanho.nome}.dxf", data: { turbo: false } %>
                 <% end %>
               </td>
+              <td class="etapa-situacao">
+                <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[LinhasDeProducao.chave_do_corte(linha.peca, linha.tamanho, linha.materia_prima)] %>
+              </td>
             </tr>
           <% else %>
             <%# Numbers no organized DXF serves: they block confirming, and
@@ -69,6 +75,7 @@
               <td colspan="2">⚠ sem DXF: <%= linha.quantidades.map { |n, q| "#{rotulo_do_numero(n)}×#{q}" }.join(", ") %></td>
               <td class="corte-total"><strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong></td>
               <td class="corte-baixar"><%= link_to "Resolver no pedido", resumo_pedido_path(@pedido) %></td>
+              <td class="etapa-situacao">—</td>
             </tr>
           <% end %>
         <% end %>

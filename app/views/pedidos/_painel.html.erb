@@ -13,9 +13,11 @@
     <%# Etapa 1.2 (3/3, partes 3b e 3c): production has its own pages, for the
         cutting table and for the printer. %>
     <% if itens.any? %>
+      <%# Etapa 2.2 (2/3): every production stage of the pedido's type. %>
       <div class="pedido-ir-producao">
-        <%= link_to "Corte →", corte_pedido_path(pedido), class: "btn btn-secondary pedido-ir-corte" %>
-        <%= link_to "Impressão →", impressao_pedido_path(pedido), class: "btn btn-secondary pedido-ir-impressao" %>
+        <% EtapasProducao.do_tipo(pedido.tipo).each do |etapa| %>
+          <%= link_to "#{etapa.nome} →", caminho_da_etapa(pedido, etapa), class: "btn btn-secondary pedido-ir-#{etapa.chave}" %>
+        <% end %>
       </div>
     <% end %>
     <% if pedido_editavel?(pedido) %>

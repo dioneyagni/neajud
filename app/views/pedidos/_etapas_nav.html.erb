@@ -1,0 +1,8 @@
+<%# The pedido's production stages, in the order of config/etapas_producao.yml
+    (Etapa 2.2, 2/3). locals: pedido, atual (the stage on screen, or nil) %>
+<nav class="etapas-nav" aria-label="Etapas de produção">
+  <% EtapasProducao.do_tipo(pedido.tipo).each do |etapa| %>
+    <%= link_to etapa.nome, caminho_da_etapa(pedido, etapa), class: "etapas-nav-link#{" etapas-nav-link--atual" if etapa.chave == atual}",
+          "aria-current": (etapa.chave == atual ? "page" : nil), data: { etapa: etapa.chave } %>
+  <% end %>
+</nav>

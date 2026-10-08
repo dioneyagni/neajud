@@ -19,6 +19,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "open a pedido", "pedidos", 1, -> { get resumo_pedido_path(pedido) } ],
     [ "open a pedido's Corte page", "pedidos", 1, -> { get corte_pedido_path(pedido) } ],
     [ "open a pedido's Impressão page", "pedidos", 1, -> { get impressao_pedido_path(pedido) } ],
+    [ "open a pedido's Estamparia page", "pedidos", 1, -> { get etapa_pedido_path(pedido, etapa: "estamparia") } ],
     [ "set a file's side", "artes", 2, -> { patch definir_lado_arquivo_arte_path(arte), params: { lado: "direito" } } ],
     [ "see a size's drawing", "pedidos", 1, -> { get preview_tamanho_path(tamanho) } ],
     [ "set a molde part's pieces per pair", "catalogo", 2, -> { patch update_peca_config_molde_path(molde, molde_peca_uuid: molde.molde_pecas.create!(peca: create(:peca)).uuid), params: { pecas_por_par: "2" } } ],
@@ -85,6 +86,12 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     it "the Impressão page's zip of artes needs baixar_producao" do
       entrar_com_funcao(niveis: { "pedidos" => 3, "artes" => 3 })
       get baixar_impressao_pedido_path(pedido)
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "a production baixa needs atualizar_producao" do
+      entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[baixar_producao])
+      post pedido_baixas_path(pedido), params: { etapa: "corte", nivel: "pedido", medida: "1" }, as: :json
       expect(response).to have_http_status(:forbidden)
     end
 

@@ -1,0 +1,7 @@
+<%# An arte's (referência's) baixa in a stage, over its open lines (Etapa 2.2, 2/3).
+    locals: pedido, etapa, situacoes, item %>
+<% abertas = situacoes.values.select { |s| s.estado == :aberta && s.linha.referencia == item.uuid } %>
+<% if abertas.any? && pode_dar_baixa?(pedido) && etapa.niveis.include?("referencia") %>
+  <%= render "pedidos/baixa", pedido: pedido, etapa: etapa, nivel: "referencia", alvo: item.uuid,
+        rotulo: "Baixa da referência (#{abertas.size})", esperado: abertas.sum { |s| s.linha.esperado.to_f }.then { |e| e.positive? ? e : nil } %>
+<% end %>

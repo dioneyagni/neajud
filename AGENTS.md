@@ -372,7 +372,7 @@ Decided 07/10/2026, in three PRs (docs/plano.md has the full rules): stages
 per pedido type in `config/etapas_producao.yml` (calçado: Impressão ∥ Corte →
 Estamparia → Conferência, every dependency locks), a granular baixa with the
 measure next to each download, warned against an expected value that comes
-from the files themselves. 1/3 is done:
+from the files themselves. 1/3 and 2/3 are done:
 
 - **Arte**: `ArquivoVersion#metros_por_peca(largura_mm)` — the file's
   rectangle (pixels ÷ DPI) on the paper's width, its width across the roll —
@@ -400,6 +400,23 @@ from the files themselves. 1/3 is done:
   inject `FakeEncaixe`.
 - The Corte page's lines are per **material** too (each roll is its own cut);
   `Linha#metros_esperados` there and on the Impressão page.
+- **Stages and baixas (2/3)**: `EtapasProducao` reads
+  `config/etapas_producao.yml` and raises on a wrong value (medida,
+  esperado, linhas, niveis, trava). `LinhasDeProducao` gives each stage's
+  lines with **stable keys made of uuids** — Impressão lines (also
+  Estamparia's and Conferência's) `item/part/size/file/side` with the
+  `corte_chave` they wait for (nil for a part "não corta"); Corte lines
+  `part/size/material`. `RegistrarBaixaService` takes a line, a referência
+  (the item's uuid) or the whole pedido — only open lines whose locked
+  stages are done — sums their expected and answers `:aviso` outside the
+  dono's band until `confirmar`, then saves `BaixaProducao` with
+  `fora_da_faixa`. Only a **confirmed** pedido takes baixas; the endpoint is
+  `POST /pedidos/:uuid/baixas` (JSON, action `atualizar_producao`, given by a
+  migration to the existing Admin and Produção funções). Pages: the
+  Impressão and Corte pages, plus `/pedidos/:uuid/etapas/:etapa` for
+  Estamparia and Conferência; `_etapas_nav`, `_etapa_andamento`,
+  `_situacao_baixa`, `_baixa` (Stimulus `baixa`). Undoing a baixa and the
+  pedido's cycle come in 3/3.
 
 ## Pedido items are made of the arte's parts
 

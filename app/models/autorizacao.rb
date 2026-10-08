@@ -12,7 +12,8 @@ class Autorizacao
   # Áreas whose scale stops earlier. Lixeira: 1 ver, 2 restaurar (asked for
   # 27/09/2026 so the dono can hand the trash to someone).
   NIVEL_MAXIMO = { "lixeira" => 2 }.freeze
-  ACOES = %w[baixar_producao gerenciar_usuarios aprovar_arte].freeze
+  # atualizar_producao: give a production stage's baixa (Etapa 2.2, 2/3).
+  ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte].freeze
 
   # Shape check shared by Funcao#niveis/acoes and Vinculo#acessos_extras.
   # Usage: Autorizacao.erros_da_grade({ "pedidos" => 2 }, []) # => []
