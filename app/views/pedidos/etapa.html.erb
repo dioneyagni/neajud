@@ -1,0 +1,53 @@
+<%# A production stage on the Impressão's lines, without a page of its own —
+    Estamparia and Conferência (Etapa 2.2, 2/3; decided 07/10/2026): per arte,
+    each file's pieces and the line's state; a line waits while a locked
+    stage (config/etapas_producao.yml "trava") hasn't had its baixa. %>
+<%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+<%= render "pedidos/etapas_nav", pedido: @pedido, atual: @etapa.chave %>
+
+<div class="corte-cabecalho">
+  <div>
+    <h2><%= @etapa.nome %> <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
+    <p class="corte-sub">
+      <%= @pedido.client&.name || "sem cliente" %> ·
+      <%= @grupos.size %> <%= @grupos.size == 1 ? "arte" : "artes" %> ·
+      baixa em <%= @etapa.metragem? ? "metros" : "peças" %>
+      <% if @etapa.trava.any? %> · depois de <%= @etapa.trava.map { |t| EtapasProducao.etapa(@pedido.tipo, t).nome }.to_sentence(two_words_connector: " e ", last_word_connector: " e ") %><% end %>
+    </p>
+  </div>
+</div>
+<%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
+
+<% @grupos.each do |grupo| %>
+  <% linhas = grupo.linhas.select(&:arquivo).reject(&:pendencia) %>
+  <% next if linhas.empty? %>
+  <section class="impressao-arte" data-arte="<%= grupo.item.arte&.titulo %>">
+    <div class="impressao-arte-topo">
+      <div>
+        <strong><%= link_to grupo.item.arte&.titulo.presence || grupo.item.arquivo.filename, grupo.item.arquivo %></strong>
+      </div>
+      <%= render "pedidos/baixa_referencia", pedido: @pedido, etapa: @etapa, situacoes: @situacoes, item: grupo.item %>
+    </div>
+    <table class="clients-table corte-tabela impressao-tabela">
+      <thead>
+        <tr><th>Arquivo</th><th>Parte · tamanho</th><th>Peças</th><th class="etapa-situacao"><%= @etapa.nome %></th></tr>
+      </thead>
+      <tbody>
+        <% linhas.each do |linha| %>
+          <% chave = LinhasDeProducao.chave_da_impressao(grupo.item, linha) %>
+          <tr class="impressao-linha etapa-linha" data-peca="<%= linha.peca&.nome %>" data-tamanho="<%= linha.tamanho&.nome %>" data-lado="<%= linha.lado %>"
+              data-situacao="<%= @situacoes[chave]&.estado %>">
+            <td><%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %></td>
+            <td>
+              <strong><%= linha.peca&.nome || "Sem peça" %></strong> <span class="corte-tamanho"><%= linha.tamanho&.nome %></span>
+              <% if linha.lado %><span class="impressao-lado"><%= LadoNaArte::ABREVIACOES[linha.lado] %></span><% end %>
+              <span class="corte-arquivo"><%= linha.arquivo.filename %></span>
+            </td>
+            <td class="corte-total"><strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong></td>
+            <td class="etapa-situacao"><%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[chave] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>

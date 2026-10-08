@@ -7,7 +7,8 @@ module FuncoesHelper
   # Lixeira's level 2 restores (Autorizacao::NIVEL_MAXIMO).
   ROTULOS_NIVEL_LIXEIRA = { 0 => "—", 1 => "Ver", 2 => "Restaurar" }.freeze
   ROTULOS_ACAO = {
-    "baixar_producao" => "Baixar arquivos de produção", "gerenciar_usuarios" => "Gerenciar usuários",
+    "baixar_producao" => "Baixar arquivos de produção", "atualizar_producao" => "Dar baixa nas etapas de produção",
+    "gerenciar_usuarios" => "Gerenciar usuários",
     "aprovar_arte" => "Enviar e registrar aprovação de arte"
   }.freeze
 

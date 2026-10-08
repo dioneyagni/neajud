@@ -12,6 +12,7 @@
 <% metros = largura_papel ? linhas.filter_map { |l| l.metros_esperados(largura_papel) } : [] %>
 
 <%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+<%= render "pedidos/etapas_nav", pedido: @pedido, atual: "impressao" %>
 
 <div class="corte-cabecalho">
   <div>
@@ -35,6 +36,7 @@
     <% end %>
   </div>
 </div>
+<%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
 
 <% @grupos.each do |grupo| %>
   <% arte = grupo.item.arquivo %>
@@ -45,10 +47,11 @@
         <% pares_da_arte = grupo.item.grades.sum(&:quantidade) %>
         <div class="corte-sub"><%= pares_da_arte %> <%= pares_da_arte == 1 ? "par" : "pares" %> <%= selo_aprovacao(arte, pedido: @pedido) %></div>
       </div>
+      <%= render "pedidos/baixa_referencia", pedido: @pedido, etapa: @etapa, situacoes: @situacoes, item: grupo.item %>
     </div>
     <table class="clients-table corte-tabela impressao-tabela">
       <thead>
-        <tr><th>Arquivo</th><th>Parte · tamanho</th><th>Imprimir</th><th class="corte-baixar">Baixar</th></tr>
+        <tr><th>Arquivo</th><th>Parte · tamanho</th><th>Imprimir</th><th class="corte-baixar">Baixar</th><th class="etapa-situacao">Impressão</th></tr>
       </thead>
       <tbody>
         <% grupo.linhas.each do |linha| %>
@@ -91,6 +94,9 @@
               <% else %>
                 <%= link_to "Resolver no pedido", resumo_pedido_path(@pedido) %>
               <% end %>
+            </td>
+            <td class="etapa-situacao">
+              <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: (@situacoes[LinhasDeProducao.chave_da_impressao(grupo.item, linha)] if linha.arquivo && !linha.pendencia) %>
             </td>
           </tr>
         <% end %>

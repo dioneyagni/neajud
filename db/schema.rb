@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_134142) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_154800) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -173,6 +173,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_134142) do
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["uuid"], name: "index_artes_on_uuid", unique: true
+  end
+
+  create_table "baixas_producao", force: :cascade do |t|
+    t.string "changed_by"
+    t.datetime "created_at", null: false
+    t.datetime "desfeita_em"
+    t.integer "desfeita_por_id"
+    t.decimal "esperado", precision: 12, scale: 4
+    t.string "etapa", null: false
+    t.boolean "fora_da_faixa", default: false, null: false
+    t.json "linhas", default: [], null: false
+    t.decimal "medida", precision: 12, scale: 4, null: false
+    t.string "nivel", null: false
+    t.integer "pedido_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.string "uuid", null: false
+    t.index ["desfeita_por_id"], name: "index_baixas_producao_on_desfeita_por_id"
+    t.index ["pedido_id", "etapa"], name: "index_baixas_producao_on_pedido_id_and_etapa"
+    t.index ["pedido_id"], name: "index_baixas_producao_on_pedido_id"
+    t.index ["user_id"], name: "index_baixas_producao_on_user_id"
+    t.index ["uuid"], name: "index_baixas_producao_on_uuid", unique: true
   end
 
   create_table "bans", force: :cascade do |t|
@@ -569,6 +591,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_134142) do
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "referencias"
   add_foreign_key "arquivos", "tamanhos"
+  add_foreign_key "baixas_producao", "pedidos"
+  add_foreign_key "baixas_producao", "users"
+  add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "item_pedido_pecas", "arquivos"

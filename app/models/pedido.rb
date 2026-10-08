@@ -6,6 +6,8 @@ class Pedido < ApplicationRecord
   belongs_to :client, optional: true
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy
   has_many :arquivo_vinculo_logs, dependent: :nullify
+  # Etapa 2.2 (2/3): what the factory has done, stage by stage.
+  has_many :baixas_producao, class_name: "BaixaProducao", dependent: :destroy
 
   # One type per pedido (Etapa 1.2, 3/3): calçado now; DTF and tecido in Fase 2.
   TIPOS = %w[calcado].freeze

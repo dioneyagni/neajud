@@ -1,0 +1,40 @@
+# The production stages of each pedido type (Etapa 2.2, decided 07/10/2026).
+# A screen to configure them, and what runs in parallel, comes later; until
+# then this file is the rule, read by EtapasProducao.
+#
+#   medida:  what the baixa asks — metragem (m) or quantidade (pieces)
+#   esperado: where the expected value comes from — papel (the arte's meters
+#            per piece on the paper's width), tecido (the DXF's fit on the
+#            item's material), pecas (the pieces of the lines)
+#   linhas:  whose lines — impressao (arte × part × size × side) or corte
+#            (part × DXF size × material)
+#   niveis:  where a baixa may be given — linha, referencia (the arte), pedido
+#   trava:   stages that must have the line's baixa first (no stamping without
+#            paper printed and pieces cut). A part "não corta" skips corte.
+calcado:
+  - chave: impressao
+    nome: Impressão
+    medida: metragem
+    esperado: papel
+    linhas: impressao
+    niveis: [linha, referencia, pedido]
+  - chave: corte
+    nome: Corte
+    medida: metragem
+    esperado: tecido
+    linhas: corte
+    niveis: [linha, pedido]
+  - chave: estamparia
+    nome: Estamparia
+    medida: quantidade
+    esperado: pecas
+    linhas: impressao
+    niveis: [linha, referencia, pedido]
+    trava: [impressao, corte]
+  - chave: conferencia
+    nome: Conferência
+    medida: quantidade
+    esperado: pecas
+    linhas: impressao
+    niveis: [linha, referencia, pedido]
+    trava: [estamparia]

@@ -468,3 +468,109 @@
   display: block;
   color: #1a4b9c;
 }
+
+/* ── Production stages and their baixas (Etapa 2.2, 2/3) ── */
+
+.etapas-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0.25rem;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.etapas-nav-link {
+  padding: 0.4rem 0.8rem;
+  border-bottom: 3px solid transparent;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+.etapas-nav-link--atual {
+  border-bottom-color: #1a73e8;
+  color: #202124;
+}
+
+.etapa-andamento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.impressao-arte-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.etapa-situacao {
+  min-width: 11rem;
+}
+
+.baixa {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.baixa-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.baixa-medida {
+  width: 5.5rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+  text-align: right;
+}
+
+.baixa-esperado {
+  color: #1a4b9c;
+}
+
+.baixa-mensagem {
+  flex-basis: 100%;
+  margin: 0;
+  color: #c62828;
+}
+
+.baixa-mensagem.baixa-aviso {
+  color: #7a4500;
+  font-weight: 600;
+}
+
+.baixa-feita {
+  color: #1e6b34;
+  font-size: 0.85rem;
+}
+
+.baixa-fora {
+  margin-left: 0.3rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  background: #fff1d6;
+  color: #7a4500;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.baixa-aguardando,
+.baixa-aberta {
+  color: #888;
+  font-size: 0.85rem;
+}

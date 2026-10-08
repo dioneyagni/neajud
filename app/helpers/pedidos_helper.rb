@@ -61,4 +61,29 @@ module PedidosHelper
 
     "metragem ainda não calculada"
   end
+
+  # May this user give production baixas on this pedido (Etapa 2.2, 2/3)?
+  # A confirmed pedido, not in the trash, and the atualizar_producao action.
+  # Usage: <% if pode_dar_baixa?(@pedido) %> … <% end %>
+  def pode_dar_baixa?(pedido)
+    pode_acao?(:atualizar_producao) && RegistrarBaixaService::STATUS.include?(pedido.status) && !pedido.excluido?
+  end
+
+  # A stage's progress: "3 de 5 linhas" (Etapa 2.2, 2/3).
+  # Usage: andamento_da_etapa(situacoes) # => "3 de 5 linhas feitas"
+  def andamento_da_etapa(situacoes)
+    feitas = situacoes.values.count { |s| s.estado == :feita }
+    "#{feitas} de #{situacoes.size} #{situacoes.size == 1 ? "linha feita" : "linhas feitas"}"
+  end
+
+  # A production stage's page: Impressão and Corte have their own, the others
+  # share the stage page (Etapa 2.2, 2/3).
+  # Usage: caminho_da_etapa(pedido, etapa) # => "/pedidos/…/etapas/estamparia"
+  def caminho_da_etapa(pedido, etapa)
+    case etapa.chave
+    when "impressao" then impressao_pedido_path(pedido)
+    when "corte" then corte_pedido_path(pedido)
+    else etapa_pedido_path(pedido, etapa: etapa.chave)
+    end
+  end
 end
