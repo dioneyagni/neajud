@@ -307,7 +307,7 @@ Key files:
 
 ## Pedido by arte, grade by number (Etapa 1.2, 3/3)
 
-Decided 05/10/2026, in three parts; part 1 is done:
+Decided 05/10/2026, in three parts; done 07/10/2026 (Fase 1 complete):
 
 - `pedidos.tipo` (`Pedido::TIPOS`: calcado; DTF and tecido in Fase 2) — one
   type per pedido.
