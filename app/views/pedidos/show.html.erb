@@ -6,7 +6,7 @@
 <h2>
   Pedido
   <span style="font-size:0.8rem; color:var(--text-muted);">#<%= @pedido.uuid.first(8) %></span>
-  <span class="badge badge-<%= @pedido.status %>"><%= @pedido.status %></span>
+  <span class="badge badge-<%= @pedido.status %>"><%= rotulo_do_status(@pedido.status) %></span>
   <%= selo_excluido(@pedido) %>
 </h2>
 

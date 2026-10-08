@@ -11,9 +11,17 @@ class Pedido < ApplicationRecord
 
   # One type per pedido (Etapa 1.2, 3/3): calçado now; DTF and tecido in Fase 2.
   TIPOS = %w[calcado].freeze
+  # The cycle (Etapa 2.2, 3/3; decided 07/10/2026): rascunho → confirmado →
+  # em_producao (on its first baixa, by itself) → entregue ("Marcar como
+  # entregue"). cancelado: accepted, not used by any screen yet.
+  STATUS = %w[rascunho confirmado em_producao entregue cancelado].freeze
+  # Takes production baixas; a delivered pedido is read only.
+  EM_PRODUCAO = %w[confirmado em_producao].freeze
+
+  belongs_to :entregue_por, class_name: "User", optional: true
 
   recusa_excluido :client
-  validates :status, presence: true, inclusion: { in: %w[rascunho confirmado cancelado] }
+  validates :status, presence: true, inclusion: { in: STATUS, message: "%{value} is not a pedido status; expected one of #{STATUS.join(", ")}" }
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
 
   scope :rascunhos, -> { where(status: "rascunho") }
@@ -30,6 +38,29 @@ class Pedido < ApplicationRecord
   # corte's size name — read only, even restored from the trash.
   def editavel?
     status == "rascunho" && !excluido? && !grade_antiga?
+  end
+
+  # Usage: pedido.em_producao? # => true while confirmado or em_producao
+  def em_producao?
+    EM_PRODUCAO.include?(status) && !excluido?
+  end
+
+  # Past the draft: confirmed, in production or delivered.
+  # Usage: pedido.saiu_do_rascunho? # => true
+  def saiu_do_rascunho?
+    %w[confirmado em_producao entregue].include?(status)
+  end
+
+  # The first baixa puts a confirmed pedido in production.
+  # Usage: pedido.iniciar_producao!
+  def iniciar_producao!
+    update!(status: "em_producao") if status == "confirmado"
+  end
+
+  # Undoing its last baixa takes it back to confirmed.
+  # Usage: pedido.voltar_a_confirmado!
+  def voltar_a_confirmado!
+    update!(status: "confirmado") if status == "em_producao" && !baixas_producao.vigentes.exists?
   end
 
   def total_itens

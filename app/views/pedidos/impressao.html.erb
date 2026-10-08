@@ -108,3 +108,5 @@
 <% if @grupos.empty? %>
   <p class="gallery-empty">Nenhuma arte neste pedido.</p>
 <% end %>
+
+<%= render "pedidos/historico_baixas", pedido: @pedido, etapa: @etapa %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_154800) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -450,6 +450,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_154800) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
+    t.datetime "entregue_em"
+    t.integer "entregue_por_id"
     t.boolean "grade_antiga", default: false, null: false
     t.text "observacoes"
     t.datetime "restored_at"
@@ -460,6 +462,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_154800) do
     t.string "uuid", null: false
     t.index ["client_id"], name: "index_pedidos_on_client_id"
     t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
+    t.index ["entregue_por_id"], name: "index_pedidos_on_entregue_por_id"
     t.index ["status"], name: "index_pedidos_on_status"
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end
@@ -616,6 +619,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_154800) do
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
+  add_foreign_key "pedidos", "users", column: "entregue_por_id"
   add_foreign_key "referencias", "moldes"
   add_foreign_key "sessions", "users"
   add_foreign_key "solicitacoes_aprovacao", "arquivo_versions"

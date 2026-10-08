@@ -13,7 +13,7 @@
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
 class RegistrarBaixaService
   Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, keyword_init: true)
-  STATUS = %w[confirmado].freeze
+  STATUS = Pedido::EM_PRODUCAO
 
   def self.call(pedido, **dados)
     new(pedido, **dados).call
@@ -38,6 +38,7 @@ class RegistrarBaixaService
 
     baixa = @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: @medida.to_d,
                                             esperado: (esperado if esperado.positive?), fora_da_faixa: fora_da_faixa?(esperado), **@autoria)
+    @pedido.iniciar_producao!
     Resultado.new(estado: :ok, baixa: baixa, esperado: esperado)
   end
 
@@ -60,7 +61,7 @@ class RegistrarBaixaService
   private
 
   def erro_de_entrada
-    return "This pedido is #{@pedido.status}: only a confirmed pedido takes baixas." unless STATUS.include?(@pedido.status) && !@pedido.excluido?
+    return "This pedido is #{@pedido.status}: only a confirmed pedido in production takes baixas." unless @pedido.em_producao?
     return "#{@etapa.nome} takes no baixa by #{@nivel.inspect}; expected one of #{@etapa.niveis.join(", ")}." unless @etapa.niveis.include?(@nivel)
     return "Measure #{@medida.inspect} is not a number of #{@etapa.metragem? ? "meters" : "pieces"}." unless @medida.match?(/\A\d+(\.\d+)?\z/)
 

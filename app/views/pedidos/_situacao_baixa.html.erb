@@ -10,6 +10,13 @@
     · <%= baixa.user&.nome || baixa.changed_by %> · <%= l baixa.created_at, format: "%d/%m %H:%M" %>
   </span>
   <% if baixa.fora_da_faixa %><span class="baixa-fora" title="Confirmada fora da faixa (esperado <%= number_with_precision(baixa.esperado, precision: 2, separator: ",") %>)">fora da faixa</span><% end %>
+  <%# Etapa 2.2 (3/3): undone until the pedido is delivered; a referência's or
+      the pedido's baixa reopens all its lines. %>
+  <% if pode_dar_baixa?(pedido) %>
+    <%= button_to "Desfazer", pedido_baixa_path(pedido, baixa), method: :delete, class: "btn btn-sm btn-outline baixa-desfazer",
+          form: { class: "baixa-desfazer-form" },
+          data: { turbo_confirm: baixa.linhas.one? ? "Desfazer esta baixa?" : "Desfazer a baixa #{baixa.nivel == "pedido" ? "do pedido" : "da referência"}? #{baixa.linhas.size} linhas voltam a ficar em aberto." } %>
+  <% end %>
 <% elsif situacao.estado == :aguardando %>
   <span class="baixa-aguardando">aguardando <%= situacao.aguardando %></span>
 <% elsif pode_dar_baixa?(pedido) %>

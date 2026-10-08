@@ -10,6 +10,25 @@
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
       <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
     </dl>
+    <%# Etapa 2.2 (3/3): the stages' progress, and delivering. %>
+    <% if pedido.saiu_do_rascunho? %>
+      <ul class="pedido-andamento">
+        <% AndamentoDoPedido.call(pedido).each do |andamento| %>
+          <li data-etapa="<%= andamento.etapa.chave %>" class="<%= "pedido-andamento--completa" if andamento.abertas.zero? %>">
+            <span><%= andamento.etapa.nome %></span> <strong><%= andamento.feitas %>/<%= andamento.total %></strong>
+          </li>
+        <% end %>
+      </ul>
+      <% if pedido.status == "entregue" %>
+        <p class="pedido-entregue">Entregue em <%= l pedido.entregue_em, format: "%d/%m/%Y %H:%M" %><%= " por #{pedido.entregue_por.nome}" if pedido.entregue_por %>.</p>
+      <% elsif pode_dar_baixa?(pedido) %>
+        <div class="entrega" data-controller="entrega" data-entrega-url-value="<%= entregar_pedido_path(pedido) %>">
+          <button type="button" class="btn btn-primary entrega-botao" data-action="entrega#entregar">Marcar como entregue</button>
+          <p class="baixa-mensagem" data-entrega-target="mensagem" hidden></p>
+          <button type="button" class="btn btn-sm btn-outline entrega-confirmar" data-entrega-target="confirmar" data-action="entrega#confirmar" hidden>Entregar assim mesmo</button>
+        </div>
+      <% end %>
+    <% end %>
     <%# Etapa 1.2 (3/3, partes 3b e 3c): production has its own pages, for the
         cutting table and for the printer. %>
     <% if itens.any? %>

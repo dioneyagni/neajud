@@ -10,7 +10,7 @@ module AprovacoesHelper
 
     case arte.estado_aprovacao
     when :aprovada then selo_aprovada(arte.aprovacao_vigente)
-    when :aguardando then selo_aguardando(arte.solicitacao_vigente, confirmado: pedido&.status == "confirmado")
+    when :aguardando then selo_aguardando(arte.solicitacao_vigente, confirmado: pedido&.saiu_do_rascunho?)
     end
   end
 

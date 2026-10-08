@@ -137,7 +137,7 @@ Rails.application.routes.draw do
       get :artes_para_adicionar
     end
     # Etapa 2.2 (2/3): the factory's baixa of a production stage.
-    resources :baixas, only: :create, controller: "baixas_producao"
+    resources :baixas, only: %i[create destroy], controller: "baixas_producao"
     member do
       delete :remover_item
       patch :atualizar_item
@@ -148,6 +148,8 @@ Rails.application.routes.draw do
       get :baixar_impressao
       # Etapa 2.2 (2/3): the pages of the stages without one of their own.
       get "etapas/:etapa", action: :etapa, as: :etapa
+      # Etapa 2.2 (3/3): "Marcar como entregue".
+      post :entregar
       post :confirmar
       get :resumo
     end

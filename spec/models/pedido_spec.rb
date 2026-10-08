@@ -5,7 +5,7 @@ RSpec.describe Pedido, type: :model do
 
   describe "validations" do
     it { should validate_presence_of(:status) }
-    it { should validate_inclusion_of(:status).in_array(%w[rascunho confirmado cancelado]) }
+    it { should validate_inclusion_of(:status).in_array(%w[rascunho confirmado em_producao entregue cancelado]).with_message(/is not a pedido status/) }
 
     it "validates uuid uniqueness" do
       pedido.save!

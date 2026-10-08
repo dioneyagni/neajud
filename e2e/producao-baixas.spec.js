@@ -7,7 +7,7 @@ const { waitForQueuedTask } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { modeloOficial } = require("./support/catalogo");
 
-// Etapa 2.2 (2/3; decided 07/10/2026): the factory gives each production
+// Etapa 2.2 (2/3 and 3/3; decided 07/10/2026): the factory gives each production
 // stage's baixa — one line, a referência or the whole pedido — typing the
 // metragem or the pieces; outside the dono's band it warns, and the operator
 // corrects or confirms. Estamparia waits for Impressão and Corte;
@@ -121,6 +121,38 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       await page.locator(".etapas-nav a", { hasText: "Conferência" }).click();
       await page.waitForURL(`**/pedidos/${pedidoUuid}/etapas/conferencia`);
       if ((await page.locator("tr.etapa-linha").getAttribute("data-situacao")) !== "aberta") throw new Error("Conferência should open after the Estamparia");
+    });
+
+    // Etapa 2.2 (3/3, decided 07/10/2026): a baixa is undone until the
+    // delivery — not one a later stage already used. (The runner accepts
+    // the "Desfazer esta baixa?" confirmation itself.)
+    await test("Undo: the Corte can't be undone while the Estamparia used it; the Estamparia can, and its line reopens", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/corte`);
+      await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/corte`), page.locator("tr.corte-linha .baixa-desfazer").click() ]);
+      await page.getByText("Could not undo the baixa: Undo Estamparia's baixa of these lines first").waitFor();
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/estamparia`);
+      await Promise.all([ page.waitForURL(`**/pedidos/${pedidoUuid}/etapas/estamparia`), page.locator("tr.etapa-linha .baixa-desfazer").click() ]);
+      await page.getByText("Baixa de Estamparia desfeita").waitFor();
+      if ((await page.locator("tr.etapa-linha").getAttribute("data-situacao")) !== "aberta") throw new Error("The line should be open again");
+      await page.locator(".historico-baixas summary").click();
+      await page.locator(".historico-baixa--desfeita .historico-baixa-desfeita", { hasText: "desfeita por" }).waitFor();
+    });
+
+    await test("Marcar como entregue warns about the open stages; delivered anyway, the pedido is read only", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
+      if ((await page.locator("h2 .badge").innerText()).trim() !== "em produção") throw new Error("The first baixa puts the pedido in production");
+      await page.locator(".entrega-botao").click();
+      await page.locator(".entrega .baixa-aviso", { hasText: "Ainda faltam: Estamparia 1 linha, Conferência 1 linha." }).waitFor();
+      await Promise.all([ page.waitForResponse((r) => r.url().endsWith(`/pedidos/${pedidoUuid}/entregar`)), page.locator(".entrega-confirmar").click() ]);
+      await page.locator(".pedido-entregue", { hasText: "Entregue em" }).waitFor();
+      if ((await page.locator("h2 .badge").innerText()).trim() !== "entregue") throw new Error("The pedido should be delivered");
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/estamparia`);
+      if (await page.locator("[data-controller=baixa], .baixa-desfazer").count()) throw new Error("A delivered pedido takes no baixas and undoes none");
+
+      await page.goto(`${BASE_URL}/pedidos?status=entregue`);
+      await page.locator("tr", { has: page.locator(`a[href="/pedidos/${pedidoUuid}"]`) }).locator(".badge-entregue").waitFor();
     });
   } finally {
     fs.rmSync(pasta, { recursive: true, force: true });

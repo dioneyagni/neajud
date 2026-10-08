@@ -574,3 +574,96 @@
   color: #888;
   font-size: 0.85rem;
 }
+
+/* ── The pedido's cycle (Etapa 2.2, 3/3) ── */
+
+.badge-rascunho { background: #eef0f2; color: #3d444d; }
+.badge-confirmado { background: #e8f0fc; color: #1a4b9c; }
+.badge-em_producao { background: #fff1d6; color: #7a4500; }
+.badge-entregue { background: #e6f4ea; color: #1e6b34; }
+
+.pedido-andamento {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.88rem;
+}
+
+.pedido-andamento li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pedido-andamento--completa strong {
+  color: #1e6b34;
+}
+
+.pedido-entregue {
+  margin: 0;
+  color: #1e6b34;
+  font-weight: 600;
+}
+
+.entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.baixa-desfazer-form {
+  display: inline;
+  margin-left: 0.3rem;
+}
+
+.historico-baixas {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.historico-baixas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+  padding-left: 1rem;
+}
+
+.historico-baixa--desfeita .historico-baixa-texto {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.historico-baixa-desfeita {
+  margin-left: 0.4rem;
+  color: #c62828;
+}
+
+.pedidos-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.pedidos-filtro a {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid #d0d7de;
+  border-radius: 999px;
+  color: #3d444d;
+  font-size: 0.85rem;
+}
+
+.pedidos-filtro a[aria-current="page"] {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+  color: #1a4b9c;
+}
+
+.pedido-andamento-compacto {
+  font-size: 0.8rem;
+  color: #5f6368;
+  white-space: nowrap;
+}
