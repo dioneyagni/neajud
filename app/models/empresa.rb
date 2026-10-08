@@ -6,6 +6,10 @@ class Empresa < ApplicationRecord
   has_many :vinculos, dependent: :destroy
 
   validates :nome, presence: true
+  # Etapa 2.2 (1/3): the paper's width and the baixa's warning band.
+  validates :largura_papel_mm, numericality: { only_integer: true, greater_than: 0 }
+  validates :tolerancia_abaixo_pct, numericality: { only_integer: true, in: 0..100 }
+  validates :tolerancia_acima_pct, numericality: { only_integer: true, in: 0..1000 }
   validate :unica_por_instancia, on: :create
 
   # Usage: Empresa.atual&.nome

@@ -1,5 +1,5 @@
 class ArquivosController < ApplicationController
-  before_action :set_arquivo, only: %i[show busca_tamanho preparacao_tamanhos update_time update_client update_molde update_tamanho update_tipo_corte add_molde remove_molde preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
+  before_action :set_arquivo, only: %i[show busca_tamanho preparacao_tamanhos update_time update_client update_molde update_tamanho update_tipo_corte update_giro add_molde remove_molde preview composicao processamento download destroy upload_version approve_version version_preview configure_layers organize]
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   # Permissions (Etapa 0.5): an arquivo is Artes or, if a corte, Catálogo
@@ -8,7 +8,7 @@ class ArquivosController < ApplicationController
   before_action(only: :create) { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
   before_action(only: :batch_destroy) { exigir!(pode?(:artes, :excluir) || pode?(:catalogo, :excluir), "artes or catalogo: excluir") }
   before_action(only: %i[show preview composicao processamento busca_tamanho preparacao_tamanhos version_preview]) { exigir_no_arquivo!(:ver) }
-  before_action(only: %i[update_time update_client update_molde update_tamanho update_tipo_corte add_molde remove_molde
+  before_action(only: %i[update_time update_client update_molde update_tamanho update_tipo_corte update_giro add_molde remove_molde
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
   exige_acao :baixar_producao, only: :download
@@ -187,6 +187,19 @@ class ArquivosController < ApplicationController
     end
   end
 
+  # How the corte's pieces may turn in the fit (Etapa 2.2, 1/3): saving it
+  # recomputes the sizes' meters per piece in the background. JSON from the
+  # corte page's radios (giro-corte), which reload the page after.
+  # Usage: PATCH /arquivos/:uuid/update_giro (giro: "nenhum" | "180" | "90")
+  def update_giro
+    return responder_giro(false, "Only a corte has a turn in the fit.") unless @arquivo.corte?
+
+    @arquivo.definir_giro!(params[:giro])
+    responder_giro(true, "Giro no encaixe: #{GiroNoEncaixe::GIROS[@arquivo.giro]}. Recalculando o consumo dos tamanhos.")
+  rescue ActiveRecord::RecordInvalid => e
+    responder_giro(false, e.record.errors.full_messages.to_sentence)
+  end
+
   def update_time
     previous_seconds = @arquivo.annotated_seconds || @arquivo.estimated_seconds
     new_seconds = parse_hmm(params[:annotated_seconds])
@@ -331,6 +344,15 @@ class ArquivosController < ApplicationController
   end
 
   private
+
+  # The flash survives the JSON answer: the page reloads and shows it.
+  def responder_giro(ok, mensagem)
+    flash[ok ? :notice : :alert] = mensagem
+    respond_to do |format|
+      format.json { render json: ok ? { ok: true, giro: @arquivo.giro } : { ok: false, error: mensagem }, status: ok ? :ok : :unprocessable_content }
+      format.html { redirect_to @arquivo }
+    end
+  end
 
   def composicao_slot_json(slot)
     arte = slot.arquivo

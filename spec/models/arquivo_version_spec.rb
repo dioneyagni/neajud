@@ -112,4 +112,29 @@ RSpec.describe ArquivoVersion, type: :model do
       expect(described_class::STORAGE_BASE.to_s).to end_with("/storage/test_stamps")
     end
   end
+
+  # Etapa 2.2 (1/3): the printed rectangle on the paper's roll. A calçado
+  # arte never turns (decided 07/10/2026); girar: is for a later type (DTF).
+  describe "#metros_por_peca" do
+    def com_medidas(width_px, height_px, dpi)
+      create(:arquivo_version).tap { |v| ArquivoImageMetadata.create!(arquivo_version: v, width_px: width_px, height_px: height_px, dpi: dpi) }
+    end
+
+    it "keeps the file's width across the roll, without turning" do
+      # 254 × 50,8 mm on 1600 mm: 6 across → 0,00847 m (turned it would be 0,00819).
+      expect(com_medidas(3000, 600, 300).metros_por_peca(1600)).to eq(0.00847)
+    end
+
+    it "tries 90° too when asked, keeping the better" do
+      expect(com_medidas(3000, 600, 300).metros_por_peca(1600, girar: true)).to eq(0.00819)
+    end
+
+    it "is nil without size or DPI, or when it doesn't fit either way" do
+      expect(create(:arquivo_version).metros_por_peca(1600)).to be_nil
+      expect(com_medidas(3000, 600, nil).metros_por_peca(1600)).to be_nil
+      expect(com_medidas(30000, 30000, 300).metros_por_peca(1600)).to be_nil
+      # 50,8 × 2540 mm: as it is, 31 across; turned it would not fit at all.
+      expect(com_medidas(600, 30000, 300).metros_por_peca(1600)).to eq(0.08194)
+    end
+  end
 end

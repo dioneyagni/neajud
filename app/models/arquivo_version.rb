@@ -53,5 +53,31 @@ class ArquivoVersion < ApplicationRecord
   # stopped rendering for anything uploaded before the next `bin/e2e` run.
   STORAGE_BASE = Rails.root.join("storage", Rails.env.test? ? "test_stamps" : "stamps")
 
+  # Meters of a paper roll of this width one printed piece takes (Etapa 2.2,
+  # 1/3; decided 07/10/2026): the file is a rectangle (pixels ÷ DPI), its
+  # width across the roll and its height along it. A calçado arte never turns
+  # (it must match its piece); girar: lets a later type (DTF) try 90° too.
+  # A straight sum, nothing to store. nil without size/DPI or wider than the roll.
+  # Usage: version.metros_por_peca(1600) # => 0.0215 (3 across, 64.5 mm tall)
+  def metros_por_peca(largura_mm, girar: false)
+    lados = medidas_mm
+    return nil unless lados
+
+    orientacoes = girar ? [ lados, lados.reverse ] : [ lados ]
+    opcoes = orientacoes.filter_map do |largura, altura|
+      lado_a_lado = (largura_mm / largura).floor
+      altura / lado_a_lado / 1000.0 if lado_a_lado.positive?
+    end
+    opcoes.min&.round(5)
+  end
+
   private
+
+  # [width, height] in mm, from the processed image's pixels and DPI.
+  def medidas_mm
+    meta = image_metadata
+    return nil unless meta&.width_px && meta.height_px && meta.dpi.to_f.positive?
+
+    [ meta.width_px, meta.height_px ].map { |px| px * 25.4 / meta.dpi }
+  end
 end

@@ -471,7 +471,7 @@ RSpec.describe "Pedidos", type: :request do
       item.arquivo.molde.molde_pecas.find_by(peca: lateral).update!(espelhada: true)
       get corte_pedido_path(pedido)
       html = Nokogiri::HTML(response.body)
-      linhas = html.css("tr.corte-linha").map { |tr| [ tr["data-peca"], tr["data-tamanho"], tr.at_css(".corte-total").text.squish ] }
+      linhas = html.css("tr.corte-linha").map { |tr| [ tr["data-peca"], tr["data-tamanho"], tr.css(".corte-total strong, .corte-total .corte-conta:not(.corte-metros)").map(&:text).join(" ").squish ] }
       expect(linhas).to eq([
         [ "Lateral", "29-30", "4 peças 2 direito · 2 esquerdo" ],
         [ "Lateral", "31-32", "2 peças 1 direito · 1 esquerdo" ],
@@ -487,6 +487,19 @@ RSpec.describe "Pedidos", type: :request do
     it "is linked from the pedido page" do
       get resumo_pedido_path(pedido)
       expect(Nokogiri::HTML(response.body).at_css("a.pedido-ir-corte")["href"]).to eq(corte_pedido_path(pedido))
+    end
+
+    # Etapa 2.2 (1/3, decided 07/10/2026): the expected metragem comes from the
+    # size's fit on the item's material's roll.
+    it "shows each line's expected metragem on the item's material, and the total" do
+      material = MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Tactel"), cor_material: CorMaterial.create!(nome: "Azul"), largura: "1.40 m", gramatura: "80g")
+      item.update!(materia_prima: material)
+      Tamanho.find_by!(nome: "29-30").tap { |t| t.update!(metros_por_peca: { "1400" => 0.02 }) }.arquivo.update!(giro: "180")
+      get corte_pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css("tr.corte-linha[data-tamanho='29-30'] .corte-metros").text.squish).to eq("≈ 0,08 m de tecido")
+      expect(html.at_css("tr.corte-linha[data-tamanho='31-32'] .corte-metros").text.squish).to eq("metragem ainda não calculada")
+      expect(html.at_css("[data-corte='metros']").text).to eq("≈ 0,08 m de tecido")
     end
 
     it "zips every size's DXF, named by part, size and corte" do
@@ -524,6 +537,16 @@ RSpec.describe "Pedidos", type: :request do
       linhas = Nokogiri::HTML(response.body).css("tr.impressao-linha").map { |tr| [ tr["data-tamanho"], tr["data-estado"], tr.at_css(".corte-total strong").text ] }
       expect(linhas).to eq([ [ "29-30", "producao", "4 peças" ], [ "31-32", "sem_arquivo", "2 peças" ] ])
       expect(Nokogiri::HTML(response.body).at_css("a.impressao-baixar")["href"]).to eq(download_arquivo_path(item.arquivo))
+    end
+
+    # Etapa 2.2 (1/3): the arte's rectangle on the paper's width.
+    it "shows each line's expected paper from the file's size and the paper's width" do
+      version = create(:arquivo_version, arquivo: item.arquivo, approved: true)
+      ArquivoImageMetadata.create!(arquivo_version: version, width_px: 3000, height_px: 600, dpi: 300)
+      item.arquivo.update!(approved_version_id: version.id)
+      get impressao_pedido_path(pedido)
+      # 254 × 50,8 mm, never turned: 6 across 1,60 m → 0,00847 m per piece × 4 pieces.
+      expect(Nokogiri::HTML(response.body).at_css("tr.impressao-linha[data-tamanho='29-30'] .corte-metros").text.squish).to eq("≈ 0,03 m de papel")
     end
 
     it "is linked from the pedido page, next to the Corte" do

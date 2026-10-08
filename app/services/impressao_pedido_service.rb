@@ -23,6 +23,15 @@ class ImpressaoPedidoService
     def por_lado
       espelhada && lado.nil? && arquivo ? pecas / 2 : nil
     end
+
+    # Meters of paper this line should take (Etapa 2.2, 1/3): the file's
+    # meters per piece on the paper's width × pieces; nil without a file or
+    # its size/DPI.
+    # Usage: linha.metros_esperados(1600) # => 0.2541 (shown rounded, summed unrounded)
+    def metros_esperados(largura_papel_mm)
+      por_peca = arquivo&.approved_version&.metros_por_peca(largura_papel_mm)
+      por_peca && (por_peca * pecas).round(4)
+    end
   end
 
   Grupo = Struct.new(:item, :linhas, keyword_init: true)

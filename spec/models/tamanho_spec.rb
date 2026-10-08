@@ -30,4 +30,10 @@ RSpec.describe Tamanho, type: :model do
       expect(build(:tamanho, nome: "30", numeros: []).atende_rotulo?("30")).to be true
     end
   end
+
+  # Etapa 2.2 (1/3): one fit per roll width.
+  it "gives the meters per piece of a width, nil while not computed" do
+    tamanho = build(:tamanho, metros_por_peca: { "1400" => 0.0183 })
+    expect([ tamanho.metros_por_peca_em(1400), tamanho.metros_por_peca_em(1600) ]).to eq([ 0.0183, nil ])
+  end
 end

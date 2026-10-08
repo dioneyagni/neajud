@@ -106,4 +106,28 @@ module ArquivosHelper
     tamanhos = partes.map { |peca, lista| [ peca&.nome || "No part", lista.map { |a| a.rotulo_de_tamanho || "?" }.join(", ") ].join(" ") }
     "#{total} files · #{tamanhos.join(" · ")}"
   end
+
+  # How much paper one printed piece of this file takes on the paper's width
+  # (Etapa 2.2, 1/3): pieces per meter and the share of a meter; nil without
+  # the file's size/DPI or when it doesn't fit the roll.
+  # Usage: consumo_de_papel(arquivo, 1600) # => "40,8 por metro · 2,45% do metro"
+  def consumo_de_papel(arquivo, largura_mm)
+    metros = largura_mm && arquivo.approved_version&.metros_por_peca(largura_mm)
+    return nil unless metros
+
+    por_metro = number_with_precision(1 / metros, precision: 1, separator: ",")
+    "#{por_metro} por metro · #{number_with_precision(metros * 100, precision: 2, separator: ",")}% do metro"
+  end
+
+  # Pieces per meter of fabric of a DXF size on each width it was fitted on
+  # (Etapa 2.2, 1/3); nil while none was computed.
+  # Usage: pecas_por_metro_do_tamanho(tamanho) # => "1,25 m: 50,7 peças/m · 1,60 m: 64,5 peças/m"
+  def pecas_por_metro_do_tamanho(tamanho)
+    larguras = tamanho.metros_por_peca.select { |_, metros| metros.to_f.positive? }.sort_by { |largura, _| largura.to_i }
+    return nil if larguras.empty?
+
+    larguras.map do |largura, metros|
+      "#{number_with_precision(largura.to_i / 1000.0, precision: 2, separator: ",")} m: #{number_with_precision(1 / metros.to_f, precision: 1, separator: ",")} peças/m"
+    end.join(" · ")
+  end
 end

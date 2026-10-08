@@ -43,4 +43,21 @@ RSpec.describe MateriaPrima, type: :model do
       expect(mp.saldo(cache)).to eq(15.0)
     end
   end
+
+  # Etapa 2.2 (1/3): the roll's width for each size's fit.
+  describe "#largura_mm" do
+    it "reads the typed width with or without unit" do
+      larguras = [ "1.25 m", "1,40", "140 cm", "1400 mm", "1.6", "abc" ].map { |l| described_class.new(largura: l).largura_mm }
+      expect(larguras).to eq([ 1250, 1400, 1400, 1400, 1600, nil ])
+    end
+  end
+
+  it "queues every size's meters per piece on a new width" do
+    ActiveJob::Base.queue_adapter = :test
+    corte = create(:arquivo, :corte)
+    tamanho = create(:tamanho, arquivo: corte)
+    expect { mp.save! }.to have_enqueued_job(MetrosPorPecaJob).with([ tamanho.id ], [ 1400 ])
+  ensure
+    ActiveJob::Base.queue_adapter = :inline
+  end
 end

@@ -1,0 +1,21 @@
+<%# The dono's production parameters (Etapa 2.2, 1/3). %>
+<h2>Production parameters</h2>
+<p class="funcoes-intro">Used to check each baixa: the expected metragem comes from the files themselves
+  (the arte's size on the paper, the DXF's fit on the fabric).</p>
+
+<%= form_with model: @empresa, url: parametros_path, method: :patch, class: "client-form parametros-form" do |form| %>
+  <div class="client-field">
+    <%= form.label :largura_papel_mm, "Paper width (mm)" %>
+    <%= form.number_field :largura_papel_mm, min: 1, step: 1, required: true %>
+    <small>The width of the roll the artes are printed on, e.g. 1600 for 1,60 m.</small>
+  </div>
+  <div class="client-field">
+    <%= form.label :tolerancia_abaixo_pct, "Warn below the expected by more than (%)" %>
+    <%= form.number_field :tolerancia_abaixo_pct, min: 0, max: 100, step: 1, required: true %>
+  </div>
+  <div class="client-field">
+    <%= form.label :tolerancia_acima_pct, "Warn above the expected by more than (%)" %>
+    <%= form.number_field :tolerancia_acima_pct, min: 0, max: 1000, step: 1, required: true %>
+  </div>
+  <%= form.submit "Save", class: "btn btn-primary" %>
+<% end %>

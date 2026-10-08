@@ -41,6 +41,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "trash an arte", "artes", 3, -> { delete arquivo_path(arte) } ],
     [ "open a corte (Catálogo)", "catalogo", 1, -> { get arquivo_path(corte) } ],
     [ "change a corte's cut type (Catálogo)", "catalogo", 2, -> { patch update_tipo_corte_arquivo_path(corte), params: { tipo_corte: "apenas_corte" } } ],
+    [ "change how a corte's pieces may turn (Catálogo)", "catalogo", 2, -> { patch update_giro_arquivo_path(corte), params: { giro: "90" } } ],
     [ "trash a corte (Catálogo)", "catalogo", 3, -> { delete arquivo_path(corte) } ],
     [ "list modelos", "catalogo", 1, -> { get modelos_path } ],
     [ "register a peça", "catalogo", 2, -> { post pecas_path, params: { peca: { nome: "Nova" } } } ],
@@ -90,6 +91,12 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     it "the Usuários page needs gerenciar_usuarios" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: %w[baixar_producao])
       get usuarios_path
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "the production parameters are the dono's only, whatever the grid says" do
+      entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
+      get edit_parametros_path
       expect(response).to have_http_status(:forbidden)
     end
 

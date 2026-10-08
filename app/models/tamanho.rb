@@ -20,6 +20,13 @@ class Tamanho < ApplicationRecord
     version && File.join(version.storage_dir, "tamanho_previews", "#{position}.png")
   end
 
+  # Meters of a roll of this width one piece takes (EncaixeDoTamanho), or
+  # nil while not computed.
+  # Usage: tamanho.metros_por_peca_em(1400) # => 0.01831
+  def metros_por_peca_em(largura_mm)
+    metros_por_peca[largura_mm.to_i.to_s]
+  end
+
   # Does this size serve the size read from a file name (Etapa 1.2, 2/3)?
   # Numbers must all be among the ones it serves ("30" or "29-30" → 29-30);
   # a label must be its name ("p" → P).
