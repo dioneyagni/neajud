@@ -83,6 +83,23 @@ RSpec.describe "Arte files", type: :request do
     expect([ consumo.text, consumo["title"] ]).to eq([ "118,1 por metro · 0,85% do metro", "On the 1600 mm paper (Parâmetros), without turning the arte" ])
   end
 
+  # Etapa 2.4 (decided 09/10/2026): the arte's cost per pair before any pedido.
+  it "shows the arte's cost, price and margin per pair for each number of its molde's cortes" do
+    Empresa.atual.update!(custo_impressao_metro: 10, custo_corte_peca: "0.5")
+    lateral = create(:peca, nome: "Lateral")
+    molde.molde_pecas.create!(peca: lateral)
+    molde.faixas_de_preco.create!(tamanho_inicial: "18", tamanho_final: "30", preco_par: 3)
+    corte = create(:arquivo, :corte, organized: true, client: client, modelo: molde.modelo, peca: lateral).tap { |c| c.moldes << molde }
+    arquivo = create(:arquivo, client: client, molde: molde, peca: lateral, tamanho: create(:tamanho, arquivo: corte, nome: "29-30", numeros: %w[29 30]))
+    version = create(:arquivo_version, arquivo: arquivo)
+    ArquivoImageMetadata.create!(arquivo_version: version, width_px: 3000, height_px: 600, dpi: 300)
+    arquivo.update!(approved_version: version)
+    get arquivo_path(arquivo)
+    linha = Nokogiri::HTML(response.body).at_css("#arte-custo-por-par tr[data-numero='30']")
+    # 2 pieces × 0,00847 m × R$ 10 + 2 pieces cut × R$ 0,50.
+    expect(%w[custo preco margem].map { |c| linha.at_css("[data-coluna='#{c}']").text }).to eq([ "R$ 1,17", "R$ 3,00", "R$ 1,83" ])
+  end
+
   describe "POST acrescentar" do
     it "adds a file of the molde's part and size to the arte, sharing its fields" do
       peca = create(:peca)

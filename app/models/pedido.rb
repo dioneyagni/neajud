@@ -98,6 +98,17 @@ class Pedido < ApplicationRecord
     PedidoBloqueiosService.call(self)
   end
 
+  # Writes each ordered number's price per pair, from its molde, into the
+  # grade (Etapa 2.4, decided 09/10/2026): a later change of the molde's
+  # price only reaches drafts. Called when the pedido is confirmed.
+  # Usage: pedido.gravar_precos!
+  def gravar_precos!
+    itens_pedido.includes(:grades, arquivo: :molde).find_each do |item|
+      molde = item.arquivo&.molde
+      item.grades.select { |g| g.quantidade.positive? }.each { |g| g.update!(preco_par: molde&.preco_do_par(g.tamanho_nome)) }
+    end
+  end
+
   # The clients of this pedido's artes (a draft without client is split by
   # them when confirmed). Usage: pedido.clientes_das_artes.map(&:name) # => ["MKS"]
   def clientes_das_artes

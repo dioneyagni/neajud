@@ -7,12 +7,18 @@ FactoryBot.define do
     modelo
 
     # The molde's own parts (Etapa 1.1, 3/5): create(:molde, partes: [lateral, lingua])
+    # Etapa 2.4: create(:molde, preco: 10) prices every number of the produto's grade.
     transient do
       partes { [] }
+      preco { nil }
     end
 
     after(:create) do |molde, contexto|
       contexto.partes.each { |peca| molde.molde_pecas.create!(peca: peca) }
+      next unless contexto.preco
+
+      grade = molde.modelo.produto.grade
+      molde.faixas_de_preco.create!(tamanho_inicial: grade.first, tamanho_final: grade.last, preco_par: contexto.preco)
     end
   end
 end

@@ -27,4 +27,12 @@ module ApplicationHelper
   def metros(valor)
     "#{number_with_precision(valor, precision: 2, separator: ",", delimiter: ".", strip_insignificant_zeros: true)} m"
   end
+
+  # Prices and costs (Etapa 2.4); "—" when unknown.
+  # Usage: reais(1234.5) # => "R$ 1.234,50"
+  def reais(valor)
+    return "—" if valor.nil?
+
+    "R$ #{number_with_precision(valor, precision: 2, separator: ",", delimiter: ".")}"
+  end
 end

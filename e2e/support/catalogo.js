@@ -29,4 +29,20 @@ async function adicionarPartes(page, moldeUuid, pecaUuids) {
   if (falhas.length) throw new Error(`Could not add parts to molde ${moldeUuid}: ${falhas.join(", ")}`);
 }
 
-module.exports = { modeloOficial, adicionarPartes };
+// Etapa 2.4: a pedido is confirmed only when its molde has a price per pair
+// for every ordered number. Prices one band (Calçado's whole grade by default).
+// Usage: await precificarMolde(page, moldeUuid, { preco: "10" });
+async function precificarMolde(page, moldeUuid, { de = "18", ate = "46", preco = "10" } = {}) {
+  const status = await page.evaluate(async ({ moldeUuid, de, ate, preco }) => {
+    const token = document.querySelector("meta[name='csrf-token']")?.content || "";
+    const body = new URLSearchParams({ authenticity_token: token, "faixa[tamanho_inicial]": de, "faixa[tamanho_final]": ate, "faixa[preco_par]": preco });
+    const r = await fetch(`/moldes/${moldeUuid}/faixas`, { method: "POST", body });
+    // A refused band also lands on the molde page (with an alert): the proof
+    // is the band listed there.
+    const rotulo = de === ate ? de : `${de}–${ate}`;
+    return (await r.text()).includes(`data-faixa="${rotulo}"`) ? null : `HTTP ${r.status}, band not listed`;
+  }, { moldeUuid, de, ate, preco });
+  if (status) throw new Error(`Could not price molde ${moldeUuid} (${de}–${ate}: ${preco}): ${status}`);
+}
+
+module.exports = { modeloOficial, adicionarPartes, precificarMolde };

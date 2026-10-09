@@ -34,4 +34,14 @@ RSpec.describe Empresa do
     expect(empresa.reload).not_to be_valid
     expect(empresa.errors[:papel_padrao].first).to include("is a tecido; expected a material of type papel")
   end
+
+  # Etapa 2.4: the cost per pair needs both costs.
+  it "knows when the costs per meter printed and per piece cut are set, refusing negative ones" do
+    empresa = Empresa.new(nome: "Neajud")
+    expect(empresa.custos_definidos?).to be(false)
+    empresa.assign_attributes(custo_impressao_metro: 4.5, custo_corte_peca: 0)
+    expect(empresa.custos_definidos?).to be(true)
+    empresa.custo_corte_peca = -1
+    expect(empresa).not_to be_valid
+  end
 end

@@ -1,0 +1,45 @@
+<%# Etapa 2.4 (decided 09/10/2026): calçado is charged per pair, at the
+    molde's price for each number — the price agreed with its client. A
+    pedido confirmed keeps the price it had then. Only for "ver_valores". %>
+<% grade = molde.modelo&.produto&.grade.to_a %>
+<% faixas = molde.faixas_de_preco.sort_by { |f| grade.index(f.tamanho_inicial) || 0 } %>
+<% sem_preco = molde.grade.select { |numero| molde.preco_do_par(numero).nil? } %>
+<% editar = pode?(:catalogo, :editar) %>
+<div class="stamp-detail-section stamp-detail-section--full" id="molde-precos">
+  <h3>Price per pair</h3>
+  <% if grade.empty? %>
+    <p class="gallery-empty">This molde's modelo has no grade of sizes: choose a modelo first.</p>
+  <% else %>
+    <% if faixas.empty? %>
+      <p class="gallery-empty">No price yet: a pedido of this molde can't be confirmed until its numbers have one.</p>
+    <% end %>
+    <ul class="molde-precos-lista">
+      <% faixas.each do |faixa| %>
+        <li class="molde-preco" data-faixa="<%= faixa.rotulo %>">
+          <% if editar %>
+            <%= form_with url: molde_faixa_path(molde, faixa), method: :patch, class: "molde-preco-form" do %>
+              <%= render "moldes/campos_da_faixa", grade: grade, inicial: faixa.tamanho_inicial, final: faixa.tamanho_final, preco: faixa.preco_par %>
+              <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+            <% end %>
+            <%= button_to "Remove", molde_faixa_path(molde, faixa), method: :delete, class: "btn btn-outline btn-sm",
+                  form: { data: { turbo_confirm: "Remove the price #{faixa.rotulo}?" } } %>
+          <% else %>
+            <span class="molde-preco-faixa"><%= faixa.rotulo %></span>
+            <span class="molde-preco-valor"><%= reais(faixa.preco_par) %> / par</span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <% if sem_preco.any? && faixas.any? %>
+      <p class="molde-precos-faltando" role="note">Without price in the molde's sizes: <%= sem_preco.join(", ") %>.</p>
+    <% end %>
+    <% if editar %>
+      <%= form_with url: molde_faixas_path(molde), method: :post, class: "molde-preco-form molde-preco-nova" do %>
+        <span class="molde-preco-nova-titulo">Add a band</span>
+        <%= render "moldes/campos_da_faixa", grade: grade, inicial: sem_preco.first || molde.grade.first || grade.first,
+                   final: sem_preco.last || molde.grade.last || grade.last, preco: nil %>
+        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

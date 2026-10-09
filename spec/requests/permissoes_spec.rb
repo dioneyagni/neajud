@@ -114,6 +114,34 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    # Etapa 2.4: prices and costs are management's, not the factory floor's.
+    it "pricing a molde needs ver_valores and catalogo: editar" do
+      preco = -> { post molde_faixas_path(molde), params: { faixa: { tamanho_inicial: "20", tamanho_final: "30", preco_par: "9" } } }
+      entrar_com_funcao(niveis: { "catalogo" => 3 })
+      instance_exec(&preco)
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "catalogo" => 1 }, acoes: %w[ver_valores])
+      instance_exec(&preco)
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "catalogo" => 2 }, acoes: %w[ver_valores])
+      instance_exec(&preco)
+      expect(molde.faixas_de_preco.sole.preco_par).to eq(9)
+    end
+
+    it "the molde's prices, the pedido's values and the arte's cost per pair show only with ver_valores" do
+      p = pedido
+      create(:item_pedido, :com_preco, pedido: p)
+      m = p.itens_pedido.sole.arquivo.molde
+      entrar_com_funcao(niveis: { "pedidos" => 3, "catalogo" => 3, "artes" => 3 })
+      [ molde_path(m), resumo_pedido_path(p), arquivo_path(p.itens_pedido.sole.arquivo) ].each do |caminho|
+        get caminho
+        expect(response.body).not_to include("molde-precos", "pedido-valores", "arte-custo-por-par")
+      end
+      entrar_com_funcao(niveis: { "pedidos" => 1, "catalogo" => 1, "artes" => 1 }, acoes: %w[ver_valores])
+      expect([ molde_path(m), resumo_pedido_path(p), arquivo_path(p.itens_pedido.sole.arquivo) ].map { |caminho| get(caminho) && response.body })
+        .to match([ include('id="molde-precos"'), include('id="pedido-valores"'), include('id="arte-custo-por-par"') ])
+    end
+
     it "the production parameters are the dono's only, whatever the grid says" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
       get edit_parametros_path

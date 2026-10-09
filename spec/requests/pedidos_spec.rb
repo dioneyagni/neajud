@@ -253,8 +253,8 @@ RSpec.describe "Pedidos", type: :request do
       arte_b = create(:arquivo, filename: "arte_b", extension: "tif", mime_type: "image/tiff", category: "artes", client: client_b)
 
       pedido = create(:pedido)
-      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_a)
-      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_b)
+      create(:item_pedido, :com_preco, pedido: pedido, arquivo: arte_a)
+      create(:item_pedido, :com_preco, pedido: pedido, arquivo: arte_b)
 
       expect {
         post confirmar_pedido_path(pedido)
@@ -272,9 +272,9 @@ RSpec.describe "Pedidos", type: :request do
       arte_a = create(:arquivo, category: "artes", client: create(:client))
       arte_b = create(:arquivo, category: "artes", client: create(:client))
       pedido = create(:pedido)
-      item_a = create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_a)
+      item_a = create(:item_pedido, :com_preco, pedido: pedido, arquivo: arte_a)
       create(:item_pedido_peca, item_pedido: item_a, arquivo: arte_a, incluida: false)
-      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte_b)
+      create(:item_pedido, :com_preco, pedido: pedido, arquivo: arte_b)
 
       post confirmar_pedido_path(pedido)
 
@@ -315,7 +315,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "confirms when pieces are only unchecked (the pedido goes without them)" do
       pedido = create(:pedido)
-      item = create(:item_pedido, :com_quantidade, pedido: pedido)
+      item = create(:item_pedido, :com_preco, pedido: pedido)
       create(:item_pedido_peca, item_pedido: item, incluida: false)
       post confirmar_pedido_path(pedido)
       expect(pedido.reload.status).to eq("confirmado")
@@ -325,7 +325,7 @@ RSpec.describe "Pedidos", type: :request do
       client = create(:client)
       arte = create(:arquivo, category: "artes", client: client)
       pedido = create(:pedido)
-      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte)
+      create(:item_pedido, :com_preco, pedido: pedido, arquivo: arte)
 
       expect {
         post confirmar_pedido_path(pedido)
@@ -334,6 +334,27 @@ RSpec.describe "Pedidos", type: :request do
       pedido.reload
       expect(pedido.status).to eq("confirmado")
       expect(pedido.client_id).to eq(client.id)
+    end
+
+    # Etapa 2.4 (decided 09/10/2026): the price is written at confirmation —
+    # a later change of the molde's price doesn't reach it — and travels to the
+    # pedidos a split makes.
+    it "writes each number's price per pair, also into the split pedidos" do
+      pedido = create(:pedido)
+      create(:item_pedido, :com_preco, pedido: pedido)
+      create(:item_pedido, :com_preco, pedido: pedido)
+      post confirmar_pedido_path(pedido)
+      novos = ItemPedidoGrade.joins(item_pedido: :pedido).where(pedidos: { status: "confirmado" })
+      expect(novos.pluck(:preco_par)).to eq([ 10, 10 ])
+    end
+
+    it "refuses to confirm a number without price per pair, naming the molde" do
+      pedido = create(:pedido)
+      item = create(:item_pedido, :com_preco, pedido: pedido)
+      item.grades.create!(tamanho_nome: "47", quantidade: 1)
+      post confirmar_pedido_path(pedido)
+      expect(flash[:alert]).to include("Molde #{item.arquivo.molde.nome} sem preço por par para 47")
+      expect(pedido.reload.status).to eq("rascunho")
     end
 
     it "redirects with alert if already confirmed" do
@@ -587,11 +608,36 @@ RSpec.describe "Pedidos", type: :request do
     end
   end
 
+  # Etapa 2.4 (decided 09/10/2026): price, cost and margin per pair.
+  describe "the pedido's values" do
+    it "shows each number's price, cost and margin per pair, and the totals" do
+      Empresa.atual.update!(custo_impressao_metro: 10, custo_corte_peca: 1)
+      pedido = create(:pedido)
+      item = create(:item_pedido, :com_preco, pedido: pedido)
+      item.item_pedido_pecas.create!(peca: create(:peca), position: 0)
+      item.grades.find_by!(tamanho_nome: "30").update!(quantidade: 3)
+      get pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      linha = html.at_css("#pedido-valores tr[data-numero='30']")
+      # One part with no file yet: 2 pieces cut × R$ 1, printing unknown (*).
+      expect(%w[preco custo margem].map { |c| linha.at_css("[data-coluna='#{c}']").text.squish }).to eq([ "R$ 10,00", "R$ 2,00*", "R$ 8,00" ])
+      expect(%w[valor custo margem].map { |v| html.at_css("[data-valor='#{v}']").text }).to eq([ "R$ 30,00", "R$ 6,00", "R$ 24,00" ])
+    end
+
+    it "asks for the costs in Parâmetros while they aren't set" do
+      pedido = create(:pedido)
+      create(:item_pedido, :com_preco, pedido: pedido)
+      get pedido_path(pedido)
+      expect(Nokogiri::HTML(response.body).at_css("[data-valor='custo']").text).to eq("—")
+      expect(response.body).to include("printing cost per meter")
+    end
+  end
+
   describe "pending pieces on the pedido pages" do
     let(:pedido) { create(:pedido) }
 
     before do
-      item = create(:item_pedido, :com_quantidade, pedido: pedido)
+      item = create(:item_pedido, :com_preco, pedido: pedido)
       create(:item_pedido_peca, item_pedido: item, peca: create(:peca, nome: "Língua"), arquivo: nil)
     end
 

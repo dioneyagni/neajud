@@ -103,6 +103,7 @@ class PedidosController < ApplicationController
                          alert: "Não é possível confirmar: #{bloqueios.map(&:descricao).join("; ")}."
     end
 
+    @pedido.gravar_precos!
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
 
     if items_by_client.size == 1
@@ -122,7 +123,7 @@ class PedidosController < ApplicationController
           materia_prima: item.materia_prima
         )
         item.grades.each do |g|
-          novo_item.grades.create!(tamanho_nome: g.tamanho_nome, quantidade: g.quantidade)
+          novo_item.grades.create!(tamanho_nome: g.tamanho_nome, quantidade: g.quantidade, preco_par: g.preco_par)
         end
         novo_item.copiar_pecas_de!(item)
       end

@@ -5,7 +5,7 @@ const { execSync } = require("child_process");
 const { uploadFileAndWait } = require("./support/upload");
 const { waitForQueuedTask } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
-const { modeloOficial } = require("./support/catalogo");
+const { modeloOficial, precificarMolde } = require("./support/catalogo");
 
 // Etapa 2.2 (2/3 and 3/3; decided 07/10/2026): the factory gives each production
 // stage's baixa — one line, a referência or the whole pedido — typing the
@@ -51,6 +51,7 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       const clienteUuid = await buscar(`/clients/search?q=${encodeURIComponent(nomes.cliente)}`, "name", nomes.cliente);
       await post("/moldes", { "molde[sufixo]": nomes.molde, "molde[client_uuid]": clienteUuid, "molde[modelo_uuid]": bota.id });
       const moldeUuid = await buscar(`/moldes/search?q=${encodeURIComponent(nomes.molde)}`, "sufixo", nomes.molde);
+      await precificarMolde(page, moldeUuid);
 
       const dxf = path.join(pasta, `BX${U}.dxf`);
       fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "29-30.dxf"), dxf);

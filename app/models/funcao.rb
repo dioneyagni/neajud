@@ -13,7 +13,7 @@ class Funcao < ApplicationRecord
   # permissões"); 0 nenhum, 1 ver, 2 editar, 3 excluir.
   PADRAO = [
     { nome: "Dono", dono: true },
-    { nome: "Admin", niveis: { pedidos: 3, clientes: 3, artes: 3, catalogo: 3, estoque: 3, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte] },
+    { nome: "Admin", niveis: { pedidos: 3, clientes: 3, artes: 3, catalogo: 3, estoque: 3, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores] },
     { nome: "Atendimento", niveis: { pedidos: 3, clientes: 3, artes: 3, catalogo: 1, estoque: 2, lixeira: 0 }, acoes: %w[aprovar_arte] },
     { nome: "Designer", niveis: { pedidos: 1, clientes: 1, artes: 3, catalogo: 3, estoque: 0, lixeira: 0 }, acoes: %w[baixar_producao aprovar_arte] },
     { nome: "Produção", niveis: { pedidos: 1, clientes: 0, artes: 1, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao] }

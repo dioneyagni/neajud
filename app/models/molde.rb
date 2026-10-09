@@ -27,6 +27,8 @@ class Molde < ApplicationRecord
   has_many :arquivo_moldes, dependent: :destroy
   has_many :vinculated_arquivos, through: :arquivo_moldes, source: :arquivo
   has_many :molde_pecas, dependent: :destroy
+  # Price per pair by band of the grade (Etapa 2.4).
+  has_many :faixas_de_preco, -> { order(:id) }, class_name: "FaixaDePreco", dependent: :destroy
   has_many :configured_pecas, through: :molde_pecas, source: :peca
   has_many :vinculo_logs_saida, class_name: "ArquivoVinculoLog", foreign_key: :from_molde_id, dependent: :nullify
   has_many :vinculo_logs_entrada, class_name: "ArquivoVinculoLog", foreign_key: :to_molde_id, dependent: :nullify
@@ -68,6 +70,12 @@ class Molde < ApplicationRecord
   def atualizar_nome!
     montar_nome
     update_column(:nome, nome) if nome_changed?
+  end
+
+  # The price per pair of a number (Etapa 2.4); nil when no band covers it.
+  # Usage: molde.preco_do_par("27") # => 9.5
+  def preco_do_par(numero)
+    faixas_de_preco.find { |faixa| faixa.numeros.include?(numero.to_s) }&.preco_par
   end
 
   # "002-TNS"; without abbreviation (a trashed dev sample's modelo) "002".

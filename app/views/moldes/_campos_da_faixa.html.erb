@@ -1,0 +1,10 @@
+<label>From
+  <select name="faixa[tamanho_inicial]" aria-label="From size"><%= options_for_select(grade, inicial) %></select>
+</label>
+<label>to
+  <select name="faixa[tamanho_final]" aria-label="To size"><%= options_for_select(grade, final) %></select>
+</label>
+<label>R$
+  <input type="text" name="faixa[preco_par]" inputmode="decimal" size="7" required aria-label="Price per pair"
+         value="<%= preco && number_with_precision(preco, precision: 2, separator: ",") %>"> / par
+</label>

@@ -33,6 +33,9 @@
       <%= render "molde_field" %>
       <%= render "nome_arte", arquivo: @arquivo %>
       <%= render "arte_arquivos", arquivo: @arquivo if @arquivo.arte %>
+      <% if @arquivo.arte && @arquivo.molde && pode_acao?(:ver_valores) %>
+        <%= render "custo_por_par", arquivo: @arquivo %>
+      <% end %>
 
       <% if @arquivo.category == "corte" && @arquivo.approved_version&.cut_layers&.any? %>
         <div class="stamp-detail-section stamp-detail-section--full">

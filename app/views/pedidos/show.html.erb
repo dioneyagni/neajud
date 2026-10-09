@@ -62,6 +62,11 @@
       <p class="gallery-empty">No items yet. Add an arte below, or from the gallery.</p>
     <% end %>
 
+    <%# Etapa 2.4: a reposição is internal, never charged. %>
+    <% if pode_acao?(:ver_valores) && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
+      <%= render "pedidos/valores", pedido: @pedido %>
+    <% end %>
+
     <% if pedido_editavel?(@pedido) %>
       <%# Etapa 1.2 (3/3, decided 05/10/2026): an item enters by molde → referência
           → arte here too, not only from the gallery's card. %>

@@ -32,6 +32,14 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    # Etapa 2.4: a molde's price band is edited and removed by its uuid.
+    it "refuses a price band by integer id" do
+      faixa = create(:molde).faixas_de_preco.create!(tamanho_inicial: "20", tamanho_final: "30", preco_par: 9)
+      delete "/moldes/#{faixa.molde.uuid}/faixas/#{faixa.id}"
+      expect(response).to have_http_status(:not_found)
+      expect(FaixaDePreco.exists?(faixa.id)).to be(true)
+    end
+
     it "refuses a tamanho drawing by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/preview"
