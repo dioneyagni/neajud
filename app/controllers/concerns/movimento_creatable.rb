@@ -6,7 +6,10 @@ module MovimentoCreatable
   def movimento_build
     normalize_decimal_separator
     load_form_data
-    @movimento = MovimentoEstoque.new(movimento_params.except(:grupo_material_uuid, :cor_material_uuid, :largura, :gramatura))
+    atributos = movimento_params.except(:grupo_material_uuid, :cor_material_uuid, :largura, :gramatura)
+    # Etapa 2.3: the empresa's own stock has no client.
+    atributos = atributos.except(:client_uuid) if ActiveModel::Type::Boolean.new.cast(atributos[:da_empresa])
+    @movimento = MovimentoEstoque.new(atributos)
   end
 
   def movimento_save
@@ -21,8 +24,10 @@ module MovimentoCreatable
     @movimento.materia_prima = mp
 
     if @movimento.save
-      redirect_to materiais_path, notice: "Movement registered: #{@movimento.tipo == 'entrada' ? 'In' : 'Out'} #{@movimento.quantidade} of #{mp.nome_completo} (#{@movimento.client.name})."
+      redirect_to materiais_path, notice: "Movement registered: #{@movimento.tipo == 'entrada' ? 'In' : 'Out'} #{@movimento.quantidade} m of #{mp.nome_completo} (#{@movimento.dono})."
     else
+      # The form re-rendered without saying why (until Etapa 2.3).
+      flash.now[:alert] = @movimento.errors.full_messages.to_sentence
       populate_selected_values
       render :new, status: :unprocessable_content
     end
@@ -45,7 +50,7 @@ module MovimentoCreatable
   end
 
   def movimento_params
-    params.require(:movimento_estoque).permit(:client_uuid, :tipo, :quantidade, :valor,
+    params.require(:movimento_estoque).permit(:client_uuid, :da_empresa, :tipo, :quantidade, :valor,
                                               :grupo_material_uuid, :cor_material_uuid, :largura, :gramatura)
   end
 

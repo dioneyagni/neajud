@@ -60,4 +60,13 @@ RSpec.describe MateriaPrima, type: :model do
   ensure
     ActiveJob::Base.queue_adapter = :inline
   end
+
+  # Etapa 2.3: tecido, papel or filme, with a sale price per meter.
+  it "is a tecido by default, takes papel or filme, naming a wrong type, and a non-negative price" do
+    expect(mp.tipo).to eq("tecido")
+    mp.tipo = "couro"
+    mp.preco_metro = -1
+    expect(mp).not_to be_valid
+    expect(mp.errors.full_messages).to contain_exactly("Tipo couro is not a material type; expected tecido, papel or filme", "Preco metro must be greater than or equal to 0")
+  end
 end

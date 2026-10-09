@@ -1,8 +1,8 @@
 # The dono's production parameters (Etapa 2.2, 1/3; decided 07/10/2026): the
 # paper's width (an arte's meters per piece) and how far a baixa's metragem
 # may fall below / go above the expected before the operator is warned.
-# Etapa 2.4 adds the rest of the dono's parameters here; Etapa 2.3 turns the
-# paper into a material.
+# Etapa 2.4 adds the rest of the dono's parameters here. Since Etapa 2.3 the
+# paper is a material: the default paper's width replaces the typed one.
 class ParametrosEmpresaController < ApplicationController
   exige_dono
 
@@ -22,6 +22,9 @@ class ParametrosEmpresaController < ApplicationController
   private
 
   def parametros
-    params.require(:empresa).permit(:largura_papel_mm, :tolerancia_abaixo_pct, :tolerancia_acima_pct)
+    dados = params.require(:empresa).permit(:papel_padrao_uuid, :largura_papel_mm, :tolerancia_abaixo_pct, :tolerancia_acima_pct)
+    papel = dados.delete(:papel_padrao_uuid)
+    dados[:papel_padrao] = MateriaPrima.papeis.find_by(uuid: papel) if papel
+    dados
   end
 end

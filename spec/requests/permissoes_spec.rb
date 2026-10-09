@@ -51,6 +51,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "remove a molde's part", "catalogo", 2, -> { delete remover_parte_molde_path(molde, molde_peca_uuid: molde.molde_pecas.create!(peca: create(:peca)).uuid) } ],
     [ "list materials", "estoque", 1, -> { get materiais_path } ],
     [ "open the new movement form", "estoque", 2, -> { get new_movimento_path } ],
+    [ "set a material's type and price", "estoque", 2, -> { patch material_path(MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "1g")), params: { materia_prima: { preco_metro: "1" } } } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],
     [ "restore from the trash", "lixeira", 2, -> { post restaurar_lixeira_path(tipo: "pecas", id: peca.tap { |p| p.excluir!(changed_by: "x") }.uuid) } ]
   ].freeze

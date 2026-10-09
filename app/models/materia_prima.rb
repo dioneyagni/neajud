@@ -1,4 +1,9 @@
+# A material in stock, counted in linear meters (Etapa 2.3, decided
+# 09/10/2026): a tecido, the transfer papel or the dublagem filme, with its
+# sale price per meter (preco_metro; an entry's valor is what it cost).
 class MateriaPrima < ApplicationRecord
+  TIPOS = %w[tecido papel filme].freeze
+
   include GeraUuid
   belongs_to :grupo_material
   belongs_to :cor_material
@@ -8,6 +13,10 @@ class MateriaPrima < ApplicationRecord
   validates :largura, presence: true
   validates :gramatura, presence: true
   validates :largura, uniqueness: { scope: %i[grupo_material_id cor_material_id gramatura] }
+  validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a material type; expected tecido, papel or filme" }
+  validates :preco_metro, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+
+  scope :papeis, -> { where(tipo: "papel") }
 
   # Etapa 2.2 (1/3): a new roll width gets every size's meters per piece.
   after_create_commit :calcular_metros_por_peca

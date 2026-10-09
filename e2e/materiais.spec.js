@@ -181,4 +181,40 @@ runSpec("Materiais E2E Tests", async ({ page, test }) => {
     if (!body.includes("Movement registered")) throw new Error("Flash notice not found");
     if (!body.includes("Oxford")) throw new Error("Material not shown in inventory");
   });
+
+  // Etapa 2.3 (decided 09/10/2026): stock in meters, the empresa's own stock
+  // next to each client's; a material's type and sale price; the default
+  // paper whose width fits the artes.
+  await test("The empresa's own stock: registered as owner Empresa, shown in meters, turned into the default paper", async () => {
+    // The form saves the width as typed with a dot (normalize_decimal_separator).
+    const material = `Oxford-Azul-1.10-${UNIQ.slice(-3)}g`;
+    await page.goto(`${BASE_URL}/movimentos/new`);
+    await page.locator("label", { hasText: "Empresa (own stock)" }).click();
+    await page.locator('input[placeholder="Search group..."]').fill("Ox");
+    await page.locator(".combobox-option[data-name='Oxford']").click();
+    await page.click('.color-swatch[title="Azul"]');
+    await page.evaluate((gramatura) => {
+      document.querySelector('input[name="movimento_estoque[largura]"]').value = "1,10";
+      document.querySelector('input[name="movimento_estoque[gramatura]"]').value = gramatura;
+    }, `${UNIQ.slice(-3)}g`);
+    await page.fill('input[name="movimento_estoque[quantidade]"]', "15.5");
+    await Promise.all([ page.waitForURL("**/materiais"), page.click('input[type="submit"]') ]);
+    await page.getByText(`Movement registered: In 15.5 m of ${material} (Empresa).`).waitFor();
+
+    const linha = page.locator("tr[data-material]", { hasText: material });
+    if ((await linha.locator("[data-saldo=empresa]").innerText()).trim() !== "15,5 m") throw new Error("The empresa's balance should be 15,5 m");
+    await linha.locator("select").selectOption("papel");
+    await linha.locator('input[name="materia_prima[preco_metro]"]').fill("8,90");
+    await Promise.all([ page.waitForURL("**/materiais"), linha.locator('input[type="submit"][value="Save"]').click() ]);
+    await page.getByText(`${material} saved.`).waitFor();
+
+    await page.goto(`${BASE_URL}/parametros/edit`);
+    await page.selectOption("#empresa_papel_padrao_uuid", { label: `${material} (1100 mm)` });
+    await Promise.all([ page.waitForURL("**/parametros/edit"), page.click('input[type="submit"][value="Save"]') ]);
+    await page.getByText("Production parameters saved.").waitFor();
+    if ((await page.locator("#empresa_papel_padrao_uuid option:checked").innerText()).trim() !== `${material} (1100 mm)`) throw new Error("The default paper should be saved");
+    // Back to the 1,60 m width other specs expect.
+    await page.selectOption("#empresa_papel_padrao_uuid", "");
+    await Promise.all([ page.waitForURL("**/parametros/edit"), page.click('input[type="submit"][value="Save"]') ]);
+  });
 });
