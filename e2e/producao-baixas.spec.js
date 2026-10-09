@@ -17,6 +17,7 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
   const nomes = { cliente: `Baixas ${U}`, molde: `BX${U}`, arte: `20-BAIXA${U}-29_30.tif` };
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "neajud-baixas-"));
   let pedidoUuid;
+  let reposicaoUuid;
 
   async function post(url, campos) {
     return page.evaluate(async ({ url, campos }) => {
@@ -139,11 +140,49 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       await page.locator(".historico-baixa--desfeita .historico-baixa-desfeita", { hasText: "desfeita por" }).waitFor();
     });
 
-    await test("Marcar como entregue warns about the open stages; delivered anyway, the pedido is read only", async () => {
+    // Etapa 2.2 (4/4, decided 08-09/10/2026): a short Conferência is counted
+    // line by line, the conferente unchecks what doesn't need redoing, and the
+    // missing pieces go to the reposição — released as the Conferência ends.
+    await test("A short Conferência asks each line's count and what to redo; the reposição goes to production without the Corte", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/estamparia`);
+      await salvoERecarregado(() => darBaixa(page.locator(".etapa-andamento .baixa"), "10"));
+
+      await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/conferencia`);
+      const pedido = page.locator(".etapa-andamento .baixa");
+      await darBaixa(pedido, "8");
+      await pedido.locator(".baixa-aviso", { hasText: "Faltam 2 peças das 10 esperadas. Confira a contagem de cada linha e marque o que refazer" }).waitFor();
+      const contagem = pedido.locator(".baixa-contagem input[data-chave]");
+      if ((await contagem.count()) !== 1 || (await contagem.inputValue()) !== "10") throw new Error("Each line comes filled with its expected");
+      await contagem.fill("8");
+      const refazer = pedido.locator(".baixa-contagem input[data-refazer]");
+      if ((await refazer.evaluateAll((cs) => cs.map((c) => `${c.value}:${c.checked}`))).join("|") !== "impressao:true|corte:true") throw new Error("Impressão and Corte come checked");
+      // The cut piece was fine: only the print goes again.
+      await pedido.locator('.baixa-contagem input[data-refazer][value="corte"]').uncheck();
+      await salvoERecarregado(() => pedido.locator(".baixa-confirmar", { hasText: "Confirmar contagem" }).click());
+      await page.getByText(/Peças que faltaram na reposição, que foi para a produção #[0-9a-f]{8}/).waitFor();
+
+      const link = page.locator("tr.etapa-linha .baixa-reposicao");
+      if ((await link.innerText()).trim() !== `↻ reposição #${(await link.getAttribute("href")).split("/")[2].slice(0, 8)} (2)`) throw new Error("The line should point at its reposição");
+      await Promise.all([ page.waitForURL(/\/pedidos\/[0-9a-f-]{36}\/resumo$/), link.click() ]);
+      reposicaoUuid = page.url().split("/")[4];
+      await page.locator(".pedido-reposicao-de", { hasText: `Reposição de #${pedidoUuid.slice(0, 8)}` }).waitFor();
+      const peca = (await page.locator(".reposicao-pecas li").innerText()).replace(/\s+/g, " ").trim();
+      if (peca !== "Sem peça 29-30 refazer: impressão, estamparia, conferência 2 peças") throw new Error(`The reposição's piece: "${peca}"`);
+      if ((await page.locator("h2 .badge").innerText()).trim() !== "confirmado") throw new Error("A reposição is born confirmed");
+
+      await page.locator("a.pedido-ir-impressao").click();
+      await page.waitForURL(`**/pedidos/${reposicaoUuid}/impressao`);
+      if ((await page.locator("tr.impressao-linha .corte-total strong").innerText()).trim() !== "2 peças") throw new Error("The reposição prints just the missing pieces");
+      await page.goto(`${BASE_URL}/pedidos/${reposicaoUuid}/corte`);
+      await page.getByText("Nenhuma parte para cortar neste pedido.").waitFor();
+    });
+
+    await test("Marcar como entregue warns about the reposição in production; delivered anyway, the pedido is read only", async () => {
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
       if ((await page.locator("h2 .badge").innerText()).trim() !== "em produção") throw new Error("The first baixa puts the pedido in production");
       await page.locator(".entrega-botao").click();
-      await page.locator(".entrega .baixa-aviso", { hasText: "Ainda faltam: Estamparia 1 linha, Conferência 1 linha." }).waitFor();
+      // Every stage is done, but the reposição is still in production (4/4).
+      await page.locator(".entrega .baixa-aviso", { hasText: `Ainda faltam: a reposição #${reposicaoUuid.slice(0, 8)}.` }).waitFor();
       await Promise.all([ page.waitForResponse((r) => r.url().endsWith(`/pedidos/${pedidoUuid}/entregar`)), page.locator(".entrega-confirmar").click() ]);
       await page.locator(".pedido-entregue", { hasText: "Entregue em" }).waitFor();
       if ((await page.locator("h2 .badge").innerText()).trim() !== "entregue") throw new Error("The pedido should be delivered");

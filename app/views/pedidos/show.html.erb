@@ -4,9 +4,9 @@
 <%= turbo_stream_from @pedido %>
 
 <h2>
-  Pedido
+  <%= @pedido.reposicao? ? "Reposição" : "Pedido" %>
   <span style="font-size:0.8rem; color:var(--text-muted);">#<%= @pedido.uuid.first(8) %></span>
-  <span class="badge badge-<%= @pedido.status %>"><%= rotulo_do_status(@pedido.status) %></span>
+  <span class="badge badge-<%= @pedido.status %>"><%= rotulo_do_status(@pedido.status, reposicao: @pedido.reposicao?) %></span>
   <%= selo_excluido(@pedido) %>
 </h2>
 
@@ -27,6 +27,17 @@
   </p>
 <% end %>
 <p><strong>Criado em:</strong> <%= l @pedido.created_at, format: :long %></p>
+<%# Etapa 2.2 (4/4): a reposição and the pedido it repairs point at each other. %>
+<% if @pedido.reposicao? %>
+  <p class="pedido-reposicao-de">Reposição de <%= link_to "##{@pedido.reposicao_de.uuid.first(8)}", resumo_pedido_path(@pedido.reposicao_de) %>: as peças que faltaram na conferência.</p>
+<% end %>
+<% if @pedido.reposicoes.any? %>
+  <p class="pedido-reposicoes">Reposições:
+    <% @pedido.reposicoes.order(:created_at).each do |reposicao| %>
+      <%= link_to "##{reposicao.uuid.first(8)}", resumo_pedido_path(reposicao) %> (<%= rotulo_do_status(reposicao.status, reposicao: true) %>)
+    <% end %>
+  </p>
+<% end %>
 
 <% if @pedido.grade_antiga? %>
   <%# Etapa 1.2 (3/3): grades by the corte's size name can't be split by number. %>
@@ -38,12 +49,16 @@
     pendências in a side panel (below the items on narrow screens). %>
 <div class="pedido-layout">
   <div class="pedido-principal">
-    <h3>Itens (<%= @pedido.itens_pedido.count %>)</h3>
-    <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
-      <%= render "item", item: item, pedido: @pedido %>
+    <% if @pedido.reposicao? %>
+      <%= render "itens_reposicao", pedido: @pedido %>
+    <% else %>
+      <h3>Itens (<%= @pedido.itens_pedido.count %>)</h3>
+      <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
+        <%= render "item", item: item, pedido: @pedido %>
+      <% end %>
     <% end %>
 
-    <% if @pedido.itens_pedido.empty? %>
+    <% if @pedido.itens_pedido.empty? && !@pedido.reposicao? %>
       <p class="gallery-empty">No items yet. Add an arte below, or from the gallery.</p>
     <% end %>
 

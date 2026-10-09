@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -177,6 +177,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
 
   create_table "baixas_producao", force: :cascade do |t|
     t.string "changed_by"
+    t.json "contagens", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "desfeita_em"
     t.integer "desfeita_por_id"
@@ -187,12 +188,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
     t.decimal "medida", precision: 12, scale: 4, null: false
     t.string "nivel", null: false
     t.integer "pedido_id", null: false
+    t.integer "reposicao_id"
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "uuid", null: false
     t.index ["desfeita_por_id"], name: "index_baixas_producao_on_desfeita_por_id"
     t.index ["pedido_id", "etapa"], name: "index_baixas_producao_on_pedido_id_and_etapa"
     t.index ["pedido_id"], name: "index_baixas_producao_on_pedido_id"
+    t.index ["reposicao_id"], name: "index_baixas_producao_on_reposicao_id"
     t.index ["user_id"], name: "index_baixas_producao_on_user_id"
     t.index ["uuid"], name: "index_baixas_producao_on_uuid", unique: true
   end
@@ -341,6 +344,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
     t.index ["item_pedido_id"], name: "index_itens_pedido_grade_on_item_pedido_id"
   end
 
+  create_table "itens_reposicao", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.boolean "corta", default: true, null: false
+    t.datetime "created_at", null: false
+    t.integer "item_origem_id", null: false
+    t.string "lado"
+    t.integer "materia_prima_id"
+    t.integer "peca_id"
+    t.integer "pecas", null: false
+    t.integer "pedido_id", null: false
+    t.boolean "refazer_corte", default: true, null: false
+    t.boolean "refazer_impressao", default: true, null: false
+    t.integer "tamanho_id"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["arquivo_id"], name: "index_itens_reposicao_on_arquivo_id"
+    t.index ["item_origem_id"], name: "index_itens_reposicao_on_item_origem_id"
+    t.index ["materia_prima_id"], name: "index_itens_reposicao_on_materia_prima_id"
+    t.index ["peca_id"], name: "index_itens_reposicao_on_peca_id"
+    t.index ["pedido_id"], name: "index_itens_reposicao_on_pedido_id"
+    t.index ["tamanho_id"], name: "index_itens_reposicao_on_tamanho_id"
+    t.index ["uuid"], name: "index_itens_reposicao_on_uuid", unique: true
+  end
+
   create_table "materia_primas", force: :cascade do |t|
     t.integer "cor_material_id", null: false
     t.datetime "created_at", null: false
@@ -454,6 +481,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
     t.integer "entregue_por_id"
     t.boolean "grade_antiga", default: false, null: false
     t.text "observacoes"
+    t.integer "reposicao_de_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.string "status", default: "rascunho", null: false
@@ -463,6 +491,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
     t.index ["client_id"], name: "index_pedidos_on_client_id"
     t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
     t.index ["entregue_por_id"], name: "index_pedidos_on_entregue_por_id"
+    t.index ["reposicao_de_id"], name: "index_pedidos_on_reposicao_de_id"
     t.index ["status"], name: "index_pedidos_on_status"
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end
@@ -595,6 +624,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
   add_foreign_key "arquivos", "referencias"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "baixas_producao", "pedidos"
+  add_foreign_key "baixas_producao", "pedidos", column: "reposicao_id"
   add_foreign_key "baixas_producao", "users"
   add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
   add_foreign_key "cut_layers", "arquivo_versions"
@@ -607,6 +637,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
   add_foreign_key "itens_pedido", "materia_primas"
   add_foreign_key "itens_pedido", "pedidos"
   add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"
+  add_foreign_key "itens_reposicao", "arquivos"
+  add_foreign_key "itens_reposicao", "itens_pedido", column: "item_origem_id"
+  add_foreign_key "itens_reposicao", "materia_primas"
+  add_foreign_key "itens_reposicao", "pecas"
+  add_foreign_key "itens_reposicao", "pedidos"
+  add_foreign_key "itens_reposicao", "tamanhos"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"
   add_foreign_key "modelos", "produtos"
@@ -619,6 +655,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_184042) do
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
+  add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"
   add_foreign_key "pedidos", "users", column: "entregue_por_id"
   add_foreign_key "referencias", "moldes"
   add_foreign_key "sessions", "users"

@@ -19,6 +19,10 @@ class Pedido < ApplicationRecord
   EM_PRODUCAO = %w[confirmado em_producao].freeze
 
   belongs_to :entregue_por, class_name: "User", optional: true
+  # Etapa 2.2 (4/4): a reposição repairs the pieces a Conferência missed.
+  belongs_to :reposicao_de, class_name: "Pedido", optional: true
+  has_many :reposicoes, class_name: "Pedido", foreign_key: :reposicao_de_id, dependent: :nullify, inverse_of: :reposicao_de
+  has_many :itens_reposicao, class_name: "ItemReposicao", dependent: :destroy
 
   recusa_excluido :client
   validates :status, presence: true, inclusion: { in: STATUS, message: "%{value} is not a pedido status; expected one of #{STATUS.join(", ")}" }
@@ -37,7 +41,20 @@ class Pedido < ApplicationRecord
   # grade_antiga: a pedido from before Etapa 1.2 (3/3), its grade by the
   # corte's size name — read only, even restored from the trash.
   def editavel?
-    status == "rascunho" && !excluido? && !grade_antiga?
+    status == "rascunho" && !excluido? && !grade_antiga? && !reposicao?
+  end
+
+  # A sub-pedido of the pieces a Conferência missed (Etapa 2.2, 4/4).
+  # Usage: pedido.reposicao? # => true
+  def reposicao?
+    reposicao_de_id.present?
+  end
+
+  # The reposição still gathering this pedido's missing pieces, out of
+  # production (Etapa 2.2, 4/4).
+  # Usage: pedido.reposicao_em_aberto&.itens_reposicao&.sum(:pecas) # => 3
+  def reposicao_em_aberto
+    reposicoes.find_by(status: "rascunho")
   end
 
   # Usage: pedido.em_producao? # => true while confirmado or em_producao

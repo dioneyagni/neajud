@@ -1,10 +1,10 @@
 class PedidosController < ApplicationController
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
-  exige_acao :atualizar_producao, only: :entregar
+  exige_acao :atualizar_producao, only: %i[entregar gerar_reposicao]
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar gerar_reposicao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
@@ -243,6 +243,17 @@ class PedidosController < ApplicationController
     when :aviso then render json: { ok: false, aviso: resultado.mensagem }
     else render json: { ok: false, error: resultado.mensagem }, status: :unprocessable_content
     end
+  end
+
+  # "Gerar reposição" (Etapa 2.2, 4/4): the open reposição goes to
+  # production before the Conferência ends.
+  # Usage: POST /pedidos/:uuid/gerar_reposicao
+  def gerar_reposicao
+    reposicao = LiberarReposicaoService.call(@pedido)
+    voltar = url_from(request.referer) || resumo_pedido_path(@pedido)
+    return redirect_to voltar, alert: "There is no open reposição with pieces in this pedido." unless reposicao
+
+    redirect_to voltar, notice: "Reposição ##{reposicao.uuid.first(8)} enviada para a produção (#{reposicao.itens_reposicao.sum(:pecas)} peças)."
   end
 
   def resumo

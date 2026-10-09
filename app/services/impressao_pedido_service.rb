@@ -11,19 +11,24 @@
 class ImpressaoPedidoService
   # corta: the molde part goes to the cutting table (Etapa 2.2, 2/3: the
   # Estamparia waits for its Corte line only then).
-  Linha = Struct.new(:peca, :tamanho, :arquivo, :lado, :origem, :pendencia, :quantidades, :pecas_por_par, :espelhada, :corta, keyword_init: true) do
+  # pecas_fixas: a reposição's line counts pieces, not pairs (Etapa 2.2, 4/4);
+  # refazer_impressao false: it isn't printed again (the paper is fine).
+  Linha = Struct.new(:peca, :tamanho, :arquivo, :lado, :origem, :pendencia, :quantidades, :pecas_por_par, :espelhada, :corta, :pecas_fixas,
+                     :refazer_impressao, keyword_init: true) do
     def pares
       quantidades.values.sum
     end
 
     # Usage: linha.pecas # => 10 (10 pairs × 2, one side's file: half)
     def pecas
+      return pecas_fixas if pecas_fixas
+
       lado ? pares * pecas_por_par / 2 : pares * pecas_por_par
     end
 
     # A mirrored part printed from one file: pieces of each side.
     def por_lado
-      espelhada && lado.nil? && arquivo ? pecas / 2 : nil
+      espelhada && lado.nil? && arquivo && !pecas_fixas ? pecas / 2 : nil
     end
 
     # Meters of paper this line should take (Etapa 2.2, 1/3): the file's
@@ -47,11 +52,27 @@ class ImpressaoPedidoService
   end
 
   def call
+    return grupos_da_reposicao if @pedido.reposicao?
+
     itens = @pedido.itens_pedido.includes(:grades, :arte, :arquivo, item_pedido_pecas: :peca).order(:id)
     itens.map { |item| Grupo.new(item: item, linhas: linhas_do_item(item)) }
   end
 
   private
+
+  # A reposição (Etapa 2.2, 4/4): its missing pieces, grouped by the
+  # original item (the arte) they came from.
+  def grupos_da_reposicao
+    @pedido.itens_reposicao.includes(:item_origem, :arquivo, :peca, :tamanho).order(:id).group_by(&:item_origem).map do |item, faltas|
+      Grupo.new(item: item, linhas: faltas.map { |falta| linha_da_reposicao(falta) })
+    end
+  end
+
+  def linha_da_reposicao(falta)
+    Linha.new(peca: falta.peca, tamanho: falta.tamanho, arquivo: falta.arquivo, lado: falta.lado, origem: :producao,
+              quantidades: {}, pecas_por_par: 1, espelhada: false, corta: falta.corta && falta.refazer_corte, pecas_fixas: falta.pecas,
+              refazer_impressao: falta.refazer_impressao)
+  end
 
   def linhas_do_item(item)
     linhas = {}

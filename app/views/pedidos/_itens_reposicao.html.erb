@@ -1,0 +1,23 @@
+<%# A reposição's items (Etapa 2.2, 4/4): the exact pieces the Conferência
+    missed, by arte — counted in pieces, not pairs. locals: pedido %>
+<% grupos = pedido.itens_reposicao.includes(:arquivo, :peca, :tamanho, item_origem: :arte).order(:id).group_by(&:item_origem) %>
+<h3>Peças a repor (<%= pedido.itens_reposicao.sum(:pecas) %>)</h3>
+<% grupos.each do |item, faltas| %>
+  <article class="pedido-item pedido-item--reposicao">
+    <div class="pedido-item-header">
+      <div class="pedido-item-titulo"><strong><%= link_to item.arte&.titulo.presence || item.arquivo.filename, item.arquivo %></strong></div>
+      <strong class="pedido-item-total"><%= faltas.sum(&:pecas) %> <%= faltas.sum(&:pecas) == 1 ? "peça" : "peças" %></strong>
+    </div>
+    <ul class="reposicao-pecas">
+      <% faltas.each do |falta| %>
+        <li data-peca="<%= falta.peca&.nome %>" data-tamanho="<%= falta.tamanho&.nome %>">
+          <%= miniatura_do_arquivo(falta.arquivo, classe: "impressao-thumb") %>
+          <span><strong><%= falta.peca&.nome || "Sem peça" %></strong> <%= falta.tamanho&.nome %>
+            <% if falta.lado %><span class="impressao-lado"><%= LadoNaArte::ABREVIACOES[falta.lado] %></span><% end %></span>
+          <span class="reposicao-refazer">refazer: <%= [ ("impressão" if falta.refazer_impressao), ("corte" if falta.corta && falta.refazer_corte), "estamparia", "conferência" ].compact.join(", ") %></span>
+          <span class="reposicao-qtd"><%= falta.pecas %> <%= falta.pecas == 1 ? "peça" : "peças" %></span>
+        </li>
+      <% end %>
+    </ul>
+  </article>
+<% end %>

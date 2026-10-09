@@ -372,7 +372,7 @@ Decided 07/10/2026, in three PRs (docs/plano.md has the full rules): stages
 per pedido type in `config/etapas_producao.yml` (calçado: Impressão ∥ Corte →
 Estamparia → Conferência, every dependency locks), a granular baixa with the
 measure next to each download, warned against an expected value that comes
-from the files themselves. Done (1/3 to 3/3):
+from the files themselves. Done (1/3 to 4/4):
 
 - **Arte**: `ArquivoVersion#metros_por_peca(largura_mm)` — the file's
   rectangle (pixels ÷ DPI) on the paper's width, its width across the roll —
@@ -427,9 +427,28 @@ from the files themselves. Done (1/3 to 3/3):
   (`_historico_baixas`), refuses while a stage locked on it used those lines,
   and takes the pedido back to confirmado when the last one goes.
   `AndamentoDoPedido` gives each stage's lines done/total for the panel and
-  the list (filtered by `?status=`). Next, 4/4 (decided 08/10/2026): a
-  Conferência with fewer pieces than expected always makes a **reposição**
-  sub-pedido.
+  the list (filtered by `?status=`).
+- **Reposição (4/4, decided 08-09/10/2026)**: a stage with `reposicao: true`
+  (the Conferência) and fewer pieces than expected always sends them to a
+  sub-pedido. `ContagemDaConferencia`: a short count (one line or a group)
+  answers `:contar` with its lines — the `baixa` controller shows each
+  line's count and **Impressão / Corte** checkboxes (checked; the conferente
+  unchecks what doesn't need redoing) — and is saved with
+  `baixas_producao.contagens`. `AcumularReposicaoService` keeps one **open
+  reposição** per pedido (`Pedido#reposicao_em_aberto`: `reposicao_de`,
+  status rascunho, out of production) and adds each line short as an
+  `ItemReposicao` — file, part, DXF size, side, material, `corta`,
+  `refazer_impressao`/`refazer_corte`, **pieces** (not pairs); the same line
+  again adds pieces. `LiberarReposicaoService` confirms it when the
+  Conferência's last line is done, or by "Gerar reposição" (`POST
+  /pedidos/:uuid/gerar_reposicao`); a later shortage opens another.
+  `baixa.reposicao` points at it. A line not redone skips that stage
+  (`LinhasDeProducao::Linha#dispensa`; no Corte line without
+  `refazer_corte`).
+  `ImpressaoPedidoService`/`ProducaoPedidoService` build a reposição's lines
+  from those items (`pecas_fixas`), so it goes through every stage again
+  with the same pages; its own short Conferência makes another one. The
+  original's delivery warns while a reposição isn't delivered.
 
 ## Pedido items are made of the arte's parts
 

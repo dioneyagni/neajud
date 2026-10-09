@@ -17,7 +17,7 @@
     <h2>Corte <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
     <p class="corte-sub">
       <%= @pedido.client&.name || "sem cliente" %> ·
-      <span data-corte="pares"><%= pares %> <%= pares == 1 ? "par" : "pares" %></span> ·
+      <% unless @pedido.reposicao? %><span data-corte="pares"><%= pares %> <%= pares == 1 ? "par" : "pares" %></span> ·<% end %>
       <span data-corte="pecas"><%= pecas %> <%= pecas == 1 ? "peça" : "peças" %></span> ·
       <% if metros.any? %><span data-corte="metros"><%= metragem_esperada(metros.sum.round(2), "tecido") %></span> ·<% end %>
       uma linha por parte × tamanho do DXF
@@ -52,7 +52,7 @@
               </td>
               <td class="corte-total">
                 <strong><%= linha.pecas %> <%= linha.pecas == 1 ? "peça" : "peças" %></strong>
-                <span class="corte-conta"><%= linha.espelhada ? "#{linha.por_lado} direito · #{linha.por_lado} esquerdo" : "#{linha.pares} #{linha.pares == 1 ? "par" : "pares"} × #{linha.pecas_por_par}" %></span>
+                <span class="corte-conta"><%= conta_da_linha_do_corte(linha) %></span>
                 <%# Etapa 2.2 (1/3): what the baixa will be checked against. %>
                 <span class="corte-conta corte-metros" data-metros="<%= linha.metros_esperados %>">
                   <%= metragem_esperada(linha.metros_esperados, "tecido", falta: falta_de_metragem_do_corte(linha)) %>

@@ -8,38 +8,49 @@
 #   pieces). A measure outside the dono's band (Empresa tolerâncias) comes
 #   back as :aviso until the operator confirms it; then it is saved marked
 #   fora_da_faixa.
+# - A stage marked `reposicao` (the Conferência, 4/4) with fewer pieces than
+#   expected: the lines are counted first (:contar, with each line's count
+#   and the stages to redo); the pieces short go to the pedido's open
+#   reposição (AcumularReposicaoService), released when the Conferência ends
+#   (LiberarReposicaoService) — decided 09/10/2026.
 #
 # Usage: RegistrarBaixaService.call(pedido, etapa: "corte", nivel: "pedido", medida: "12,4", confirmar: false, user: u, changed_by: ip)
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
 class RegistrarBaixaService
-  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, keyword_init: true)
+  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, :linhas, :contagem, keyword_init: true)
   STATUS = Pedido::EM_PRODUCAO
 
   def self.call(pedido, **dados)
     new(pedido, **dados).call
   end
 
-  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, user: nil, changed_by: nil)
+  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, user: nil, changed_by: nil)
     @pedido = pedido
     @etapa = EtapasProducao.etapa(pedido.tipo, etapa)
     @nivel = nivel.to_s
     @alvo = alvo.to_s
     @medida = medida.to_s.tr(",", ".")
     @confirmar = confirmar
+    @contagens = contagens
+    @refazer = refazer
     @autoria = { user: user, changed_by: changed_by }
   end
 
   def call
-    erro = erro_de_entrada
+    erro = erro_de_entrada || contagem&.erro
     return Resultado.new(estado: :erro, mensagem: erro) if erro
+    return pedir_contagem if contagem&.contar?
 
     esperado = linhas.sum { |l| l.esperado.to_f }
-    return aviso(esperado) if fora_da_faixa?(esperado) && !@confirmar
+    faltas = contagem ? contagem.faltas : []
+    return aviso(esperado) if faltas.empty? && fora_da_faixa?(esperado) && !@confirmar
 
-    baixa = @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: @medida.to_d,
-                                            esperado: (esperado if esperado.positive?), fora_da_faixa: fora_da_faixa?(esperado), **@autoria)
-    @pedido.iniciar_producao!
-    Resultado.new(estado: :ok, baixa: baixa, esperado: esperado)
+    Resultado.new(estado: :ok, baixa: registrar(esperado, faltas), esperado: esperado)
+  end
+
+  # A line as the factory names it: "Lateral 29-30 ESQ".
+  def self.rotulo(linha)
+    [ linha.peca&.nome || "Sem peça", linha.tamanho&.nome, LadoNaArte::ABREVIACOES[linha.lado] ].compact.join(" ")
   end
 
   Situacao = Struct.new(:linha, :estado, :baixa, :aguardando, keyword_init: true)
@@ -59,6 +70,40 @@ class RegistrarBaixaService
   end
 
   private
+
+  def registrar(esperado, faltas)
+    medida = contagem ? contagem.medida : @medida.to_d
+    baixa = @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: medida,
+                                            esperado: (esperado if esperado.positive?), contagens: contagem&.por_linha || {},
+                                            fora_da_faixa: faltas.empty? && fora_da_faixa?(esperado), **@autoria)
+    baixa.update!(reposicao: AcumularReposicaoService.call(@pedido, faltas)) if faltas.any?
+    @pedido.iniciar_producao!
+    liberar_reposicao_ao_terminar
+    baixa
+  end
+
+  # The Conferência's last line sends the open reposição to production.
+  def liberar_reposicao_ao_terminar
+    return unless @etapa.reposicao
+
+    @feitas = nil
+    LiberarReposicaoService.call(@pedido) if todas.all? { |linha| estado_da(linha).first == :feita }
+  end
+
+  # The Conferência's count (Etapa 2.2, 4/4); nil for other stages.
+  def contagem
+    return nil unless @etapa.reposicao
+
+    @contagem ||= ContagemDaConferencia.new(nivel: @nivel, linhas: linhas, medida: @medida, contagens: @contagens, refazer: @refazer)
+  end
+
+  def pedir_contagem
+    esperado = linhas.sum { |l| l.esperado.to_i }
+    falta = esperado - @medida.to_i
+    Resultado.new(estado: :contar, linhas: linhas, contagem: contagem,
+                  mensagem: "#{falta == 1 ? "Falta 1 peça" : "Faltam #{falta} peças"} das #{esperado} esperadas. Confira a contagem de cada linha e marque o que refazer: as peças que faltarem vão para a reposição.")
+  end
+
 
   def erro_de_entrada
     return "This pedido is #{@pedido.status}: only a confirmed pedido in production takes baixas." unless @pedido.em_producao?
@@ -99,7 +144,9 @@ class RegistrarBaixaService
   def estado_da(linha)
     return [ :feita ] if feitas(@etapa.chave).include?(linha.chave)
 
-    esperando = @etapa.trava.find { |trava| !feitas(trava).include?(chave_na(trava, linha)) && chave_na(trava, linha) }
+    # A reposição's line may skip printing or cutting again (09/10/2026).
+    travas = @etapa.trava - Array(linha.dispensa)
+    esperando = travas.find { |trava| !feitas(trava).include?(chave_na(trava, linha)) && chave_na(trava, linha) }
     esperando ? [ :aguardando, EtapasProducao.etapa(@pedido.tipo, esperando).nome ] : [ :aberta ]
   end
 

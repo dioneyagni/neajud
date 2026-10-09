@@ -12,7 +12,7 @@ class EtapasProducao
   LINHAS = %w[impressao corte].freeze
   NIVEIS = %w[linha referencia pedido].freeze
 
-  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, keyword_init: true) do
+  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, keyword_init: true) do
     def metragem?
       medida == "metragem"
     end
@@ -39,7 +39,7 @@ class EtapasProducao
   end
 
   def self.etapa_de(tipo, dados, chaves)
-    etapa = Etapa.new(**dados.symbolize_keys.slice(*Etapa.members), trava: Array(dados["trava"]))
+    etapa = Etapa.new(**dados.symbolize_keys.slice(*Etapa.members), trava: Array(dados["trava"]), reposicao: dados["reposicao"] == true)
     erros = erros_da(etapa, chaves)
     raise Invalida, "#{tipo}/#{etapa.chave}: #{erros.join("; ")}" if erros.any?
 
@@ -49,7 +49,8 @@ class EtapasProducao
   def self.erros_da(etapa, chaves)
     { medida: MEDIDAS, esperado: ESPERADOS, linhas: LINHAS }.filter_map { |campo, validos| "#{campo} #{etapa[campo].inspect} is not one of #{validos.join(", ")}" unless validos.include?(etapa[campo]) } +
       (Array(etapa.niveis) - NIVEIS).map { |nivel| "nivel #{nivel.inspect} is not one of #{NIVEIS.join(", ")}" } +
-      (etapa.trava - chaves).map { |outra| "trava #{outra.inspect} is not a stage of this type" }
+      (etapa.trava - chaves).map { |outra| "trava #{outra.inspect} is not a stage of this type" } +
+      (etapa.reposicao && etapa.medida != "quantidade" ? [ "reposicao needs medida quantidade (it counts missing pieces)" ] : [])
   end
   private_class_method :ler, :etapa_de, :erros_da
 end

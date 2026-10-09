@@ -10,8 +10,10 @@
 #
 # Usage: LinhasDeProducao.call(pedido, EtapasProducao.etapa("calcado", "corte")).map(&:chave)
 class LinhasDeProducao
+  # dispensa: stages this line skips — a reposição's line not printed again
+  # (Etapa 2.2, 4/4); its Estamparia doesn't wait for them.
   Linha = Struct.new(:chave, :referencia, :item, :peca, :tamanho, :arquivo, :lado, :materia_prima,
-                     :pecas, :esperado, :corte_chave, :origem, keyword_init: true)
+                     :pecas, :esperado, :corte_chave, :origem, :dispensa, keyword_init: true)
 
   def self.call(pedido, etapa, largura_papel_mm: Empresa.atual&.largura_papel_mm)
     new(pedido, etapa, largura_papel_mm).call
@@ -43,7 +45,9 @@ class LinhasDeProducao
 
   def linhas_da_impressao
     ImpressaoPedidoService.call(@pedido).flat_map do |grupo|
-      grupo.linhas.select(&:arquivo).reject(&:pendencia).map { |linha| da_impressao(grupo.item, linha) }
+      linhas = grupo.linhas.select(&:arquivo).reject(&:pendencia)
+      linhas = linhas.reject { |l| l.refazer_impressao == false } if @etapa.chave == "impressao"
+      linhas.map { |linha| da_impressao(grupo.item, linha) }
     end
   end
 
@@ -52,7 +56,8 @@ class LinhasDeProducao
               referencia: item.uuid, item: item, peca: linha.peca, tamanho: linha.tamanho, arquivo: linha.arquivo,
               lado: linha.lado, materia_prima: item.materia_prima, pecas: linha.pecas, origem: linha.origem,
               esperado: esperado(linha.pecas) { linha.metros_esperados(@largura_papel_mm) },
-              corte_chave: (self.class.chave_do_corte(linha.peca, linha.tamanho, item.materia_prima) if linha.corta))
+              corte_chave: (self.class.chave_do_corte(linha.peca, linha.tamanho, item.materia_prima) if linha.corta),
+              dispensa: (linha.refazer_impressao == false ? [ "impressao" ] : []))
   end
 
   def linhas_do_corte

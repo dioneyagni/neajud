@@ -1,0 +1,14 @@
+<%# The pieces the Conferência found missing, waiting in the pedido's open
+    reposição until the Conferência ends — or "Gerar reposição" sends them
+    now (Etapa 2.2, 4/4; decided 09/10/2026). locals: pedido %>
+<% aberta = pedido.reposicao_em_aberto %>
+<% if aberta&.itens_reposicao&.exists? %>
+  <div class="reposicao-aberta">
+    <span>Reposição em aberto <%= link_to "##{aberta.uuid.first(8)}", resumo_pedido_path(aberta) %>:
+      <strong><%= aberta.itens_reposicao.sum(:pecas) %> peças</strong> — vai para a produção quando a Conferência terminar.</span>
+    <% if pode_dar_baixa?(pedido) %>
+      <%= button_to "Gerar reposição agora", gerar_reposicao_pedido_path(pedido), class: "btn btn-sm btn-secondary reposicao-gerar",
+            data: { turbo_confirm: "Enviar a reposição para a produção agora? Peças que faltarem depois abrem outra reposição." } %>
+    <% end %>
+  </div>
+<% end %>

@@ -32,11 +32,14 @@
     <tbody>
       <% @pedidos.each do |p| %>
         <tr>
-          <td><%= link_to p.uuid.first(8), p %></td>
+          <td>
+            <%= link_to p.uuid.first(8), p %>
+            <% if p.reposicao? %><div class="pedido-reposicao-de">reposição de #<%= p.reposicao_de.uuid.first(8) %></div><% end %>
+          </td>
           <td><%= p.client&.name || "—" %></td>
           <td><%= p.itens_count %></td>
           <td>
-            <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status) %></span>
+            <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status, reposicao: p.reposicao?) %></span>
             <% if p.saiu_do_rascunho? && p.status != "entregue" %>
               <div class="pedido-andamento-compacto"><%= AndamentoDoPedido.call(p).map { |a| "#{a.etapa.nome} #{a.feitas}/#{a.total}" }.join(" · ") %></div>
             <% end %>

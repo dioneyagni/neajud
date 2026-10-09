@@ -8,7 +8,11 @@
     <h3>Resumo</h3>
     <dl class="pedido-resumo-lista">
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
-      <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
+      <% if pedido.reposicao? %>
+        <dt>Peças a repor</dt><dd data-resumo="pecas"><%= pedido.itens_reposicao.sum(:pecas) %></dd>
+      <% else %>
+        <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
+      <% end %>
     </dl>
     <%# Etapa 2.2 (3/3): the stages' progress, and delivering. %>
     <% if pedido.saiu_do_rascunho? %>
@@ -19,6 +23,7 @@
           </li>
         <% end %>
       </ul>
+      <%= render "pedidos/reposicao_em_aberto", pedido: pedido %>
       <% if pedido.status == "entregue" %>
         <p class="pedido-entregue">Entregue em <%= l pedido.entregue_em, format: "%d/%m/%Y %H:%M" %><%= " por #{pedido.entregue_por.nome}" if pedido.entregue_por %>.</p>
       <% elsif pode_dar_baixa?(pedido) %>
@@ -31,7 +36,7 @@
     <% end %>
     <%# Etapa 1.2 (3/3, partes 3b e 3c): production has its own pages, for the
         cutting table and for the printer. %>
-    <% if itens.any? %>
+    <% if itens.any? || pedido.reposicao? %>
       <%# Etapa 2.2 (2/3): every production stage of the pedido's type. %>
       <div class="pedido-ir-producao">
         <% EtapasProducao.do_tipo(pedido.tipo).each do |etapa| %>

@@ -11,7 +11,8 @@ class BaixasProducaoController < ApplicationController
 
   def create
     resultado = RegistrarBaixaService.call(@pedido, etapa: params[:etapa], nivel: params[:nivel], alvo: params[:alvo],
-                                                    medida: params[:medida], confirmar: params[:confirmar] == "1", **autoria)
+                                                    medida: params[:medida], confirmar: params[:confirmar] == "1",
+                                                    contagens: params[:contagens]&.to_unsafe_h, refazer: params[:refazer]&.to_unsafe_h, **autoria)
     responder(resultado)
   rescue EtapasProducao::Invalida => e
     render json: { ok: false, error: e.message }, status: :unprocessable_content
@@ -31,10 +32,28 @@ class BaixasProducaoController < ApplicationController
   def responder(resultado)
     case resultado.estado
     when :ok
-      flash[:notice] = "Baixa de #{EtapasProducao.etapa(@pedido.tipo, params[:etapa]).nome} registrada (#{resultado.baixa.linhas.size} #{resultado.baixa.linhas.one? ? "linha" : "linhas"})."
+      flash[:notice] = aviso_de_registro(resultado.baixa)
       render json: { ok: true }
     when :aviso then render json: { ok: false, aviso: resultado.mensagem }
+    when :contar then render json: { ok: false, contar: resultado.mensagem, linhas: linhas_para_contar(resultado) }
     else render json: { ok: false, error: resultado.mensagem }, status: :unprocessable_content
+    end
+  end
+
+  def aviso_de_registro(baixa)
+    texto = "Baixa de #{EtapasProducao.etapa(@pedido.tipo, baixa.etapa).nome} registrada (#{baixa.linhas.size} #{baixa.linhas.one? ? "linha" : "linhas"})."
+    return texto unless baixa.reposicao
+
+    situacao = baixa.reposicao.reload.status == "rascunho" ? "guardadas na reposição em aberto" : "na reposição, que foi para a produção"
+    "#{texto} Peças que faltaram #{situacao} ##{baixa.reposicao.uuid.first(8)}."
+  end
+
+  # The Conferência's lines to count one by one (Etapa 2.2, 4/4), with what
+  # each may redo: Impressão always, Corte when the part cuts.
+  def linhas_para_contar(resultado)
+    resultado.linhas.map do |l|
+      { chave: l.chave, rotulo: "#{RegistrarBaixaService.rotulo(l)} · #{l.item.arte&.titulo}", esperado: l.esperado.to_i,
+        contada: resultado.contagem.inicial(l), corta: l.corte_chave.present? }
     end
   end
 

@@ -11,6 +11,8 @@
 #   niveis:  where a baixa may be given — linha, referencia (the arte), pedido
 #   trava:   stages that must have the line's baixa first (no stamping without
 #            paper printed and pieces cut). A part "não corta" skips corte.
+#   reposicao: a baixa with fewer pieces than expected makes a reposição
+#            sub-pedido of the missing ones (Etapa 2.2, 4/4)
 calcado:
   - chave: impressao
     nome: Impressão
@@ -38,3 +40,4 @@ calcado:
     linhas: impressao
     niveis: [linha, referencia, pedido]
     trava: [estamparia]
+    reposicao: true
