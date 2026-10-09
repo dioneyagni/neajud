@@ -1,0 +1,24 @@
+<%# Every baixa of a stage, the undone ones struck through, with who and
+    when (Etapa 2.2, 3/3). locals: pedido, etapa %>
+<% baixas = pedido.baixas_producao.da_etapa(etapa.chave).includes(:user, :desfeita_por).order(:created_at) %>
+<% if baixas.any? %>
+  <details class="historico-baixas">
+    <summary>Histórico de baixas de <%= etapa.nome %> (<%= baixas.size %>)</summary>
+    <ul>
+      <% baixas.each do |baixa| %>
+        <li class="historico-baixa<%= " historico-baixa--desfeita" if baixa.desfeita_em %>" data-baixa="<%= baixa.uuid %>">
+          <span class="historico-baixa-texto">
+            <%= l baixa.created_at, format: "%d/%m %H:%M" %> · <%= baixa.user&.nome || baixa.changed_by %> ·
+            <%= { "linha" => "linha", "referencia" => "referência", "pedido" => "pedido" }[baixa.nivel] %> (<%= baixa.linhas.size %> <%= baixa.linhas.one? ? "linha" : "linhas" %>) ·
+            <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= etapa.metragem? ? "m" : "peças" %>
+            <% if baixa.esperado %>(esperado <%= number_with_precision(baixa.esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %>)<% end %>
+            <% if baixa.fora_da_faixa %><span class="baixa-fora">fora da faixa</span><% end %>
+          </span>
+          <% if baixa.desfeita_em %>
+            <span class="historico-baixa-desfeita">desfeita por <%= baixa.desfeita_por&.nome || "—" %> em <%= l baixa.desfeita_em, format: "%d/%m %H:%M" %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </details>
+<% end %>

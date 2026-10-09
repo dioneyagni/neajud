@@ -9,6 +9,14 @@
   <% end %>
 </div>
 
+<%# Etapa 2.2 (3/3): by status. %>
+<nav class="pedidos-filtro" aria-label="Filtrar por status">
+  <%= link_to "Todos", pedidos_path, "aria-current": (@status.nil? ? "page" : nil) %>
+  <% %w[rascunho confirmado em_producao entregue].each do |status| %>
+    <%= link_to rotulo_do_status(status).capitalize, pedidos_path(status: status), "aria-current": (@status == status ? "page" : nil), data: { status: status } %>
+  <% end %>
+</nav>
+
 <div style="margin: 1rem 0;">
   <table class="clients-table">
     <thead>
@@ -27,7 +35,12 @@
           <td><%= link_to p.uuid.first(8), p %></td>
           <td><%= p.client&.name || "—" %></td>
           <td><%= p.itens_count %></td>
-          <td><%= p.status %></td>
+          <td>
+            <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status) %></span>
+            <% if p.saiu_do_rascunho? && p.status != "entregue" %>
+              <div class="pedido-andamento-compacto"><%= AndamentoDoPedido.call(p).map { |a| "#{a.etapa.nome} #{a.feitas}/#{a.total}" }.join(" · ") %></div>
+            <% end %>
+          </td>
           <td><%= l p.created_at, format: :short %></td>
           <td>
             <% if p.status == "rascunho" %>

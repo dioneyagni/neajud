@@ -90,7 +90,7 @@ RSpec.describe RegistrarBaixaService do
     expect(baixa("corte", nivel: "referencia", alvo: item.uuid, medida: "1").mensagem).to eq('Corte takes no baixa by "referencia"; expected one of linha, pedido.')
     expect(baixa("corte", medida: "doze").mensagem).to eq('Measure "doze" is not a number of meters.')
     pedido.update!(status: "rascunho")
-    expect(baixa("corte", medida: "1").mensagem).to eq("This pedido is rascunho: only a confirmed pedido takes baixas.")
+    expect(baixa("corte", medida: "1").mensagem).to eq("This pedido is rascunho: only a confirmed pedido in production takes baixas.")
   end
 
   it "raises on a stage the pedido type doesn't have, naming it" do

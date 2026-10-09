@@ -66,7 +66,7 @@ module PedidosHelper
   # A confirmed pedido, not in the trash, and the atualizar_producao action.
   # Usage: <% if pode_dar_baixa?(@pedido) %> … <% end %>
   def pode_dar_baixa?(pedido)
-    pode_acao?(:atualizar_producao) && RegistrarBaixaService::STATUS.include?(pedido.status) && !pedido.excluido?
+    pode_acao?(:atualizar_producao) && pedido.em_producao?
   end
 
   # A stage's progress: "3 de 5 linhas" (Etapa 2.2, 2/3).
@@ -85,5 +85,14 @@ module PedidosHelper
     when "corte" then corte_pedido_path(pedido)
     else etapa_pedido_path(pedido, etapa: etapa.chave)
     end
+  end
+
+  ROTULOS_DE_STATUS = { "rascunho" => "rascunho", "confirmado" => "confirmado", "em_producao" => "em produção",
+                        "entregue" => "entregue", "cancelado" => "cancelado" }.freeze
+
+  # The pedido's status as people say it (Etapa 2.2, 3/3).
+  # Usage: rotulo_do_status("em_producao") # => "em produção"
+  def rotulo_do_status(status)
+    ROTULOS_DE_STATUS.fetch(status, status)
   end
 end

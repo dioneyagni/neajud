@@ -372,7 +372,7 @@ Decided 07/10/2026, in three PRs (docs/plano.md has the full rules): stages
 per pedido type in `config/etapas_producao.yml` (calçado: Impressão ∥ Corte →
 Estamparia → Conferência, every dependency locks), a granular baixa with the
 measure next to each download, warned against an expected value that comes
-from the files themselves. 1/3 and 2/3 are done:
+from the files themselves. Done (1/3 to 3/3):
 
 - **Arte**: `ArquivoVersion#metros_por_peca(largura_mm)` — the file's
   rectangle (pixels ÷ DPI) on the paper's width, its width across the roll —
@@ -415,8 +415,21 @@ from the files themselves. 1/3 and 2/3 are done:
   migration to the existing Admin and Produção funções). Pages: the
   Impressão and Corte pages, plus `/pedidos/:uuid/etapas/:etapa` for
   Estamparia and Conferência; `_etapas_nav`, `_etapa_andamento`,
-  `_situacao_baixa`, `_baixa` (Stimulus `baixa`). Undoing a baixa and the
-  pedido's cycle come in 3/3.
+  `_situacao_baixa`, `_baixa` (Stimulus `baixa`).
+- **The cycle (3/3)**: `Pedido::STATUS` rascunho → confirmado →
+  **em_producao** (`iniciar_producao!` on the first baixa) → **entregue**
+  (`EntregarPedidoService`, `POST /pedidos/:uuid/entregar`, Stimulus
+  `entrega`: never locked — open stages come back as an aviso, "Entregar
+  assim mesmo" delivers; `entregue_em`/`entregue_por`). `Pedido#em_producao?`
+  (confirmado or em_producao) is what takes baixas; a delivered pedido is
+  read only. `DesfazerBaixaService` (`DELETE /pedidos/:uuid/baixas/:uuid`)
+  keeps the baixa struck through in the stage's history
+  (`_historico_baixas`), refuses while a stage locked on it used those lines,
+  and takes the pedido back to confirmado when the last one goes.
+  `AndamentoDoPedido` gives each stage's lines done/total for the panel and
+  the list (filtered by `?status=`). Next, 4/4 (decided 08/10/2026): a
+  Conferência with fewer pieces than expected always makes a **reposição**
+  sub-pedido.
 
 ## Pedido items are made of the arte's parts
 

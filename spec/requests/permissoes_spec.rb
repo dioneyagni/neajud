@@ -95,6 +95,16 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    it "delivering a pedido and undoing a baixa need atualizar_producao" do
+      p = pedido.tap { |x| x.update!(status: "confirmado") }
+      feita = p.baixas_producao.create!(etapa: "corte", nivel: "linha", medida: 1, linhas: %w[a])
+      entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[baixar_producao])
+      post entregar_pedido_path(p), as: :json
+      expect(response).to have_http_status(:forbidden)
+      delete pedido_baixa_path(p, feita)
+      expect(response).to have_http_status(:forbidden)
+    end
+
     it "the Usuários page needs gerenciar_usuarios" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: %w[baixar_producao])
       get usuarios_path

@@ -78,4 +78,48 @@ RSpec.describe "Production baixas", type: :request do
     get etapa_pedido_path(pedido, etapa: "costura")
     expect(response).to have_http_status(:not_found)
   end
+
+  # Etapa 2.2 (3/3): the cycle on the pages.
+  describe "the pedido's cycle" do
+    it "undoes a baixa from its line, going back to the page, and lists it struck through" do
+      baixa("corte", "0,2")
+      feita = pedido.baixas_producao.sole
+      delete pedido_baixa_path(pedido, feita), headers: { "Referer" => corte_pedido_path(pedido) }
+      expect([ response.location, flash[:notice] ]).to eq([ "http://www.example.com#{corte_pedido_path(pedido)}", "Baixa de Corte desfeita (1 linha em aberto de novo)." ])
+      get corte_pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css(".historico-baixa--desfeita")).to be_present
+      expect(html.at_css("tr.corte-linha [data-controller=baixa]")).to be_present
+    end
+
+    it "delivers from the panel, warning about what is open, then shows the delivery" do
+      post entregar_pedido_path(pedido), as: :json
+      expect(response.parsed_body).to eq("ok" => false, "aviso" => "Ainda faltam: Impressão 1 linha, Corte 1 linha, Estamparia 1 linha, Conferência 1 linha. Entregar assim mesmo?")
+      post entregar_pedido_path(pedido), params: { confirmar: "1" }, as: :json
+      expect(response.parsed_body).to eq("ok" => true)
+      get resumo_pedido_path(pedido)
+      html = Nokogiri::HTML(response.body)
+      expect(html.at_css(".pedido-entregue").text).to start_with("Entregue em")
+      expect(html.at_css("h2 .badge").text).to eq("entregue")
+      expect(html.at_css(".entrega")).to be_nil
+    end
+
+    it "shows each stage's progress on the panel" do
+      baixa("corte", "0,2")
+      get resumo_pedido_path(pedido)
+      andamento = Nokogiri::HTML(response.body).css(".pedido-andamento li").map { |li| li.text.squish }
+      expect(andamento).to eq([ "Impressão 0/1", "Corte 1/1", "Estamparia 0/1", "Conferência 0/1" ])
+      expect(pedido.reload.status).to eq("em_producao")
+    end
+
+    it "filters the list by status, showing the progress of a pedido in production" do
+      baixa("corte", "0,2")
+      rascunho = create(:pedido)
+      get pedidos_path(status: "em_producao")
+      html = Nokogiri::HTML(response.body)
+      expect(html.text).not_to include(rascunho.uuid.first(8))
+      expect(html.at_css(".pedido-andamento-compacto").text.squish).to eq("Impressão 0/1 · Corte 1/1 · Estamparia 0/1 · Conferência 0/1")
+      expect(html.at_css(".pedidos-filtro a[aria-current=page]").text).to eq("Em produção")
+    end
+  end
 end

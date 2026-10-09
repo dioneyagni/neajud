@@ -1,17 +1,22 @@
 class PedidosController < ApplicationController
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
+  exige_acao :atualizar_producao, only: :entregar
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
-  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa]
+  before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
 
+  # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
+  # past the draft with its stages' progress.
   def index
+    @status = params[:status] if Pedido::STATUS.include?(params[:status])
     @pedidos = Pedido.ativos.left_joins(:itens_pedido)
                       .includes(:client)
                       .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
                       .group(:id)
                       .order(created_at: :desc)
+    @pedidos = @pedidos.where(status: @status) if @status
     # Only drafts can be confirmed; there are few at a time.
     @bloqueios_por_pedido = @pedidos.select { |p| p.status == "rascunho" }.to_h { |p| [ p.id, p.bloqueios_confirmacao.size ] }
   end
@@ -226,6 +231,18 @@ class PedidosController < ApplicationController
     @situacoes = RegistrarBaixaService.situacao(@pedido, @etapa.chave)
   rescue EtapasProducao::Invalida
     head :not_found
+  end
+
+  # "Marcar como entregue" (Etapa 2.2, 3/3): JSON for the entrega Stimulus
+  # controller — ok, aviso (stages still open: deliver anyway?) or error.
+  # Usage: POST /pedidos/:uuid/entregar (confirmar)
+  def entregar
+    resultado = EntregarPedidoService.call(@pedido, confirmar: params[:confirmar] == "1", user: Current.user)
+    case resultado.estado
+    when :ok then flash[:notice] = "Pedido entregue."; render json: { ok: true }
+    when :aviso then render json: { ok: false, aviso: resultado.mensagem }
+    else render json: { ok: false, error: resultado.mensagem }, status: :unprocessable_content
+    end
   end
 
   def resumo
