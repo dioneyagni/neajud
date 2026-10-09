@@ -29,4 +29,12 @@ RSpec.describe "Production parameters", type: :request do
     patch parametros_path, params: { empresa: { papel_padrao_uuid: tecido.uuid } }
     expect(Empresa.atual.reload.papel_padrao).to be_nil
   end
+
+  # Etapa 2.4: the cost per pair's two parameters, typed with a comma.
+  it "saves the printing cost per meter and the cutting cost per piece; blank leaves them unset" do
+    patch parametros_path, params: { empresa: { custo_impressao_metro: "4,50", custo_corte_peca: "0,075" } }
+    expect([ Empresa.atual.custo_impressao_metro, Empresa.atual.custo_corte_peca ]).to eq([ 4.5, 0.075 ])
+    patch parametros_path, params: { empresa: { custo_corte_peca: "" } }
+    expect(Empresa.atual.reload.custos_definidos?).to be(false)
+  end
 end

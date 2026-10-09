@@ -29,5 +29,17 @@
     <%= form.label :tolerancia_acima_pct, "Warn above the expected by more than (%)" %>
     <%= form.number_field :tolerancia_acima_pct, min: 0, max: 1000, step: 1, required: true %>
   </div>
+  <%# Etapa 2.4: what a pair costs — the meters printed and the pieces cut. %>
+  <div class="client-field">
+    <label for="empresa_custo_impressao_metro">Printing cost per meter (R$)</label>
+    <input type="text" inputmode="decimal" name="empresa[custo_impressao_metro]" id="empresa_custo_impressao_metro"
+           value="<%= @empresa.custo_impressao_metro && number_with_precision(@empresa.custo_impressao_metro, precision: 2, separator: ",") %>">
+    <small>Paper, ink and machine for one meter printed. With the cutting cost, gives each arte's cost per pair.</small>
+  </div>
+  <div class="client-field">
+    <label for="empresa_custo_corte_peca">Cutting cost per piece (R$)</label>
+    <input type="text" inputmode="decimal" name="empresa[custo_corte_peca]" id="empresa_custo_corte_peca"
+           value="<%= @empresa.custo_corte_peca && number_with_precision(@empresa.custo_corte_peca, precision: 4, separator: ",", strip_insignificant_zeros: true) %>">
+  </div>
   <%= form.submit "Save", class: "btn btn-primary" %>
 <% end %>

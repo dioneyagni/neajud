@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe PedidoBloqueiosService do
   let(:pedido) { create(:pedido) }
   let(:lateral) { create(:peca, nome: "Lateral") }
-  let(:molde) { create(:molde, partes: [ lateral ]) }
+  let(:molde) { create(:molde, partes: [ lateral ], preco: 10) }
   # The molde's Lateral DXF, organized as Par: 29-30 (29, 30) and 31-32.
   let(:corte) do
     create(:arquivo, :corte, organized: true, peca: lateral, client: molde.client, modelo: molde.modelo, filename: "LATERAL").tap do |c|
@@ -82,5 +82,23 @@ RSpec.describe PedidoBloqueiosService do
     corte.excluir!(changed_by: "10.0.0.1")
     arte.excluir!(changed_by: "10.0.0.1")
     expect(bloqueios.map(&:first)).to eq(%i[arquivo_excluido sem_corte])
+  end
+
+  # Etapa 2.4 (decided 09/10/2026): confirming writes the price per pair, so
+  # a number without one blocks.
+  describe ":sem_preco" do
+    it "names the ordered numbers the molde has no price for, with the molde to open" do
+      molde.faixas_de_preco.sole.update!(tamanho_inicial: "18", tamanho_final: "29")
+      item(grade: { "29" => 1, "30" => 2, "32" => 1 })
+      bloqueio = described_class.call(pedido).find { |b| b.tipo == :sem_preco }
+      expect(bloqueio.descricao).to eq("Molde #{molde.nome} sem preço por par para 30, 32 (arte #{molde.codigo})")
+      expect(bloqueio.molde).to eq(molde)
+    end
+
+    it "blocks an arte without molde: there is nowhere to price it" do
+      arte = create(:arquivo, filename: "solta", client: molde.client)
+      create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: arte)
+      expect(bloqueios).to include([ :sem_preco, "Arte solta sem molde: sem preço por par" ])
+    end
   end
 end

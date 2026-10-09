@@ -117,6 +117,8 @@ Rails.application.routes.draw do
       post :adicionar_parte
       delete :remover_parte
     end
+    # Etapa 2.4: the molde's price per pair by band of the grade.
+    resources :faixas, controller: "faixas_de_preco", only: %i[create update destroy]
   end
 
   resources :materiais, only: %i[index new create update] do

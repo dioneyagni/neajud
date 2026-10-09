@@ -1,0 +1,41 @@
+<%# Etapa 2.4 (decided 09/10/2026): what one pair of this arte costs, per
+    number, before any pedido — the base of the future price calculator. Only
+    for "ver_valores"; the arte needs a molde (its parts and sizes). %>
+<% empresa = Empresa.atual || Empresa.new %>
+<% molde = arquivo.molde %>
+<div class="stamp-detail-section stamp-detail-section--full" id="arte-custo-por-par">
+  <h3>Cost per pair</h3>
+  <% if !empresa.custos_definidos? %>
+    <p class="gallery-empty">Needs the printing cost per meter and the cutting cost per piece<%= dono? ? "" : " (the dono sets them)" %><% if dono? %>: <%= link_to "Parâmetros", edit_parametros_path %><% end %>.</p>
+  <% else %>
+    <% custos = CustoPorPar.da_arte(arquivo, empresa: empresa).values %>
+    <% if custos.empty? %>
+      <p class="gallery-empty">No sizes yet: the molde's organized cortes give them.</p>
+    <% else %>
+      <div class="pedido-valores-tabela-wrap">
+        <table class="clients-table pedido-valores-tabela arte-custo-tabela">
+          <thead>
+            <tr><th>Número</th><th class="num">Impressão</th><th class="num">Corte</th><th class="num">Custo / par</th><th class="num">Preço / par</th><th class="num">Margem / par</th></tr>
+          </thead>
+          <tbody>
+            <% custos.each do |custo| %>
+              <% preco = molde.preco_do_par(custo.numero) %>
+              <tr data-numero="<%= custo.numero %>">
+                <td><%= custo.numero %></td>
+                <td class="num"><%= reais(custo.impressao) %></td>
+                <td class="num"><%= reais(custo.corte) %></td>
+                <td class="num" data-coluna="custo"><%= reais(custo.total) %><%= "*" if custo.incompleto %></td>
+                <td class="num" data-coluna="preco"><%= reais(preco) %></td>
+                <td class="num" data-coluna="margem"><%= reais(preco && preco - custo.total) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <% if custos.any?(&:incompleto) %>
+        <p class="pedido-valores-aviso" role="note">* counts only what is known: a file is missing or has no size on the paper yet.</p>
+      <% end %>
+      <p class="arte-custo-base">On the <%= empresa.largura_papel_efetiva_mm %> mm paper at <%= reais(empresa.custo_impressao_metro) %>/m, cutting at <%= reais(empresa.custo_corte_peca) %>/piece.</p>
+    <% end %>
+  <% end %>
+</div>

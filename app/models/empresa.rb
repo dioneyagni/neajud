@@ -12,6 +12,8 @@ class Empresa < ApplicationRecord
   validates :largura_papel_mm, numericality: { only_integer: true, greater_than: 0 }
   validates :tolerancia_abaixo_pct, numericality: { only_integer: true, in: 0..100 }
   validates :tolerancia_acima_pct, numericality: { only_integer: true, in: 0..1000 }
+  # Etapa 2.4: the cost per pair's parts; blank until the dono sets them.
+  validates :custo_impressao_metro, :custo_corte_peca, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :papel_padrao_e_papel
   validate :unica_por_instancia, on: :create
 
@@ -25,6 +27,11 @@ class Empresa < ApplicationRecord
   # Usage: Empresa.atual.largura_papel_efetiva_mm # => 1600
   def largura_papel_efetiva_mm
     papel_padrao&.largura_mm || largura_papel_mm
+  end
+
+  # Both costs set: the cost per pair can be computed (Etapa 2.4).
+  def custos_definidos?
+    !custo_impressao_metro.nil? && !custo_corte_peca.nil?
   end
 
   private

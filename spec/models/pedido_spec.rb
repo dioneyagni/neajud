@@ -76,6 +76,20 @@ RSpec.describe Pedido, type: :model do
     end
   end
 
+  # Etapa 2.4 (decided 09/10/2026): a later change of the molde's price only reaches drafts.
+  describe "#gravar_precos!" do
+    it "writes each ordered number's price per pair from the molde into the grade" do
+      molde = create(:molde)
+      molde.faixas_de_preco.create!(tamanho_inicial: "18", tamanho_final: "30", preco_par: "9.5")
+      pedido = create(:pedido)
+      item = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, molde: molde, client: molde.client))
+      %w[30 31].each { |numero| item.grades.create!(tamanho_nome: numero, quantidade: 1) }
+      item.grades.create!(tamanho_nome: "29", quantidade: 0)
+      pedido.gravar_precos!
+      expect(item.grades.order(:tamanho_nome).pluck(:tamanho_nome, :preco_par)).to eq([ [ "29", nil ], [ "30", 9.5 ], [ "31", nil ] ])
+    end
+  end
+
   describe "#pecas_para_produzir" do
     it "delegates to ProducaoPedidoService" do
       pedido = create(:pedido)

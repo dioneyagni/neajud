@@ -3219,3 +3219,81 @@ li.aprovacao--cancelada {
 .movimento-dono-titulo {
   font-weight: 600;
 }
+
+/* Etapa 2.4: price per pair on the molde, values of a pedido, cost per pair of an arte. */
+.molde-precos-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.molde-preco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.molde-preco-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.molde-preco-form label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.molde-preco-nova {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.molde-preco-nova-titulo,
+.molde-preco-faixa {
+  font-weight: 600;
+}
+
+.molde-precos-faltando,
+.pedido-valores-aviso,
+.arte-custo-base {
+  font-size: 0.85rem;
+  color: #8a5a00;
+}
+
+.arte-custo-base {
+  color: #666;
+}
+
+.pedido-valores {
+  margin-top: 1.5rem;
+}
+
+.pedido-valores-totais {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 0.25rem 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pedido-valores-totais dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+}
+
+.pedido-valores-tabela-wrap {
+  overflow-x: auto;
+}
+
+.pedido-valores-tabela .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

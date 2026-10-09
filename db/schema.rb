@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_163649) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -253,6 +253,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
 
   create_table "empresas", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.decimal "custo_corte_peca", precision: 10, scale: 4
+    t.decimal "custo_impressao_metro", precision: 10, scale: 2
     t.integer "largura_papel_mm", default: 1600, null: false
     t.string "nome", null: false
     t.integer "papel_padrao_id"
@@ -277,6 +279,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
     t.index ["registro_type", "registro_id"], name: "index_exclusao_logs_on_registro"
     t.index ["user_id"], name: "index_exclusao_logs_on_user_id"
     t.index ["uuid"], name: "index_exclusao_logs_on_uuid", unique: true
+  end
+
+  create_table "faixas_de_preco", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "molde_id", null: false
+    t.decimal "preco_par", precision: 10, scale: 2, null: false
+    t.string "tamanho_final", null: false
+    t.string "tamanho_inicial", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.index ["molde_id"], name: "index_faixas_de_preco_on_molde_id"
+    t.index ["uuid"], name: "index_faixas_de_preco_on_uuid", unique: true
   end
 
   create_table "funcoes", force: :cascade do |t|
@@ -339,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
   create_table "itens_pedido_grade", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "item_pedido_id", null: false
+    t.decimal "preco_par", precision: 10, scale: 2
     t.integer "quantidade", default: 0, null: false
     t.string "tamanho_nome", null: false
     t.datetime "updated_at", null: false
@@ -634,6 +649,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"
   add_foreign_key "exclusao_logs", "users"
+  add_foreign_key "faixas_de_preco", "moldes"
   add_foreign_key "item_pedido_pecas", "arquivos"
   add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "item_pedido_pecas", "pecas"

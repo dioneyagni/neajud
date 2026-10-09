@@ -2,10 +2,13 @@ const path = require("path");
 const fs = require("fs");
 const { uploadFileAndWait } = require("./support/upload");
 const { BASE_URL, runSpec } = require("./support/runner");
+const { precificarMolde } = require("./support/catalogo");
+const { waitForQueuedTask } = require("./support/wait");
 
 runSpec("Pedidos E2E Tests", async ({ page, test }) => {
   let createdUuid = null;
   let createdPedidoUuid = null;
+  let corteDoSetup = null;
 
   const UNIQ = `P${Date.now()}`;
 
@@ -39,6 +42,7 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
       const uuidOf = async (name) => (await page.locator(".stamp-card").filter({ hasText: name }).first()
         .locator("a").first().getAttribute("href")).split("/").pop();
       const corteUuid = await uuidOf(`e2e-corte-${UNIQ}`);
+      corteDoSetup = corteUuid;
       const arteUuid = await uuidOf(`e2e-arte-${UNIQ}`);
       const token = await getCsrfToken(page);
       const ok = await page.evaluate(async ({ token, corteUuid, arteUuid, uniq }) => {
@@ -307,11 +311,48 @@ runSpec("Pedidos E2E Tests", async ({ page, test }) => {
     await page.getByText(`Cliente: Pedido Client ${UNIQ}`).waitFor({ timeout: 5000 });
   });
 
-  await test("Confirm pedido: a valid draft (quantity > 0, piece with corte) is confirmed", async () => {
+  // Etapa 2.4 (decided 09/10/2026): the price per pair lives in the molde,
+  // so an arte without molde can't be confirmed. Given a priced molde (its
+  // corte linked) and added again by number, the draft is confirmed.
+  await test("Confirm pedido: an arte without molde blocks it (no price per pair); with a priced molde, by number, it is confirmed", async () => {
     await page.goto(`${BASE_URL}/pedidos`);
     const resumo = page.locator("a").filter({ hasText: "Resumo" }).first();
     await resumo.waitFor({ timeout: 5000 });
     await resumo.click();
+    await page.locator(".pedido-pendencia--sem_preco").filter({ hasText: `e2e-arte-${UNIQ} sem molde: sem preço por par` }).waitFor();
+    if (!(await page.locator('form[action$="/confirmar"] button').isDisabled())) throw new Error("Confirmar should be blocked without a price");
+
+    const pedidoUuid = new URL(page.url()).pathname.split("/")[2];
+    const arteUuid = (await page.locator(".pedido-pendencia--sem_preco a").getAttribute("href")).split("/").pop();
+    const corteUuid = corteDoSetup;
+    const moldeUuid = await page.evaluate(async ({ uniq, arteUuid, corteUuid }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const post = (url, campos) => fetch(url, { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) });
+      const client = (await (await fetch(`/clients/search?q=${encodeURIComponent(`Pedido Client ${uniq}`)}`)).json())[0];
+      const tenis = (await (await fetch("/modelos/search?q=Tenis")).json()).find((m) => m.nome === "Tenis");
+      await post("/moldes", { "molde[sufixo]": `Pedido ${uniq}`, "molde[client_uuid]": client.id, "molde[modelo_uuid]": tenis.id });
+      const molde = (await (await fetch(`/moldes/search?q=${encodeURIComponent(`Pedido ${uniq}`)}`)).json()).find((m) => m.sufixo === `Pedido ${uniq}`);
+      if (corteUuid) await post(`/arquivos/${corteUuid}/add_molde`, { molde_uuid: molde.id });
+      await post(`/arquivos/${arteUuid}/update_molde`, { _method: "patch", molde_uuid: molde.id });
+      return molde.id;
+    }, { uniq: UNIQ, arteUuid, corteUuid });
+    if (!corteUuid) throw new Error("The setup's corte is missing");
+    await precificarMolde(page, moldeUuid);
+    await waitForQueuedTask(page, `/arquivos/${arteUuid}/busca_tamanho.json`);
+
+    // The old item counts a single total; the arte is now ordered by number.
+    // The page reloads on the same URL: wait for the new <body> (Turbo keeps
+    // window), not the URL.
+    await page.evaluate(() => { document.body.dataset.antesDeRemover = "1"; });
+    await page.locator(".pedido-item button", { hasText: "Remover item" }).first().click();
+    await page.waitForFunction(() => !document.body.dataset.antesDeRemover && !document.querySelector(".pedido-item"));
+    const adicionado = await page.evaluate(async ({ arteUuid, pedidoUuid }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const body = new URLSearchParams({ authenticity_token: token, arquivo_uuid: arteUuid, pedido_uuid: pedidoUuid, "grade[34]": "3" });
+      return (await fetch("/pedidos/adicionar_item", { method: "POST", body, headers: { Accept: "application/json" } })).json();
+    }, { arteUuid, pedidoUuid });
+    if (!adicionado.ok) throw new Error(`adicionar_item failed: ${adicionado.error}`);
+    await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
     const confirmBtn = page.locator('form[action$="/confirmar"] button');
     await confirmBtn.waitFor({ timeout: 5000 });
     if (await confirmBtn.isDisabled()) {

@@ -9,7 +9,8 @@ module FuncoesHelper
   ROTULOS_ACAO = {
     "baixar_producao" => "Baixar arquivos de produção", "atualizar_producao" => "Dar baixa nas etapas de produção",
     "gerenciar_usuarios" => "Gerenciar usuários",
-    "aprovar_arte" => "Enviar e registrar aprovação de arte"
+    "aprovar_arte" => "Enviar e registrar aprovação de arte",
+    "ver_valores" => "Ver preços e custos (preço por par, custo e margem)"
   }.freeze
 
   # [label, value] pairs for an área's level select on the Funções grid.

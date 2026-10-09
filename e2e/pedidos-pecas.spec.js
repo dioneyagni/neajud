@@ -5,7 +5,7 @@ const { BASE_URL, runSpec } = require("./support/runner");
 const { uploadFileAndWait } = require("./support/upload");
 const { waitForQueuedTask } = require("./support/wait");
 const { imageHasVisiblePixels } = require("./support/pixels");
-const { modeloOficial, adicionarPartes } = require("./support/catalogo");
+const { modeloOficial, adicionarPartes, precificarMolde } = require("./support/catalogo");
 
 // "Adicionar ao Pedido" lists every part of the arte's molde; checked parts
 // go to production, unchecked ones are excluded. Etapa 1.2 (3/3, parte 2;
@@ -65,6 +65,7 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
     await postForm("/moldes", [[ "molde[sufixo]", moldeNome ], [ "molde[client_uuid]", clientId ], [ "molde[modelo_uuid]", modeloId ]]);
     const moldeId = await findId(`/moldes/search?q=${encodeURIComponent(moldeNome)}`, "sufixo", moldeNome);
     await adicionarPartes(page, moldeId, [ pecaIds.lateral, pecaIds.lingua ]);
+    await precificarMolde(page, moldeId);
     if (!pecaIds.lateral || !pecaIds.lingua || !modeloId || !moldeId) {
       throw new Error(`Setup failed: ${JSON.stringify({ pecaIds, modeloId, clientId, moldeId })}`);
     }

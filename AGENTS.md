@@ -465,6 +465,32 @@ piece, else the typed `largura_papel_mm`. Automatic consumption at
 confirmation, the adjustment by the real metragem, "aguardando material"
 and the dublagem come later (docs/plano.md, Etapa 2.3).
 
+## Price and cost per pair (Etapa 2.4, calçado)
+
+Decided 09/10/2026: calçado is charged **per pair**, at the molde's price
+for each number — `FaixaDePreco` (table `faixas_de_preco`): bands of the
+produto's grade, never overlapping, may go past the molde's stretch
+(`Molde#preco_do_par`). Edited on the molde page (`FaixasDePrecoController`,
+`/moldes/:uuid/faixas`; catalogo: editar + action `ver_valores`); removing a
+band is physical on purpose. Confirming writes each number's price into
+`itens_pedido_grade.preco_par` (`Pedido#gravar_precos!`, also copied into the
+pedidos a split makes); a number without price — or an arte without molde —
+is the `:sem_preco` pendência (link "abrir molde"). The molde is read from
+the item's **file** (`item.arquivo.molde`), not `arte.principal`, which skips
+a trashed file.
+
+The cost per pair is always estimated now (`CustoPorPar`, on
+`ResolucaoDoItem`): each checked part's file × its pieces per pair (a side's
+file half) × meters per piece × `Empresa#custo_impressao_metro`, plus pieces
+cut × `custo_corte_peca` (Parâmetros); `incompleto` when a file is missing
+or has no meters. `CustoPorPar.da_arte` builds an unsaved item to show it on
+the arte page before any pedido. `ValoresDoPedido` gives price, cost and
+margin per number and in total. Both blocks render only for
+`pode_acao?(:ver_valores)`; a reposição has no values. E2E:
+`e2e/precos-do-molde.spec.js`; specs that confirm a pedido price their molde
+(`precificarMolde` in `e2e/support/catalogo.js`, `create(:molde, preco: 10)`,
+`create(:item_pedido, :com_preco)`).
+
 ## Pedido items are made of the arte's parts
 
 Adding an arte to a pedido stores one `ItemPedidoPeca` per part of its molde

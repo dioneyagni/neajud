@@ -83,6 +83,9 @@
                   </label>
                 <% end %>
                 <%= link_to "Trazer de outra arte", arquivo_path(bloqueio.arquivo, trazer: 1, anchor: "arte-arquivos"), class: "btn btn-sm btn-outline pedido-parte-trazer" %>
+              <% elsif bloqueio.tipo == :sem_preco && bloqueio.molde %>
+                <%# Etapa 2.4: the price per pair is set on the molde page. %>
+                <%= link_to "abrir molde", molde_path(bloqueio.molde, anchor: "molde-precos"), class: "pedido-pendencias-item pedido-pendencia-molde" %>
               <% else %>
                 <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
               <% end %>
