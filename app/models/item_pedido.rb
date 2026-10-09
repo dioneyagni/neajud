@@ -39,6 +39,26 @@ class ItemPedido < ApplicationRecord
     end
   end
 
+  # Rebuilds the parts from the arte and its molde as they are now (a draft's
+  # photo went stale: the molde gained or lost a part, or a file's part
+  # became known — 42e40535 kept "Sem peça" next to an empty Cabedal). Each
+  # part is matched by its peça, so an unchecked one stays unchecked and its
+  # row keeps its uuid; a new part comes checked. Skipped for a trashed file.
+  # Usage: item.recompor_pecas!
+  def recompor_pecas!
+    return if arquivo.excluido?
+
+    linhas = item_pedido_pecas.to_a
+    transaction do
+      MoldeComposicaoService.call(arquivo).each_with_index do |slot, position|
+        linha = linhas.find { |l| l.peca_id == slot.peca&.id }
+        linhas.delete(linha)
+        linha ? linha.update!(arquivo: slot.arquivo, position: position) : item_pedido_pecas.create!(peca: slot.peca, arquivo: slot.arquivo, position: position)
+      end
+      linhas.each(&:destroy!)
+    end
+  end
+
   def quantidade_total
     grades.sum(:quantidade)
   end

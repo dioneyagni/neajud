@@ -485,7 +485,9 @@ file half) × meters per piece × `Empresa#custo_impressao_metro`, plus pieces
 cut × `custo_corte_peca` (Parâmetros); `incompleto` when a file is missing
 or has no meters. `CustoPorPar.da_arte` builds an unsaved item to show it on
 the arte page before any pedido. `ValoresDoPedido` gives price, cost and
-margin per number and in total. Both blocks render only for
+margin per number and in total. A cost marked "*" lists what it misses per
+part and reason (`CustoPorPar::Custo#faltas`, `faltas_do_custo` helper,
+`pedidos/_faltas_do_custo`). Both blocks render only for
 `pode_acao?(:ver_valores)`; a reposição has no values. E2E:
 `e2e/precos-do-molde.spec.js`; specs that confirm a pedido price their molde
 (`precificarMolde` in `e2e/support/catalogo.js`, `create(:molde, preco: 10)`,
@@ -512,6 +514,14 @@ asked, no production file of it) — or a pendência:
 | `:sem_arquivo` | the DXF serves it, the arte has no file of that size | "Enviar arquivo" (into the arte, part + size filled, back to the pedido) or "Trazer de outra arte" (`/arquivos/:uuid?trazer=1`) |
 
 A file added to the arte settles the pendência in every draft that uses it.
+The **parts** themselves follow too (09/10/2026): they were a photo of the
+moment the arte was added, so a draft kept a "Sem peça" row (the file, its
+part unknown then) next to an empty Cabedal. `ItemPedido#recompor_pecas!`
+rebuilds them from `MoldeComposicaoService`, matching rows by peça (an
+unchecked part stays unchecked, its uuid kept); `RecomporRascunhos` runs it
+on the drafts when a file's part, size, molde or arte changes (`Arquivo`
+callbacks) or the molde gains or loses a part (`MoldePeca`). Confirmed
+pedidos keep their parts. Existing drafts: `bin/rails pedidos:recompor_rascunhos`.
 Confirming is blocked by those pendências of checked parts, an item with total
 0, an arte without client (confirming splits the pedido by its artes'
 clients) and the item's file in the trash; a grade at total 0 is refused

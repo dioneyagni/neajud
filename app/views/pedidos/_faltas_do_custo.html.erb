@@ -1,0 +1,12 @@
+<%# A cost marked "*" counts only what is known; this says what is missing. %>
+<% faltas = faltas_do_custo(custos) %>
+<% if faltas.any? %>
+  <div class="pedido-valores-aviso custo-faltas" role="note">
+    <p>* Counts only what is known. Missing in the printing:</p>
+    <ul>
+      <% faltas.each do |falta| %>
+        <li><%= falta %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

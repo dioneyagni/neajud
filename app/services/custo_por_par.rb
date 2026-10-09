@@ -6,14 +6,22 @@
 # meters are only the way to the cost per pair.
 #
 # A number whose file is missing (a pendência) or has no meters yet (no DPI,
-# still processing) is `incompleto`: its cost counts what is known.
+# still processing) is `incompleto`: its cost counts what is known, and
+# `faltas` says what is missing per part (shown next to the "*").
 #
 # Usage: CustoPorPar.call(item, empresa: Empresa.atual)["30"].total # => 2.37
 #        CustoPorPar.da_arte(arquivo, empresa: Empresa.atual)        # every number of the arte, before any pedido
 class CustoPorPar
-  Custo = Struct.new(:numero, :impressao, :corte, :incompleto, keyword_init: true) do
+  # motivo: :sem_corte, :sem_arquivo, :sem_lado (ResolucaoDoItem) or
+  # :sem_medida (a file without its size on the paper).
+  Falta = Struct.new(:peca, :motivo, keyword_init: true)
+  Custo = Struct.new(:numero, :impressao, :corte, :faltas, keyword_init: true) do
     def total
       impressao + corte
+    end
+
+    def incompleto
+      faltas.any?
     end
   end
 
@@ -38,23 +46,25 @@ class CustoPorPar
   end
 
   def call
-    custos = Hash.new { |hash, numero| hash[numero] = Custo.new(numero: numero, impressao: 0.to_d, corte: 0.to_d, incompleto: false) }
+    custos = Hash.new { |hash, numero| hash[numero] = Custo.new(numero: numero, impressao: 0.to_d, corte: 0.to_d, faltas: []) }
     ResolucaoDoItem.call(@item).select(&:incluida).each do |parte|
-      parte.numeros.each { |numero| somar(custos[numero.numero], parte.config, numero) }
+      parte.numeros.each { |numero| somar(custos[numero.numero], parte, numero) }
     end
     custos.to_h
   end
 
   private
 
-  def somar(custo, config, numero)
+  def somar(custo, parte, numero)
+    config = parte.config
     custo.corte += config[:pecas_por_par] * @empresa.custo_corte_peca.to_d if config[:needs_cut]
     impressos(config, numero).each do |arquivo, pecas|
       metros = arquivo&.approved_version&.metros_por_peca(@empresa.largura_papel_efetiva_mm)
-      next custo.incompleto = true unless metros
+      next custo.faltas << Falta.new(peca: parte.peca, motivo: arquivo ? :sem_medida : numero.pendencia) unless metros
 
       custo.impressao += metros.to_d * pecas * @empresa.custo_impressao_metro.to_d
     end
+    custo.faltas.uniq!
   end
 
   # [[file, pieces per pair]]: each side's file prints half the pieces.

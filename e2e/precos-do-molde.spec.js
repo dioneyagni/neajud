@@ -139,6 +139,31 @@ runSpec("Preços por par e custos", async ({ page, test }) => {
       if ((await linha.locator('[data-coluna="preco"]').innerText()).trim() !== "R$ 11,00") throw new Error("The arte should show the molde's price");
       if (!/^R\$ \d+,\d\d\*?$/.test((await linha.locator('[data-coluna="custo"]').innerText()).trim())) throw new Error("The arte should show its cost per pair");
     });
+
+    // 09/10/2026: a draft's parts follow its molde (they were a photo of the
+    // moment the arte was added), and the cost's "*" says what is missing.
+    await test("A draft follows its molde's parts: one added shows on the item, its cost saying what it misses; removed, it goes away", async () => {
+      const reforco = `Reforço ${U}`;
+      await post("/pecas", { "peca[nome]": reforco });
+      const rascunho = await post("/pedidos/adicionar_item", { arquivo_uuid: arteUuid, "grade[29]": "1" });
+      if (!rascunho.json?.ok) throw new Error(`adicionar_item failed: ${JSON.stringify(rascunho.json)}`);
+      const resumo = `${BASE_URL}/pedidos/${rascunho.json.pedido_uuid}/resumo`;
+
+      await page.goto(`${BASE_URL}/moldes/${moldeUuid}`);
+      await page.locator("#peca_uuid_parte").selectOption({ label: reforco });
+      await recarregadaPor(() => page.locator("form.molde-adicionar-parte button[type=submit]").click());
+      await page.goto(resumo);
+      await page.locator(`.pedido-peca[data-parte="${reforco}"]`).first().waitFor();
+      const faltas = await page.locator("#pedido-valores .custo-faltas").innerText();
+      if (!faltas.includes(`${reforco} (29): no organized corte serves it`)) throw new Error(`The "*" should name the part: ${faltas}`);
+
+      await page.goto(`${BASE_URL}/moldes/${moldeUuid}`);
+      await recarregadaPor(() => page.locator(`.molde-peca-row[data-parte="${reforco}"] button`, { hasText: "Remove" }).click());
+      await page.goto(resumo);
+      await page.locator(".pedido-item").first().waitFor();
+      // The part left the molde, so the draft no longer orders it.
+      if ((await page.locator(`.pedido-peca[data-parte="${reforco}"]`).count()) !== 0) throw new Error("The removed part should leave the draft");
+    });
   } finally {
     fs.rmSync(pasta, { recursive: true, force: true });
   }
