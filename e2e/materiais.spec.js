@@ -189,7 +189,16 @@ runSpec("Materiais E2E Tests", async ({ page, test }) => {
     // The form saves the width as typed with a dot (normalize_decimal_separator).
     const material = `Oxford-Azul-1.10-${UNIQ.slice(-3)}g`;
     await page.goto(`${BASE_URL}/movimentos/new`);
+    // The empresa's own stock has no client: the field goes away, and comes
+    // back when the owner is the client again.
+    const campoCliente = page.locator(".client-field", { has: page.locator('input[name="movimento_estoque[client_uuid]"]') });
+    await campoCliente.waitFor({ state: "visible" });
     await page.locator("label", { hasText: "Empresa (own stock)" }).click();
+    await campoCliente.waitFor({ state: "hidden" });
+    await page.locator(".movimento-dono label", { hasText: "Client" }).click();
+    await campoCliente.waitFor({ state: "visible" });
+    await page.locator("label", { hasText: "Empresa (own stock)" }).click();
+    await campoCliente.waitFor({ state: "hidden" });
     await page.locator('input[placeholder="Search group..."]').fill("Ox");
     await page.locator(".combobox-option[data-name='Oxford']").click();
     await page.click('.color-swatch[title="Azul"]');
