@@ -3,7 +3,7 @@
     or together by mistake (decided 02/10/2026; with previews 05/10/2026). Each
     part's piloto (the editable master) comes first (parte 2b, 05/10/2026). %>
 <% partes = arquivo.arte.arquivos_por_parte %>
-<% largura_papel = Empresa.atual&.largura_papel_mm %>
+<% largura_papel = Empresa.atual&.largura_papel_efetiva_mm %>
 <% total = partes.values.sum(&:size) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="arte-arquivos">
   <h3>Files of this arte <span class="badge-count"><%= total %></span></h3>

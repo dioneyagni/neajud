@@ -231,4 +231,25 @@ RSpec.describe "Materiais", type: :request do
       expect(response.body).to include(">Vermelho<")
     end
   end
+
+  # Etapa 2.3 (decided 09/10/2026): stock in meters by owner; each
+  # material's type and sale price per meter.
+  describe "stock by owner, type and price" do
+    let(:material) { MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "100g") }
+
+    it "shows the empresa's and each client's balance in meters" do
+      MovimentoEstoque.create!(materia_prima: material, tipo: "entrada", quantidade: 100, da_empresa: true)
+      MovimentoEstoque.create!(materia_prima: material, tipo: "entrada", quantidade: 30.5, client: create(:client, name: "MKS"))
+      get materiais_path
+      linha = Nokogiri::HTML(response.body).at_css("tr[data-material='#{material.uuid}']")
+      expect([ linha.at_css("[data-saldo=empresa]").text, linha.at_css("[data-cliente=MKS]").text, linha.at_css("[data-saldo=total]").text ]).to eq([ "100 m", "MKS: 30,5 m", "130,5 m" ])
+    end
+
+    it "saves the type and the sale price (comma accepted), and says what was wrong" do
+      patch material_path(material), params: { materia_prima: { tipo: "papel", preco_metro: "12,50" } }
+      expect([ material.reload.tipo, material.preco_metro.to_f, flash[:notice] ]).to eq([ "papel", 12.5, "Oxford-Azul-1.40-100g saved." ])
+      patch material_path(material), params: { materia_prima: { tipo: "couro" } }
+      expect(flash[:alert]).to eq("Oxford-Azul-1.40-100g: Tipo couro is not a material type; expected tecido, papel or filme")
+    end
+  end
 end

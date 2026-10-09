@@ -21,4 +21,10 @@ module ApplicationHelper
   def current_pedido_uuid
     session[:current_pedido_uuid]
   end
+
+  # Stock quantities are linear meters (Etapa 2.3).
+  # Usage: metros(12.5) # => "12,5 m"
+  def metros(valor)
+    "#{number_with_precision(valor, precision: 2, separator: ",", delimiter: ".", strip_insignificant_zeros: true)} m"
+  end
 end

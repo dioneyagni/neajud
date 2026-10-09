@@ -1,14 +1,24 @@
 class MateriaisController < ApplicationController
   exige :estoque, :ver, only: %i[index grupos cores search]
-  exige :estoque, :editar, only: %i[new create create_grupo create_cor]
+  exige :estoque, :editar, only: %i[new create update create_grupo create_cor]
   include MovimentoCreatable
 
   def index
     @movimentos = MovimentoEstoque.recentes.includes(:client, materia_prima: %i[grupo_material cor_material])
     @materiais = MateriaPrima.includes(:grupo_material, :cor_material).order(:largura)
 
-    @saldo_cache = compute_saldos
-    @total_saldo = @saldo_cache.values.sum
+    @saldos = SaldosDeEstoque.call
+  end
+
+  # A material's type and sale price per meter (Etapa 2.3).
+  # Usage: PATCH /materiais/:uuid (materia_prima[tipo|preco_metro])
+  def update
+    material = MateriaPrima.por_uuid!(params[:id])
+    dados = params.require(:materia_prima).permit(:tipo, :preco_metro)
+    dados[:preco_metro] = dados[:preco_metro].to_s.tr(",", ".").presence if dados.key?(:preco_metro)
+    return redirect_to materiais_path, notice: "#{material.nome_completo} saved." if material.update(dados)
+
+    redirect_to materiais_path, alert: "#{material.nome_completo}: #{material.errors.full_messages.to_sentence}"
   end
 
   def new
@@ -82,16 +92,5 @@ class MateriaisController < ApplicationController
     @grupos = GrupoMaterial.order(:nome)
     @cores = CorMaterial.order(:nome)
     @available_cor_names = CorMaterial::COLOR_HEX.keys - @cores.pluck(:nome)
-  end
-
-  def compute_saldos
-    data = MovimentoEstoque.group(:materia_prima_id).select(
-      "materia_prima_id",
-      "SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE 0 END) AS total_in",
-      "SUM(CASE WHEN tipo = 'saida' THEN quantidade ELSE 0 END) AS total_out"
-    )
-    data.each_with_object({}) do |row, hash|
-      hash[row.materia_prima_id] = row.total_in.to_f - row.total_out.to_f
-    end
   end
 end

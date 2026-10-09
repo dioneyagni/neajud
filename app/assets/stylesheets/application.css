@@ -3168,3 +3168,54 @@ li.aprovacao--cancelada {
   flex-wrap: wrap;
   gap: 1rem;
 }
+
+/* Etapa 2.3: the stock by owner, each material's type and sale price. */
+.materiais-tabela-wrap {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.materiais-tabela .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.materiais-clientes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.material-edicao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.material-edicao input[type="text"] {
+  width: 6rem;
+}
+
+/* Not a .client-field: that class is the form's field list (specs pick the
+   first one as the client combobox), and it would stretch the radios. */
+.movimento-dono {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+  margin-bottom: 0.75rem;
+}
+
+.movimento-dono label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.movimento-dono-titulo {
+  font-weight: 600;
+}

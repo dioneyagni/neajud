@@ -478,8 +478,14 @@ runSpec("Pedidos E2E: parts of the arte (add-to-order modal + pedido page)", asy
       const arteDaLateral = await (await celula(0, names.lateral, "30")).locator("a").getAttribute("href");
       await page.goto(`${BASE_URL}${arteDaLateral}`);
       const lado = page.locator(`.arte-arquivo[data-arquivo-uuid="${arteDaLateral.split("/").pop()}"] form.arte-lado select`);
-      await Promise.all([ page.waitForURL(`**${arteDaLateral}`), lado.selectOption("esquerdo") ]);
-      await page.getByText("side ESQ").waitFor();
+      // Read the side back from the page the save reloads, not from the flash
+      // notice: it lasts 4 s, and waitForURL resolved at once (already on this
+      // URL) — CI on PR #139 missed it that way. The old page is marked so its
+      // select (already showing "esquerdo") can't pass for the saved one.
+      await page.evaluate(() => { window.antesDeDefinirLado = true; });
+      await lado.selectOption("esquerdo");
+      await page.waitForFunction((seletor) => !window.antesDeDefinirLado && document.querySelector(seletor)?.value === "esquerdo",
+        `.arte-arquivo[data-arquivo-uuid="${arteDaLateral.split("/").pop()}"] form.arte-lado select`);
 
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}`);
       await expectCelula(await celula(0, names.lateral, "30"), "sem_lado");

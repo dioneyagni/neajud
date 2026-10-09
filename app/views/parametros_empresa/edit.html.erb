@@ -4,10 +4,22 @@
   (the arte's size on the paper, the DXF's fit on the fabric).</p>
 
 <%= form_with model: @empresa, url: parametros_path, method: :patch, class: "client-form parametros-form" do |form| %>
+  <%# Etapa 2.3: the paper is a material; its width gives the artes' meters per piece. %>
+  <% papeis = MateriaPrima.papeis.includes(:grupo_material, :cor_material).order(:largura) %>
   <div class="client-field">
-    <%= form.label :largura_papel_mm, "Paper width (mm)" %>
+    <label for="empresa_papel_padrao_uuid">Default paper</label>
+    <select name="empresa[papel_padrao_uuid]" id="empresa_papel_padrao_uuid">
+      <option value="">None — use the width below</option>
+      <% papeis.each do |papel| %>
+        <option value="<%= papel.uuid %>" <%= "selected" if @empresa.papel_padrao == papel %>><%= papel.nome_completo %> (<%= papel.largura_mm %> mm)</option>
+      <% end %>
+    </select>
+    <small><%= papeis.any? ? "Its width is used to fit the artes on the paper." : "No paper registered yet: set a material's type to Papel on the Materials page." %></small>
+  </div>
+  <div class="client-field">
+    <%= form.label :largura_papel_mm, "Paper width without a default paper (mm)" %>
     <%= form.number_field :largura_papel_mm, min: 1, step: 1, required: true %>
-    <small>The width of the roll the artes are printed on, e.g. 1600 for 1,60 m.</small>
+    <small>Only used while no default paper is chosen, e.g. 1600 for 1,60 m.</small>
   </div>
   <div class="client-field">
     <%= form.label :tolerancia_abaixo_pct, "Warn below the expected by more than (%)" %>

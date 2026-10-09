@@ -51,6 +51,21 @@ RSpec.describe "Movimentos", type: :request do
       expect(response.body).to include("Movement registered")
     end
 
+    # Etapa 2.3 (decided 09/10/2026): the empresa's own stock has no client,
+    # marked on the form so a forgotten client never becomes the empresa's.
+    it "registers the empresa's own stock, and refuses a movement without client otherwise" do
+      dados = { tipo: "entrada", grupo_material_uuid: grupo.uuid, cor_material_uuid: cor.uuid, largura: "1,40", gramatura: "100g", quantidade: "12,5" }
+      post movimentos_path, params: { movimento_estoque: dados.merge(da_empresa: "true", client_uuid: client.uuid) }
+      expect(MovimentoEstoque.last.attributes.values_at("client_id", "quantidade")).to eq([ nil, 12.5.to_d ])
+      expect(flash[:notice]).to eq("Movement registered: In 12.5 m of Oxford-Azul-1.40-100g (Empresa).")
+
+      expect { post movimentos_path, params: { movimento_estoque: dados.merge(da_empresa: "false", client_uuid: "") } }.not_to change(MovimentoEstoque, :count)
+      expect(response.body).to include("Client is missing: choose the client, or mark the material as the empresa&#39;s")
+
+      get movimentos_path
+      expect(Nokogiri::HTML(response.body).at_css("tbody tr td:nth-child(2)").text).to eq("Empresa")
+    end
+
     it "renders new with alert when material is invalid" do
       post movimentos_path, params: {
         movimento_estoque: { client_uuid: "", tipo: "", grupo_material_uuid: "", cor_material_uuid: "", largura: "", gramatura: "", quantidade: "" }

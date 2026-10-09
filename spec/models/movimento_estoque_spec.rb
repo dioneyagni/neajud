@@ -9,7 +9,9 @@ RSpec.describe MovimentoEstoque, type: :model do
 
   describe "associations" do
     it { should belong_to(:materia_prima) }
-    it { should belong_to(:client) }
+    # Optional since Etapa 2.3 (the empresa's own stock); required unless
+    # da_empresa — see "owner" below.
+    it { expect(described_class.reflect_on_association(:client).options[:optional]).to be true }
   end
 
   describe "scopes" do
@@ -46,6 +48,19 @@ RSpec.describe MovimentoEstoque, type: :model do
     it "returns quantidade * valor when valor is present" do
       mov = MovimentoEstoque.new(quantidade: 5, valor: 10.5)
       expect(mov.valor_total).to eq(52.5)
+    end
+  end
+
+  # Etapa 2.3 (decided 09/10/2026): the empresa's own stock has no client.
+  describe "owner" do
+    let(:material) { MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Oxford"), cor_material: CorMaterial.create!(nome: "Verde"), largura: "1.40", gramatura: "100g") }
+
+    it "is the empresa when marked, needs a client otherwise" do
+      da_empresa = MovimentoEstoque.new(materia_prima: material, tipo: "entrada", quantidade: 1, da_empresa: true)
+      expect([ da_empresa.valid?, da_empresa.dono ]).to eq([ true, "Empresa" ])
+      sem_dono = MovimentoEstoque.new(materia_prima: material, tipo: "entrada", quantidade: 1)
+      expect(sem_dono).not_to be_valid
+      expect(sem_dono.errors.full_messages).to include("Client is missing: choose the client, or mark the material as the empresa's")
     end
   end
 end

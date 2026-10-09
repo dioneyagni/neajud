@@ -15,7 +15,7 @@ class LinhasDeProducao
   Linha = Struct.new(:chave, :referencia, :item, :peca, :tamanho, :arquivo, :lado, :materia_prima,
                      :pecas, :esperado, :corte_chave, :origem, :dispensa, keyword_init: true)
 
-  def self.call(pedido, etapa, largura_papel_mm: Empresa.atual&.largura_papel_mm)
+  def self.call(pedido, etapa, largura_papel_mm: Empresa.atual&.largura_papel_efetiva_mm)
     new(pedido, etapa, largura_papel_mm).call
   end
 

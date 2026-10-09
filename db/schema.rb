@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_131936) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -255,10 +255,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
     t.datetime "created_at", null: false
     t.integer "largura_papel_mm", default: 1600, null: false
     t.string "nome", null: false
+    t.integer "papel_padrao_id"
     t.integer "tolerancia_abaixo_pct", default: 10, null: false
     t.integer "tolerancia_acima_pct", default: 25, null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
   end
 
@@ -374,6 +376,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
     t.string "gramatura", null: false
     t.integer "grupo_material_id", null: false
     t.string "largura", null: false
+    t.decimal "preco_metro", precision: 10, scale: 2
+    t.string "tipo", default: "tecido", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
@@ -444,7 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
   end
 
   create_table "movimento_estoques", force: :cascade do |t|
-    t.integer "client_id", null: false
+    t.integer "client_id"
     t.datetime "created_at", null: false
     t.integer "materia_prima_id", null: false
     t.decimal "quantidade", default: "0.0", null: false
@@ -628,6 +632,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_102038) do
   add_foreign_key "baixas_producao", "users"
   add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "item_pedido_pecas", "arquivos"
   add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"

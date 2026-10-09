@@ -8,7 +8,7 @@
 <% pecas = linhas.sum(&:pecas) %>
 <% faltando = linhas.count(&:pendencia) %>
 <% baixa = pode_acao?(:baixar_producao) %>
-<% largura_papel = Empresa.atual&.largura_papel_mm %>
+<% largura_papel = Empresa.atual&.largura_papel_efetiva_mm %>
 <% metros = largura_papel ? linhas.filter_map { |l| l.metros_esperados(largura_papel) } : [] %>
 
 <%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>

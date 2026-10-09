@@ -119,7 +119,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :materiais, only: %i[index new create] do
+  resources :materiais, only: %i[index new create update] do
     collection do
       get :grupos
       get :cores

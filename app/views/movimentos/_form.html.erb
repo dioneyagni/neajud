@@ -4,10 +4,17 @@
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<div data-controller="client-select group-select" data-client-select-search-url-value="<%= search_clients_path %>">
+<div data-controller="client-select group-select movimento-dono" data-client-select-search-url-value="<%= search_clients_path %>">
   <div class="stamp-detail-section" style="margin-bottom: 1rem;">
     <%= form_with model: @movimento, url: form_url, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
-      <div class="client-field">
+      <%# Etapa 2.3: the empresa's own stock, or a client's material kept here. %>
+      <div class="movimento-dono">
+        <span class="movimento-dono-titulo">Owner</span>
+        <label><%= f.radio_button :da_empresa, false, checked: !@movimento.da_empresa, data: { action: "movimento-dono#mostrar" } %> Client</label>
+        <label><%= f.radio_button :da_empresa, true, checked: @movimento.da_empresa, data: { action: "movimento-dono#mostrar", movimento_dono_target: "empresa" } %> Empresa (own stock)</label>
+      </div>
+
+      <div class="client-field" data-movimento-dono-target="cliente">
         <%= f.label :client_uuid, "Client" %>
         <div class="combobox">
           <input type="text"
@@ -117,12 +124,12 @@
       </div>
 
       <div class="client-field">
-        <%= f.label :quantidade, "Quantity" %>
+        <%= f.label :quantidade, "Quantity (meters)" %>
         <%= f.number_field :quantidade, step: "0.01", min: 0.01, required: true %>
       </div>
 
       <div class="client-field">
-        <%= f.label :valor, "Unit value (optional)" %>
+        <%= f.label :valor, "Cost per meter (optional)" %>
         <%= f.number_field :valor, step: "0.01", min: 0 %>
       </div>
 
