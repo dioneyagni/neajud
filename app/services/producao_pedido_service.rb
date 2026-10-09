@@ -16,7 +16,8 @@ class ProducaoPedidoService
   # Grade key used when an item has no tamanhos (a single total quantity).
   TOTAL_KEY = "_total".freeze
 
-  Linha = Struct.new(:peca, :tamanho, :materia_prima, :quantidades, :pecas_por_par, :espelhada, keyword_init: true) do
+  # pecas_fixas: a reposição's line counts pieces, not pairs (Etapa 2.2, 4/4).
+  Linha = Struct.new(:peca, :tamanho, :materia_prima, :quantidades, :pecas_por_par, :espelhada, :pecas_fixas, keyword_init: true) do
     def corte
       tamanho&.arquivo
     end
@@ -27,13 +28,13 @@ class ProducaoPedidoService
 
     # Usage: linha.pecas # => 20 (10 pairs × 2)
     def pecas
-      pares * pecas_por_par
+      pecas_fixas || pares * pecas_por_par
     end
 
     # Pieces of each side of a mirrored part (nil when not mirrored).
     # Usage: linha.por_lado # => 10
     def por_lado
-      espelhada ? pecas / 2 : nil
+      espelhada && !pecas_fixas ? pecas / 2 : nil
     end
 
     # Meters of fabric this line should take, on its material's roll; nil
@@ -55,6 +56,8 @@ class ProducaoPedidoService
   end
 
   def call
+    return linhas_da_reposicao if @pedido.reposicao?
+
     linhas = {}
     @pedido.itens_pedido.includes(:grades, :arte, :arquivo, :materia_prima, item_pedido_pecas: :peca).order(:id).each do |item|
       ResolucaoDoItem.call(item).select(&:incluida).each do |parte|
@@ -65,6 +68,15 @@ class ProducaoPedidoService
   end
 
   private
+
+  # A reposição (Etapa 2.2, 4/4): its missing pieces that cut, summed per
+  # part × DXF size × material.
+  def linhas_da_reposicao
+    faltas = @pedido.itens_reposicao.includes(:peca, :materia_prima, tamanho: :arquivo).select { |f| f.corta && f.refazer_corte }
+    faltas.group_by { |f| [ f.peca, f.tamanho, f.materia_prima ] }.map do |(peca, tamanho, materia), grupo|
+      Linha.new(peca: peca, tamanho: tamanho, materia_prima: materia, quantidades: {}, pecas_por_par: 1, espelhada: false, pecas_fixas: grupo.sum(&:pecas))
+    end.sort_by { |l| [ l.peca&.nome.to_s, l.tamanho&.position.to_i ] }
+  end
 
   def somar(linhas, parte, materia_prima)
     config = parte.config

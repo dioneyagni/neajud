@@ -17,6 +17,7 @@
   </div>
 </div>
 <%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
+<% if @etapa.reposicao %><%= render "pedidos/reposicao_em_aberto", pedido: @pedido %><% end %>
 
 <% @grupos.each do |grupo| %>
   <% linhas = grupo.linhas.select(&:arquivo).reject(&:pendencia) %>

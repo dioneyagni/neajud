@@ -90,9 +90,23 @@ module PedidosHelper
   ROTULOS_DE_STATUS = { "rascunho" => "rascunho", "confirmado" => "confirmado", "em_producao" => "em produção",
                         "entregue" => "entregue", "cancelado" => "cancelado" }.freeze
 
-  # The pedido's status as people say it (Etapa 2.2, 3/3).
+  # The pedido's status as people say it (Etapa 2.2, 3/3); a reposição
+  # still gathering pieces is "em aberto" (4/4).
   # Usage: rotulo_do_status("em_producao") # => "em produção"
-  def rotulo_do_status(status)
+  #        rotulo_do_status(reposicao.status, reposicao: true) # => "em aberto"
+  def rotulo_do_status(status, reposicao: false)
+    return "em aberto" if reposicao && status == "rascunho"
+
     ROTULOS_DE_STATUS.fetch(status, status)
+  end
+
+  # How a Corte line's pieces add up: right / left, pairs × pieces per pair,
+  # or a reposição's pieces (Etapa 2.2, 4/4).
+  # Usage: conta_da_linha_do_corte(linha) # => "10 pares × 2"
+  def conta_da_linha_do_corte(linha)
+    return "peças de reposição" if linha.pecas_fixas
+    return "#{linha.por_lado} direito · #{linha.por_lado} esquerdo" if linha.espelhada
+
+    "#{linha.pares} #{linha.pares == 1 ? "par" : "pares"} × #{linha.pecas_por_par}"
   end
 end

@@ -150,6 +150,8 @@ Rails.application.routes.draw do
       get "etapas/:etapa", action: :etapa, as: :etapa
       # Etapa 2.2 (3/3): "Marcar como entregue".
       post :entregar
+      # Etapa 2.2 (4/4): sends the open reposição to production early.
+      post :gerar_reposicao
       post :confirmar
       get :resumo
     end

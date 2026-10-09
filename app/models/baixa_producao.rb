@@ -15,6 +15,8 @@ class BaixaProducao < ApplicationRecord
   belongs_to :pedido
   belongs_to :user, optional: true
   belongs_to :desfeita_por, class_name: "User", optional: true
+  # Etapa 2.2 (4/4): the reposição a Conferência with pieces missing made.
+  belongs_to :reposicao, class_name: "Pedido", optional: true
 
   validates :etapa, presence: true
   validates :nivel, inclusion: { in: NIVEIS, message: "%{value} is not a level; expected #{NIVEIS.join(", ")}" }

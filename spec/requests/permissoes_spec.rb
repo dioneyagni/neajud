@@ -103,6 +103,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
       delete pedido_baixa_path(p, feita)
       expect(response).to have_http_status(:forbidden)
+      post gerar_reposicao_pedido_path(p)
+      expect(response).to have_http_status(:forbidden)
     end
 
     it "the Usuários page needs gerenciar_usuarios" do
