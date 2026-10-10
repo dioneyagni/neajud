@@ -138,6 +138,10 @@
       <% end %>
     </div>
 
+    <% if @acessos %>
+      <%= render "clients/acesso_ao_sistema", client: @client, acessos: @acessos %>
+    <% end %>
+
     <div class="stamp-detail-section stamp-detail-section--full" style="margin-top: 1.5rem;">
       <h3>Materials</h3>
       <% if @client_materiais.any? %>

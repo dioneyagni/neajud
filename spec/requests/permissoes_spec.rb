@@ -114,6 +114,20 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    # Etapa 2.8 (2/5): a client's access is a password too — gerenciar_usuarios.
+    it "a client's Acesso ao sistema needs gerenciar_usuarios" do
+      client = create(:client)
+      funcao = create(:funcao, :para_cliente)
+      entrar_com_funcao(niveis: { "clientes" => 3 })
+      get client_path(client)
+      expect(response.body).not_to include("Acesso ao sistema")
+      post usuarios_path, params: { usuario: { nome: "Bia", email_address: "bia@x.com", funcao_uuid: funcao.uuid, senha_provisoria: "provisoria-123", client_uuid: client.uuid } }
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "clientes" => 1 }, acoes: %w[gerenciar_usuarios])
+      get client_path(client)
+      expect(response.body).to include("Acesso ao sistema")
+    end
+
     # Etapa 2.4: prices and costs are management's, not the factory floor's.
     it "pricing a molde needs ver_valores and catalogo: editar" do
       preco = -> { post molde_faixas_path(molde), params: { faixa: { tamanho_inicial: "20", tamanho_final: "30", preco_par: "9" } } }

@@ -835,10 +835,24 @@ each empresa is its own instance.
   clients' data, the other's marked "VAZOU"; signed in as a cliente final with
   every level, every GET route — with the other's uuids in the path and the
   query — must never show the mark. New routes are swept automatically.
-- Not yet (2.8 2/5–5/5): creating client access, the "Cliente final"
-  função, configurable visibility (open/closed per kind), per-client cable
-  streams (today the gallery's broadcasts go to everyone), approving and
-  uploading as a client, and the client's drafts.
+- **Client access (2/5, decided 10/10/2026):** a função is the team's or
+  **para clientes** (`funcoes.para_cliente`, fixed at creation; default
+  "Cliente final": every área "ver", no lixeira). A vínculo with `client_id`
+  takes only a função para clientes and the team's never one
+  (`Vinculo#tipo_da_funcao`); neither a função para clientes nor a client's
+  extras may have `Autorizacao::AREAS_DA_EQUIPE` / `ACOES_DA_EQUIPE`
+  (lixeira, baixar/atualizar produção, gerenciar usuários, ver valores) —
+  `Autorizacao.erros_para_cliente`. Created and listed on the client's page
+  ("Acesso ao sistema", `clients/_acesso_ao_sistema`, needs
+  `gerenciar_usuarios`) through `UsuariosController` with
+  `usuario[client_uuid]`; its actions come back to that page. `/usuarios`
+  lists only the team (`User.da_equipe`). A client in the trash closes its
+  people's access (`User.com_acesso`, used by the session cookie and the
+  cable). A cliente final lands on Pedidos (sign-in and password change);
+  the header shows the client's name.
+- Not yet (2.8 3/5–5/5): configurable visibility (open/closed per kind),
+  per-client cable streams (today the gallery's broadcasts go to everyone),
+  approving and uploading as a client, and the client's drafts.
 
 ## Art approval (Etapa 0.5, 4/4)
 

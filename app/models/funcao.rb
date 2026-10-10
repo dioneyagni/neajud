@@ -16,14 +16,23 @@ class Funcao < ApplicationRecord
     { nome: "Admin", niveis: { pedidos: 3, clientes: 3, artes: 3, catalogo: 3, estoque: 3, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores] },
     { nome: "Atendimento", niveis: { pedidos: 3, clientes: 3, artes: 3, catalogo: 1, estoque: 2, lixeira: 0 }, acoes: %w[aprovar_arte] },
     { nome: "Designer", niveis: { pedidos: 1, clientes: 1, artes: 3, catalogo: 3, estoque: 0, lixeira: 0 }, acoes: %w[baixar_producao aprovar_arte] },
-    { nome: "Produção", niveis: { pedidos: 1, clientes: 0, artes: 1, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao] }
+    { nome: "Produção", niveis: { pedidos: 1, clientes: 0, artes: 1, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao] },
+    # Etapa 2.8 (2/5): what a cliente final does; approving and uploading
+    # come in 4/5, his drafts in 5/5. Whose records he sees is Visibilidade's.
+    { nome: "Cliente final", para_cliente: true, niveis: { pedidos: 1, clientes: 1, artes: 1, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: [] }
   ].freeze
 
   has_many :vinculos, dependent: :restrict_with_error
 
+  # Etapa 2.8 (2/5): funções for clientes finais vs the team's.
+  scope :para_clientes, -> { where(para_cliente: true) }
+  scope :da_equipe, -> { where(para_cliente: false) }
+
   validates :nome, presence: true, uniqueness: { case_sensitive: false }
   validate :grade_valida
   validate :dono_imutavel, on: :update
+  validate :limites_de_cliente
+  validate :tipo_imutavel, on: :update
 
   # Idempotent: an existing função of the same name is left as it is.
   # Usage: Funcao.criar_padrao!
@@ -48,6 +57,18 @@ class Funcao < ApplicationRecord
 
   def grade_valida
     Autorizacao.erros_da_grade(niveis, acoes).each { |erro| errors.add(:niveis, erro) }
+  end
+
+  def limites_de_cliente
+    return unless para_cliente?
+
+    errors.add(:para_cliente, "the Dono função is the team's") if dono?
+    Autorizacao.erros_para_cliente(niveis, acoes).each { |erro| errors.add(:niveis, erro) }
+  end
+
+  # Its vínculos were checked against the type (Vinculo#tipo_da_funcao).
+  def tipo_imutavel
+    errors.add(:para_cliente, "can't change after creation (was #{para_cliente_was}); create another função") if will_save_change_to_para_cliente?
   end
 
   def dono_imutavel

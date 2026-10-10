@@ -63,4 +63,37 @@ RSpec.describe "Autenticação", type: :request, sem_login: true do
       expect(response.body).to include(user.nome, "Sign out")
     end
   end
+
+  # Etapa 2.8 (2/5): a cliente final's access.
+  describe "a cliente final" do
+    let(:client) { create(:client, name: "Calçados Alfa") }
+    let!(:user) { create(:vinculo, client: client, user: create(:user, email_address: "bia@x.com")).user }
+
+    it "starts on his pedidos, with his client's name in the header" do
+      post session_path, params: { email_address: "bia@x.com", password: senha }
+      expect(response).to redirect_to(pedidos_url)
+      follow_redirect!
+      expect(response.body).to include("Calçados Alfa")
+    end
+
+    it "goes to his pedidos after choosing his password" do
+      user.update!(trocar_senha: true)
+      post session_path, params: { email_address: "bia@x.com", password: senha }
+      patch senha_path, params: { nova_senha: "minha-senha-bia-1" }
+      expect(response).to redirect_to(pedidos_path)
+    end
+
+    # Trashing the client closes its people's access; restoring reopens it.
+    it "can't sign in nor keep a session while his client is in the trash" do
+      post session_path, params: { email_address: "bia@x.com", password: senha }
+      client.excluir!(changed_by: "10.0.0.1")
+      get pedidos_path
+      expect(response).to redirect_to(new_session_path)
+      post session_path, params: { email_address: "bia@x.com", password: senha }
+      expect(flash[:alert]).to include("Calçados Alfa's access is closed")
+      client.restaurar!(changed_by: "10.0.0.1")
+      post session_path, params: { email_address: "bia@x.com", password: senha }
+      expect(response).to redirect_to(pedidos_url)
+    end
+  end
 end

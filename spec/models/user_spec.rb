@@ -56,4 +56,23 @@ RSpec.describe User do
       expect(create(:user).autorizacao.pode?(:pedidos, :ver)).to be false
     end
   end
+
+  # Etapa 2.8 (2/5).
+  describe "scopes for clientes finais" do
+    let(:client) { create(:client) }
+    let!(:equipe) { create(:vinculo).user }
+    let!(:cliente_final) { create(:vinculo, client: client).user }
+
+    it ".da_equipe leaves out clientes finais" do
+      expect(described_class.da_equipe).to contain_exactly(equipe)
+    end
+
+    it ".com_acesso leaves out the deactivated and the clientes finais of a trashed client" do
+      expect(described_class.com_acesso).to contain_exactly(equipe, cliente_final)
+      client.excluir!(changed_by: "10.0.0.1")
+      expect(described_class.com_acesso).to contain_exactly(equipe)
+      equipe.desativar!(por: nil)
+      expect(described_class.com_acesso).to be_empty
+    end
+  end
 end

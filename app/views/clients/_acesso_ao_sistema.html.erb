@@ -1,0 +1,46 @@
+<%# Etapa 2.8 (2/5): the people of this client who sign in (clientes finais),
+    each seeing only this client's records (Visibilidade). Same actions as the
+    Usuários page; only who may "gerenciar usuários" sees this. %>
+<div class="stamp-detail-section stamp-detail-section--full cliente-acesso" id="acesso-ao-sistema">
+  <h3>Acesso ao sistema</h3>
+  <p class="page-hint">People of <%= client.name %> who sign in and see only this client's pedidos, moldes and artes. Give them the provisional password; they choose their own at the first sign-in.</p>
+  <% if acessos.any? %>
+    <table class="clients-table usuarios-tabela">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Função</th><th>Extra accesses</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <%= render partial: "usuarios/linha", collection: acessos, as: :usuario %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="gallery-empty">Nobody of this client signs in yet.</p>
+  <% end %>
+
+  <% if client.excluido? %>
+    <p class="page-hint">This client is in the trash: its accesses can't sign in until it is restored.</p>
+  <% else %>
+    <%= form_with scope: :usuario, url: usuarios_path, method: :post, class: "client-form cliente-acesso-novo" do |form| %>
+      <h4>New access</h4>
+      <%= form.hidden_field :client_uuid, value: client.uuid %>
+      <div class="client-field">
+        <%= form.label :nome, "Name", for: "acesso_nome" %>
+        <%= form.text_field :nome, id: "acesso_nome", required: true %>
+      </div>
+      <div class="client-field">
+        <%= form.label :email_address, "Email", for: "acesso_email" %>
+        <%= form.email_field :email_address, id: "acesso_email", required: true %>
+      </div>
+      <div class="client-field">
+        <%= form.label :senha_provisoria, "Provisional password", for: "acesso_senha" %>
+        <%= form.text_field :senha_provisoria, id: "acesso_senha", required: true, minlength: 8, maxlength: 72, autocomplete: "off" %>
+      </div>
+      <div class="client-field">
+        <%= form.label :funcao_uuid, "Função", for: "acesso_funcao" %>
+        <% funcoes = funcoes_para_atribuir(para_cliente: true) %>
+        <%= form.select :funcao_uuid, options_for_select(funcoes.map { |f| [ f.nome, f.uuid ] }, funcoes.first&.uuid), {}, id: "acesso_funcao", required: true %>
+      </div>
+      <%= form.submit "Add access", class: "btn btn-primary" %>
+    <% end %>
+  <% end %>
+</div>

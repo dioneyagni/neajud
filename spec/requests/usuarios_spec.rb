@@ -71,4 +71,51 @@ RSpec.describe "Usuários", type: :request do
       expect(response.body).not_to include(">Dono<")
     end
   end
+
+  # Etapa 2.8 (2/5): a client's access, created and listed on its page.
+  describe "a cliente final's access" do
+    let(:client) { create(:client, name: "Calçados Alfa") }
+    let!(:cliente_final) { create(:funcao, :para_cliente, nome: "Cliente final", niveis: { "pedidos" => 1 }) }
+
+    def criar_bia(funcao: cliente_final)
+      post usuarios_path, params: { usuario: { nome: "Bia", email_address: "bia@x.com", funcao_uuid: funcao.uuid, senha_provisoria: "provisoria-123", client_uuid: client.uuid } }
+      User.find_by(email_address: "bia@x.com")
+    end
+
+    it "is created from the client's page and listed there, not on Usuários" do
+      get client_path(client)
+      expect(response.body).to include("Acesso ao sistema", "Nobody of this client signs in yet")
+      bia = criar_bia
+      expect(response).to redirect_to(client_path(client, anchor: "acesso-ao-sistema"))
+      expect(bia.cliente).to eq(client)
+      get client_path(client)
+      expect(response.body).to include("bia@x.com", "Cliente final", "provisional password")
+      get usuarios_path
+      expect(response.body).not_to include("bia@x.com")
+    end
+
+    it "goes back to the client's page with what was refused" do
+      expect(criar_bia(funcao: producao)).to be_nil
+      expect(response).to redirect_to(client_path(client, anchor: "acesso-ao-sistema"))
+      expect(flash[:alert]).to include("a client's access needs a função para clientes")
+    end
+
+    it "is edited, reset and deactivated with the client's page as the way back" do
+      bia = criar_bia
+      get edit_usuario_path(bia)
+      expect(response.body).to include("Cliente final of", "Calçados Alfa")
+      form = Nokogiri::HTML(response.body).at_css(".usuario-form").text
+      expect(form).not_to include("Produção", "Lixeira", "Gerenciar usuários")
+      post desativar_usuario_path(bia)
+      expect(response).to redirect_to(client_path(client, anchor: "acesso-ao-sistema"))
+      expect(bia.reload.ativo?).to be false
+    end
+
+    # Clients in the trash take no new access (ReferenciaAtiva on the vínculo).
+    it "refuses a client in the trash" do
+      client.excluir!(changed_by: "10.0.0.1")
+      expect(criar_bia).to be_nil
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

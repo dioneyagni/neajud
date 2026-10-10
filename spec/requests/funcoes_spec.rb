@@ -35,4 +35,15 @@ RSpec.describe "Funções", type: :request do
     delete funcao_path(livre)
     expect(livre.reload).to be_excluido
   end
+
+  # Etapa 2.8 (2/5).
+  it "creates a função para clientes, with the team's cells out of the grid" do
+    post funcoes_path, params: { funcao: { nome: "Cliente que aprova", para_cliente: "1" } }
+    expect(Funcao.find_by(nome: "Cliente que aprova")).to be_para_cliente
+    get funcoes_path
+    coluna = Nokogiri::HTML(response.body).css('td[data-funcao="Cliente que aprova"]')
+    expect(coluna.css("select[name*='[lixeira]']")).to be_empty
+    expect(coluna.css("input[value='ver_valores']")).to be_empty
+    expect(coluna.css("input[value='aprovar_arte']")).to be_present
+  end
 end

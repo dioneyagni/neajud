@@ -21,4 +21,22 @@ RSpec.describe Vinculo do
     vinculo = create(:vinculo, funcao: create(:funcao, niveis: { "pedidos" => 1 }), acessos_extras: { "niveis" => { "pedidos" => 2 } })
     expect(vinculo.autorizacao.nivel(:pedidos)).to eq(2)
   end
+
+  # Etapa 2.8 (2/5): the função's type follows the vínculo's.
+  describe "a cliente final's vínculo" do
+    let(:client) { create(:client) }
+
+    it "takes only a função para clientes, and the team's never one" do
+      expect(build(:vinculo, client: client, funcao: create(:funcao))).not_to be_valid
+      expect(build(:vinculo, funcao: create(:funcao, :para_cliente))).not_to be_valid
+      expect(build(:vinculo, client: client, funcao: create(:funcao, :para_cliente))).to be_valid
+    end
+
+    it "refuses the team's lixeira and actions in its extras" do
+      vinculo = build(:vinculo, client: client, acessos_extras: { "niveis" => { "lixeira" => 1 }, "acoes" => %w[baixar_producao aprovar_arte] })
+      expect(vinculo).not_to be_valid
+      expect(vinculo.errors[:acessos_extras].join).to include("lixeira", "baixar_producao")
+      expect(vinculo.errors[:acessos_extras].join).not_to include("aprovar_arte")
+    end
+  end
 end

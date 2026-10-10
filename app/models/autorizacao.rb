@@ -15,6 +15,11 @@ class Autorizacao
   # atualizar_producao: give a production stage's baixa (Etapa 2.2, 2/3).
   # ver_valores: see and set prices per pair and costs (Etapa 2.4).
   ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores].freeze
+  # Never given to a cliente final (Etapa 2.8, 2/5): the trash and the
+  # factory's own actions. Costs and margin are never shown to a client; the
+  # price per pair reaches him by the visibility's "Valores" (3/5).
+  AREAS_DA_EQUIPE = %w[lixeira].freeze
+  ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores].freeze
 
   # Shape check shared by Funcao#niveis/acoes and Vinculo#acessos_extras.
   # Usage: Autorizacao.erros_da_grade({ "pedidos" => 2 }, []) # => []
@@ -22,6 +27,13 @@ class Autorizacao
     erros = (niveis.to_h.keys.map(&:to_s) - AREAS).map { |area| "unknown área #{area.inspect}; expected one of #{AREAS.join(", ")}" }
     erros += niveis.to_h.flat_map { |area, nivel| erros_de_nivel(area.to_s, nivel) }
     erros + (Array(acoes).map(&:to_s) - ACOES).map { |acao| "unknown action #{acao.inspect}; expected one of #{ACOES.join(", ")}" }
+  end
+
+  # What a client's função or vínculo may not have, shared by Funcao and Vinculo.
+  # Usage: Autorizacao.erros_para_cliente({ "lixeira" => 1 }, []) # => ["a client's access can't have lixeira"]
+  def self.erros_para_cliente(niveis, acoes)
+    areas = AREAS_DA_EQUIPE.select { |area| niveis.to_h.stringify_keys[area].to_i.positive? }
+    (areas + (Array(acoes).map(&:to_s) & ACOES_DA_EQUIPE)).map { |item| "a client's access can't have #{item}; it is the team's" }
   end
 
   def self.nivel_maximo(area)

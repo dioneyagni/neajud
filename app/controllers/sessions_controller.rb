@@ -10,6 +10,8 @@ class SessionsController < ApplicationController
     user = User.authenticate_by(params.permit(:email_address, :password))
     if user && !user.ativo?
       redirect_to new_session_path, alert: "This account is deactivated. Ask the company owner."
+    elsif user&.cliente&.excluido?
+      redirect_to new_session_path, alert: "#{user.cliente.name}'s access is closed. Ask the company."
     elsif user
       start_new_session_for user
       redirect_to after_authentication_url

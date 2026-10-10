@@ -5,12 +5,13 @@ class FuncoesController < ApplicationController
   exige_dono
 
   def index
-    @funcoes = visiveis(Funcao).ativos.order(dono: :desc, id: :asc)
+    # The team's first, then the funções para clientes (Etapa 2.8, 2/5).
+    @funcoes = visiveis(Funcao).ativos.order(dono: :desc, para_cliente: :asc, id: :asc)
     @usuarios_por_funcao = visiveis(Vinculo).group(:funcao_id).count
   end
 
   def create
-    funcao = visiveis(Funcao).new(nome: params.dig(:funcao, :nome).to_s.strip)
+    funcao = visiveis(Funcao).new(nome: params.dig(:funcao, :nome).to_s.strip, para_cliente: params.dig(:funcao, :para_cliente) == "1")
     return redirect_to funcoes_path, notice: "Função \"#{funcao.nome}\" created: choose what it may do." if funcao.save
 
     redirect_to funcoes_path, alert: funcao.errors.full_messages.to_sentence

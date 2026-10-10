@@ -1,10 +1,13 @@
 <h2>Funções</h2>
 <p class="funcoes-intro">What each função may do. Each level includes the ones before it:
   <strong>Ver</strong> → <strong>Editar</strong> (create and edit) → <strong>Excluir</strong>.
-  Dono always has everything.</p>
+  Dono always has everything. A função <strong>para clientes</strong> is for a client's own access
+  (cliente final, created on the client's page): it sees only that client's records and never
+  gets the lixeira nor the factory's actions.</p>
 
 <%= form_with url: funcoes_path, scope: :funcao, class: "funcoes-nova" do |form| %>
   <%= form.text_field :nome, placeholder: "New função (e.g. Corte, Expedição)", required: true, "aria-label": "New função name" %>
+  <label class="funcoes-para-cliente"><%= form.check_box :para_cliente %> para clientes</label>
   <%= form.submit "+ New função", class: "btn btn-secondary" %>
 <% end %>
 
@@ -15,12 +18,13 @@
         <tr>
           <th>Área</th>
           <% @funcoes.each do |funcao| %>
-            <th class="funcao-coluna" data-funcao="<%= funcao.nome %>">
+            <th class="funcao-coluna <%= "funcao-coluna--cliente" if funcao.para_cliente? %>" data-funcao="<%= funcao.nome %>">
               <% if funcao.dono? %>
                 <%= funcao.nome %>
               <% else %>
                 <input type="text" name="funcoes[<%= funcao.uuid %>][nome]" value="<%= funcao.nome %>" required class="funcao-nome" aria-label="Name of <%= funcao.nome %>">
               <% end %>
+              <% if funcao.para_cliente? %><small class="funcao-tipo-cliente">para clientes</small><% end %>
             </th>
           <% end %>
         </tr>
@@ -33,6 +37,8 @@
               <td data-funcao="<%= funcao.nome %>">
                 <% if funcao.dono? %>
                   <span class="funcao-dono-tudo"><%= rotulo_de_nivel(area, Autorizacao.nivel_maximo(area)) %></span>
+                <% elsif funcao.para_cliente? && Autorizacao::AREAS_DA_EQUIPE.include?(area) %>
+                  <span class="funcao-so-equipe" title="The team's only">—</span>
                 <% else %>
                   <select name="funcoes[<%= funcao.uuid %>][niveis][<%= area %>]" aria-label="<%= funcao.nome %>: <%= area %>">
                     <%= options_for_select(opcoes_de_nivel(area), funcao.niveis.to_h[area].to_i) %>
@@ -50,6 +56,8 @@
               <td data-funcao="<%= funcao.nome %>">
                 <% if funcao.dono? %>
                   <span class="funcao-dono-tudo">✓</span>
+                <% elsif funcao.para_cliente? && Autorizacao::ACOES_DA_EQUIPE.include?(acao) %>
+                  <span class="funcao-so-equipe" title="The team's only">—</span>
                 <% else %>
                   <input type="hidden" name="funcoes[<%= funcao.uuid %>][acoes][]" value="">
                   <input type="checkbox" name="funcoes[<%= funcao.uuid %>][acoes][]" value="<%= acao %>" <%= "checked" if funcao.acoes.include?(acao) %> aria-label="<%= funcao.nome %>: <%= acao %>">

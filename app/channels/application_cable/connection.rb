@@ -8,7 +8,7 @@ module ApplicationCable
 
     private
       def set_current_user
-        if session = Session.joins(:user).merge(User.ativos).find_by(id: cookies.signed[:session_id])
+        if session = Session.joins(:user).merge(User.com_acesso).find_by(id: cookies.signed[:session_id])
           self.current_user = session.user
         end
       end

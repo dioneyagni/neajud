@@ -2675,6 +2675,24 @@ section {
   text-align: left;
 }
 
+/* Etapa 2.8 (2/5): funções para clientes and the team-only cells. */
+.funcoes-para-cliente {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.funcao-tipo-cliente {
+  display: block;
+  color: #5f6368;
+  font-weight: normal;
+}
+
+.funcao-so-equipe {
+  color: #9aa0a6;
+}
+
 .tipo-corte-fieldset {
   border: 0;
   margin: 0;
@@ -2703,6 +2721,21 @@ body[data-pode-excluir-arquivos="false"] .stamp-card-checkbox {
 
 .usuario-redefinir-senha {
   margin-top: 2rem;
+}
+
+/* Etapa 2.8 (2/5): a client's "Acesso ao sistema". */
+.cliente-acesso {
+  margin-top: 1.5rem;
+}
+
+.cliente-acesso-novo {
+  max-width: 640px;
+  margin-top: 1rem;
+}
+
+.header-user-cliente {
+  color: #5f6368;
+  font-size: 0.85rem;
 }
 
 .aprovacao-estado {
