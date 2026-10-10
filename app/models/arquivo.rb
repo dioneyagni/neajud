@@ -40,6 +40,9 @@ class Arquivo < ApplicationRecord
   before_validation :herdar_cliente_do_molde
   validates :tipo_grade, inclusion: { in: GradeDoCorte::TIPOS.keys, message: "%{value} is not a grade type; expected one of par, impar, pmg, furada" }, allow_nil: true
   after_update_commit :atualizar_rascunhos_sem_cliente, if: :saved_change_to_client_id?
+  # 09/10/2026: a file's part, size, molde or arte decides its draft items' parts.
+  after_create_commit :recompor_rascunhos_da_arte, if: :arte_id
+  after_update_commit :recompor_rascunhos_da_arte, if: -> { (saved_changes.keys & %w[peca_id tamanho_id molde_id arte_id]).any? }
   validates :filename, presence: true
   validates :extension, presence: true
   validates :mime_type, presence: true
@@ -236,6 +239,11 @@ class Arquivo < ApplicationRecord
     Pedido.ativos.rascunhos.where(client_id: nil).joins(:itens_pedido).where(itens_pedido: { arquivo_id: id }).distinct.each(&:adotar_cliente_das_artes!)
   end
   private :atualizar_rascunhos_sem_cliente
+
+  def recompor_rascunhos_da_arte
+    RecomporRascunhos.da_arte([ arte_id, arte_id_before_last_save ].uniq)
+  end
+  private :recompor_rascunhos_da_arte
 
   def next_version_number
     (arquivo_versions.maximum(:version_number) || 0) + 1

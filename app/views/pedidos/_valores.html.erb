@@ -16,8 +16,6 @@
   <% end %>
   <% if !empresa.custos_definidos? %>
     <p class="pedido-valores-aviso" role="note">The cost needs the printing cost per meter and the cutting cost per piece<%= dono? ? "" : " (the dono sets them)" %><% if dono? %>: <%= link_to "Parâmetros", edit_parametros_path %><% end %>.</p>
-  <% elsif valores.custo_incompleto? %>
-    <p class="pedido-valores-aviso" role="note">Cost marked * counts only what is known: a file is missing or has no size on the paper yet.</p>
   <% end %>
   <% valores.itens.each do |item_valores| %>
     <div class="pedido-valores-item" data-item="<%= item_valores.item.uuid %>">
@@ -40,6 +38,7 @@
           </tbody>
         </table>
       </div>
+      <%= render "pedidos/faltas_do_custo", custos: item_valores.linhas.map(&:custo) %>
     </div>
   <% end %>
 </section>

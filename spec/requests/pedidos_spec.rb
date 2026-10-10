@@ -622,6 +622,8 @@ RSpec.describe "Pedidos", type: :request do
       # One part with no file yet: 2 pieces cut × R$ 1, printing unknown (*).
       expect(%w[preco custo margem].map { |c| linha.at_css("[data-coluna='#{c}']").text.squish }).to eq([ "R$ 10,00", "R$ 2,00*", "R$ 8,00" ])
       expect(%w[valor custo margem].map { |v| html.at_css("[data-valor='#{v}']").text }).to eq([ "R$ 30,00", "R$ 6,00", "R$ 24,00" ])
+      # The "*" says what is missing (asked 09/10/2026).
+      expect(html.at_css("#pedido-valores .custo-faltas li").text).to start_with("#{item.item_pedido_pecas.sole.peca.nome} (30): no organized corte serves it")
     end
 
     it "asks for the costs in Parâmetros while they aren't set" do

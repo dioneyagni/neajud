@@ -49,10 +49,6 @@ class ValoresDoPedido
     linhas.any? { |l| l.preco_par.nil? }
   end
 
-  def custo_incompleto?
-    !@empresa.custos_definidos? || linhas.any? { |l| l.custo.nil? || l.custo.incompleto }
-  end
-
   private
 
   def linhas

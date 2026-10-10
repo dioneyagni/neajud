@@ -22,7 +22,7 @@ RSpec.describe ValoresDoPedido do
     valores = described_class.call(pedido, empresa: empresa)
     linhas = valores.itens.sole.linhas
     expect(linhas.map { |l| [ l.numero, l.pares, l.preco_par, l.custo_par, l.margem_par ] }).to eq([ [ "30", 10, 12, 2, 10 ], [ "31", 2, nil, 2, nil ] ])
-    expect([ valores.valor, valores.custo, valores.margem, valores.sem_preco?, valores.custo_incompleto? ]).to eq([ 120, 24, 96, true, true ])
+    expect([ valores.valor, valores.custo, valores.margem, valores.sem_preco? ]).to eq([ 120, 24, 96, true ])
   end
 
   it "reads the price written at confirmation, not the molde's price now" do
@@ -33,6 +33,6 @@ RSpec.describe ValoresDoPedido do
 
   it "has no cost while the dono hasn't set the costs" do
     valores = described_class.call(pedido, empresa: Empresa.new(nome: "Neajud"))
-    expect([ valores.itens.sole.linhas.first.custo_par, valores.custo, valores.custo_incompleto? ]).to eq([ nil, 0, true ])
+    expect([ valores.itens.sole.linhas.first.custo_par, valores.custo ]).to eq([ nil, 0 ])
   end
 end

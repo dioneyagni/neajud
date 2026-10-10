@@ -32,9 +32,7 @@
           </tbody>
         </table>
       </div>
-      <% if custos.any?(&:incompleto) %>
-        <p class="pedido-valores-aviso" role="note">* counts only what is known: a file is missing or has no size on the paper yet.</p>
-      <% end %>
+      <%= render "pedidos/faltas_do_custo", custos: custos %>
       <p class="arte-custo-base">On the <%= empresa.largura_papel_efetiva_mm %> mm paper at <%= reais(empresa.custo_impressao_metro) %>/m, cutting at <%= reais(empresa.custo_corte_peca) %>/piece.</p>
     <% end %>
   <% end %>

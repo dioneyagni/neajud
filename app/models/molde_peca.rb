@@ -14,6 +14,10 @@ class MoldePeca < ApplicationRecord
 
   scope :for_molde, ->(molde_id) { where(molde_id: molde_id) }
 
+  # 09/10/2026: a part added or removed reaches the molde's draft pedidos.
+  after_create_commit { RecomporRascunhos.do_molde(molde) }
+  after_destroy_commit { RecomporRascunhos.do_molde(molde) }
+
   # Usage: molde_peca.pecas_para(10) # => 20 (2 per pair)
   def pecas_para(pares)
     pares * pecas_por_par

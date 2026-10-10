@@ -44,8 +44,15 @@ RSpec.describe CustoPorPar do
     expect(valores(described_class.call(item("30" => 1), empresa: empresa)["30"])).to eq([ 0.3388, 1, 1.3388, false ])
   end
 
-  it "is incompleto while a part has no file: it counts what is known" do
-    expect(valores(described_class.call(item("29" => 1), empresa: empresa)["29"])).to eq([ 0.1694, 2, 2.1694, true ])
+  it "is incompleto while a part has no file: it counts what is known, saying which part misses what" do
+    custo = described_class.call(item("29" => 1), empresa: empresa)["29"]
+    expect(valores(custo)).to eq([ 0.1694, 2, 2.1694, true ])
+    expect(custo.faltas.map { |f| [ f.peca, f.motivo ] }).to eq([ [ lingua, :sem_arquivo ] ])
+  end
+
+  it "names a file without its size on the paper (no DPI yet)" do
+    create(:arquivo, arte: arte.arte, molde: molde, client: molde.client, peca: lingua, tamanho: cortes[lingua])
+    expect(described_class.call(item("30" => 1), empresa: empresa)["30"].faltas.map(&:motivo)).to eq([ :sem_medida ])
   end
 
   it "prints half the pieces from each side's file of a mirrored part" do
