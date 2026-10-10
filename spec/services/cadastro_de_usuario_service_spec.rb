@@ -37,4 +37,22 @@ RSpec.describe CadastroDeUsuarioService do
     expect(user.errors[:base]).to include("you can't give more than you have (pedidos)", "you can't give more than you have (baixar_producao)")
     expect(User.where(email_address: "joao@x.com")).to be_empty
   end
+
+  # Etapa 2.8 (2/5): created on the client's page.
+  describe "with a cliente" do
+    let(:client) { create(:client) }
+    let(:cliente_final) { create(:funcao, :para_cliente, nome: "Cliente final", niveis: { "pedidos" => 1 }) }
+
+    it "makes the new user that client's cliente final" do
+      user = described_class.call(gestor: dono, user: User.new, dados: dados.merge(funcao_uuid: cliente_final.uuid, acessos_extras: {}), cliente: client)
+      expect(user.errors).to be_empty
+      expect(user.reload.cliente).to eq(client)
+    end
+
+    it "refuses a team função for him, saving nothing" do
+      user = described_class.call(gestor: dono, user: User.new, dados: dados.merge(acessos_extras: {}), cliente: client)
+      expect(user.errors[:base].join).to include("a client's access needs a função para clientes")
+      expect(User.where(email_address: "joao@x.com")).to be_empty
+    end
+  end
 end

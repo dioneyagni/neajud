@@ -3,9 +3,25 @@ require "rails_helper"
 RSpec.describe Funcao do
   it ".criar_padrao! creates the plan's funções with Dono as the system one" do
     described_class.criar_padrao!
-    expect(described_class.order(:id).pluck(:nome)).to eq(%w[Dono Admin Atendimento Designer Produção])
+    expect(described_class.order(:id).pluck(:nome)).to eq([ "Dono", "Admin", "Atendimento", "Designer", "Produção", "Cliente final" ])
     expect(described_class.dono.nome).to eq("Dono")
+    expect(described_class.para_clientes.pluck(:nome)).to eq([ "Cliente final" ])
     expect(described_class.find_by(nome: "Produção").niveis).to include("pedidos" => 1, "lixeira" => 0)
+  end
+
+  # Etapa 2.8 (2/5): a cliente final never gets the trash nor the factory's actions.
+  it "refuses the team's lixeira and actions in a função para clientes" do
+    funcao = build(:funcao, :para_cliente, niveis: { "pedidos" => 2, "lixeira" => 1 }, acoes: %w[aprovar_arte ver_valores])
+    expect(funcao).not_to be_valid
+    expect(funcao.errors[:niveis]).to contain_exactly(include("lixeira"), include("ver_valores"))
+    expect(build(:funcao, :para_cliente, niveis: { "pedidos" => 3 }, acoes: %w[aprovar_arte])).to be_valid
+  end
+
+  # Its vínculos were checked against the type when made.
+  it "keeps a função's type after creation" do
+    funcao = create(:funcao, :para_cliente)
+    expect(funcao.update(para_cliente: false)).to be false
+    expect(funcao.errors[:para_cliente].first).to include("can't change after creation")
   end
 
   it "validates the grid" do

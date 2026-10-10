@@ -28,8 +28,12 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral }
   end
 
+  # Every level and action, the team's too — more than a função para clientes
+  # may have (2/5) — so no route is skipped for lack of permission: what is
+  # swept is whose records show, not what the grid allows.
   def entrar_como_cliente(client)
-    funcao = create(:funcao, niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
+    funcao = create(:funcao, :para_cliente)
+    funcao.update_columns(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
     user = create(:user)
     create(:vinculo, user: user, funcao: funcao, client: client)
     entrar_como(user)

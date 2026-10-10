@@ -68,6 +68,7 @@
       </nav>
       <div class="header-user">
         <%= link_to Current.user.nome, edit_senha_path, class: "header-user-nome", title: "#{Current.user.email_address} — change my password" %>
+        <% if (cliente = Current.user.cliente) %><span class="header-user-cliente"><%= cliente.name %></span><% end %>
         <%= button_to "Sign out", session_path, method: :delete, class: "btn btn-secondary btn-sm", form: { class: "header-user-sair" } %>
       </div>
       <% end %>

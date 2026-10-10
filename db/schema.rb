@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_10_125011) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_10_163614) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -301,6 +301,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_125011) do
     t.boolean "dono", default: false, null: false
     t.json "niveis", default: {}, null: false
     t.string "nome", null: false
+    t.boolean "para_cliente", default: false, null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false

@@ -373,6 +373,7 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
   - **Acesso** criado na página do cliente ("Acesso ao sistema": pessoas com senha provisória, várias por cliente); convite por e-mail com a nuvem (7.1).
   - **O cliente monta o rascunho** (as artes dele, grade por número) e usa "Enviar para a fábrica"; a equipe confirma ou **devolve com recado**. Ele vê só as pendências que pode resolver (o arquivo que falta, com "Enviar arquivo"); as da fábrica aparecem como "em análise". Vê o preço conforme o tipo "Valores".
   - **Avisos dentro do sistema** (contador e filtro "aguardando a fábrica", o pedido devolvido no topo do cliente), sem e-mail.
+  - Decidido para o 2/5: a função tem um **tipo** ("para clientes", fixo depois de criada); a empresa recebe a "Cliente final" pronta (tudo "ver", sem lixeira) e pode criar outras. Função para clientes nunca recebe lixeira, baixar/atualizar produção, gerenciar usuários nem ver valores. O acesso do cliente é criado por quem tem **gerenciar usuários**; a página Usuários lista só a equipe. Cliente na lixeira fecha o acesso das pessoas dele. O cliente final **entra em Pedidos**.
   - PRs: 1/5 a política, a trava e o teste de vazamento (nada muda para a equipe); 2/5 o vínculo cliente e a função; 3/5 a visibilidade configurável, os canais ao vivo por cliente, downloads e prévias; 4/5 aprovar e enviar arquivos; 5/5 o rascunho do cliente.
 
 ## Fase 3 — Operação na nuvem (plano hospedado)

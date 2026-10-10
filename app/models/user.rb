@@ -9,6 +9,11 @@ class User < ApplicationRecord
   belongs_to :desativado_por, class_name: "User", optional: true
 
   scope :ativos, -> { where(desativado_em: nil) }
+  # Who may sign in and keep a session: active, and not a cliente final of a
+  # client in the trash (Etapa 2.8, 2/5 — restoring the client lets them back).
+  scope :com_acesso, -> { ativos.where.not(id: Vinculo.where(client_id: Client.excluidos.select(:id)).select(:user_id)) }
+  # The empresa's team: everyone but clientes finais (the Usuários page).
+  scope :da_equipe, -> { where.not(id: Vinculo.where.not(client_id: nil).select(:user_id)) }
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

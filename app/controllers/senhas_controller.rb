@@ -12,7 +12,8 @@ class SenhasController < ApplicationController
     return redirect_to edit_senha_path, alert: "Current password is wrong." unless user.trocar_senha? || user.authenticate(params[:senha_atual].to_s)
 
     user.trocar_senha!(params.require(:nova_senha))
-    redirect_to root_path, notice: "Password changed."
+    # A cliente final's start is his pedidos (Etapa 2.8, 2/5), as at sign-in.
+    redirect_to(user.cliente ? pedidos_path : root_path, notice: "Password changed.")
   rescue ActiveRecord::RecordInvalid => e
     redirect_to edit_senha_path, alert: e.record.errors.full_messages.to_sentence
   end

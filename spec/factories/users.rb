@@ -14,6 +14,11 @@ FactoryBot.define do
     niveis { {} }
     acoes { [] }
 
+    # Etapa 2.8 (2/5): for a cliente final's vínculo.
+    trait :para_cliente do
+      para_cliente { true }
+    end
+
     # The system função; reused, since there is only one.
     factory :funcao_dono do
       nome { "Dono" }
@@ -25,6 +30,6 @@ FactoryBot.define do
   factory :vinculo do
     user
     empresa { Empresa.atual || association(:empresa) }
-    funcao { association(:funcao_dono) }
+    funcao { client ? association(:funcao, :para_cliente, niveis: { "pedidos" => 1 }) : association(:funcao_dono) }
   end
 end

@@ -1,6 +1,8 @@
 <% vinculo = usuario.vinculos.first %>
 <% funcao_atual = vinculo&.funcao %>
 <% extras = vinculo&.acessos_extras.to_h %>
+<% cliente = vinculo&.client %>
+<% areas, acoes = grade_de_extras(para_cliente: cliente.present?) %>
 
 <% if usuario.errors.any? %>
   <ul class="auth-errors">
@@ -23,9 +25,12 @@
       <%= form.text_field :senha_provisoria, required: true, minlength: 8, maxlength: 72, autocomplete: "off" %>
     </div>
   <% end %>
+  <% if cliente %>
+    <p class="usuario-cliente">Cliente final of <%= link_to cliente.name, client_path(cliente) %>: sees only this client's records.</p>
+  <% end %>
   <div class="client-field">
     <%= form.label :funcao_uuid, "Função" %>
-    <%= form.select :funcao_uuid, options_for_select(funcoes_para_atribuir.map { |f| [ f.nome, f.uuid ] }, funcao_atual&.uuid),
+    <%= form.select :funcao_uuid, options_for_select(funcoes_para_atribuir(para_cliente: cliente.present?).map { |f| [ f.nome, f.uuid ] }, funcao_atual&.uuid),
           { include_blank: "Choose…" }, required: true %>
   </div>
 
@@ -33,7 +38,7 @@
   <table class="clients-table usuario-extras">
     <thead><tr><th>Área</th><th>Função gives</th><th>Extra</th></tr></thead>
     <tbody>
-      <% Autorizacao::AREAS.each do |area| %>
+      <% areas.each do |area| %>
         <tr data-area="<%= area %>">
           <th scope="row"><%= FuncoesHelper::ROTULOS_AREA.fetch(area) %></th>
           <td class="usuario-extras-funcao"><%= funcao_atual ? rotulo_de_nivel(area, funcao_atual.dono? ? Autorizacao.nivel_maximo(area) : funcao_atual.niveis.to_h[area].to_i) : "—" %></td>
@@ -43,7 +48,7 @@
           </td>
         </tr>
       <% end %>
-      <% Autorizacao::ACOES.each do |acao| %>
+      <% acoes.each do |acao| %>
         <tr data-acao="<%= acao %>">
           <th scope="row"><%= FuncoesHelper::ROTULOS_ACAO.fetch(acao) %></th>
           <td class="usuario-extras-funcao"><%= funcao_atual && (funcao_atual.dono? || funcao_atual.acoes.include?(acao)) ? "✓" : "—" %></td>
@@ -57,5 +62,5 @@
   </table>
 
   <%= form.submit submit_label, class: "btn btn-primary" %>
-  <%= link_to "Cancel", usuarios_path, class: "btn btn-secondary" %>
+  <%= link_to "Cancel", cliente ? client_path(cliente, anchor: "acesso-ao-sistema") : usuarios_path, class: "btn btn-secondary" %>
 <% end %>

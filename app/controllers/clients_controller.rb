@@ -33,6 +33,7 @@ class ClientsController < ApplicationController
       .order(:largura)
 
     @client_saldos = compute_client_saldos
+    @acessos = acessos_do_cliente if pode_acao?(:gerenciar_usuarios)
   end
 
   def search
@@ -86,6 +87,12 @@ class ClientsController < ApplicationController
   def assign_client_to_arquivo(client)
     arquivo = visiveis(Arquivo).find_by(uuid: params[:arquivo_uuid])
     arquivo&.update(client_id: client.id)
+  end
+
+  # Its clientes finais (Etapa 2.8, 2/5), for "Acesso ao sistema".
+  def acessos_do_cliente
+    visiveis(User).where(id: Vinculo.where(client_id: @client.id).select(:user_id))
+                  .includes(vinculos: :funcao).order(Arel.sql("desativado_em IS NOT NULL"), :nome)
   end
 
   def compute_client_saldos

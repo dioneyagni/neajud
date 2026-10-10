@@ -36,9 +36,10 @@ module Authentication
     end
 
     # A deactivated user's sessions are destroyed on deactivation; the join
-    # also guards any session created in between.
+    # also guards any session created in between, and a cliente final whose
+    # client went to the trash (User.com_acesso).
     def find_session_by_cookie
-      Session.joins(:user).merge(User.ativos).find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+      Session.joins(:user).merge(User.com_acesso).find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
     end
 
     # A new instance has nobody to sign in as yet: send to the first-access
@@ -50,8 +51,10 @@ module Authentication
       redirect_to new_session_path
     end
 
+    # A cliente final starts on his pedidos (Etapa 2.8, 2/5); the team, on
+    # the gallery.
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || root_url
+      session.delete(:return_to_after_authenticating) || (Current.user.cliente ? pedidos_url : root_url)
     end
 
     def start_new_session_for(user)

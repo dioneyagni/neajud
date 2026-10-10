@@ -43,4 +43,12 @@ RSpec.describe Autorizacao do
       expect(described_class.erros_da_grade({ "pedidos" => 3, "lixeira" => 2 }, %w[baixar_producao])).to eq([])
     end
   end
+
+  describe ".erros_para_cliente" do
+    it "names the team's áreas and actions a client's access can't have" do
+      erros = described_class.erros_para_cliente({ "lixeira" => 1, "pedidos" => 3 }, %w[aprovar_arte gerenciar_usuarios])
+      expect(erros).to contain_exactly(include("lixeira"), include("gerenciar_usuarios"))
+      expect(described_class.erros_para_cliente({ "lixeira" => 0 }, %w[aprovar_arte])).to eq([])
+    end
+  end
 end
