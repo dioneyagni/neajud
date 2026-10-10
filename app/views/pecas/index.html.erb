@@ -20,8 +20,8 @@
       <% @pecas.each do |peca| %>
         <tr>
           <td><%= peca.nome %></td>
-          <td><%= peca.moldes.reject(&:excluido?).map(&:nome).join(", ") %></td>
-          <td><%= peca.arquivos_count %></td>
+          <td><%= peca.moldes.select { |molde| @moldes_visiveis.include?(molde.id) }.map(&:nome).join(", ") %></td>
+          <td><%= @arquivos_por_peca[peca.id].to_i %></td>
           <td class="clients-table-actions">
             <% if pode?(:catalogo, :editar) %>
               <%= link_to "Edit", edit_peca_path(peca), class: "btn btn-secondary btn-sm" %>

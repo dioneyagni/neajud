@@ -23,7 +23,7 @@ class ArteArquivosController < ApplicationController
   # refused one leaves everything as it was.
   # Usage: POST /arquivos/:uuid/arte/trazer (origem_uuids[])
   def trazer
-    origens = Arquivo.ativos.where(uuid: Array(params[:origem_uuids])).to_a
+    origens = visiveis(Arquivo).ativos.where(uuid: Array(params[:origem_uuids])).to_a
     return redirect_to @arquivo, alert: "Mark the artes to bring into this one." if origens.empty?
 
     erros = origens.filter_map { |origem| JuntarArtesService.erro(origem: origem, destino: @arquivo) }
@@ -46,7 +46,7 @@ class ArteArquivosController < ApplicationController
   # offer, when the piloto was uploaded as another arte, that arte joins first.
   # Usage: POST /arquivos/:uuid/arte/tornar_piloto (junto_de)
   def tornar_piloto
-    destino = Arquivo.ativos.por_uuid!(params[:junto_de]) if params[:junto_de].present?
+    destino = visiveis(Arquivo).ativos.por_uuid!(params[:junto_de]) if params[:junto_de].present?
     JuntarArtesService.call(origem: @arquivo, destino: destino) if destino && destino.arte_id != @arquivo.arte_id
     anterior = @arquivo.reload.tornar_piloto!
     redirect_to destino || @arquivo, notice: "#{@arquivo.filename} is now the piloto of #{@arquivo.resolved_peca&.nome || "its part"}#{" (#{anterior.filename} went back to production)" if anterior}."
@@ -78,7 +78,7 @@ class ArteArquivosController < ApplicationController
   end
 
   def set_arquivo
-    @arquivo = Arquivo.ativos.where.not(category: "corte").por_uuid!(params[:arquivo_id])
+    @arquivo = visiveis(Arquivo).ativos.where.not(category: "corte").por_uuid!(params[:arquivo_id])
   end
 
   def erro_de_categoria(upload)
@@ -96,7 +96,7 @@ class ArteArquivosController < ApplicationController
     tamanho = tamanho_escolhido
     return com_tamanho_do_corte(novo, tamanho) if tamanho
 
-    novo.peca = Peca.ativos.por_uuid!(params[:peca_uuid]) if params[:peca_uuid].present?
+    novo.peca = visiveis(Peca).ativos.por_uuid!(params[:peca_uuid]) if params[:peca_uuid].present?
     novo.tamanho_rotulo = params[:tamanho_rotulo].to_s.squish.presence
     novo
   end
@@ -110,6 +110,6 @@ class ArteArquivosController < ApplicationController
   def tamanho_escolhido
     return nil if params[:tamanho_uuid].blank? || @arquivo.molde.nil?
 
-    Tamanho.unscoped.where(arquivo_id: Arquivo.cortes_do_molde(@arquivo.molde).select(:id)).por_uuid!(params[:tamanho_uuid])
+    visiveis(Tamanho).unscoped.where(arquivo_id: visiveis(Arquivo).cortes_do_molde(@arquivo.molde).select(:id)).por_uuid!(params[:tamanho_uuid])
   end
 end

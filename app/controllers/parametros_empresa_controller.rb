@@ -5,6 +5,8 @@
 # paper is a material: the default paper's width replaces the typed one.
 class ParametrosEmpresaController < ApplicationController
   exige_dono
+  # The empresa's own parameters: the dono's, never a client's records.
+  nao_le_registros
 
   def edit
     @empresa = Empresa.atual
@@ -25,7 +27,7 @@ class ParametrosEmpresaController < ApplicationController
     dados = params.require(:empresa).permit(:papel_padrao_uuid, :largura_papel_mm, :tolerancia_abaixo_pct, :tolerancia_acima_pct,
                                             :custo_impressao_metro, :custo_corte_peca)
     papel = dados.delete(:papel_padrao_uuid)
-    dados[:papel_padrao] = MateriaPrima.papeis.find_by(uuid: papel) if papel
+    dados[:papel_padrao] = visiveis(MateriaPrima).papeis.find_by(uuid: papel) if papel
     # Etapa 2.4: "4,50" as typed; blank = not set.
     %i[custo_impressao_metro custo_corte_peca].each { |campo| dados[campo] = dados[campo].to_s.strip.tr(",", ".").presence if dados.key?(campo) }
     dados

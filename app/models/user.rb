@@ -22,6 +22,12 @@ class User < ApplicationRecord
     vinculos.find_by(empresa: Empresa.atual)
   end
 
+  # The Client this person is a cliente final of (Etapa 2.8); nil for the team.
+  # Usage: Visibilidade.new(user.cliente)
+  def cliente
+    vinculo&.client
+  end
+
   def ativo?
     desativado_em.nil?
   end

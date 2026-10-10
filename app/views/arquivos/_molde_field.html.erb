@@ -123,7 +123,7 @@
           <label for="molde_client_uuid_dialog_arquivo">Client</label>
           <select name="molde[client_uuid]" id="molde_client_uuid_dialog_arquivo" required>
             <option value="">Select a client...</option>
-            <% Client.ativos.order(:name).each do |c| %>
+            <% visiveis(Client).ativos.order(:name).each do |c| %>
               <option value="<%= c.uuid %>"><%= c.name %></option>
             <% end %>
           </select>

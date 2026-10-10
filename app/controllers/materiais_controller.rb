@@ -4,16 +4,16 @@ class MateriaisController < ApplicationController
   include MovimentoCreatable
 
   def index
-    @movimentos = MovimentoEstoque.recentes.includes(:client, materia_prima: %i[grupo_material cor_material])
-    @materiais = MateriaPrima.includes(:grupo_material, :cor_material).order(:largura)
+    @movimentos = visiveis(MovimentoEstoque).recentes.includes(:client, materia_prima: %i[grupo_material cor_material])
+    @materiais = visiveis(MateriaPrima).includes(:grupo_material, :cor_material).order(:largura)
 
-    @saldos = SaldosDeEstoque.call
+    @saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque))
   end
 
   # A material's type and sale price per meter (Etapa 2.3).
   # Usage: PATCH /materiais/:uuid (materia_prima[tipo|preco_metro])
   def update
-    material = MateriaPrima.por_uuid!(params[:id])
+    material = visiveis(MateriaPrima).por_uuid!(params[:id])
     dados = params.require(:materia_prima).permit(:tipo, :preco_metro)
     dados[:preco_metro] = dados[:preco_metro].to_s.tr(",", ".").presence if dados.key?(:preco_metro)
     return redirect_to materiais_path, notice: "#{material.nome_completo} saved." if material.update(dados)
@@ -23,7 +23,7 @@ class MateriaisController < ApplicationController
 
   def new
     load_form_data
-    @movimento = MovimentoEstoque.new(client: Client.find_by(uuid: params[:client_uuid].to_s))
+    @movimento = visiveis(MovimentoEstoque).new(client: visiveis(Client).find_by(uuid: params[:client_uuid].to_s))
     @selected_client_nome = @movimento.client&.name
   end
 
@@ -33,27 +33,27 @@ class MateriaisController < ApplicationController
   end
 
   def grupos
-    grupos = params[:q].present? ? GrupoMaterial.search(params[:q]) : GrupoMaterial.order(:nome)
+    grupos = params[:q].present? ? visiveis(GrupoMaterial).search(params[:q]) : visiveis(GrupoMaterial).order(:nome)
     render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome } }
   end
 
   def create_grupo
-    create_reference_record(GrupoMaterial, "Group", params.require(:grupo_material).permit(:nome))
+    create_reference_record(visiveis(GrupoMaterial), "Group", params.require(:grupo_material).permit(:nome))
   end
 
   def cores
-    render json: CorMaterial.order(:nome).map { |c| { id: c.uuid, nome: c.nome } }
+    render json: visiveis(CorMaterial).order(:nome).map { |c| { id: c.uuid, nome: c.nome } }
   end
 
   def create_cor
-    create_reference_record(CorMaterial, "Color", params.require(:cor_material).permit(:nome))
+    create_reference_record(visiveis(CorMaterial), "Color", params.require(:cor_material).permit(:nome))
   end
 
   def search
-    materiais = MateriaPrima.includes(:grupo_material, :cor_material)
+    materiais = visiveis(MateriaPrima).includes(:grupo_material, :cor_material)
 
     if params[:client_uuid].present?
-      client_material_ids = MovimentoEstoque.where(client: Client.where(uuid: params[:client_uuid]))
+      client_material_ids = visiveis(MovimentoEstoque).where(client: visiveis(Client).where(uuid: params[:client_uuid]))
         .distinct.pluck(:materia_prima_id)
       materiais = materiais.where(id: client_material_ids)
     end
@@ -89,8 +89,8 @@ class MateriaisController < ApplicationController
   end
 
   def load_form_data
-    @grupos = GrupoMaterial.order(:nome)
-    @cores = CorMaterial.order(:nome)
+    @grupos = visiveis(GrupoMaterial).order(:nome)
+    @cores = visiveis(CorMaterial).order(:nome)
     @available_cor_names = CorMaterial::COLOR_HEX.keys - @cores.pluck(:nome)
   end
 end

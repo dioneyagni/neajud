@@ -4,6 +4,9 @@ class ArtesController < ApplicationController
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
 
   # Usage: POST /artes → { "uuid": "…" }
+  # Creates an empty arte; reads nothing.
+  nao_le_registros only: :create
+
   def create
     render json: { uuid: Arte.create!.uuid }, status: :created
   end

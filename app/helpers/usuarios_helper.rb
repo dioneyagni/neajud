@@ -6,7 +6,7 @@ module UsuariosHelper
 
   # Funções the manager may give: the Dono função only if they are a dono.
   def funcoes_para_atribuir
-    Funcao.ativos.order(dono: :desc, nome: :asc).select { |funcao| dono? || !funcao.dono? }
+    visiveis(Funcao).ativos.order(dono: :desc, nome: :asc).select { |funcao| dono? || !funcao.dono? }
   end
 
   # Usage: resumo_acessos_extras(vinculo) # => "Pedidos: Editar, Baixar arquivos de produção"

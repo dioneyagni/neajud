@@ -96,7 +96,7 @@
       <%= form_with url: acrescentar_arquivo_arte_path(arquivo), method: :post, multipart: true, data: { turbo: false }, class: "arte-acrescentar-form" do %>
         <input type="file" name="original_file" required>
         <% if arquivo.molde %>
-          <% cortes = Arquivo.cortes_do_molde(arquivo.molde).includes(:peca, :tamanhos).order(:id) %>
+          <% cortes = visiveis(Arquivo).cortes_do_molde(arquivo.molde).includes(:peca, :tamanhos).order(:id) %>
           <select name="tamanho_uuid" required>
             <option value="">Part and size…</option>
             <% cortes.each do |corte| %>
@@ -110,7 +110,7 @@
         <% else %>
           <select name="peca_uuid">
             <option value="">Part (optional)</option>
-            <% Peca.ativos.order(:nome).each do |peca| %>
+            <% visiveis(Peca).ativos.order(:nome).each do |peca| %>
               <option value="<%= peca.uuid %>"><%= peca.nome %></option>
             <% end %>
           </select>

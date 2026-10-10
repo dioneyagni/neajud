@@ -11,7 +11,7 @@ class PedidosController < ApplicationController
   # past the draft with its stages' progress.
   def index
     @status = params[:status] if Pedido::STATUS.include?(params[:status])
-    @pedidos = Pedido.ativos.left_joins(:itens_pedido)
+    @pedidos = visiveis(Pedido).ativos.left_joins(:itens_pedido)
                       .includes(:client)
                       .select("pedidos.*, COUNT(DISTINCT itens_pedido.id) AS itens_count")
                       .group(:id)
@@ -22,7 +22,7 @@ class PedidosController < ApplicationController
   end
 
   def show
-    @pedido = Pedido.includes(itens_pedido: {
+    @pedido = visiveis(Pedido).includes(itens_pedido: {
       arquivo: [ :client, :tamanhos, { tamanho: :arquivo }, { molde: :modelo }, approved_version: :image_metadata ],
       materia_prima: :grupo_material,
       item_pedido_pecas: :peca
@@ -30,7 +30,7 @@ class PedidosController < ApplicationController
   end
 
   def create
-    @pedido = Pedido.create!(status: "rascunho")
+    @pedido = visiveis(Pedido).create!(status: "rascunho")
     session[:current_pedido_uuid] = @pedido.uuid
     redirect_to resumo_pedido_path(@pedido)
   end
@@ -55,7 +55,7 @@ class PedidosController < ApplicationController
       return render json: { ok: false, error: "Informe ao menos 1 unidade (quantidade total 0)." }, status: :unprocessable_content
     end
 
-    arquivo = Arquivo.ativos.find_by!(uuid: params[:arquivo_uuid])
+    arquivo = visiveis(Arquivo).ativos.find_by!(uuid: params[:arquivo_uuid])
     erro = erro_de_grade(arquivo.arte, params[:grade])
     return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
@@ -64,7 +64,7 @@ class PedidosController < ApplicationController
 
     session[:current_pedido_uuid] = @pedido.uuid
 
-    materia_prima = MateriaPrima.por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
+    materia_prima = visiveis(MateriaPrima).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
 
     ItemPedido.transaction do
       item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
@@ -115,7 +115,7 @@ class PedidosController < ApplicationController
     end
 
     items_by_client.each do |client_id, itens|
-      novo = Pedido.create!(client_id: client_id, status: "confirmado")
+      novo = visiveis(Pedido).create!(client_id: client_id, status: "confirmado")
       itens.each do |item|
         novo_item = novo.itens_pedido.create!(
           arquivo: item.arquivo,
@@ -265,8 +265,8 @@ class PedidosController < ApplicationController
   # arte, each choice narrowing the next.
   # Usage: GET /pedidos/artes_para_adicionar.json?molde_uuid=…&referencia_uuid=…
   def artes_para_adicionar
-    molde = Molde.ativos.por_uuid!(params[:molde_uuid])
-    artes = Arquivo.ativos.where(category: "artes", molde: molde)
+    molde = visiveis(Molde).ativos.por_uuid!(params[:molde_uuid])
+    artes = visiveis(Arquivo).ativos.where(category: "artes", molde: molde)
     artes = artes.where(referencia: molde.referencias.por_uuid!(params[:referencia_uuid])) if params[:referencia_uuid].present?
     render json: {
       referencias: molde.referencias.order(:nome).map { |r| { uuid: r.uuid, nome: r.nome } },
@@ -297,10 +297,10 @@ class PedidosController < ApplicationController
   # The pedido page adds to itself; the gallery to the client's draft, else
   # the one in session, else a new one.
   def pedido_de_destino(arquivo)
-    return Pedido.por_uuid!(params[:pedido_uuid]) if params[:pedido_uuid].present?
-    return Pedido.ativos.find_by(client_id: arquivo.client_id, status: "rascunho") || Pedido.create!(status: "rascunho", client_id: arquivo.client_id) if arquivo.client_id
+    return visiveis(Pedido).por_uuid!(params[:pedido_uuid]) if params[:pedido_uuid].present?
+    return visiveis(Pedido).ativos.find_by(client_id: arquivo.client_id, status: "rascunho") || visiveis(Pedido).create!(status: "rascunho", client_id: arquivo.client_id) if arquivo.client_id
 
-    Pedido.ativos.find_by(uuid: session[:current_pedido_uuid]) || Pedido.create!(status: "rascunho")
+    visiveis(Pedido).ativos.find_by(uuid: session[:current_pedido_uuid]) || visiveis(Pedido).create!(status: "rascunho")
   end
 
   # Etapa 1.2 (3/3): the grade is by the arte's individual sizes — any of
@@ -354,7 +354,7 @@ class PedidosController < ApplicationController
   end
 
   def set_pedido
-    @pedido = Pedido.find_by!(uuid: params[:uuid])
+    @pedido = visiveis(Pedido).find_by!(uuid: params[:uuid])
   end
 
   # A trashed pedido stays readable (show, resumo, produção) but frozen until

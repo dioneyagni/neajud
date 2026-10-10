@@ -19,7 +19,7 @@ module AprovacoesHelper
   # Usage: <%= arquivos_da_foto(aprovacao) %>
   def arquivos_da_foto(registro)
     versoes = registro.versoes_por_arquivo
-    texto = versoes.size == 1 ? "1 file (v#{ArquivoVersion.find(versoes.values.first).version_number})" : "#{versoes.size} files"
+    texto = versoes.size == 1 ? "1 file (v#{visiveis(ArquivoVersion).find(versoes.values.first).version_number})" : "#{versoes.size} files"
     tag.span(texto, title: descricao_da_foto(registro), class: "aprovacao-foto")
   end
 
@@ -33,7 +33,7 @@ module AprovacoesHelper
   end
 
   def descricao_da_foto(registro)
-    ArquivoVersion.where(id: registro.versoes_por_arquivo.values).includes(:arquivo).map { |v| "#{v.arquivo.filename} v#{v.version_number}" }.sort.join("; ")
+    visiveis(ArquivoVersion).where(id: registro.versoes_por_arquivo.values).includes(:arquivo).map { |v| "#{v.arquivo.filename} v#{v.version_number}" }.sort.join("; ")
   end
 
   def selo_aprovada(aprovacao)

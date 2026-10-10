@@ -4,16 +4,18 @@
 # Usage: erros = FuncoesGradeService.call(params[:funcoes]) # => [] when saved
 #   params: { "<funcao uuid>" => { "nome" => "Corte", "niveis" => { "pedidos" => "1" }, "acoes" => ["baixar_producao"] } }
 class FuncoesGradeService
-  def self.call(grade)
-    new(grade).call
+  # funcoes: the ones the person may see (Visibilidade; Etapa 2.8).
+  def self.call(grade, funcoes = Funcao.all)
+    new(grade, funcoes).call
   end
 
-  def initialize(grade)
+  def initialize(grade, funcoes = Funcao.all)
     @grade = grade.to_h
+    @funcoes = funcoes
   end
 
   def call
-    funcoes = Funcao.ativos.where(dono: false, uuid: @grade.keys).to_a
+    funcoes = @funcoes.ativos.where(dono: false, uuid: @grade.keys).to_a
     funcoes.each { |funcao| funcao.assign_attributes(atributos(@grade[funcao.uuid])) }
     erros = funcoes.reject(&:valid?).flat_map { |funcao| funcao.errors.full_messages.map { |m| "#{funcao.nome_was}: #{m}" } }
     Funcao.transaction { funcoes.each(&:save!) } if erros.empty?

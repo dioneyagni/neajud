@@ -2,6 +2,7 @@
 # here; creating the empresa + first dono closes this screen for good.
 class ConfiguracaoController < ApplicationController
   allow_unauthenticated_access
+  nao_le_registros
   before_action :recusar_se_configurada
 
   def new

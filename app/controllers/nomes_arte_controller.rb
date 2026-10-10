@@ -15,7 +15,7 @@ class NomesArteController < ApplicationController
 
   # Usage: POST /arquivos/:uuid/nome_arte/tornar_versao (original_uuid)
   def tornar_versao
-    original = Arquivo.ativos.por_uuid!(params[:original_uuid])
+    original = visiveis(Arquivo).ativos.por_uuid!(params[:original_uuid])
     versao = JuntarArteRepetidaService.call(repetida: @arte, original: original, **autoria)
     redirect_to original, notice: "#{@arte.filename} is now version #{versao.version_number} of #{original.nome_completo}."
   rescue JuntarArteRepetidaService::Recusado => e
@@ -25,12 +25,12 @@ class NomesArteController < ApplicationController
   private
 
   def set_arte
-    @arte = Arquivo.ativos.where(category: "artes").por_uuid!(params[:arquivo_id])
+    @arte = visiveis(Arquivo).ativos.where(category: "artes").por_uuid!(params[:arquivo_id])
   end
 
   # A typed new referência wins over the select; blank both = no referência.
   def referencia_escolhida
-    return Referencia.do_molde!(@arte.molde, params[:nova_referencia]) if params[:nova_referencia].present? && @arte.molde
+    return visiveis(Referencia).do_molde!(@arte.molde, params[:nova_referencia]) if params[:nova_referencia].present? && @arte.molde
     return nil if params[:referencia_uuid].blank?
 
     @arte.molde.referencias.por_uuid!(params[:referencia_uuid])

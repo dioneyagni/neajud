@@ -2,16 +2,19 @@
 # 09/10/2026): the empresa's own stock (movements without client) and each
 # client's material kept here. One query for the Materials page.
 #
-# Usage: saldos = SaldosDeEstoque.call
+# movimentos: the ones the person may see (Visibilidade, Etapa 2.8) — a
+# cliente final sees only its own balance, never the empresa's or others'.
+#
+# Usage: saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque))
 #        saldos.empresa(material) # => 120.5
 #        saldos.por_cliente(material) # => { <Client MKS> => 30.0 }
 class SaldosDeEstoque
-  def self.call
-    new
+  def self.call(movimentos = MovimentoEstoque.all)
+    new(movimentos)
   end
 
-  def initialize
-    linhas = MovimentoEstoque.group(:materia_prima_id, :client_id)
+  def initialize(movimentos = MovimentoEstoque.all)
+    linhas = movimentos.group(:materia_prima_id, :client_id)
                              .pluck(:materia_prima_id, :client_id, Arel.sql("SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE -quantidade END)"))
     @clientes = Client.where(id: linhas.map(&:second).compact.uniq).index_by(&:id)
     @saldos = linhas.each_with_object(Hash.new { |h, k| h[k] = {} }) { |(material, cliente, saldo), mapa| mapa[material][cliente] = saldo.to_f }

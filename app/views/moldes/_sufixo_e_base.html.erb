@@ -12,7 +12,7 @@
   <label for="molde_variacao_de_uuid_<%= sufixo_id %>">Variation of <span class="field-hint">(optional)</span></label>
   <select name="molde[variacao_de_uuid]" id="molde_variacao_de_uuid_<%= sufixo_id %>">
     <option value="">— none —</option>
-    <% Molde.ativos.includes(:client, :modelo).order(:nome).group_by(&:client).sort_by { |client, _| client.name }.each do |client, moldes| %>
+    <% visiveis(Molde).ativos.includes(:client, :modelo).order(:nome).group_by(&:client).sort_by { |client, _| client.name }.each do |client, moldes| %>
       <optgroup label="<%= client.name %>">
         <% moldes.each do |m| %>
           <option value="<%= m.uuid %>"><%= m.nome %></option>

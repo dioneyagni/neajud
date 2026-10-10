@@ -14,7 +14,7 @@ class LixeiraController < ApplicationController
   }.freeze
 
   def index
-    @excluidos_por_tipo = TIPOS.transform_values { |model| model.excluidos.includes(exclusao_logs: :user).order(deleted_at: :desc) }
+    @excluidos_por_tipo = TIPOS.transform_values { |model| visiveis(model).excluidos.includes(exclusao_logs: :user).order(deleted_at: :desc) }
   end
 
   # Usage: POST /lixeira/clients/<uuid>/restaurar
@@ -28,6 +28,6 @@ class LixeiraController < ApplicationController
 
   def registro_excluido
     model = TIPOS.fetch(params[:tipo]) { raise ActionController::RoutingError, "Unknown trash type #{params[:tipo].inspect}; expected one of #{TIPOS.keys.join(", ")}" }
-    model.excluidos.por_uuid!(params[:id])
+    visiveis(model).excluidos.por_uuid!(params[:id])
   end
 end

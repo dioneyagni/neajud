@@ -9,7 +9,7 @@ module MovimentoCreatable
     atributos = movimento_params.except(:grupo_material_uuid, :cor_material_uuid, :largura, :gramatura)
     # Etapa 2.3: the empresa's own stock has no client.
     atributos = atributos.except(:client_uuid) if ActiveModel::Type::Boolean.new.cast(atributos[:da_empresa])
-    @movimento = MovimentoEstoque.new(atributos)
+    @movimento = visiveis(MovimentoEstoque).new(atributos)
   end
 
   def movimento_save
@@ -55,11 +55,11 @@ module MovimentoCreatable
   end
 
   def grupo_escolhido
-    GrupoMaterial.find_by(uuid: movimento_params[:grupo_material_uuid].to_s)
+    visiveis(GrupoMaterial).find_by(uuid: movimento_params[:grupo_material_uuid].to_s)
   end
 
   def cor_escolhida
-    CorMaterial.find_by(uuid: movimento_params[:cor_material_uuid].to_s)
+    visiveis(CorMaterial).find_by(uuid: movimento_params[:cor_material_uuid].to_s)
   end
 
   # Unknown group/color uuids leave the reference nil, so the new material
@@ -67,10 +67,10 @@ module MovimentoCreatable
   def find_or_create_materia_prima
     atributos = { grupo_material: grupo_escolhido, cor_material: cor_escolhida,
                   largura: movimento_params[:largura], gramatura: movimento_params[:gramatura] }
-    mp = MateriaPrima.find_by(atributos)
+    mp = visiveis(MateriaPrima).find_by(atributos)
     return mp if mp
 
-    mp = MateriaPrima.new(atributos)
+    mp = visiveis(MateriaPrima).new(atributos)
     mp.save ? mp : nil
   end
 end

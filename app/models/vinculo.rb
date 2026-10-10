@@ -8,7 +8,9 @@ class Vinculo < ApplicationRecord
   belongs_to :user
   belongs_to :empresa
   belongs_to :funcao
-  recusa_excluido :funcao
+  # Etapa 2.8: a cliente final's vínculo is tied to one Client (blank = team).
+  belongs_to :client, optional: true
+  recusa_excluido :funcao, :client
 
   validates :user_id, uniqueness: { scope: :empresa_id }
   validate :acessos_extras_validos

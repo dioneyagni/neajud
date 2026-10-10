@@ -70,7 +70,7 @@
     <% if pedido_editavel?(@pedido) %>
       <%# Etapa 1.2 (3/3, decided 05/10/2026): an item enters by molde → referência
           → arte here too, not only from the gallery's card. %>
-      <% moldes = (@pedido.client ? Molde.ativos.where(client: @pedido.client) : Molde.ativos).includes(:client).order(:nome) %>
+      <% moldes = (@pedido.client ? visiveis(Molde).ativos.where(client: @pedido.client) : visiveis(Molde).ativos).includes(:client).order(:nome) %>
       <div class="pedido-adicionar" data-controller="add-to-order pedido-adicionar"
            data-add-to-order-pedido-uuid-value="<%= @pedido.uuid %>"
            data-pedido-adicionar-url-value="<%= artes_para_adicionar_pedidos_path(format: :json) %>">

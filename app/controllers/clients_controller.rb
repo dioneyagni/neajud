@@ -5,8 +5,8 @@ class ClientsController < ApplicationController
   before_action :set_client, only: %i[show update destroy]
 
   def index
-    @clients = Client.ativos.left_joins(:moldes, :arquivos)
-                     .select(Client.arel_table[Arel.star], Molde.contagem_ativos(as: "moldes_count"), Arquivo.contagem_ativos(as: "arquivos_count"))
+    @clients = visiveis(Client).ativos.left_joins(:moldes, :arquivos)
+                     .select(Client.arel_table[Arel.star], visiveis(Molde).contagem_ativos(as: "moldes_count"), visiveis(Arquivo).contagem_ativos(as: "arquivos_count"))
                      .group(:id)
                      .order(:name)
   end
@@ -15,15 +15,15 @@ class ClientsController < ApplicationController
     @moldes = @client.moldes.ativos.order(:nome)
     @arquivos_by_molde = {}
     @moldes.each do |molde|
-      direct = Arquivo.ativos.where(client_id: @client.id, molde_id: molde.id, category: "artes")
+      direct = visiveis(Arquivo).ativos.where(client_id: @client.id, molde_id: molde.id, category: "artes")
       via_join_ids = molde.vinculated_arquivos.ativos.where(client_id: @client.id, category: "artes").select(:id)
-      @arquivos_by_molde[molde] = direct.or(Arquivo.where(id: via_join_ids))
+      @arquivos_by_molde[molde] = direct.or(visiveis(Arquivo).where(id: via_join_ids))
                                         .includes(approved_version: :image_metadata)
                                         .order(created_at: :desc)
                                         .limit(20)
     end
-    @cortes_por_molde = @moldes.to_h { |molde| [ molde, Arquivo.cortes_ligados_ao_molde(molde).includes(approved_version: :image_metadata).order(:filename) ] }
-    @cortes_pendentes = Arquivo.cortes_pendentes_do_cliente(@client).includes(approved_version: :image_metadata).order(created_at: :desc)
+    @cortes_por_molde = @moldes.to_h { |molde| [ molde, visiveis(Arquivo).cortes_ligados_ao_molde(molde).includes(approved_version: :image_metadata).order(:filename) ] }
+    @cortes_pendentes = visiveis(Arquivo).cortes_pendentes_do_cliente(@client).includes(approved_version: :image_metadata).order(created_at: :desc)
 
     @client_materiais = MateriaPrima
       .joins(:movimento_estoques)
@@ -36,12 +36,12 @@ class ClientsController < ApplicationController
   end
 
   def search
-    clients = Client.ativos.search(params[:q]).limit(10)
+    clients = visiveis(Client).ativos.search(params[:q]).limit(10)
     render json: clients.map { |c| { id: c.uuid, name: c.name, responsible: c.responsible } }
   end
 
   def create
-    existing = Client.where("LOWER(name) = ?", client_params[:name].downcase).first
+    existing = visiveis(Client).where("LOWER(name) = ?", client_params[:name].downcase).first
     if existing&.excluido?
       return redirect_back fallback_location: arquivos_path, alert: existing.aviso_na_lixeira
     end
@@ -51,7 +51,7 @@ class ClientsController < ApplicationController
       return
     end
 
-    @client = Client.new(client_params)
+    @client = visiveis(Client).new(client_params)
     if @client.save
       assign_client_to_arquivo(@client) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, notice: "Client registered."
@@ -76,7 +76,7 @@ class ClientsController < ApplicationController
   private
 
   def set_client
-    @client = Client.por_uuid!(params[:id])
+    @client = visiveis(Client).por_uuid!(params[:id])
   end
 
   def client_params
@@ -84,7 +84,7 @@ class ClientsController < ApplicationController
   end
 
   def assign_client_to_arquivo(client)
-    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo = visiveis(Arquivo).find_by(uuid: params[:arquivo_uuid])
     arquivo&.update(client_id: client.id)
   end
 
