@@ -1,6 +1,7 @@
 # Changing one's own password — anyone signed in, and forced after a
 # provisional password (User#trocar_senha, Authentication#exigir_troca_de_senha).
 class SenhasController < ApplicationController
+  nao_le_registros
   def edit
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_163649) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_10_125011) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -605,12 +605,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_163649) do
 
   create_table "vinculos", force: :cascade do |t|
     t.json "acessos_extras", default: {}, null: false
+    t.integer "client_id"
     t.datetime "created_at", null: false
     t.integer "empresa_id", null: false
     t.integer "funcao_id"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.string "uuid", null: false
+    t.index ["client_id"], name: "index_vinculos_on_client_id"
     t.index ["empresa_id"], name: "index_vinculos_on_empresa_id"
     t.index ["funcao_id"], name: "index_vinculos_on_funcao_id"
     t.index ["user_id", "empresa_id"], name: "index_vinculos_on_user_id_and_empresa_id", unique: true
@@ -685,6 +687,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_163649) do
   add_foreign_key "solicitacoes_aprovacao", "artes"
   add_foreign_key "solicitacoes_aprovacao", "users"
   add_foreign_key "tamanhos", "arquivos"
+  add_foreign_key "vinculos", "clients"
   add_foreign_key "vinculos", "empresas"
   add_foreign_key "vinculos", "funcoes"
   add_foreign_key "vinculos", "users"

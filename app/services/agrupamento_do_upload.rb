@@ -24,13 +24,16 @@ class AgrupamentoDoUpload
     end
   end
 
-  def self.call(arquivos, pecas: Peca.ativos.to_a)
-    new(arquivos, pecas).call
+  # candidatas: where existing artes are looked for — the visible ones
+  # (Etapa 2.8: a cliente final's upload never suggests another client's arte).
+  def self.call(arquivos, pecas: Peca.ativos.to_a, candidatas: Arquivo.all)
+    new(arquivos, pecas, candidatas).call
   end
 
-  def initialize(arquivos, pecas)
+  def initialize(arquivos, pecas, candidatas = Arquivo.all)
     @arquivos = arquivos
     @pecas = pecas.index_by(&:nome)
+    @candidatas = candidatas
   end
 
   def call
@@ -85,7 +88,7 @@ class AgrupamentoDoUpload
   # stored ones once a molde gave them, else read from the file name.
   def existentes(grupo)
     palavra = grupo.nome.split.first.to_s
-    candidatas = Arquivo.ativos.where(category: "artes").principais_das_artes.includes(:referencia, :arte, molde: :modelo)
+    candidatas = @candidatas.ativos.where(category: "artes").principais_das_artes.includes(:referencia, :arte, molde: :modelo)
                         .where("arquivos.nome LIKE :p OR arquivos.filename LIKE :p", p: "%#{Arquivo.sanitize_sql_like(palavra)}%").limit(200)
     candidatas.select { |arquivo| chave_existente(arquivo) == grupo.chave }.first(5)
   end

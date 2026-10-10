@@ -4,12 +4,12 @@ class MovimentosController < ApplicationController
   include MovimentoCreatable
 
   def index
-    @movimentos = MovimentoEstoque.recentes.includes(:client, materia_prima: %i[grupo_material cor_material])
+    @movimentos = visiveis(MovimentoEstoque).recentes.includes(:client, materia_prima: %i[grupo_material cor_material])
   end
 
   def new
     load_form_data
-    @movimento = MovimentoEstoque.new
+    @movimento = visiveis(MovimentoEstoque).new
   end
 
   def create
@@ -20,7 +20,7 @@ class MovimentosController < ApplicationController
   private
 
   def load_form_data
-    @cores = CorMaterial.order(:nome)
+    @cores = visiveis(CorMaterial).order(:nome)
     @available_cor_names = CorMaterial::COLOR_HEX.keys - @cores.pluck(:nome)
   end
 end

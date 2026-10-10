@@ -18,13 +18,13 @@ class ArquivosController < ApplicationController
 
   def index
     load_gallery
-    @arquivo = Arquivo.new
+    @arquivo = visiveis(Arquivo).new
   end
 
   def show
     @time_logs = @arquivo.arquivo_time_logs.order(created_at: :desc)
     @versions = @arquivo.arquivo_versions.order(version_number: :desc)
-    @arquivo_version = ArquivoVersion.new
+    @arquivo_version = visiveis(ArquivoVersion).new
     @vinculo_logs = @arquivo.vinculo_logs.includes(:peca, :pedido)
   end
 
@@ -86,9 +86,9 @@ class ArquivosController < ApplicationController
   end
 
   def add_molde
-    molde = Molde.ativos.por_uuid!(params[:molde_uuid])
+    molde = visiveis(Molde).ativos.por_uuid!(params[:molde_uuid])
     if @arquivo.corte? && @arquivo.organized? && @arquivo.peca_id.present?
-      conflict = Arquivo.conflicting_corte(peca_id: @arquivo.peca_id, molde: molde)
+      conflict = visiveis(Arquivo).conflicting_corte(peca_id: @arquivo.peca_id, molde: molde)
       if conflict && conflict.id != @arquivo.id
         flash.now[:alert] = "Peça \"#{@arquivo.peca.nome}\" já possui corte organizado para este molde."
         respond_to do |format|
@@ -317,8 +317,8 @@ class ArquivosController < ApplicationController
   def peca_ocupada?
     return false unless params[:peca_uuid].present? && @arquivo.corte?
 
-    peca_id = Peca.por_uuid!(params[:peca_uuid]).id
-    @arquivo.moldes.any? { |m| (c = Arquivo.conflicting_corte(peca_id: peca_id, molde: m)) && c.id != @arquivo.id }
+    peca_id = visiveis(Peca).por_uuid!(params[:peca_uuid]).id
+    @arquivo.moldes.any? { |m| (c = visiveis(Arquivo).conflicting_corte(peca_id: peca_id, molde: m)) && c.id != @arquivo.id }
   end
   private :peca_ocupada?
 
@@ -372,12 +372,12 @@ class ArquivosController < ApplicationController
 
   # Unknown uuids pass through so the service reports them as not found.
   def pode_excluir_arquivo?(uuid)
-    arquivo = Arquivo.find_by(uuid: uuid)
+    arquivo = visiveis(Arquivo).find_by(uuid: uuid)
     arquivo.nil? || pode?(arquivo.area_de_acesso, :excluir)
   end
 
   def set_arquivo
-    @arquivo = Arquivo.find_by!(uuid: params[:id])
+    @arquivo = visiveis(Arquivo).find_by!(uuid: params[:id])
   end
 
   STORAGE_BASE = ArquivoVersion::STORAGE_BASE
@@ -424,11 +424,11 @@ class ArquivosController < ApplicationController
   def arquivo_do_upload
     dados = params.require(:arquivo)
     atributos = arquivo_params.to_h.symbolize_keys
-    atributos[:peca] = Peca.ativos.por_uuid!(dados[:peca_uuid]) if dados[:peca_uuid].present?
+    atributos[:peca] = visiveis(Peca).ativos.por_uuid!(dados[:peca_uuid]) if dados[:peca_uuid].present?
     atributos[:tamanho_rotulo] = dados[:tamanho_rotulo].to_s.squish if dados[:tamanho_rotulo].present?
     atributos[:lado] = dados[:lado] if dados[:lado].present?
-    arte = Arte.por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
-    arte ? arte.novo_arquivo(**atributos) : Arquivo.new(atributos)
+    arte = visiveis(Arte).por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
+    arte ? arte.novo_arquivo(**atributos) : visiveis(Arquivo).new(atributos)
   end
 
   # Only arte files go into an arte; a DXF sent with one stays a corte.
@@ -442,7 +442,7 @@ class ArquivosController < ApplicationController
     @page = [ params[:page].to_i, 1 ].max
 
     # Etapa 1.2 (2/3): one card per arte (its first file), not one per file.
-    base = Arquivo.ativos.where(category: Arquivo.categorias_visiveis(autorizacao)).principais_das_artes
+    base = visiveis(Arquivo).ativos.where(category: visiveis(Arquivo).categorias_visiveis(autorizacao)).principais_das_artes
                   .includes(:client, :tamanhos, approved_version: :image_metadata, molde: :modelo).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil

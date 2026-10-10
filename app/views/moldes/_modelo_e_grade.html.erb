@@ -10,7 +10,7 @@
             data-grade-molde-target="modelo" data-action="change->grade-molde#atualizar"
             <%= 'data-dialog-field="modeloUuid"'.html_safe if editavel %>>
       <option value="">Select a model...</option>
-      <% Produto.ativos.includes(:modelos).order(:nome).each do |produto| %>
+      <% visiveis(Produto).ativos.includes(:modelos).order(:nome).each do |produto| %>
         <optgroup label="<%= produto.nome %>">
           <% produto.modelos.reject(&:excluido?).sort_by(&:nome).each do |m| %>
             <option value="<%= m.uuid %>" data-grade="<%= produto.grade.to_json %>"><%= m.nome %> [<%= m.abreviacao %>]</option>

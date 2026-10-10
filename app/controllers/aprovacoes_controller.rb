@@ -12,7 +12,7 @@ class AprovacoesController < ApplicationController
       return redirect_to arquivo_path(@arte), alert: "#{@arte.filename} is #{@arte.rotulo_estado_aprovacao}; send it for approval first."
     end
 
-    @aprovacao = AprovacaoArte.new(arquivo: @arte, aprovado_em: Date.current, canal: "whatsapp")
+    @aprovacao = visiveis(AprovacaoArte).new(arquivo: @arte, aprovado_em: Date.current, canal: "whatsapp")
   end
 
   def create
@@ -37,11 +37,11 @@ class AprovacoesController < ApplicationController
   private
 
   def set_arte
-    @arte = Arquivo.ativos.find_by!(uuid: params[:arquivo_id])
+    @arte = visiveis(Arquivo).ativos.find_by!(uuid: params[:arquivo_id])
   end
 
   def set_aprovacao
-    @aprovacao = AprovacaoArte.find_by!(uuid: params[:uuid])
+    @aprovacao = visiveis(AprovacaoArte).find_by!(uuid: params[:uuid])
   end
 
   # Only paths of this app (url_from refuses other hosts), else the arte page.

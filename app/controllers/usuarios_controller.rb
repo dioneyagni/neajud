@@ -8,15 +8,15 @@ class UsuariosController < ApplicationController
   before_action :exigir_gestao_do_usuario, only: %i[edit update redefinir_senha desativar reativar]
 
   def index
-    @usuarios = User.includes(vinculos: :funcao).order(Arel.sql("desativado_em IS NOT NULL"), :nome)
+    @usuarios = visiveis(User).includes(vinculos: :funcao).order(Arel.sql("desativado_em IS NOT NULL"), :nome)
   end
 
   def new
-    @usuario = User.new
+    @usuario = visiveis(User).new
   end
 
   def create
-    @usuario = CadastroDeUsuarioService.call(gestor: Current.user, user: User.new, dados: usuario_params)
+    @usuario = CadastroDeUsuarioService.call(gestor: Current.user, user: visiveis(User).new, dados: usuario_params)
     return render :new, status: :unprocessable_content if @usuario.errors.any?
 
     redirect_to usuarios_path, notice: "#{@usuario.nome} added. Give them the provisional password; they will change it at the first sign-in."
@@ -55,7 +55,7 @@ class UsuariosController < ApplicationController
   private
 
   def set_usuario
-    @usuario = User.find_by!(uuid: params[:uuid])
+    @usuario = visiveis(User).find_by!(uuid: params[:uuid])
   end
 
   def exigir_gestao_do_usuario

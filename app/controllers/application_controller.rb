@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   include Authentication
   include ControleDeAcesso
+  include ControleDeVisibilidade
   allow_browser versions: :modern
   stale_when_importmap_changes
 
@@ -23,8 +24,9 @@ class ApplicationController < ActionController::Base
     { changed_by: request.remote_ip, user: Current.user }
   end
 
+  # Not visiveis: the header's count is no proof the action used the policy.
   def load_current_pedido_count
-    pedido = Pedido.ativos.find_by(uuid: session[:current_pedido_uuid])
+    pedido = visibilidade.escopo(Pedido).ativos.find_by(uuid: session[:current_pedido_uuid])
     @current_pedido_count = pedido&.total_itens || 0
   end
 end

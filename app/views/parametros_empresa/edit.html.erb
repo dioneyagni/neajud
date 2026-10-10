@@ -5,7 +5,7 @@
 
 <%= form_with model: @empresa, url: parametros_path, method: :patch, class: "client-form parametros-form" do |form| %>
   <%# Etapa 2.3: the paper is a material; its width gives the artes' meters per piece. %>
-  <% papeis = MateriaPrima.papeis.includes(:grupo_material, :cor_material).order(:largura) %>
+  <% papeis = visiveis(MateriaPrima).papeis.includes(:grupo_material, :cor_material).order(:largura) %>
   <div class="client-field">
     <label for="empresa_papel_padrao_uuid">Default paper</label>
     <select name="empresa[papel_padrao_uuid]" id="empresa_papel_padrao_uuid">

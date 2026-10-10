@@ -7,9 +7,9 @@ class MoldesController < ApplicationController
   before_action :set_molde, only: %i[show update destroy update_peca_config adicionar_parte remover_parte]
 
   def index
-    @moldes = Molde.ativos.left_joins(:arquivos)
+    @moldes = visiveis(Molde).ativos.left_joins(:arquivos)
                       .includes(:client, :modelo)
-                      .select(Molde.arel_table[Arel.star], Arquivo.contagem_ativos(as: "arquivos_count"))
+                      .select(Molde.arel_table[Arel.star], visiveis(Arquivo).contagem_ativos(as: "arquivos_count"))
                       .group(:id)
                       .order(:nome)
     # Active clients plus a listed molde's own client even if trashed: the
@@ -17,14 +17,14 @@ class MoldesController < ApplicationController
     # molde was silently blocked by the browser (29/09/2026).
     # Trashed ones last, and only while editing (data-somente-edicao, see
     # dialog_controller.js): a new molde can't be created for them.
-    @clientes_para_escolher = Client.ativos.or(Client.where(id: @moldes.map(&:client_id)))
+    @clientes_para_escolher = visiveis(Client).ativos.or(visiveis(Client).where(id: @moldes.map(&:client_id)))
                                     .order(Arel.sql("deleted_at IS NOT NULL"), :name)
   end
 
   def show
     @organized_arquivos = cortes_organizados
     @molde_pecas = @molde.molde_pecas.includes(:peca).order("pecas.nome")
-    @pecas_para_adicionar = Peca.ativos.where.not(id: @molde.molde_pecas.select(:peca_id)).order(:nome)
+    @pecas_para_adicionar = visiveis(Peca).ativos.where.not(id: @molde.molde_pecas.select(:peca_id)).order(:nome)
     organized = @organized_arquivos.to_a
     @molde_pecas.each do |mp|
       mp.define_singleton_method(:corte_arquivo) do
@@ -37,7 +37,7 @@ class MoldesController < ApplicationController
   # piece list, each with "corta / não corta".
   # Usage: POST /moldes/:uuid/adicionar_parte (peca_uuid)
   def adicionar_parte
-    peca = Peca.ativos.por_uuid!(params[:peca_uuid])
+    peca = visiveis(Peca).ativos.por_uuid!(params[:peca_uuid])
     parte = @molde.molde_pecas.create(peca: peca)
     return redirect_to molde_path(@molde), notice: "Part \"#{peca.nome}\" added." if parte.persisted?
 
@@ -65,19 +65,19 @@ class MoldesController < ApplicationController
   end
 
   def search
-    moldes = Molde.ativos.search(params[:q]).limit(10)
+    moldes = visiveis(Molde).ativos.search(params[:q]).limit(10)
     render json: moldes.map { |m| { id: m.uuid, nome: m.nome, codigo: m.codigo, sufixo: m.sufixo, client_name: m.client.name } }
   end
 
   def for_client
-    moldes = Molde.ativos.where(client: Client.where(uuid: params[:client_uuid])).includes(:modelo).search(params[:q]).order(:nome)
+    moldes = visiveis(Molde).ativos.where(client: visiveis(Client).where(uuid: params[:client_uuid])).includes(:modelo).search(params[:q]).order(:nome)
     render json: moldes.map { |m| { id: m.uuid, nome: m.nome, codigo: m.codigo, sufixo: m.sufixo, modelo_uuid: m.modelo&.uuid } }
   end
 
   # No duplicate-name check any more (Etapa 1.1, 4/5): the number makes every
   # name unique in the client.
   def create
-    @molde = Molde.new(params.require(:molde).permit(*CAMPOS_EDITAVEIS, :client_uuid, :variacao_de_uuid))
+    @molde = visiveis(Molde).new(params.require(:molde).permit(*CAMPOS_EDITAVEIS, :client_uuid, :variacao_de_uuid))
     if @molde.save
       assign_molde_to_arquivo(@molde) if params[:arquivo_uuid].present?
       redirect_back fallback_location: arquivos_path, notice: "Molde #{@molde.nome} registered."
@@ -111,7 +111,7 @@ class MoldesController < ApplicationController
   end
 
   def set_molde
-    @molde = Molde.por_uuid!(params[:id])
+    @molde = visiveis(Molde).por_uuid!(params[:id])
   end
 
 
@@ -119,12 +119,12 @@ class MoldesController < ApplicationController
   # directly (a corte serves several moldes).
   def cortes_organizados
     via_ligacao = @molde.vinculated_arquivos.ativos.where(organized: true, modelo_id: @molde.modelo_id, client_id: @molde.client_id).select(:id)
-    proprios = Arquivo.ativos.where(organized: true, modelo_id: @molde.modelo_id, molde_id: @molde.id, client_id: @molde.client_id)
-    proprios.or(Arquivo.where(id: via_ligacao)).includes(:peca, :tamanhos, approved_version: :image_metadata).order(:peca_id)
+    proprios = visiveis(Arquivo).ativos.where(organized: true, modelo_id: @molde.modelo_id, molde_id: @molde.id, client_id: @molde.client_id)
+    proprios.or(visiveis(Arquivo).where(id: via_ligacao)).includes(:peca, :tamanhos, approved_version: :image_metadata).order(:peca_id)
   end
 
   def assign_molde_to_arquivo(molde)
-    arquivo = Arquivo.find_by(uuid: params[:arquivo_uuid])
+    arquivo = visiveis(Arquivo).find_by(uuid: params[:arquivo_uuid])
     return unless arquivo
 
     if arquivo.corte?

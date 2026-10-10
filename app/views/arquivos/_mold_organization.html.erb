@@ -25,11 +25,11 @@
     linked_modelo_id = arquivo.modelo_id || arquivo.moldes.find { |m| m.modelo_id.present? }&.modelo_id
     # Etapa 1.1 (3/5): a category has no parts any more, so every active piece
     # is offered (plus this corte's own, even if trashed).
-    initial_pecas = Peca.ativos.or(Peca.where(id: arquivo.peca_id)).order(:nome).to_a
+    initial_pecas = visiveis(Peca).ativos.or(visiveis(Peca).where(id: arquivo.peca_id)).order(:nome).to_a
 
     molde_ids = arquivo.moldes.pluck(:id)
     occupied_peca_ids = if arquivo.corte? && molde_ids.any?
-                          Arquivo.ativos.where(category: "corte", organized: true)
+                          visiveis(Arquivo).ativos.where(category: "corte", organized: true)
                                  .joins(:arquivo_moldes)
                                  .where(arquivo_moldes: { molde_id: molde_ids })
                                  .where.not(id: arquivo.id)
@@ -49,7 +49,7 @@
           <select name="modelo_uuid" id="modelo_uuid"
                   data-original-value="<%= arquivo.modelo&.uuid %>">
             <option value="">Select a model...</option>
-            <% Modelo.ativos.order(:nome).each do |m| %>
+            <% visiveis(Modelo).ativos.order(:nome).each do |m| %>
               <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
             <% end %>
           </select>
@@ -57,7 +57,7 @@
       <% else %>
         <select name="modelo_uuid" id="modelo_uuid">
           <option value="">Select a model...</option>
-          <% Modelo.ativos.order(:nome).each do |m| %>
+          <% visiveis(Modelo).ativos.order(:nome).each do |m| %>
             <option value="<%= m.uuid %>" <%= "selected" if linked_modelo_id == m.id %>><%= m.nome %></option>
           <% end %>
         </select>

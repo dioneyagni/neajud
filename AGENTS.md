@@ -811,6 +811,35 @@ grid** (`/funcoes`) and creates funções — many workers share one função.
 - Tests: `entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: [...])` signs
   in a request spec as a user of such a função.
 
+## Visibility: who sees which records (Etapa 2.8)
+
+Decided 10/10/2026: the same screens for everyone; `Visibilidade` is the
+**single place** that says, per model, which rows a person sees — the team
+everything, a cliente final (a `Vinculo` with `client_id`; `User#cliente`)
+only its client's (`DO_CLIENTE` paths; `COMUNS` for everyone; `DA_EQUIPE`
+none). A model without a rule raises. Between empresas nothing is filtered:
+each empresa is its own instance.
+
+- **Every query goes through it:** `visiveis(Pedido).ativos…`,
+  `visiveis(Arquivo).por_uuid!(…)` (another client's uuid → 404), in
+  controllers, views and helpers (`helper_method`). Services that query get
+  the visible scope injected (`SaldosDeEstoque.call(visiveis(MovimentoEstoque))`,
+  `AgrupamentoDoUpload.call(…, candidatas: visiveis(Arquivo))`). An `.or(…)`
+  branch must be visible too (`x.or(visiveis(Arquivo).where(…))`), and an
+  association from a visible record to many others (`peca.moldes`) is not
+  filtered — intersect it with the visible ids.
+- **The guard** (`ControleDeVisibilidade`): outside production an action
+  that finished (2xx/3xx) without calling `visiveis` raises, naming itself.
+  Actions that read no client records declare `nao_le_registros only: …`.
+- **The sweep** (`spec/requests/visibilidade_vazamento_spec.rb`): two
+  clients' data, the other's marked "VAZOU"; signed in as a cliente final with
+  every level, every GET route — with the other's uuids in the path and the
+  query — must never show the mark. New routes are swept automatically.
+- Not yet (2.8 2/5–5/5): creating client access, the "Cliente final"
+  função, configurable visibility (open/closed per kind), per-client cable
+  streams (today the gallery's broadcasts go to everyone), approving and
+  uploading as a client, and the client's drafts.
+
 ## Art approval (Etapa 0.5, 4/4)
 
 The client's approval of an arte is a **record, never a gate**: production and

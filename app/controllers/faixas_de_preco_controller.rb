@@ -29,7 +29,7 @@ class FaixasDePrecoController < ApplicationController
   private
 
   def set_molde
-    @molde = Molde.por_uuid!(params[:molde_id])
+    @molde = visiveis(Molde).por_uuid!(params[:molde_id])
   end
 
   def dados_da_faixa

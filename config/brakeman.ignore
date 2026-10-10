@@ -1,28 +1,28 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "8650a0a2a5c1c49371990b8200e6c996dc442d7de310f81fa933c05afd505cc8",
-      "note": "ArquivosController#version_preview: ArquivoVersion#preview_file is written only by ArquivoProcessingJob under <STORAGE_BASE>/<arquivo.uuid>/v<N>/preview/ (uuid is SecureRandom); the version is looked up by its uuid inside the arquivo's own versions. Fingerprint changed in Etapa 1.1 (find -> por_uuid!); was 'Pre-existing: false positive (file access via model attributes)'."
+      "fingerprint": "69f67ae8273656d92e86ba115acb30e6d13477fea143f31ce0b147d90f9021ad",
+      "note": "ArquivosController#version_preview: ArquivoVersion#preview_file is written only by ArquivoProcessingJob under <STORAGE_BASE>/<arquivo.uuid>/v<N>/preview/ (uuid is SecureRandom); the version is looked up by its uuid inside the arquivo's own versions. Fingerprint changed in Etapa 1.1 (find -> por_uuid!); was 'Pre-existing: false positive (file access via model attributes)'. Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     },
     {
-      "fingerprint": "c1339fb993b064ae9af3d1ffdca196ffdb0f828eb4a8f837356d71c99ff581b9",
-      "note": "Pre-existing: false positive (file access via model attributes)"
+      "fingerprint": "e1e7667046b3697fc590036d3649a4be5e9503a4f649bd22eda1a1de85f61aba",
+      "note": "ArquivosController#preview: Arquivo#preview_file is written only by ArquivoProcessingJob under <STORAGE_BASE>/<arquivo.uuid>/v<N>/preview/ (uuid is SecureRandom), never from params or user-typed text. Was 'Pre-existing: false positive (file access via model attributes)'. Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     },
     {
-      "fingerprint": "fa01742407c54c2a09272a432d51309a91dead4f837c4f1b07f1d9c0b47d7ed5",
-      "note": "ArquivosController#download: the path is ArquivoVersion#original_path, under <STORAGE_BASE>/<arquivo.uuid>/v<N>/original/ (uuid is SecureRandom); the file name written there comes from the upload and was already here before. The user-typed text (referência, nome — Etapa 1.1, 5/5) only goes into the Content-Disposition filename, which Rails escapes; accents and path separators are dropped by NomeDeArte#nome_completo(para_arquivo: true). Was 'Pre-existing: false positive (file access via model attributes)'."
+      "fingerprint": "f6c02ef66472bc6f5fce68b47768ba92e89eac6b3f6dffae865e8d75fef040c1",
+      "note": "ArquivosController#download: the path is ArquivoVersion#original_path, under <STORAGE_BASE>/<arquivo.uuid>/v<N>/original/ (uuid is SecureRandom); the file name written there comes from the upload and was already here before. The user-typed text (referência, nome — Etapa 1.1, 5/5) only goes into the Content-Disposition filename, which Rails escapes; accents and path separators are dropped by NomeDeArte#nome_completo(para_arquivo: true). Was 'Pre-existing: false positive (file access via model attributes)'. Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     },
     {
-      "fingerprint": "d27b0d7c81547826d37fce7a35930ea32634266a823caaa1b8c8636c077bacc5",
-      "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb."
+      "fingerprint": "786f0e9c5b56df026edcbcaa703a6ed2a7e54fe3c80d1e91ccc0bbc4dc6a7bd9",
+      "note": "AprovacoesController#anexo: AprovacaoArte#anexo_path is storage/<arquivo.uuid>/aprovacoes/<aprovacao.uuid>.<ext> - both uuids are SecureRandom (never params) and ext comes from AnexoDeAprovacao::ASSINATURAS (png/jpg/pdf), not from the stored file name nor user input. The user-typed name only goes into Content-Disposition. Regression specs in spec/services/registrar_aprovacao_service_spec.rb. Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     },
     {
-      "fingerprint": "97738e34395e1fd1c55dca6ee5d34d9b4fbf6ff8c3f0900d65d544f975b6f7dd",
-      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb. Fingerprint changed in Etapa 1.1 (Tamanho.find -> Tamanho.por_uuid!). Fingerprint changed in Etapa 1.2 (3/3, parte 3b): the extraction moved to DxfDoTamanho.caminho!, shared with the Corte page's zip."
+      "fingerprint": "1e8e1effc40025419e543092eb9e4bacb26bbc24e8c6e2cdd2e749d59c140f82",
+      "note": "TamanhosController#download (Etapa 0.6): Tamanho#dxf_extraido_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.dxf - uuid is SecureRandom, version_number and position are integers; never tamanho.nome (free text: the path traversal fixed in #97). The nome only goes into the Content-Disposition filename. Regression spec in spec/requests/tamanhos_spec.rb. Fingerprint changed in Etapa 1.1 (Tamanho.find -> Tamanho.por_uuid!). Fingerprint changed in Etapa 1.2 (3/3, parte 3b): the extraction moved to DxfDoTamanho.caminho!, shared with the Corte page's zip. Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     },
     {
-      "fingerprint": "9efa3638fce1952935b488f6c9b754f3589f31892a989d39e0338b341b868b2b",
-      "note": "TamanhosController#preview (Etapa 1.2, 3/3 parte 3b): Tamanho#preview_png_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.png - uuid is SecureRandom, version_number and position are integers; rebuilt on purpose instead of reading the preview_file column, and never tamanho.nome. Regression spec in spec/requests/tamanhos_spec.rb (a nome of ../../x and a preview_file of /etc/passwd still serve the size's PNG)."
+      "fingerprint": "03e24750547eaa1b6a354cde6de97edc697d2efcdbb7ba5784868bd871ac7fe4",
+      "note": "TamanhosController#preview (Etapa 1.2, 3/3 parte 3b): Tamanho#preview_png_path is <STORAGE_BASE>/<arquivo.uuid>/v<version_number>/tamanho_previews/<position>.png - uuid is SecureRandom, version_number and position are integers; rebuilt on purpose instead of reading the preview_file column, and never tamanho.nome. Regression spec in spec/requests/tamanhos_spec.rb (a nome of ../../x and a preview_file of /etc/passwd still serve the size's PNG). Fingerprint changed in Etapa 2.8 (1/5): the record is looked up through the visibility policy (visiveis(Model).por_uuid! / find_by!), which Brakeman no longer recognizes as a model lookup; the path still comes from the record's columns, never from params."
     }
   ]
 }

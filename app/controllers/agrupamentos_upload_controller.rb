@@ -7,14 +7,14 @@ class AgrupamentosUploadController < ApplicationController
   # Usage: POST /arquivos/agrupamento (arquivos: [{ nome:, bytes: }]) → JSON
   def create
     arquivos = Array(params[:arquivos]).map { |a| { nome: a[:nome].to_s, bytes: a[:bytes].to_i } }
-    resultado = AgrupamentoDoUpload.call(arquivos)
+    resultado = AgrupamentoDoUpload.call(arquivos, pecas: visiveis(Peca).ativos.to_a, candidatas: visiveis(Arquivo))
     render json: { conferir: resultado[:conferir], pecas: pecas_json, grupos: resultado[:grupos].map { |g| grupo_json(g) } }
   end
 
   private
 
   def pecas_json
-    Peca.ativos.order(:nome).map { |peca| { uuid: peca.uuid, nome: peca.nome } }
+    visiveis(Peca).ativos.order(:nome).map { |peca| { uuid: peca.uuid, nome: peca.nome } }
   end
 
   def grupo_json(grupo)

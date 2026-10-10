@@ -29,9 +29,9 @@ class TamanhosController < ApplicationController
   # The sizes of a molde's cortes of one piece (Arquivo.cortes_do_molde).
   # Usage: GET /tamanhos/for_cascade.json?molde_uuid=…&peca_uuid=… → [{ id:, nome:, width:, height: }]
   def for_cascade
-    molde = Molde.find_by(uuid: params[:molde_uuid].to_s)
-    arquivo_ids = Arquivo.cortes_do_molde(molde).where(peca: Peca.where(uuid: params[:peca_uuid])).pluck(:id)
-    tamanhos = Tamanho.where(arquivo_id: arquivo_ids).order(:nome)
+    molde = visiveis(Molde).find_by(uuid: params[:molde_uuid].to_s)
+    arquivo_ids = visiveis(Arquivo).cortes_do_molde(molde).where(peca: visiveis(Peca).where(uuid: params[:peca_uuid])).pluck(:id)
+    tamanhos = visiveis(Tamanho).where(arquivo_id: arquivo_ids).order(:nome)
     render json: tamanhos.map { |t|
       { id: t.uuid, nome: t.nome, width: t.width_mm&.round(1), height: t.height_mm&.round(1) }
     }
@@ -40,6 +40,6 @@ class TamanhosController < ApplicationController
   private
 
   def set_tamanho
-    @tamanho = Tamanho.por_uuid!(params[:id])
+    @tamanho = visiveis(Tamanho).por_uuid!(params[:id])
   end
 end

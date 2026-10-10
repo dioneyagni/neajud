@@ -58,6 +58,6 @@ class BaixasProducaoController < ApplicationController
   end
 
   def set_pedido
-    @pedido = Pedido.por_uuid!(params[:pedido_uuid])
+    @pedido = visiveis(Pedido).por_uuid!(params[:pedido_uuid])
   end
 end
