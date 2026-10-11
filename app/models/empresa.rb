@@ -15,6 +15,7 @@ class Empresa < ApplicationRecord
   # Etapa 2.4: the cost per pair's parts; blank until the dono sets them.
   validates :custo_impressao_metro, :custo_corte_peca, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :papel_padrao_e_papel
+  validate :visibilidade_cliente_valida
   validate :unica_por_instancia, on: :create
 
   # Usage: Empresa.atual&.nome
@@ -40,6 +41,11 @@ class Empresa < ApplicationRecord
     return if papel_padrao.nil? || papel_padrao.tipo == "papel"
 
     errors.add(:papel_padrao, "#{papel_padrao.nome_completo} is a #{papel_padrao.tipo}; expected a material of type papel")
+  end
+
+  # Etapa 2.8 (3a): the default grid of what a cliente final sees.
+  def visibilidade_cliente_valida
+    TiposParaCliente.erros(visibilidade_cliente).each { |erro| errors.add(:visibilidade_cliente, erro) }
   end
 
   def unica_por_instancia

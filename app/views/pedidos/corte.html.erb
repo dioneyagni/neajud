@@ -59,7 +59,7 @@
                 </span>
               </td>
               <td class="corte-baixar">
-                <% if baixa %>
+                <% if pode_baixar_original? %>
                   <%= link_to "DXF", download_tamanho_path(linha.tamanho), class: "btn btn-sm btn-outline corte-dxf",
                         download: "#{linha.corte.filename} - #{linha.tamanho.nome}.dxf", data: { turbo: false } %>
                 <% end %>

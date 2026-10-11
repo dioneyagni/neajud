@@ -9,6 +9,8 @@ class Client < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :responsible, presence: true
+  # Etapa 2.8 (3a): this client's exceptions to the empresa's grid.
+  validate { TiposParaCliente.erros(visibilidade).each { |erro| errors.add(:visibilidade, erro) } }
 
   def rotulo_lixeira
     name

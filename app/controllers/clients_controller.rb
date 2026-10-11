@@ -12,7 +12,8 @@ class ClientsController < ApplicationController
   end
 
   def show
-    @moldes = @client.moldes.ativos.order(:nome)
+    # Through visiveis: a cliente final's grid may close moldes or stock (2.8, 3a).
+    @moldes = visiveis(Molde).ativos.where(client: @client).order(:nome)
     @arquivos_by_molde = {}
     @moldes.each do |molde|
       direct = visiveis(Arquivo).ativos.where(client_id: @client.id, molde_id: molde.id, category: "artes")
@@ -27,7 +28,7 @@ class ClientsController < ApplicationController
 
     @client_materiais = MateriaPrima
       .joins(:movimento_estoques)
-      .where(movimento_estoques: { client_id: @client.id })
+      .where(movimento_estoques: { id: movimentos_do_cliente.select(:id) })
       .includes(:grupo_material, :cor_material)
       .distinct
       .order(:largura)
@@ -95,8 +96,12 @@ class ClientsController < ApplicationController
                   .includes(vinculos: :funcao).order(Arel.sql("desativado_em IS NOT NULL"), :nome)
   end
 
+  def movimentos_do_cliente
+    visiveis(MovimentoEstoque).where(client_id: @client.id)
+  end
+
   def compute_client_saldos
-    data = @client.movimento_estoques.group(:materia_prima_id).select(
+    data = movimentos_do_cliente.group(:materia_prima_id).select(
       "materia_prima_id",
       "SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE 0 END) AS total_in",
       "SUM(CASE WHEN tipo = 'saida' THEN quantidade ELSE 0 END) AS total_out"

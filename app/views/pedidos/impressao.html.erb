@@ -95,7 +95,7 @@
               <% end %>
             </td>
             <td class="corte-baixar">
-              <% if linha.arquivo %>
+              <% if linha.arquivo && pode_baixar_original? %>
                 <%= link_to "Arte", download_arquivo_path(linha.arquivo), class: "btn btn-sm btn-outline impressao-baixar", data: { turbo: false } %>
               <% else %>
                 <%= link_to "Resolver no pedido", resumo_pedido_path(@pedido) %>

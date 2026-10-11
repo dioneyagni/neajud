@@ -51,10 +51,16 @@ module Authentication
       redirect_to new_session_path
     end
 
-    # A cliente final starts on his pedidos (Etapa 2.8, 2/5); the team, on
-    # the gallery.
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || (Current.user.cliente ? pedidos_url : root_url)
+      session.delete(:return_to_after_authenticating) || pagina_inicial(Current.user)
+    end
+
+    # A cliente final starts on his pedidos (Etapa 2.8, 2/5) while his grid
+    # shows them (3a); the team, on the gallery.
+    # Usage: redirect_to pagina_inicial(user)
+    def pagina_inicial(user)
+      cliente = user.cliente
+      cliente && TiposParaCliente.abertos_para(cliente).include?("pedidos") ? pedidos_url : root_url
     end
 
     def start_new_session_for(user)

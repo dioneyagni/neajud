@@ -1,6 +1,8 @@
 class PedidosController < ApplicationController
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
+  # Etapa 2.8 (3a): the Corte page is the cortes' (DXF drawings).
+  exige_aberto :cortes, only: :corte
   exige_acao :atualizar_producao, only: %i[entregar gerar_reposicao]
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy

@@ -850,9 +850,23 @@ each empresa is its own instance.
   people's access (`User.com_acesso`, used by the session cookie and the
   cable). A cliente final lands on Pedidos (sign-in and password change);
   the header shows the client's name.
-- Not yet (2.8 3/5–5/5): configurable visibility (open/closed per kind),
-  per-client cable streams (today the gallery's broadcasts go to everyone),
-  approving and uploading as a client, and the client's drafts.
+- **Open/closed by kind (3a, decided 10/10/2026):** `TiposParaCliente` lists
+  six kinds — pedidos, moldes, estoque (open by default); original, cortes,
+  valores (closed). The dono's default grid is `Empresa#visibilidade_cliente`
+  (`/visibilidade`, `VisibilidadePadraoController`); a client's exceptions are
+  `Client#visibilidade` (its page, `clients/_visibilidade`, "gerenciar
+  usuários"). Record kinds are applied **inside `Visibilidade`**
+  (`TIPO_DO_MODELO`; cortes closed leaves only artes), so every `visiveis`
+  query follows them; capabilities go through helpers that are the team's
+  rule for the team: `aberto_ao_cliente?(:x)` (always true for the team),
+  `pode_baixar_original?` (`exige_baixar_original`), `pode_ver_precos?`
+  (price only — cost and margin stay `pode_acao?(:ver_valores)`), and
+  `exige_aberto :cortes` for a page of a kind (404). The artes' previews and
+  versions are never a kind (the client approves them). The sweep also signs
+  in a client with every kind closed and looks for his own records' uuids.
+- Not yet (2.8 3b–5/5): per-client cable streams (today the gallery's
+  broadcasts go to everyone), approving and uploading as a client, and the
+  client's drafts.
 
 ## Art approval (Etapa 0.5, 4/4)
 

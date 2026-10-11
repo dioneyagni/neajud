@@ -4,7 +4,8 @@
 <% grade = molde.modelo&.produto&.grade.to_a %>
 <% faixas = molde.faixas_de_preco.sort_by { |f| grade.index(f.tamanho_inicial) || 0 } %>
 <% sem_preco = molde.grade.select { |numero| molde.preco_do_par(numero).nil? } %>
-<% editar = pode?(:catalogo, :editar) %>
+<%# A cliente final sees the bands, never edits them (2.8, 3a). %>
+<% editar = pode?(:catalogo, :editar) && pode_acao?(:ver_valores) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="molde-precos">
   <h3>Price per pair</h3>
   <% if grade.empty? %>

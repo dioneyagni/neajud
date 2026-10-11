@@ -11,7 +11,7 @@
           <dt>Responsible</dt>
           <dd><%= @client.responsible %></dd>
           <dt>Arquivos</dt>
-          <dd><%= @client.arquivos.count %></dd>
+          <dd><%= visiveis(Arquivo).where(client: @client).count %></dd>
         </dl>
       </div>
 
@@ -19,7 +19,7 @@
         <h3>Actions</h3>
         <div style="display: flex; gap: 0.5rem;">
           <%= link_to "All Clients", clients_path, class: "btn btn-secondary" %>
-          <%= link_to "All Moldes", moldes_path, class: "btn btn-secondary" %>
+          <%= link_to "All Moldes", moldes_path, class: "btn btn-secondary" if aberto_ao_cliente?(:moldes) %>
         </div>
       </div>
 
@@ -140,6 +140,9 @@
 
     <% if @acessos %>
       <%= render "clients/acesso_ao_sistema", client: @client, acessos: @acessos %>
+    <% end %>
+    <% if pode_acao?(:gerenciar_usuarios) %>
+      <%= render "clients/visibilidade", client: @client %>
     <% end %>
 
     <div class="stamp-detail-section stamp-detail-section--full" style="margin-top: 1.5rem;">

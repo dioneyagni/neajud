@@ -8,6 +8,8 @@ require "rails_helper"
 # is in this sweep without anyone adding it.
 RSpec.describe "Visibilidade: no client sees another's records", type: :request, sem_login: true do
   MARCA = "VAZOU".freeze
+  # The molde's price per pair, as the pages write it ("R$ 987,65").
+  PRECO = 987.65
   # Routes with no client records, or that need no sweep (sign-in, setup, Turbo native).
   FORA = %r{\A/(up|configuracao|session|senha|recede_historical_location|refresh_historical_location|resume_historical_location|rails|cable)}
 
@@ -16,7 +18,7 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
 
   def dados_do_cliente(nome)
     client = create(:client, name: "Cliente #{nome}")
-    molde = create(:molde, client: client, sufixo: "Molde #{nome}", partes: [ lateral ])
+    molde = create(:molde, client: client, sufixo: "Molde #{nome}", partes: [ lateral ], preco: PRECO)
     corte = create(:arquivo, :corte, organized: true, filename: "corte-#{nome}", peca: lateral, modelo: molde.modelo).tap { |c| c.moldes << molde }
     tamanho = create(:tamanho, arquivo: corte, nome: "29-30", numeros: %w[29 30])
     arte = create(:arquivo, filename: "arte-#{nome}", client: client, molde: molde, peca: lateral, tamanho: tamanho)
@@ -24,8 +26,9 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     create(:item_pedido, pedido: pedido, arquivo: arte).grades.create!(tamanho_nome: "30", quantidade: 1)
     # Materials are the empresa's common list: the same one for both clients.
     material = MateriaPrima.find_or_create_by!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "80g")
-    MovimentoEstoque.create!(client: client, materia_prima: material, tipo: "entrada", quantidade: 5)
-    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral }
+    movimento = MovimentoEstoque.create!(client: client, materia_prima: material, tipo: "entrada", quantidade: 5)
+    faixa = molde.faixas_de_preco.first
+    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral, movimento: movimento, faixa: faixa }
   end
 
   # Every level and action, the team's too — more than a função para clientes
@@ -58,13 +61,29 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
       "pecas" => b[:peca].uuid, "modelos" => b[:molde].modelo.uuid }.fetch(caminho.split("/")[1], SecureRandom.uuid)
   end
 
-  def vazamentos(b)
+  def vazamentos(b, marcas: { MARCA => MARCA })
     consulta = { q: MARCA, molde_uuid: b[:molde].uuid, client_uuid: b[:client].uuid, peca_uuid: b[:peca].uuid }
     rotas_get.product([ b[:arte], b[:corte] ]).filter_map do |caminho, arquivo|
       url = preencher(caminho, b, arquivo)
       get url, params: consulta
-      "#{url} (#{response.status})" if response.body.include?(MARCA)
+      vistas = marcas.select { |_, marca| response.body.include?(marca) && !eco?(marca, consulta) }.keys
+      "#{url} (#{response.status}): #{vistas.join(", ")}" if vistas.any?
     end.uniq
+  end
+
+  # A uuid the request itself sent, written back by an error page or a
+  # hidden field (pecas/new keeps molde_uuid), is no record shown. The
+  # VAZOU mark is never sent as a uuid, so the other-client sweep is untouched.
+  def eco?(marca, consulta)
+    return false if marca == MARCA
+
+    response.status >= 400 || consulta.except(:q).values.include?(marca)
+  end
+
+  # What each closed kind hides (Etapa 2.8, 3a): its records' uuids — every
+  # link or form to them carries one — and the price per pair.
+  def marcas_dos_tipos_fechados(a)
+    a.slice(:pedido, :molde, :corte, :tamanho, :movimento, :faixa).transform_values(&:uuid).merge(preco: "987,65")
   end
 
   it "sweeps every GET route as client A and never shows client B's records" do
@@ -79,6 +98,24 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     { "/arquivos" => "arte-ALFA", "/moldes" => "Molde ALFA", "/clients" => "Cliente ALFA", "/pedidos/#{a[:pedido].uuid}" => "Cliente ALFA" }.each do |url, texto|
       get url
       expect(response.body).to include(texto), "#{url} should show #{texto}"
+    end
+  end
+
+  # Etapa 2.8 (3a): a kind his grid closes hides his own records too.
+  it "sweeps every GET route as a client whose grid closes every kind and never shows his records of them" do
+    a = dados[:a]
+    a[:client].update!(visibilidade: TiposParaCliente::TIPOS.index_with(false))
+    entrar_como_cliente(a[:client])
+    expect(vazamentos(a, marcas: marcas_dos_tipos_fechados(a))).to eq([])
+  end
+
+  it "doesn't let him download an original while that kind is closed" do
+    a = dados[:a]
+    a[:client].update!(visibilidade: { "original" => false, "cortes" => true })
+    entrar_como_cliente(a[:client])
+    [ download_arquivo_path(a[:arte]), download_tamanho_path(a[:tamanho]) ].each do |url|
+      get url
+      expect(response.status).to be >= 400, "#{url} answered #{response.status}"
     end
   end
 

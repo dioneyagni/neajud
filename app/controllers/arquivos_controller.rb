@@ -11,7 +11,7 @@ class ArquivosController < ApplicationController
   before_action(only: %i[update_time update_client update_molde update_tamanho update_tipo_corte update_giro add_molde remove_molde
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
-  exige_acao :baixar_producao, only: :download
+  exige_baixar_original only: :download
 
   PER_PAGE_GRID = 12
   PER_PAGE_LIST = 50

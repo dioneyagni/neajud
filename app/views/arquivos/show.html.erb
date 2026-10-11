@@ -65,7 +65,8 @@
             which gated it on organize_error and made the size vanish. %>
         <%= render "size_selection", arquivo: @arquivo %>
         <div id="corte-comparison-section">
-          <%= render "corte_comparison", arquivo: @arquivo %>
+          <%# The corte is the cortes' kind: closed to a cliente final, hidden (2.8, 3a). %>
+          <%= render "corte_comparison", arquivo: @arquivo if aberto_ao_cliente?(:cortes) %>
         </div>
         <%= render "aprovacao", arquivo: @arquivo %>
       <% end %>
@@ -162,7 +163,8 @@
 
       <%= render "vinculo_history", logs: @vinculo_logs %>
 
-      <% if pode_acao?(:baixar_producao) %>
+      <%# Etapa 2.8 (3a): a cliente final by his grid's "original". %>
+      <% if pode_baixar_original? %>
         <div class="stamp-detail-section">
           <h3>Download</h3>
           <%= link_to "Download Original", download_arquivo_path(@arquivo), class: "btn btn-primary" %>
