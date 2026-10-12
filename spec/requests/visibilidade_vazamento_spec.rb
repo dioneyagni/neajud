@@ -40,6 +40,7 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     user = create(:user)
     create(:vinculo, user: user, funcao: funcao, client: client)
     entrar_como(user)
+    @cliente_final = user
   end
 
   def rotas_get
@@ -66,9 +67,21 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     rotas_get.product([ b[:arte], b[:corte] ]).filter_map do |caminho, arquivo|
       url = preencher(caminho, b, arquivo)
       get url, params: consulta
-      vistas = marcas.select { |_, marca| response.body.include?(marca) && !eco?(marca, consulta) }.keys
+      vistas = marcas.select { |_, marca| response.body.include?(marca) && !eco?(marca, consulta) }.keys + canais_proibidos
       "#{url} (#{response.status}): #{vistas.join(", ")}" if vistas.any?
     end.uniq
+  end
+
+  # Etapa 2.8 (3b): the live streams a page subscribes are signed, so no mark
+  # shows in them — each must be one AoVivoChannel lets him listen to.
+  def canais_da_pagina
+    Nokogiri::HTML(response.body).css("turbo-cable-stream-source").map { |tag| [ tag["channel"], CanaisAoVivo.ler(tag["signed-stream-name"]) ] }
+  end
+
+  def canais_proibidos
+    canais_da_pagina.filter_map do |canal, nome|
+      "stream #{canal} #{nome.inspect}" unless canal == "AoVivoChannel" && nome && CanaisAoVivo.permitido?(@cliente_final, nome)
+    end
   end
 
   # A uuid the request itself sent, written back by an error page or a
@@ -99,6 +112,8 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
       get url
       expect(response.body).to include(texto), "#{url} should show #{texto}"
     end
+    get arquivos_path
+    expect(canais_da_pagina).to eq([ [ "AoVivoChannel", "cartoes:#{a[:client].uuid}" ] ])
   end
 
   # Etapa 2.8 (3a): a kind his grid closes hides his own records too.

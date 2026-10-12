@@ -90,6 +90,26 @@ RSpec.describe "Public identifiers are uuids", type: :request do
     end
   end
 
+  # Etapa 2.8 (3b): Turbo named a page's stream "gid://neajud-app/Arquivo/232",
+  # base64 in the page — the integer id left the server. Cards had it as dom_id.
+  describe "live streams and cards" do
+    it "names every stream by uuid, through AoVivoChannel" do
+      arte = create(:arquivo)
+      pedido = create(:pedido)
+      { arquivos_path => CanaisAoVivo::EQUIPE, arquivo_path(arte) => "arquivo:#{arte.uuid}", pedido_path(pedido) => "pedido:#{pedido.uuid}" }.each do |url, nome|
+        get url
+        fontes = Nokogiri::HTML(response.body).css("turbo-cable-stream-source")
+        expect(fontes.map { |f| [ f["channel"], CanaisAoVivo.ler(f["signed-stream-name"]) ] }).to eq([ [ "AoVivoChannel", nome ] ]), url
+      end
+    end
+
+    it "gives the gallery card its uuid as DOM id" do
+      arte = create(:arquivo)
+      get arquivos_path
+      expect(Nokogiri::HTML(response.body).at_css(".stamp-card")["id"]).to eq("arquivo_#{arte.uuid}")
+    end
+  end
+
   describe "forms send uuids" do
     it "lists the molde dialog's clients and modelos by uuid" do
       client = create(:client)

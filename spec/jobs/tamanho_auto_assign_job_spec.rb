@@ -9,7 +9,7 @@ RSpec.describe TamanhoAutoAssignJob do
 
   it "assigns the matched tamanho, clears the mark and refreshes the arte page" do
     described_class.matcher = FakeMoldMatcher.new(tamanho)
-    expect_any_instance_of(Arquivo).to receive(:broadcast_refresh)
+    expect(CanaisAoVivo).to receive(:recarregar).with(arte)
     described_class.perform_now(arte.id)
     expect(arte.reload).to have_attributes(tamanho_id: tamanho.id, buscando_tamanho_desde: nil)
   end
@@ -17,7 +17,6 @@ RSpec.describe TamanhoAutoAssignJob do
   # Found or not, the page must never stay on "Procurando tamanho…".
   it "clears the mark and refreshes also when nothing matches or the search fails" do
     described_class.matcher = FakeMoldMatcher.new(nil)
-    allow_any_instance_of(Arquivo).to receive(:broadcast_refresh)
     described_class.perform_now(arte.id)
     expect(arte.reload.buscando_tamanho_desde).to be_nil
 

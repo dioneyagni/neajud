@@ -27,7 +27,6 @@ RSpec.describe MetrosPorPecaJob do
     corte = create(:arquivo, :corte)
     tamanho = create(:tamanho, arquivo: corte)
     allow(MateriaPrima).to receive(:larguras_mm).and_return([ 1250 ])
-    allow_any_instance_of(Arquivo).to receive(:broadcast_refresh)
     expect { PreparacaoTamanhosJob.perform_now(corte.id, false) }
       .to have_enqueued_job(described_class).with([ tamanho.id ], [ 1250 ], refazer: true)
   ensure

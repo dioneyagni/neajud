@@ -26,7 +26,7 @@
     <% if artes.any? %>
       <div data-tipo-corte-target="artesList">
         <h4>Artes Vinculadas (<%= artes.count %>)</h4>
-        <%= turbo_stream_from "arquivos" %>
+        <%= canal_dos_cartoes %>
         <div class="gallery">
           <% artes.each do |arte| %>
             <%= render partial: "arquivos/card", locals: { arquivo: arte } %>

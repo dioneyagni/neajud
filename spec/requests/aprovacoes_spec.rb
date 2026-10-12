@@ -147,7 +147,7 @@ RSpec.describe "Aprovações de arte", type: :request do
       novo = com_versao(create(:arquivo, arte: lateral.arte, filename: "novo"))
 
       get arquivos_path
-      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{lateral.id}")
+      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{lateral.uuid}")
       expect(card.at_css(".badge-aprovacao--aprovada").text).to eq("✅ Aprovada")
       get arquivo_path(lateral)
       linha = Nokogiri::HTML(response.body).at_css(%(.arte-arquivo[data-arquivo-uuid="#{novo.uuid}"]))

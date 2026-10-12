@@ -524,10 +524,10 @@ RSpec.describe "Arquivos", type: :request do
     it "warns on the gallery card until the turn is marked" do
       corte = create(:arquivo, :corte, organized: true)
       get arquivos_path
-      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.id} img[alt='Giro não marcado']")).to be_present
+      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.uuid} img[alt='Giro não marcado']")).to be_present
       corte.update!(giro: "90")
       get arquivos_path
-      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.id} img[alt='Giro não marcado']")).to be_nil
+      expect(Nokogiri::HTML(response.body).at_css("#arquivo_#{corte.uuid} img[alt='Giro não marcado']")).to be_nil
     end
 
     it "refuses a turn that isn't one, and an arte" do

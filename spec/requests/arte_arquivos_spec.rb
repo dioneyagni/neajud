@@ -36,7 +36,7 @@ RSpec.describe "Arte files", type: :request do
       outro.update!(approved_version: create(:arquivo_version, arquivo: outro, status: :pending))
 
       get arquivos_path
-      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{primeiro.id}")
+      card = Nokogiri::HTML(response.body).at_css("#arquivo_#{primeiro.uuid}")
       expect(card.attributes.transform_values(&:value)).to include("data-controller" => "processamento", "data-arte-em-fila" => "true")
       expect(card["data-arte-arquivos"].split("|")).to contain_exactly("test_arquivo", "na-fila")
     end

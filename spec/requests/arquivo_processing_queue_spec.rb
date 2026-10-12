@@ -35,7 +35,7 @@ RSpec.describe "Queued processing", type: :request do
     create(:arquivo_version, arquivo: arquivo, status: "pending").tap { |v| arquivo.update!(approved_version: v) }
 
     get arquivos_path
-    card = Nokogiri::HTML(response.body).at_css("##{ActionView::RecordIdentifier.dom_id(arquivo)}")
+    card = Nokogiri::HTML(response.body).at_css("##{CanaisAoVivo.id_do_cartao(arquivo)}")
     expect([ card["data-status"], card["data-filename"] ]).to eq([ "pending", "na-fila" ])
     expect(card.at_css(".stamp-card-badge").text).to eq("Na fila")
 
@@ -65,7 +65,7 @@ RSpec.describe "Queued processing", type: :request do
       done = arquivo_with("processed")
       get processamento_arquivo_path(done), headers: { "Accept" => "text/vnd.turbo-stream.html" }
       stream = Nokogiri::HTML(response.body).at_css("turbo-stream")
-      expect([ stream["action"], stream["target"] ]).to eq([ "replace", "arquivo_#{done.id}" ])
+      expect([ stream["action"], stream["target"] ]).to eq([ "replace", "arquivo_#{done.uuid}" ])
     end
 
     it "only queued cards poll (a processed card stops)" do
@@ -73,10 +73,10 @@ RSpec.describe "Queued processing", type: :request do
       done = arquivo_with("processed", filename: "pronto")
       get arquivos_path
       html = Nokogiri::HTML(response.body)
-      queued_card = html.at_css("#arquivo_#{queued.id}")
+      queued_card = html.at_css("#arquivo_#{queued.uuid}")
       expect([ queued_card["data-controller"], queued_card["data-processamento-mode-value"] ]).to eq([ "processamento", "card" ])
       expect(queued_card["data-processamento-url-value"]).to eq(processamento_arquivo_path(queued))
-      expect(html.at_css("#arquivo_#{done.id}")["data-controller"]).to be_nil
+      expect(html.at_css("#arquivo_#{done.uuid}")["data-controller"]).to be_nil
     end
 
     it "the arquivo page banner and a pedido piece with a queued arte poll for the end" do
