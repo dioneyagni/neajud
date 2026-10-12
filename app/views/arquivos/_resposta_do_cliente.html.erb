@@ -1,0 +1,30 @@
+<%# The cliente final's answer (Etapa 2.8, 4a): the version of each file he
+    approves — the one in use unless he picks another (the files' pages show
+    every version) — or a note asking for changes. %>
+<div class="resposta-do-cliente" id="resposta-do-cliente">
+  <%= form_with url: arquivo_aprovar_no_sistema_path(arquivo), method: :post, class: "resposta-aprovar" do %>
+    <table class="time-history-table resposta-versoes">
+      <thead><tr><th>File</th><th>Version you approve</th></tr></thead>
+      <tbody>
+        <% arquivo.arte.arquivos_por_parte.values.flatten.select(&:approved_version).each do |membro| %>
+          <tr data-arquivo="<%= membro.uuid %>">
+            <td><%= link_to membro.filename, arquivo_path(membro) %></td>
+            <td>
+              <%= select_tag "versoes[#{membro.uuid}]",
+                    options_for_select(membro.arquivo_versions.order(version_number: :desc).map { |v| [ "v#{v.version_number}#{" (in use)" if v.id == membro.approved_version_id}", v.uuid ] },
+                                       membro.approved_version.uuid),
+                    aria: { label: "Version of #{membro.filename}" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+  <% end %>
+
+  <%= form_with url: arquivo_pedir_alteracao_path(arquivo), method: :post, class: "resposta-alteracao" do %>
+    <label for="recado">Or ask for changes</label>
+    <textarea name="recado" id="recado" rows="2" required placeholder="What should change?"></textarea>
+    <button type="submit" class="btn btn-secondary btn-sm">Ask for changes</button>
+  <% end %>
+</div>

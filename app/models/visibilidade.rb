@@ -28,6 +28,7 @@ class Visibilidade
     "BaixaProducao" => ->(c) { BaixaProducao.where(pedido_id: Pedido.where(client_id: c.id)) },
     "AprovacaoArte" => ->(c) { AprovacaoArte.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
     "SolicitacaoAprovacao" => ->(c) { SolicitacaoAprovacao.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
+    "AlteracaoArte" => ->(c) { AlteracaoArte.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
     "FaixaDePreco" => ->(c) { FaixaDePreco.where(molde_id: Molde.where(client_id: c.id)) }
   }.freeze
   # The same for everyone: the official catalog and the empresa's lists.

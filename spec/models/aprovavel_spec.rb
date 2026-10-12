@@ -78,4 +78,39 @@ RSpec.describe Aprovavel do
     expect(outra.arte.aprovacoes_arte.count).to eq(1)
     expect([ outra.estado_aprovacao, outra.arte.depois_da_aprovacao?(outra) ]).to eq([ :aprovada, true ])
   end
+
+  # Etapa 2.8 (4a, decided 12/10/2026): the client answers in the system.
+  describe "the client's answers" do
+    def pedir_alteracao(recado = "Azul mais escuro")
+      AlteracaoArte.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user, recado: recado)
+    end
+
+    it "asking for changes holds the arte until the team sends it again" do
+      enviar
+      alteracao = pedir_alteracao
+      expect([ arte.estado_aprovacao, arte.alteracao_pedida ]).to eq([ :alteracao_pedida, alteracao ])
+      enviar
+      expect(arte.estado_aprovacao).to eq(:aguardando)
+    end
+
+    it "approving other versions waits for the team, then is approved once they are in use" do
+      v1 = lateral.approved_version
+      enviar(com_versao(lateral, 2))
+      aprovacao = AprovacaoArte.create!(arquivo: lateral, arquivo_version: v1, user: user, canal: "sistema", aprovado_em: Date.current,
+                                        arquivo_version_ids: [ v1.id, lingua.approved_version_id ])
+      expect([ arte.estado_aprovacao, arte.aprovacao_em_outra_versao ]).to eq([ :aprovada_em_outra_versao, aprovacao ])
+      # It never matched, so it isn't "changed after the approval".
+      expect([ arte.alterada_depois_da_aprovacao?, arte.alterado_depois_da_aprovacao?(lateral) ]).to eq([ false, false ])
+
+      lateral.update!(approved_version: v1)
+      expect(arte.reload.estado_aprovacao).to eq(:aprovada)
+    end
+
+    it "an answer before the request in force doesn't count" do
+      enviar
+      pedir_alteracao
+      SolicitacaoAprovacao.create!(arquivo: lateral, arquivo_version: lateral.approved_version, user: user)
+      expect(arte.estado_aprovacao).to eq(:aguardando)
+    end
+  end
 end

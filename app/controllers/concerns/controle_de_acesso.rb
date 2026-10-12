@@ -6,6 +6,7 @@
 #   exige :pedidos, :ver, only: %i[index show]
 #   exige_acao :baixar_producao, only: :download
 #   exige_dono only: :index
+#   exige_cliente_final / exige_equipe only: :create
 module ControleDeAcesso
   extend ActiveSupport::Concern
 
@@ -24,6 +25,16 @@ module ControleDeAcesso
 
     def exige_dono(**options)
       before_action(**options) { exigir!(dono?, "dono") }
+    end
+
+    # Etapa 2.8 (4a): actions only a cliente final takes (his own approval),
+    # and actions only the team takes, whatever the grid gives a client.
+    def exige_cliente_final(**options)
+      before_action(**options) { exigir!(Current.user&.cliente.present?, "a cliente final") }
+    end
+
+    def exige_equipe(**options)
+      before_action(**options) { exigir!(Current.user.present? && Current.user.cliente.nil?, "the team") }
     end
   end
 

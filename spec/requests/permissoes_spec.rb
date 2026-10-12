@@ -128,6 +128,27 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response.body).to include("Acesso ao sistema")
     end
 
+    # Etapa 2.8 (4a): aprovar_arte is the team's sending and registering, and a
+    # cliente final's own answer — never the other side's.
+    it "answering an approval in the system needs aprovar_arte and a cliente final" do
+      cliente = arte.tap { |a| a.update!(client: client) }.client
+      entrar_com_funcao(niveis: { "artes" => 3 }, acoes: %w[aprovar_arte])
+      post arquivo_aprovar_no_sistema_path(arte)
+      expect(response).to have_http_status(:forbidden)
+      entrar_como(create(:vinculo, user: create(:user), client: cliente, funcao: create(:funcao, :para_cliente, niveis: { "artes" => 1 })).user)
+      post arquivo_pedir_alteracao_path(arte), params: { recado: "x" }
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "sending for approval and registering one are the team's, even with aprovar_arte" do
+      arte.update!(client: client)
+      entrar_como(create(:vinculo, user: create(:user), client: client, funcao: create(:funcao, :para_cliente, niveis: { "artes" => 1 }, acoes: %w[aprovar_arte])).user)
+      post arquivo_solicitacoes_path(arte)
+      expect(response).to have_http_status(:forbidden)
+      get new_arquivo_aprovacao_path(arte)
+      expect(response).to have_http_status(:forbidden)
+    end
+
     # Etapa 2.4: prices and costs are management's, not the factory floor's.
     it "pricing a molde needs ver_valores and catalogo: editar" do
       preco = -> { post molde_faixas_path(molde), params: { faixa: { tamanho_inicial: "20", tamanho_final: "30", preco_par: "9" } } }
