@@ -1,6 +1,6 @@
 <div class="stamp-detail-section" id="client-field-section" data-controller="edit-toggle dialog">
   <h3 class="section-heading-with-action">Client
-    <% if pode_editar_arquivo?(@arquivo) %>
+    <% if equipe_edita_arquivo?(@arquivo) %>
       <button type="button" class="btn-icon btn-edit" data-edit-toggle-target="display" data-action="click->edit-toggle#edit" title="Edit client">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       </button>
@@ -14,7 +14,7 @@
         <% if @arquivo.client.responsible.present? %>
           <span class="client-responsible-display">(<%= @arquivo.client.responsible %>)</span>
         <% end %>
-        <% if pode_editar_arquivo?(@arquivo) %>
+        <% if equipe_edita_arquivo?(@arquivo) %>
           <%= button_to update_client_arquivo_path(@arquivo), method: :patch, params: { client_uuid: "" }, form: { class: "unlink-form", style: "display: inline-block;" }, class: "btn-icon btn-unlink", title: "Unlink client" do %>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m2.828-2.828l1.101-1.1a4 4 0 00-5.657-5.657l-1.1 1.1"/></svg>
           <% end %>

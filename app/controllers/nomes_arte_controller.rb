@@ -3,6 +3,8 @@
 class NomesArteController < ApplicationController
   before_action :set_arte
   before_action { exigir!(pode?(@arte.area_de_acesso, :editar), "#{@arte.area_de_acesso}: editar") }
+  # Joining makes a new version in use: the team's (Etapa 2.8, 4b).
+  exige_equipe only: :tornar_versao
 
   # Usage: PATCH /arquivos/:uuid/nome_arte (referencia_uuid or nova_referencia, nome)
   def update

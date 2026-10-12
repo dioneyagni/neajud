@@ -11,10 +11,16 @@ RSpec.describe Funcao do
 
   # Etapa 2.8 (2/5): a cliente final never gets the trash nor the factory's actions.
   it "refuses the team's lixeira and actions in a função para clientes" do
-    funcao = build(:funcao, :para_cliente, niveis: { "pedidos" => 2, "lixeira" => 1 }, acoes: %w[aprovar_arte ver_valores])
+    funcao = build(:funcao, :para_cliente, niveis: { "pedidos" => 1, "lixeira" => 1 }, acoes: %w[aprovar_arte ver_valores])
     expect(funcao).not_to be_valid
     expect(funcao.errors[:niveis]).to contain_exactly(include("lixeira"), include("ver_valores"))
-    expect(build(:funcao, :para_cliente, niveis: { "pedidos" => 3 }, acoes: %w[aprovar_arte])).to be_valid
+    expect(build(:funcao, :para_cliente, niveis: { "pedidos" => 1 }, acoes: %w[aprovar_arte])).to be_valid
+  end
+
+  # Etapa 2.8 (4b): artes up to editar, the rest only ver.
+  it "caps a função para clientes at what a client may have" do
+    expect(build(:funcao, :para_cliente, niveis: { "artes" => 2, "pedidos" => 1 })).to be_valid
+    expect(build(:funcao, :para_cliente, niveis: { "artes" => 3 }).tap(&:valid?).errors[:niveis]).to eq([ "a client's access can't go above editar in artes" ])
   end
 
   # Its vínculos were checked against the type when made.

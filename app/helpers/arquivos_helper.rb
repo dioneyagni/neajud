@@ -6,6 +6,13 @@ module ArquivosHelper
     pode?(arquivo.area_de_acesso, :editar)
   end
 
+  # Versions, the version in use and the client are the team's even when a
+  # cliente final edits his artes (Etapa 2.8, 4b — ArquivosController's
+  # exige_equipe). Usage: <% if equipe_edita_arquivo?(@arquivo) %>
+  def equipe_edita_arquivo?(arquivo)
+    pode_editar_arquivo?(arquivo) && !cliente_final?
+  end
+
   def format_time(seconds)
     return "0:00" unless seconds
 

@@ -211,7 +211,7 @@
               <span class="version-date"><%= l version.created_at, format: :short %></span>
             </div>
             <div class="version-card-actions">
-              <% if !version.approved? && pode_editar_arquivo?(@arquivo) %>
+              <% if !version.approved? && equipe_edita_arquivo?(@arquivo) %>
                 <%= button_to "Usar esta versão", approve_version_arquivo_path(@arquivo, version_uuid: version.uuid), method: :patch, class: "btn btn-primary btn-sm" %>
               <% end %>
             </div>
@@ -224,7 +224,7 @@
   <% end %>
 </section>
 
-<% if pode_editar_arquivo?(@arquivo) %>
+<% if equipe_edita_arquivo?(@arquivo) %>
 <section>
   <h3>Upload New Version</h3>
   <div class="upload-form-wrapper">

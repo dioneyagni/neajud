@@ -888,8 +888,23 @@ each empresa is its own instance.
   "No sistema"; the photo is his choice) or **Ask for changes** with a note
   (`PedirAlteracaoService` → `AlteracaoArte`). Sending and registering stay
   the team's (`exige_equipe`), whatever his grid says.
-- Not yet (2.8 4b–5/5): uploading as a client (every write kept inside his
-  client), and the client's drafts.
+- **The client uploads his artes (4b, decided 12/10/2026):** a client's
+  função or extras stop at `Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE` — artes
+  up to editar, the rest only ver (`erros_para_cliente`; the grid offers no
+  more; the default "Cliente final" has artes: editar) — so no client
+  registers clients, moldes, the common peças or stock. **Every uuid
+  assignment goes through `Visibilidade`** (`AtribuiPorUuid` reads
+  `Current.user`; nobody signed in = the team's view): another client's
+  molde, client or tamanho is a 404. His uploads are his client's
+  (`arquivo_do_upload`; an empty arte from the grouping can take a file —
+  `artes_que_recebem`), never a DXF. Versions, the version in use, the client
+  and the cortes stay the team's (`exige_equipe`; views use
+  `equipe_edita_arquivo?`). The write sweep
+  (`spec/requests/visibilidade_escrita_spec.rb`) sends every
+  POST/PATCH/PUT/DELETE route as client A with B's uuids and checks nothing
+  of B changed and nothing of A points at B; new routes are swept
+  automatically. E2E: `e2e/cliente-envia.spec.js`.
+- Not yet (2.8 5/5): the client's drafts.
 
 ## Art approval (Etapa 0.5, 4/4)
 

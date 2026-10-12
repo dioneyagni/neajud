@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_12_122701) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_133618) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
