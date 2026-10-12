@@ -247,7 +247,7 @@ class ArquivosController < ApplicationController
   def processamento
     respond_to do |format|
       format.json { render json: { status: @arquivo.status, final: !(@arquivo.pending? || @arquivo.processing?) } }
-      format.turbo_stream { render turbo_stream: turbo_stream.replace(@arquivo, partial: "arquivos/card", locals: { arquivo: @arquivo }) }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(CanaisAoVivo.id_do_cartao(@arquivo), partial: "arquivos/card", locals: { arquivo: @arquivo }) }
     end
   end
 

@@ -864,8 +864,23 @@ each empresa is its own instance.
   `exige_aberto :cortes` for a page of a kind (404). The artes' previews and
   versions are never a kind (the client approves them). The sweep also signs
   in a client with every kind closed and looks for his own records' uuids.
-- Not yet (2.8 3b–5/5): per-client cable streams (today the gallery's
-  broadcasts go to everyone), approving and uploading as a client, and the
+- **Live updates per client (3b, decided 11/10/2026):** every page
+  subscribes through `AoVivoChannel` with the helpers `canal_dos_cartoes` /
+  `canal_do_registro(record)` — never `turbo_stream_from`, whose names Turbo
+  signs for its own channel, which checks only the signature (a signed name is
+  valid forever, for anyone holding it). `CanaisAoVivo` names the streams by
+  uuid (`cartoes:equipe`, `cartoes:<client uuid>`, `arquivo:<uuid>`,
+  `pedido:<uuid>` — Turbo's default was `gid://…/Arquivo/232`, the integer id
+  in the page), signs them with its own verifier and answers `permitido?` on
+  every subscription: the team's cards for the team, a client's for its people,
+  a page's while `Visibilidade` shows its record. A card goes to the team and
+  to each client whose `Visibilidade` shows the file (`dos_cartoes_de`; a
+  corte reaches the clients of its moldes while their cortes are open);
+  refreshes go through `CanaisAoVivo.recarregar(record)`. Card DOM ids are
+  `arquivo_<uuid>` (`id_do_cartao`). The sweep checks every stream a page
+  subscribes; E2E: `e2e/canais-ao-vivo.spec.js` listens to the client's
+  WebSocket frames.
+- Not yet (2.8 4/5–5/5): approving and uploading as a client, and the
   client's drafts.
 
 ## Art approval (Etapa 0.5, 4/4)
@@ -1241,6 +1256,9 @@ version's status changes):
   cards carry `data-status` and `data-filename`;
 - the arquivo page and the pedidos using the arte morph-refresh **only when
   processing ends** — never mid-edit.
+- Each goes only to who may see it, over `AoVivoChannel` (see "Visibility",
+  3b): subscribe with `canal_dos_cartoes` / `canal_do_registro`, refresh with
+  `CanaisAoVivo.recarregar`, never `turbo_stream_from` / `broadcast_refresh`.
 
 **Automatic tamanho search (Etapa 0.6, 1/3):** picking an arte's molde
 (`update_molde`) no longer runs `MoldMatchService` in the request (measured up

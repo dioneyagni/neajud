@@ -1,4 +1,4 @@
-<%= tag.div id: dom_id(arquivo), class: "list-item" do %>
+<%= tag.div id: CanaisAoVivo.id_do_cartao(arquivo), class: "list-item" do %>
   <label class="list-item-checkbox">
     <input type="checkbox" name="arquivo_ids[]" value="<%= arquivo.uuid %>" data-batch-select-target="checkbox" data-action="change->batch-select#toggle">
   </label>

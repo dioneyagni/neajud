@@ -37,7 +37,7 @@
 <section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">
   <h3>Gallery</h3>
   <% if @arquivos.any? %>
-    <%= turbo_stream_from "arquivos" %>
+    <%= canal_dos_cartoes %>
 
     <div class="batch-toolbar batch-toolbar--hidden" data-batch-select-target="toolbar">
       <span data-batch-select-target="count">0 selected</span>

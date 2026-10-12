@@ -1,7 +1,7 @@
 <%# Processing is queued (Etapa 0.3): this page morph-refreshes when this
     arquivo's status changes (Arquivo#broadcast_status_change). %>
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
-<%= turbo_stream_from @arquivo %>
+<%= canal_do_registro(@arquivo) %>
 
 <h2>
   <%= image_tag "#{FileCategory.extension_icon(@arquivo.extension)}.svg", class: "stamp-detail-ext-icon", alt: @arquivo.extension %>

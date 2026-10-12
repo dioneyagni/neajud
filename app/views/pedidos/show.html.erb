@@ -1,7 +1,7 @@
 <%# An arte of this pedido finishing its queued processing (e.g. after
     "Enviar arquivo") morph-refreshes the page (Arquivo#broadcast_status_change). %>
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
-<%= turbo_stream_from @pedido %>
+<%= canal_do_registro(@pedido) %>
 
 <h2>
   <%= @pedido.reposicao? ? "Reposição" : "Pedido" %>

@@ -23,7 +23,7 @@ class PreparacaoTamanhosJob < ApplicationJob
       MetrosPorPecaJob.perform_later(corte.tamanhos.ids, MateriaPrima.larguras_mm, refazer: true)
     ensure
       corte.update_column(:preparando_tamanhos_desde, nil)
-      corte.broadcast_refresh
+      CanaisAoVivo.recarregar(corte)
     end
   end
 end

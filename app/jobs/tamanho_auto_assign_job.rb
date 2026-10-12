@@ -18,7 +18,7 @@ class TamanhoAutoAssignJob < ApplicationJob
       TamanhoAutoAssignService.call(arte, matcher: matcher)
     ensure
       arte.update_column(:buscando_tamanho_desde, nil)
-      arte.broadcast_refresh
+      CanaisAoVivo.recarregar(arte)
     end
   end
 end

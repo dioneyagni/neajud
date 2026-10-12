@@ -18,16 +18,16 @@ RSpec.describe "Arquivo processing status broadcasts" do
     version.update_column(:status, "processed")
     pedido = create(:pedido)
     allow(arquivo).to receive(:pedidos_que_usam).and_return([ pedido ])
-    expect(arquivo).to receive(:broadcast_replace_to).with("arquivos", hash_including(target: "arquivo_#{arquivo.id}", partial: "arquivos/card"))
-    expect(arquivo).to receive(:broadcast_refresh)
-    expect(pedido).to receive(:broadcast_refresh)
+    expect(arquivo).to receive(:broadcast_replace_to).with(CanaisAoVivo::EQUIPE, hash_including(target: "arquivo_#{arquivo.uuid}", partial: "arquivos/card"))
+    expect(CanaisAoVivo).to receive(:recarregar).with(arquivo)
+    expect(CanaisAoVivo).to receive(:recarregar).with(pedido)
     arquivo.reload.broadcast_status_change
   end
 
   it "while queued or processing, only replaces the gallery card (no page refresh mid-edit)" do
     version.update_column(:status, "processing")
     expect(arquivo).to receive(:broadcast_replace_to)
-    expect(arquivo).not_to receive(:broadcast_refresh)
+    expect(CanaisAoVivo).not_to receive(:recarregar)
     expect(arquivo).not_to receive(:pedidos_que_usam)
     arquivo.reload.broadcast_status_change
   end
@@ -51,7 +51,6 @@ RSpec.describe "Arquivo processing status broadcasts" do
     job_version.arquivo.approved_version.status # the job loads these before finishing
     seen = nil
     allow_any_instance_of(Arquivo).to receive(:broadcast_replace_to) { |a, *| seen = a.status }
-    allow_any_instance_of(Arquivo).to receive(:broadcast_refresh)
     job_version.update!(status: "processed")
     expect(seen).to eq("processed")
   end

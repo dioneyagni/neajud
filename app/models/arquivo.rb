@@ -316,8 +316,8 @@ class Arquivo < ApplicationRecord
     broadcast_arquivo_card
     return if pending? || processing?
 
-    broadcast_refresh
-    pedidos_que_usam.each(&:broadcast_refresh)
+    CanaisAoVivo.recarregar(self)
+    pedidos_que_usam.each { |pedido| CanaisAoVivo.recarregar(pedido) }
   end
 
   # Pedidos with an item for this arte, or with it as one of an item's pieces.
@@ -359,10 +359,14 @@ class Arquivo < ApplicationRecord
   end
 
   # The gallery shows one card per arte, its first file's (Etapa 1.2, 2/3):
-  # a change in any file of the arte redraws that card.
+  # a change in any file of the arte redraws that card. It goes to the team
+  # and to each client that sees it, never to one stream for everyone — a
+  # cliente final received every client's cards over the cable (2.8, 3b).
   def broadcast_arquivo_card
     cartao = arte&.principal || self
-    broadcast_replace_to "arquivos", target: ActionView::RecordIdentifier.dom_id(cartao), partial: "arquivos/card", locals: { arquivo: cartao }
+    CanaisAoVivo.dos_cartoes_de(cartao).each do |canal|
+      broadcast_replace_to canal, target: CanaisAoVivo.id_do_cartao(cartao), partial: "arquivos/card", locals: { arquivo: cartao }
+    end
   end
 
   def destroy_arquivo_with_versions

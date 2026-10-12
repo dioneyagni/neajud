@@ -28,7 +28,7 @@
       <div class="stamp-detail-section stamp-detail-section--full">
         <h3>Arquivos</h3>
         <% if @arquivos.any? %>
-          <%= turbo_stream_from "arquivos" %>
+          <%= canal_dos_cartoes %>
           <div class="gallery">
             <% @arquivos.each do |arquivo| %>
               <%= render partial: "arquivos/card", locals: { arquivo: arquivo } %>

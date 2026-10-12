@@ -57,4 +57,4 @@ async function uploadFileAndWait(page, filePaths) {
   await submitUploadAndWait(page, files.length);
 }
 
-module.exports = { UPLOAD_TIMEOUT, submitUploadAndWait, uploadFileAndWait };
+module.exports = { UPLOAD_TIMEOUT, submitUploadAndWait, uploadFileAndWait, waitForUploadedProcessed };
