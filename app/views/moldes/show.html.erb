@@ -128,7 +128,7 @@
         <% end %>
       </div>
 
-      <% if pode_acao?(:ver_valores) %>
+      <% if pode_ver_precos? %>
         <%= render "moldes/precos", molde: @molde %>
       <% end %>
     </div>

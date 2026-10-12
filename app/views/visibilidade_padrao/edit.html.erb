@@ -1,0 +1,28 @@
+<%# The empresa's default of what a cliente final sees (Etapa 2.8, 3a). %>
+<h2>Visibilidade</h2>
+<p class="funcoes-intro">What a cliente final sees of <strong>his own</strong> records, by kind — another
+  client's are never shown. An open kind covers everything of that kind, existing and future. Each client
+  may have exceptions, on his page. The artes' previews and versions are always shown (he approves them);
+  costs and margin never are.</p>
+
+<% grade = TiposParaCliente.padrao_da_empresa(@empresa) %>
+<%= form_with url: visibilidade_path, method: :patch, id: "visibilidade-padrao" do %>
+  <table class="clients-table visibilidade-tabela">
+    <thead>
+      <tr><th>Kind</th><th>What it shows</th><th>Open</th><th>Closed</th></tr>
+    </thead>
+    <tbody>
+      <% TiposParaCliente::TIPOS.each do |tipo| %>
+        <tr data-tipo="<%= tipo %>">
+          <th scope="row"><%= rotulo_do_tipo(tipo) %></th>
+          <td class="visibilidade-descricao"><%= descricao_do_tipo(tipo) %></td>
+          <% [ true, false ].each do |aberto| %>
+            <td><input type="radio" name="tipos[<%= tipo %>]" value="<%= aberto ? 1 : 0 %>" <%= "checked" if grade[tipo] == aberto %>
+                       aria-label="<%= rotulo_do_tipo(tipo) %>: <%= estado_do_tipo(aberto) %>"></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <button type="submit" class="btn btn-primary">Save</button>
+<% end %>

@@ -167,6 +167,28 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       get funcoes_path
       expect(response).to have_http_status(:forbidden)
     end
+
+    # Etapa 2.8 (3a): the default visibility grants, like Funções — the dono's.
+    it "the default Visibilidade is the dono's only, whatever the grid says" do
+      entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
+      get edit_visibilidade_path
+      expect(response).to have_http_status(:forbidden)
+      patch visibilidade_path, params: { tipos: { cortes: "1" } }
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    # Etapa 2.8 (3a): a client's exceptions go with its accesses — gerenciar_usuarios.
+    it "a client's visibility exceptions need gerenciar_usuarios" do
+      excecao = -> { patch visibilidade_client_path(client), params: { tipos: { cortes: "1" } } }
+      entrar_com_funcao(niveis: { "clientes" => 3 })
+      instance_exec(&excecao)
+      expect(response).to have_http_status(:forbidden)
+      get client_path(client)
+      expect(response.body).not_to include("Visibilidade para o cliente")
+      entrar_com_funcao(niveis: { "clientes" => 1 }, acoes: %w[gerenciar_usuarios])
+      instance_exec(&excecao)
+      expect(client.reload.visibilidade).to eq({ "cortes" => true })
+    end
   end
 
   describe "JSON endpoints" do

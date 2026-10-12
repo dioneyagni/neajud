@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_10_163614) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_11_000139) do
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -221,6 +221,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_163614) do
     t.integer "restored_by_id"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.json "visibilidade", default: {}, null: false
     t.index ["deleted_at"], name: "index_clients_on_deleted_at"
     t.index ["uuid"], name: "index_clients_on_uuid", unique: true
   end
@@ -262,6 +263,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_163614) do
     t.integer "tolerancia_acima_pct", default: 25, null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.json "visibilidade_cliente", default: {}, null: false
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
   end

@@ -1,20 +1,24 @@
 <%# Etapa 2.4 (decided 09/10/2026): price, cost and margin per pair, for
     "ver_valores" only. The price is the one written at confirmation (a draft
     shows the molde's price now); the cost is always an estimate — the meters
-    are the way to the cost per pair (CustoPorPar). %>
+    are the way to the cost per pair (CustoPorPar). A cliente final with
+    "valores" open (2.8, 3a) sees the price only: cost and margin never. %>
 <% empresa = Empresa.atual || Empresa.new %>
+<% custos = pode_acao?(:ver_valores) %>
 <% valores = ValoresDoPedido.call(pedido, empresa: empresa) %>
 <section class="pedido-valores" id="pedido-valores">
   <h3>Valores</h3>
   <dl class="pedido-valores-totais">
     <dt>Valor</dt><dd data-valor="valor"><%= reais(valores.valor) %></dd>
-    <dt>Custo estimado</dt><dd data-valor="custo"><%= empresa.custos_definidos? ? reais(valores.custo) : "—" %></dd>
-    <dt>Margem</dt><dd data-valor="margem"><%= empresa.custos_definidos? ? reais(valores.margem) : "—" %></dd>
+    <% if custos %>
+      <dt>Custo estimado</dt><dd data-valor="custo"><%= empresa.custos_definidos? ? reais(valores.custo) : "—" %></dd>
+      <dt>Margem</dt><dd data-valor="margem"><%= empresa.custos_definidos? ? reais(valores.margem) : "—" %></dd>
+    <% end %>
   </dl>
   <% if valores.sem_preco? %>
     <p class="pedido-valores-aviso" role="note">Some numbers have no price per pair: they are left out of the value.</p>
   <% end %>
-  <% if !empresa.custos_definidos? %>
+  <% if custos && !empresa.custos_definidos? %>
     <p class="pedido-valores-aviso" role="note">The cost needs the printing cost per meter and the cutting cost per piece<%= dono? ? "" : " (the dono sets them)" %><% if dono? %>: <%= link_to "Parâmetros", edit_parametros_path %><% end %>.</p>
   <% end %>
   <% valores.itens.each do |item_valores| %>
@@ -23,7 +27,7 @@
       <div class="pedido-valores-tabela-wrap">
         <table class="clients-table pedido-valores-tabela">
           <thead>
-            <tr><th>Número</th><th class="num">Pares</th><th class="num">Preço / par</th><th class="num">Custo / par</th><th class="num">Margem / par</th></tr>
+            <tr><th>Número</th><th class="num">Pares</th><th class="num">Preço / par</th><% if custos %><th class="num">Custo / par</th><th class="num">Margem / par</th><% end %></tr>
           </thead>
           <tbody>
             <% item_valores.linhas.each do |linha| %>
@@ -31,14 +35,16 @@
                 <td><%= linha.numero == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : linha.numero %></td>
                 <td class="num"><%= linha.pares %></td>
                 <td class="num" data-coluna="preco"><%= reais(linha.preco_par) %></td>
-                <td class="num" data-coluna="custo"><%= reais(linha.custo_par) %><%= "*" if linha.custo&.incompleto %></td>
-                <td class="num" data-coluna="margem"><%= reais(linha.margem_par) %></td>
+                <% if custos %>
+                  <td class="num" data-coluna="custo"><%= reais(linha.custo_par) %><%= "*" if linha.custo&.incompleto %></td>
+                  <td class="num" data-coluna="margem"><%= reais(linha.margem_par) %></td>
+                <% end %>
               </tr>
             <% end %>
           </tbody>
         </table>
       </div>
-      <%= render "pedidos/faltas_do_custo", custos: item_valores.linhas.map(&:custo) %>
+      <%= render "pedidos/faltas_do_custo", custos: item_valores.linhas.map(&:custo) if custos %>
     </div>
   <% end %>
 </section>

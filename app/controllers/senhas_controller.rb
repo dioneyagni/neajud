@@ -13,7 +13,7 @@ class SenhasController < ApplicationController
 
     user.trocar_senha!(params.require(:nova_senha))
     # A cliente final's start is his pedidos (Etapa 2.8, 2/5), as at sign-in.
-    redirect_to(user.cliente ? pedidos_path : root_path, notice: "Password changed.")
+    redirect_to(pagina_inicial(user), notice: "Password changed.")
   rescue ActiveRecord::RecordInvalid => e
     redirect_to edit_senha_path, alert: e.record.errors.full_messages.to_sentence
   end

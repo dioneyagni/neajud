@@ -133,7 +133,9 @@
             <span class="tamanho-consumo" title="Peças por metro de tecido em cada largura cadastrada (giro: <%= GiroNoEncaixe::GIROS[arquivo.giro] %>)">
               <%= pecas_por_metro_do_tamanho(t) || (arquivo.giro ? "consumo ainda não calculado" : "giro não marcado: sem consumo") %>
             </span>
-            <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf", data: { turbo: false } %>
+            <% if pode_baixar_original? %>
+              <%= link_to "Download", download_tamanho_path(t), class: "btn btn-primary tamanho-download", title: "Download #{t.nome}.dxf", data: { turbo: false } %>
+            <% end %>
           </div>
         <% end %>
       </div>

@@ -1,0 +1,32 @@
+<%# Etapa 2.8 (3a): this client's exceptions to the empresa's default of what
+    a cliente final sees (Visibilidade, the dono's). Only who may "gerenciar
+    usuários" — who gives the client his accesses — sees this. %>
+<% padrao = TiposParaCliente.padrao_da_empresa(Empresa.atual) %>
+<div class="stamp-detail-section stamp-detail-section--full cliente-visibilidade" id="visibilidade">
+  <h3>Visibilidade para o cliente</h3>
+  <p class="page-hint">What <%= client.name %>'s people see of this client's records. "Default" follows
+    the empresa's<% if dono? %> (<%= link_to "Visibilidade", edit_visibilidade_path %>)<% end %>.</p>
+  <%= form_with url: visibilidade_client_path(client), method: :patch, class: "visibilidade-cliente-form" do %>
+    <table class="clients-table visibilidade-tabela">
+      <thead>
+        <tr><th>Kind</th><th>For this client</th></tr>
+      </thead>
+      <tbody>
+        <% TiposParaCliente::TIPOS.each do |tipo| %>
+          <% atual = client.visibilidade.to_h[tipo] %>
+          <tr data-tipo="<%= tipo %>">
+            <th scope="row" title="<%= descricao_do_tipo(tipo) %>"><%= rotulo_do_tipo(tipo) %></th>
+            <td>
+              <select name="tipos[<%= tipo %>]" aria-label="<%= rotulo_do_tipo(tipo) %> for <%= client.name %>">
+                <option value="padrao" <%= "selected" if atual.nil? %>>Default (<%= estado_do_tipo(padrao[tipo]) %>)</option>
+                <option value="1" <%= "selected" if atual == true %>>Open</option>
+                <option value="0" <%= "selected" if atual == false %>>Closed</option>
+              </select>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary btn-sm">Save visibility</button>
+  <% end %>
+</div>

@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   resources :funcoes, only: %i[index create destroy], param: :uuid do
     collection { patch :atualizar }
   end
+  # What a cliente final sees by default, by kind (Etapa 2.8, 3a).
+  resource :visibilidade, only: %i[edit update], controller: "visibilidade_padrao"
   # The dono's production parameters (Etapa 2.2, 1/3).
   resource :parametros, only: %i[edit update], controller: "parametros_empresa"
   get "lixeira" => "lixeira#index", as: :lixeira
@@ -91,6 +93,8 @@ Rails.application.routes.draw do
     collection do
       get :search
     end
+    # Etapa 2.8 (3a): this client's exceptions to the default visibility.
+    member { patch :visibilidade, to: "visibilidade_do_cliente#update" }
   end
 
   # Official list, read only (Etapa 1.1, 3/5).

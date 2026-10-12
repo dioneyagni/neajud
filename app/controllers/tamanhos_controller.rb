@@ -1,5 +1,5 @@
 class TamanhosController < ApplicationController
-  exige_acao :baixar_producao, only: :download
+  exige_baixar_original only: :download
   exige :catalogo, :ver, only: :for_cascade
   exige :pedidos, :ver, only: :preview
   before_action :set_tamanho, only: %i[download preview]

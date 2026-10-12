@@ -32,20 +32,21 @@
       <h1><%= link_to "Neajud", root_path %></h1>
       <% if Current.user %>
       <nav class="header-nav">
-        <%# Only the áreas the user's função can see (Etapa 0.5, ControleDeAcesso). %>
+        <%# Only the áreas the user's função can see (Etapa 0.5, ControleDeAcesso),
+            and for a cliente final the kinds his grid opens (2.8, 3a). %>
         <% if pode?(:clientes, :ver) %>
           <%= link_to "Clients", clients_path, class: "header-nav-link" %>
         <% end %>
         <% if pode?(:catalogo, :ver) %>
           <%= link_to "Modelos", modelos_path, class: "header-nav-link" %>
           <%= link_to "Pecas", pecas_path, class: "header-nav-link" %>
-          <%= link_to "Moldes", moldes_path, class: "header-nav-link" %>
+          <%= link_to "Moldes", moldes_path, class: "header-nav-link" if aberto_ao_cliente?(:moldes) %>
         <% end %>
-        <% if pode?(:estoque, :ver) %>
+        <% if pode?(:estoque, :ver) && aberto_ao_cliente?(:estoque) %>
           <%= link_to "Materials", materiais_path, class: "header-nav-link" %>
           <%= link_to "Movements", movimentos_path, class: "header-nav-link" %>
         <% end %>
-        <% if pode?(:pedidos, :ver) %>
+        <% if pode?(:pedidos, :ver) && aberto_ao_cliente?(:pedidos) %>
         <%= link_to pedidos_path, class: "header-nav-link", data: { controller: "pedido-counter" } do %>
           Pedidos
           <% if @current_pedido_count > 0 %>
@@ -63,6 +64,7 @@
         <% end %>
         <% if dono? %>
           <%= link_to "Funções", funcoes_path, class: "header-nav-link" %>
+          <%= link_to "Visibilidade", edit_visibilidade_path, class: "header-nav-link" %>
           <%= link_to "Parâmetros", edit_parametros_path, class: "header-nav-link" %>
         <% end %>
       </nav>

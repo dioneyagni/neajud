@@ -55,7 +55,9 @@
             <% if membro.pending? || membro.processing? %>
               <span class="stamp-card-badge badge-<%= membro.status %>"><%= processamento_label(membro.status) %></span>
             <% end %>
-            <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
+            <% if pode_baixar_original? %>
+              <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
+            <% end %>
             <% if pode?(:artes, :editar) %>
               <% if membro.piloto? %>
                 <%= button_to "Back to production", voltar_para_producao_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm", form: { class: "arte-acao-inline arte-voltar-producao" } %>

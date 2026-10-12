@@ -12,7 +12,7 @@ module ControleDeVisibilidade
   class VisibilidadeNaoAplicada < StandardError; end
 
   included do
-    helper_method :visiveis, :cliente_final?
+    helper_method :visiveis, :cliente_final?, :aberto_ao_cliente?, :pode_baixar_original?, :pode_ver_precos?
     after_action :verificar_visibilidade, unless: -> { Rails.env.production? }
   end
 
@@ -20,6 +20,18 @@ module ControleDeVisibilidade
     # Usage: nao_le_registros only: %i[new create]
     def nao_le_registros(**options)
       before_action(**options) { @visibilidade_aplicada = true }
+    end
+
+    # A page of a kind the client's grid closes answers 404, like a record
+    # he doesn't see (Etapa 2.8, 3a). Usage: exige_aberto :cortes, only: :corte
+    def exige_aberto(tipo, **options)
+      before_action(**options) { raise ActiveRecord::RecordNotFound, "#{tipo} is closed to this client" unless aberto_ao_cliente?(tipo) }
+    end
+
+    # Downloading an original: the team's baixar_producao, or a cliente
+    # final with "original" open (3a). Usage: exige_baixar_original only: :download
+    def exige_baixar_original(**options)
+      before_action(**options) { exigir!(pode_baixar_original?, "baixar_producao") }
     end
   end
 
@@ -37,6 +49,22 @@ module ControleDeVisibilidade
 
   def cliente_final?
     visibilidade.cliente?
+  end
+
+  # Always true for the team. Usage: aberto_ao_cliente?(:cortes)
+  def aberto_ao_cliente?(tipo)
+    visibilidade.aberto?(tipo)
+  end
+
+  # A cliente final by his grid's "original"; the team by its função.
+  def pode_baixar_original?
+    cliente_final? ? aberto_ao_cliente?(:original) : pode_acao?(:baixar_producao)
+  end
+
+  # The price per pair: a cliente final by "valores" (never the cost —
+  # that stays pode_acao?(:ver_valores), which a client never has).
+  def pode_ver_precos?
+    cliente_final? ? aberto_ao_cliente?(:valores) : pode_acao?(:ver_valores)
   end
 
   # A refusal (4xx) before anything was read shows no records.

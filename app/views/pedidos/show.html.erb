@@ -62,8 +62,9 @@
       <p class="gallery-empty">No items yet. Add an arte below, or from the gallery.</p>
     <% end %>
 
-    <%# Etapa 2.4: a reposição is internal, never charged. %>
-    <% if pode_acao?(:ver_valores) && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
+    <%# Etapa 2.4: a reposição is internal, never charged. A cliente final
+        sees the price only, by his grid's "valores" (2.8, 3a). %>
+    <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
       <%= render "pedidos/valores", pedido: @pedido %>
     <% end %>
 
