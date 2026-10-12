@@ -3386,3 +3386,16 @@ li.aprovacao--cancelada {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* ── Header: clients' pedidos waiting for the factory (Etapa 2.8, 5/5) ── */
+
+.header-aguardando-fabrica {
+  margin-left: -0.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #5b2a86;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+}

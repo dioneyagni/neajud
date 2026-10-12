@@ -138,6 +138,19 @@ RSpec.describe Pedido, type: :model do
     expect([ build(:pedido).editavel?, build(:pedido, grade_antiga: true).editavel? ]).to eq([ true, false ])
   end
 
+  # Etapa 2.8 (5/5): sent to the factory, only the team changes it.
+  it "is editable while sent only for the team, and confirmable until confirmed" do
+    enviado = build(:pedido, status: "enviado")
+    expect([ enviado.editavel?, enviado.editavel?(cliente_final: true), build(:pedido).editavel?(cliente_final: true) ]).to eq([ true, false, true ])
+    expect(%w[rascunho enviado confirmado].map { |status| build(:pedido, status: status).confirmavel? }).to eq([ true, true, false ])
+  end
+
+  it "keeps a sent draft following its artes (.nao_confirmados)" do
+    enviado = create(:pedido, status: "enviado")
+    expect(Pedido.nao_confirmados).to include(enviado)
+    expect(Pedido.nao_confirmados).not_to include(create(:pedido, status: "confirmado"))
+  end
+
   it "refuses an unknown type, naming the expected ones" do
     pedido = build(:pedido, tipo: "dtf")
     expect(pedido).not_to be_valid

@@ -55,6 +55,11 @@
             <span class="header-pedido-counter header-pedido-counter--hidden" data-pedido-counter-target="count"></span>
           <% end %>
         <% end %>
+        <%# Etapa 2.8 (5/5): the clients' pedidos waiting for the factory. %>
+        <% aguardando = aguardando_fabrica_count %>
+        <% if aguardando.positive? %>
+          <%= link_to aguardando, pedidos_path(status: "enviado"), class: "header-aguardando-fabrica", title: "Aguardando a fábrica" %>
+        <% end %>
         <% end %>
         <% if pode?(:lixeira, :ver) %>
           <%= link_to "Lixeira", lixeira_path, class: "header-nav-link" %>

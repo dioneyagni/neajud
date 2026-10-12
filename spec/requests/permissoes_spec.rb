@@ -183,6 +183,31 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response.parsed_body["error"]).to include("send cortes (DXF) to the factory")
     end
 
+    # Etapa 2.8 (5/5): the client sends and takes back his draft; confirming
+    # and returning it are the factory's, even at his grid's most.
+    it "a cliente final sends his draft but never confirms or returns it; the team never sends" do
+      rascunho = create(:pedido, client: client)
+      rascunho.itens_pedido.create!(arquivo: arte)
+      funcao = create(:funcao, :para_cliente, niveis: Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE)
+      entrar_como(create(:vinculo, user: create(:user), client: client, funcao: funcao).user)
+      post confirmar_pedido_path(rascunho)
+      expect(response).to have_http_status(:forbidden)
+      post devolver_pedido_path(rascunho), params: { recado: "x" }
+      expect(response).to have_http_status(:forbidden)
+      get resumo_pedido_path(rascunho)
+      expect(response.body).to include("Enviar para a fábrica")
+      expect(response.body).not_to include("Confirmar pedido")
+      entrar_com_funcao(niveis: { "pedidos" => 3 })
+      post enviar_pedido_path(rascunho)
+      expect(response).to have_http_status(:forbidden)
+      post retirar_envio_pedido_path(rascunho)
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "pedidos" => 1 })
+      post devolver_pedido_path(rascunho), params: { recado: "x" }
+      expect(response).to have_http_status(:forbidden)
+      expect(rascunho.reload.status).to eq("rascunho")
+    end
+
     # Etapa 2.4: prices and costs are management's, not the factory floor's.
     it "pricing a molde needs ver_valores and catalogo: editar" do
       preco = -> { post molde_faixas_path(molde), params: { faixa: { tamanho_inicial: "20", tamanho_final: "30", preco_par: "9" } } }

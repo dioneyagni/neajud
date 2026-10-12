@@ -236,7 +236,7 @@ class Arquivo < ApplicationRecord
 
   # A draft pedido waiting for its artes' client adopts it (Pedido#adotar_cliente_das_artes!).
   def atualizar_rascunhos_sem_cliente
-    Pedido.ativos.rascunhos.where(client_id: nil).joins(:itens_pedido).where(itens_pedido: { arquivo_id: id }).distinct.each(&:adotar_cliente_das_artes!)
+    Pedido.ativos.nao_confirmados.where(client_id: nil).joins(:itens_pedido).where(itens_pedido: { arquivo_id: id }).distinct.each(&:adotar_cliente_das_artes!)
   end
   private :atualizar_rascunhos_sem_cliente
 

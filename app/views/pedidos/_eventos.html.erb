@@ -1,0 +1,16 @@
+<%# The pedido's way between the client and the factory (Etapa 2.8, 5/5). %>
+<% eventos = pedido.eventos_pedido.includes(:user).order(:id).to_a %>
+<% if eventos.any? %>
+  <section class="pedido-painel-card pedido-eventos">
+    <h3>Histórico</h3>
+    <ul>
+      <% eventos.each do |evento| %>
+        <li class="pedido-evento pedido-evento--<%= evento.tipo %>">
+          <span><%= rotulo_do_evento(evento) %></span>
+          <small><%= l evento.created_at, format: "%d/%m/%Y %H:%M" %> · <%= evento.user.nome %></small>
+          <% if evento.recado.present? %><blockquote><%= evento.recado %></blockquote><% end %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>

@@ -12,10 +12,25 @@
 <%# Etapa 2.2 (3/3): by status. %>
 <nav class="pedidos-filtro" aria-label="Filtrar por status">
   <%= link_to "Todos", pedidos_path, "aria-current": (@status.nil? ? "page" : nil) %>
-  <% %w[rascunho confirmado em_producao entregue].each do |status| %>
+  <% %w[rascunho enviado confirmado em_producao entregue].each do |status| %>
     <%= link_to rotulo_do_status(status).capitalize, pedidos_path(status: status), "aria-current": (@status == status ? "page" : nil), data: { status: status } %>
   <% end %>
 </nav>
+
+<%# Etapa 2.8 (5/5): the drafts the factory returned, on top with its note. %>
+<% if @devolvidos.any? %>
+  <section class="pedidos-devolvidos" role="alert">
+    <h3>Devolvidos pela fábrica (<%= @devolvidos.size %>)</h3>
+    <ul>
+      <% @devolvidos.each do |devolucao| %>
+        <li data-pedido="<%= devolucao.pedido.uuid %>">
+          <%= link_to "Pedido ##{devolucao.pedido.uuid.first(8)}", resumo_pedido_path(devolucao.pedido) %>:
+          <blockquote><%= devolucao.recado %></blockquote>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
 
 <div style="margin: 1rem 0;">
   <table class="clients-table">
@@ -46,7 +61,7 @@
           </td>
           <td><%= l p.created_at, format: :short %></td>
           <td>
-            <% if p.status == "rascunho" %>
+            <% if p.confirmavel? %>
               <% pendentes = @bloqueios_por_pedido[p.id].to_i %>
               <div class="pedido-actions">
                 <%= link_to "Resumo", resumo_pedido_path(p), class: "btn btn-sm btn-outline" %>
@@ -54,7 +69,7 @@
                   <%= link_to "#{pendentes} pendente(s)", resumo_pedido_path(p),
                         class: "btn btn-sm pedido-pendentes-badge",
                         title: "Pendências (quantidade 0, número sem corte ou sem arquivo de produção) — resolva antes de confirmar" %>
-                <% elsif pode?(:pedidos, :editar) %>
+                <% elsif pode?(:pedidos, :editar) && !cliente_final? %>
                   <%= link_to "Confirmar", confirmar_pedido_path(p),
                         data: { turbo_method: :post, turbo_confirm: "Confirm this pedido?" },
                         class: "btn btn-sm btn-primary" %>

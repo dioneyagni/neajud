@@ -416,7 +416,8 @@ from the files themselves. Done (1/3 to 4/4):
   Impressão and Corte pages, plus `/pedidos/:uuid/etapas/:etapa` for
   Estamparia and Conferência; `_etapas_nav`, `_etapa_andamento`,
   `_situacao_baixa`, `_baixa` (Stimulus `baixa`).
-- **The cycle (3/3)**: `Pedido::STATUS` rascunho → confirmado →
+- **The cycle (3/3)**: `Pedido::STATUS` rascunho (→ enviado, a client's
+  draft waiting for the factory, Etapa 2.8 5/5) → confirmado →
   **em_producao** (`iniciar_producao!` on the first baixa) → **entregue**
   (`EntregarPedidoService`, `POST /pedidos/:uuid/entregar`, Stimulus
   `entrega`: never locked — open stages come back as an aviso, "Entregar
@@ -904,7 +905,25 @@ each empresa is its own instance.
   POST/PATCH/PUT/DELETE route as client A with B's uuids and checks nothing
   of B changed and nothing of A points at B; new routes are swept
   automatically. E2E: `e2e/cliente-envia.spec.js`.
-- Not yet (2.8 5/5): the client's drafts.
+- **The client's drafts (5/5, decided 12/10/2026):** a client's grid goes up
+  to pedidos: editar (the default "Cliente final" has it). He builds a draft
+  of his artes and **sends it to the factory** — `Pedido` status `enviado`
+  ("aguardando a fábrica", between rascunho and confirmado;
+  `Pedido::ANTES_DA_CONFIRMACAO`, `confirmavel?`, scope `nao_confirmados`,
+  which `RecomporRascunhos` follows). Pendências never stop sending; on the
+  panel his own (quantity 0, a file or side missing) keep their actions and
+  the factory's (`PedidoBloqueiosService::DA_FABRICA`) show as "em análise".
+  Sent, only the team changes it (`Pedido#editavel?(cliente_final:)`, the
+  `recusar_pedido_travado` guard — which also stopped a confirmed pedido's
+  grade from changing); he may take it back ("Retirar o envio") until it is
+  confirmed. `EnviosPedidoController` (`enviar` / `retirar` for the client,
+  `devolver` with a required note for the team) moves the status through
+  `EnvioDoPedido` and writes an `EventoPedido` (the pedido's "Histórico").
+  Confirming is the team's (`exige_equipe`), from rascunho or enviado. Notices
+  stay in the system: the team's header counts the pedidos `enviado`
+  (`aguardando_fabrica_count`, links to the filter), the client's Pedidos
+  lists the drafts returned with their note on top
+  (`Pedido#devolucao_pendente`). E2E: `e2e/cliente-rascunho.spec.js`.
 
 ## Art approval (Etapa 0.5, 4/4)
 
@@ -1401,11 +1420,6 @@ The plan renames things; until those stages land, the code keeps its names:
 
 Current code that still differs from the plan — don't copy these patterns into new work:
 
-- **No "cliente final"** — the client's own access (seeing only their pedidos
-  and artes) needs every query filtered by client. Target: Etapa 2.8, before
-  the beta.
-- **Client approval only registered by the team** — "aprovada pelo cliente no
-  sistema" needs the cliente final (its own etapa before the beta).
 - **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
   testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
   `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).

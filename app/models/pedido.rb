@@ -8,13 +8,19 @@ class Pedido < ApplicationRecord
   has_many :arquivo_vinculo_logs, dependent: :nullify
   # Etapa 2.2 (2/3): what the factory has done, stage by stage.
   has_many :baixas_producao, class_name: "BaixaProducao", dependent: :destroy
+  # Etapa 2.8 (5/5): sent, taken back, returned with a note.
+  has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
 
   # One type per pedido (Etapa 1.2, 3/3): calçado now; DTF and tecido in Fase 2.
   TIPOS = %w[calcado].freeze
   # The cycle (Etapa 2.2, 3/3; decided 07/10/2026): rascunho → confirmado →
   # em_producao (on its first baixa, by itself) → entregue ("Marcar como
   # entregue"). cancelado: accepted, not used by any screen yet.
-  STATUS = %w[rascunho confirmado em_producao entregue cancelado].freeze
+  # enviado (Etapa 2.8, 5/5): a client's draft waiting for the factory, which
+  # confirms it or returns it to rascunho with a note.
+  STATUS = %w[rascunho enviado confirmado em_producao entregue cancelado].freeze
+  # Not confirmed yet: items, parts and grade still follow the artes.
+  ANTES_DA_CONFIRMACAO = %w[rascunho enviado].freeze
   # Takes production baixas; a delivered pedido is read only.
   EM_PRODUCAO = %w[confirmado em_producao].freeze
 
@@ -29,6 +35,7 @@ class Pedido < ApplicationRecord
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
 
   scope :rascunhos, -> { where(status: "rascunho") }
+  scope :nao_confirmados, -> { where(status: ANTES_DA_CONFIRMACAO) }
   scope :confirmados, -> { where(status: "confirmado") }
 
   def rotulo_lixeira
@@ -36,12 +43,31 @@ class Pedido < ApplicationRecord
   end
 
   # A draft that is not in the trash: the only state whose items and pieces
-  # can still change.
-  # Usage: <% if @pedido.editavel? %> … <% end %>
+  # can still change. Sent to the factory (Etapa 2.8, 5/5), only the team
+  # changes it — the client takes it back first ("Retirar o envio").
+  # Usage: <% if @pedido.editavel?(cliente_final: cliente_final?) %> … <% end %>
   # grade_antiga: a pedido from before Etapa 1.2 (3/3), its grade by the
   # corte's size name — read only, even restored from the trash.
-  def editavel?
-    status == "rascunho" && !excluido? && !grade_antiga? && !reposicao?
+  def editavel?(cliente_final: false)
+    return false if excluido? || grade_antiga? || reposicao?
+
+    status == "rascunho" || (status == "enviado" && !cliente_final)
+  end
+
+  # Not confirmed yet, not in the trash: the factory may still confirm it.
+  # Usage: pedido.confirmavel? # => true for a rascunho or an enviado
+  def confirmavel?
+    ANTES_DA_CONFIRMACAO.include?(status) && !excluido? && !grade_antiga? && !reposicao?
+  end
+
+  # The team's note when it returned this draft (Etapa 2.8, 5/5): the latest
+  # event, while the client hasn't sent it again.
+  # Usage: pedido.devolucao_pendente&.recado # => "Falta a língua 35"
+  def devolucao_pendente
+    return unless status == "rascunho"
+
+    ultimo = eventos_pedido.order(:id).last
+    ultimo if ultimo&.tipo == "devolvido"
   end
 
   # A sub-pedido of the pieces a Conferência missed (Etapa 2.2, 4/4).
@@ -119,7 +145,7 @@ class Pedido < ApplicationRecord
   # the client once every arte of it has the same one.
   # Usage: pedido.adotar_cliente_das_artes!
   def adotar_cliente_das_artes!
-    return unless status == "rascunho" && client_id.nil?
+    return unless ANTES_DA_CONFIRMACAO.include?(status) && client_id.nil?
 
     clientes = itens_pedido.joins(:arquivo).distinct.pluck("arquivos.client_id")
     # size, not one?: [mks, nil].one? is true (one? counts truthy values).

@@ -51,12 +51,13 @@ RSpec.describe Autorizacao do
       expect(described_class.erros_para_cliente({ "lixeira" => 0 }, %w[aprovar_arte])).to eq([])
     end
 
-    # Etapa 2.8 (4b): artes up to editar, the rest only ver.
+    # Etapa 2.8 (4b): artes up to editar, the rest only ver; 5/5 opens pedidos
+    # up to editar (his drafts).
     it "caps each área at what a client may have" do
       expect(described_class.erros_para_cliente(described_class::NIVEL_MAXIMO_PARA_CLIENTE, [])).to eq([])
-      erros = described_class.erros_para_cliente({ "artes" => 3, "catalogo" => 2, "pedidos" => 2 }, [])
+      erros = described_class.erros_para_cliente({ "artes" => 3, "catalogo" => 2, "pedidos" => 3 }, [])
       expect(erros).to contain_exactly("a client's access can't go above editar in artes", "a client's access can't go above ver in catalogo",
-                                       "a client's access can't go above ver in pedidos")
+                                       "a client's access can't go above editar in pedidos")
     end
   end
 end
