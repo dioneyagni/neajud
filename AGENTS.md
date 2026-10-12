@@ -1145,6 +1145,17 @@ change.
   B work in the coleção geral.
 - Outside the catálogo the client is required: for now a warning on its page
   ("Without client"); the pedido blocks it when DTF and corrida get theirs.
+- **No parts, sides or piloto (2.5c, decided 12/10/2026)**: each file of a
+  work without corte is already the editable one (production compacts a
+  corrida's or cor lisa's file, the DTF gets its own in 2.6); a corrida or a
+  cor lisa, sold by the meter, has no size either — a DTF keeps its.
+  `Arte#usa_pecas?` / `usa_tamanhos?` / `campos_fora_do_tipo` say it;
+  `MembroDeArte` clears those fields on every save (a part read from the
+  file name never sticks), `trocar_tipo!` on the arte's files, and
+  `PapelNaArte` refuses a piloto. The arte page, the card's summary and the
+  upload's conference (the grouping's `tipos` carry `usa_pecas` /
+  `usa_tamanhos`) hide them, with the paper consumption per piece. Their
+  pedidos (2.6, 2.7) have no parts matrix, consumption or cost per pair.
 - **Not in pedidos yet**: only calçado artes go into a pedido (`adicionar_item`
   refuses, the card hides "Pedido") until Etapas 2.6 / 2.7.
 - E2E: `e2e/tipo-da-arte.spec.js`.

@@ -67,9 +67,17 @@ export default class ConferenciaDoUpload {
     return true
   }
 
+  // Redrawn: the kind decides which fields its files have (Etapa 2.5c).
   escolherTipo(alvo) {
     this.grupos.find(g => g.id === Number(alvo.dataset.grupo)).tipo = alvo.value
-    return false
+    return true
+  }
+
+  // Etapa 2.5c: a work without corte has no part, side or piloto; a corrida
+  // or a cor lisa no size either. Without the server's list, calçado's.
+  regrasDe(grupo) {
+    const tipo = this.tipos.find(t => t.tipo === grupo.tipo)
+    return tipo ? { pecas: tipo.usa_pecas, tamanhos: tipo.usa_tamanhos } : { pecas: true, tamanhos: true }
   }
 
   // The upload's kind changed: every group takes it. Returns true to redraw.
@@ -87,10 +95,13 @@ export default class ConferenciaDoUpload {
   async plano(criarArte) {
     const plano = []
     for (const grupo of this.grupos) {
-      const precisaDeArte = grupo.arquivos.length > 1 || grupo.arquivos.some(a => a.piloto)
+      const { pecas, tamanhos } = this.regrasDe(grupo)
+      const precisaDeArte = grupo.arquivos.length > 1 || (pecas && grupo.arquivos.some(a => a.piloto))
       const arteUuid = grupo.existente || (precisaDeArte ? await criarArte(grupo.tipo) : null)
       for (const a of grupo.arquivos) {
-        plano.push({ indice: a.indice, campos: { arte_uuid: arteUuid, tipo: grupo.tipo, peca_uuid: a.parte_uuid, tamanho_rotulo: a.tamanho, lado: a.lado, papel: a.piloto ? "piloto" : null } })
+        const campos = { arte_uuid: arteUuid, tipo: grupo.tipo, peca_uuid: null, tamanho_rotulo: tamanhos ? a.tamanho : null, lado: null, papel: null }
+        if (pecas) Object.assign(campos, { peca_uuid: a.parte_uuid, lado: a.lado, papel: a.piloto ? "piloto" : null })
+        plano.push({ indice: a.indice, campos })
       }
     }
     return plano
@@ -130,18 +141,28 @@ export default class ConferenciaDoUpload {
   }
 
   htmlDoArquivo(a, arquivo, grupo) {
-    const opcoes = this.pecas.map(p => `<option value="${p.uuid}" ${p.uuid === a.parte_uuid ? "selected" : ""}>${this.escapar(p.nome)}</option>`).join("")
-    return `<div class="upload-file conferencia-arquivo${a.piloto ? " conferencia-arquivo--piloto" : ""}" data-index="${a.indice}">
-      <label class="conferencia-piloto" title="The editable master of its part"><input type="checkbox" data-acao="piloto" data-indice="${a.indice}" data-action="change->upload#conferir" ${a.piloto ? "checked" : ""}> ★ piloto</label>
+    const { pecas, tamanhos } = this.regrasDe(grupo)
+    const piloto = pecas && a.piloto
+    return `<div class="upload-file conferencia-arquivo${piloto ? " conferencia-arquivo--piloto" : ""}" data-index="${a.indice}">
+      ${pecas ? `<label class="conferencia-piloto" title="The editable master of its part"><input type="checkbox" data-acao="piloto" data-indice="${a.indice}" data-action="change->upload#conferir" ${a.piloto ? "checked" : ""}> ★ piloto</label>` : ""}
       <span class="upload-file-name">${this.escapar(arquivo.name)}</span>
       <span class="upload-file-size">${(arquivo.size / 1048576).toFixed(1)} MB</span>
-      <select class="conferencia-parte${a.parte_uuid ? "" : " conferencia-parte--vazia"}" data-acao="parte" data-indice="${a.indice}" data-action="change->upload#conferir"><option value="">Part…</option>${opcoes}</select>
-      <input type="text" class="conferencia-tamanho" placeholder="Size" value="${this.escapar(a.tamanho || "")}" data-acao="tamanho" data-indice="${a.indice}" data-action="input->upload#conferir">
-      <select class="conferencia-lado" title="Side of a mirrored part" data-acao="lado" data-indice="${a.indice}" data-action="change->upload#conferir">${[["", "Side…"], ["direito", "DIR"], ["esquerdo", "ESQ"]].map(([v, t]) => `<option value="${v}" ${(a.lado || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+      ${pecas ? this.htmlDaParte(a) : ""}
+      ${tamanhos ? `<input type="text" class="conferencia-tamanho" placeholder="Size" value="${this.escapar(a.tamanho || "")}" data-acao="tamanho" data-indice="${a.indice}" data-action="input->upload#conferir">` : ""}
+      ${pecas ? this.htmlDoLado(a) : ""}
       <span class="upload-file-status"></span>
       ${grupo.arquivos.length > 1 ? `<button type="button" class="conferencia-separar" data-acao="separar" data-indice="${a.indice}" data-nome="${this.escapar(arquivo.name)}" data-action="click->upload#conferir">Separate</button>` : ""}
       <button type="button" class="upload-file-remove" data-action="click->upload#removeFile" data-index="${a.indice}">×</button>
     </div>`
+  }
+
+  htmlDaParte(a) {
+    const opcoes = this.pecas.map(p => `<option value="${p.uuid}" ${p.uuid === a.parte_uuid ? "selected" : ""}>${this.escapar(p.nome)}</option>`).join("")
+    return `<select class="conferencia-parte${a.parte_uuid ? "" : " conferencia-parte--vazia"}" data-acao="parte" data-indice="${a.indice}" data-action="change->upload#conferir"><option value="">Part…</option>${opcoes}</select>`
+  }
+
+  htmlDoLado(a) {
+    return `<select class="conferencia-lado" title="Side of a mirrored part" data-acao="lado" data-indice="${a.indice}" data-action="change->upload#conferir">${[["", "Side…"], ["direito", "DIR"], ["esquerdo", "ESQ"]].map(([v, t]) => `<option value="${v}" ${(a.lado || "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>`
   }
 
   tituloDe(grupo, arquivos) {

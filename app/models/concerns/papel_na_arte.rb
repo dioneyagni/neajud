@@ -17,6 +17,7 @@ module PapelNaArte
   included do
     validates :papel, inclusion: { in: PAPEIS, message: "%{value} is not a role; expected producao or piloto" }
     validate :um_piloto_por_parte, if: :piloto?
+    validate :piloto_so_no_calcado, if: :piloto?
   end
 
   def piloto?
@@ -59,6 +60,11 @@ module PapelNaArte
   end
 
   private
+
+  # Etapa 2.5c: each file of a work without corte is already the editable one.
+  def piloto_so_no_calcado
+    errors.add(:papel, "can't be piloto: #{arte.rotulo_do_tipo} has no piloto, each of its files is the editable one") if arte && !arte.usa_pecas?
+  end
 
   def um_piloto_por_parte
     outro = piloto_da_parte

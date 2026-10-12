@@ -14,6 +14,7 @@ module MembroDeArte
     # Before validation, not before_create: the belongs_to autosave runs in
     # before_save, ahead of before_create, so a new Arte set there was never saved.
     before_validation :criar_arte, on: :create
+    before_validation :limpar_campos_fora_do_tipo
     validate :sem_molde_fora_do_calcado
     after_update_commit :compartilhar_com_a_arte!, if: -> { arte_id && (saved_changes.keys & CAMPOS_DA_ARTE).any? }
   end
@@ -96,6 +97,12 @@ module MembroDeArte
   # A work without corte (Etapa 2.5a) has no molde: its sizes are its own.
   def sem_molde_fora_do_calcado
     errors.add(:molde, "can't be set: #{arte.rotulo_do_tipo} is a work without corte") if molde_id && arte && !arte.calcado?
+  end
+
+  # Etapa 2.5c: a part read from the file name ("…LATERAL") never sticks to a
+  # DTF, nor a size to a corrida or a cor lisa (TipoDaArte#campos_fora_do_tipo).
+  def limpar_campos_fora_do_tipo
+    assign_attributes(arte.campos_fora_do_tipo) if arte && !arte.calcado?
   end
 
   def criar_arte

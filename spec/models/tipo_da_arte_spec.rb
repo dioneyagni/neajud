@@ -56,4 +56,44 @@ RSpec.describe TipoDaArte do
     expect(arquivo).not_to be_valid
     expect(arquivo.errors[:molde].first).to include("Etiqueta DTF is a work without corte")
   end
+
+  # Etapa 2.5c (decided 12/10/2026): a work without corte has no part, side
+  # or piloto; a corrida or a cor lisa has no size either (sold by the meter).
+  describe "the fields a work without corte doesn't keep" do
+    let(:lateral) { create(:peca, nome: "Lateral") }
+
+    it "clears the part and side read from a DTF file's name, keeping its size" do
+      arquivo = create(:arquivo, category: "artes", peca: lateral, lado: "direito", tamanho_rotulo: "P", arte: Arte.novo_do_tipo("dtf"))
+      expect(arquivo.reload.attributes.slice("peca_id", "lado", "tamanho_rotulo")).to eq("peca_id" => nil, "lado" => nil, "tamanho_rotulo" => "P")
+    end
+
+    it "clears the size of a corrida and a cor lisa" do
+      corrida = create(:arquivo, category: "artes", tamanho_rotulo: "M", arte: Arte.novo_do_tipo("corrida"))
+      cor = create(:arquivo, category: "artes", tamanho_rotulo: "M", arte: Arte.novo_do_tipo("cor_lisa"))
+      expect([ corrida.reload.tamanho_rotulo, cor.reload.tamanho_rotulo ]).to eq([ nil, nil ])
+    end
+
+    it "keeps a calçado file's part, side and size" do
+      arquivo = create(:arquivo, category: "artes", peca: lateral, lado: "direito", tamanho_rotulo: "29-30")
+      expect(arquivo.reload.attributes.slice("peca_id", "lado", "tamanho_rotulo")).to eq("peca_id" => lateral.id, "lado" => "direito", "tamanho_rotulo" => "29-30")
+    end
+
+    it "clears the files when the arte changes kind, the piloto back to production" do
+      piloto = create(:arquivo, category: "artes", peca: lateral, tamanho_rotulo: "29-30", papel: "piloto")
+      outro = create(:arquivo, category: "artes", peca: lateral, tamanho_rotulo: "31-32", arte: piloto.arte)
+      expect(piloto.arte.trocar_tipo!("corrida")).to be(true)
+      expect([ piloto, outro ].map { |a| a.reload.attributes.slice("peca_id", "tamanho_rotulo", "papel") })
+        .to all(eq("peca_id" => nil, "tamanho_rotulo" => nil, "papel" => "producao"))
+    end
+
+    it "refuses a piloto, naming the kind" do
+      arquivo = create(:arquivo, category: "artes", arte: Arte.novo_do_tipo("dtf"))
+      expect { arquivo.tornar_piloto! }.to raise_error(ActiveRecord::RecordInvalid, /Etiqueta DTF has no piloto/)
+    end
+
+    it "says which kinds use parts and sizes" do
+      expect(TipoDaArte::TIPOS.map { |tipo| [ tipo, Arte.new(tipo: tipo).usa_pecas?, Arte.new(tipo: tipo).usa_tamanhos? ] })
+        .to eq([ [ "calcado", true, true ], [ "dtf", false, true ], [ "corrida", false, false ], [ "cor_lisa", false, false ] ])
+    end
+  end
 end
