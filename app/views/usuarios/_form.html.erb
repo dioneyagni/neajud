@@ -43,7 +43,7 @@
           <th scope="row"><%= FuncoesHelper::ROTULOS_AREA.fetch(area) %></th>
           <td class="usuario-extras-funcao"><%= funcao_atual ? rotulo_de_nivel(area, funcao_atual.dono? ? Autorizacao.nivel_maximo(area) : funcao_atual.niveis.to_h[area].to_i) : "—" %></td>
           <td>
-            <%= select_tag "usuario[acessos_extras][niveis][#{area}]", options_for_select(opcoes_de_nivel(area), extras.dig("niveis", area).to_i),
+            <%= select_tag "usuario[acessos_extras][niveis][#{area}]", options_for_select(opcoes_de_nivel(area, para_cliente: cliente.present?), extras.dig("niveis", area).to_i),
                   "aria-label": "Extra #{area}" %>
           </td>
         </tr>

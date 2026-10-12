@@ -149,6 +149,40 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    # Etapa 2.8 (4b): a cliente final uploads artes into his own artes; the
+    # versions, the client and the cortes stay the team's even at his grid's most.
+    it "versions, the client and the cortes are the team's, even for a client at his grid's most" do
+      arte.update!(client: client, approved_version: create(:arquivo_version, arquivo: arte, version_number: 1))
+      corte.moldes << create(:molde, client: client)
+      client.update!(visibilidade: { "cortes" => true }) # he sees the corte: refused for being the team's, not a 404
+      funcao = create(:funcao, :para_cliente, niveis: Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE)
+      entrar_como(create(:vinculo, user: create(:user), client: client, funcao: funcao).user)
+      [
+        -> { patch update_client_arquivo_path(arte), params: { client_uuid: "" } },
+        -> { post upload_version_arquivo_path(arte) },
+        -> { patch approve_version_arquivo_path(arte, version_uuid: arte.approved_version.uuid) },
+        -> { post tornar_versao_arquivo_nome_arte_path(arte), params: { original_uuid: arte.uuid } },
+        -> { patch update_giro_arquivo_path(corte), params: { giro: "180" } }
+      ].each do |pedido|
+        instance_exec(&pedido)
+        expect(response).to have_http_status(:forbidden), "#{request.method} #{request.path} answered #{response.status}"
+      end
+      expect(arte.reload.client).to eq(client)
+      create(:arquivo_version, arquivo: arte, version_number: 2)
+      get arquivo_path(arte)
+      expect(response.body).to include("Add a file")
+      expect(response.body).not_to include("Upload New Version", "Usar esta versão", "Unlink client")
+    end
+
+    it "a cliente final's upload is his client's arte, never a corte" do
+      funcao = create(:funcao, :para_cliente, niveis: Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE)
+      entrar_como(create(:vinculo, user: create(:user), client: client, funcao: funcao).user)
+      post arquivos_path, params: { arquivo: { original_file: Rack::Test::UploadedFile.new(Rails.root.join("spec/fixtures/files/29-30.dxf"), "image/vnd.dxf") } },
+                         headers: { "Accept" => "application/json" }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to include("send cortes (DXF) to the factory")
+    end
+
     # Etapa 2.4: prices and costs are management's, not the factory floor's.
     it "pricing a molde needs ver_valores and catalogo: editar" do
       preco = -> { post molde_faixas_path(molde), params: { faixa: { tamanho_inicial: "20", tamanho_final: "30", preco_par: "9" } } }

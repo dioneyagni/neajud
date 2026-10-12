@@ -12,6 +12,10 @@ class ArquivosController < ApplicationController
                          upload_version approve_version configure_layers organize]) { exigir_no_arquivo!(:editar) }
   before_action(only: :destroy) { exigir_no_arquivo!(:excluir) }
   exige_baixar_original only: :download
+  # A cliente final uploads artes into his own artes (Etapa 2.8, 4b, decided
+  # 12/10/2026); versions, the version in use, the client and everything about
+  # cortes stay the team's, whatever his grid says.
+  exige_equipe only: %i[update_client upload_version approve_version update_tipo_corte update_giro add_molde remove_molde configure_layers organize]
 
   PER_PAGE_GRID = 12
   PER_PAGE_LIST = 50
@@ -33,6 +37,11 @@ class ArquivosController < ApplicationController
 
     unless file_uploaded?
       @arquivo.errors.add(:original_file, "select a file to upload")
+      return responder_upload_recusado
+    end
+    # Cortes are the catálogo, organized by the team (Etapa 2.8, 4b).
+    if cliente_final? && !arquivo_de_arte?(params[:arquivo][:original_file])
+      @arquivo.errors.add(:original_file, "#{params[:arquivo][:original_file].original_filename} is not an arte; send cortes (DXF) to the factory")
       return responder_upload_recusado
     end
 
@@ -427,8 +436,18 @@ class ArquivosController < ApplicationController
     atributos[:peca] = visiveis(Peca).ativos.por_uuid!(dados[:peca_uuid]) if dados[:peca_uuid].present?
     atributos[:tamanho_rotulo] = dados[:tamanho_rotulo].to_s.squish if dados[:tamanho_rotulo].present?
     atributos[:lado] = dados[:lado] if dados[:lado].present?
-    arte = visiveis(Arte).por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
+    arte = artes_que_recebem.por_uuid!(dados[:arte_uuid]) if dados[:arte_uuid].present? && arquivo_de_arte?(dados[:original_file])
+    # A cliente final's file is always his client's (Etapa 2.8, 4b): unsaved
+    # without it, it would vanish from him the moment it was created.
+    atributos[:client] = Current.user.cliente if cliente_final?
     arte ? arte.novo_arquivo(**atributos) : visiveis(Arquivo).new(atributos)
+  end
+
+  # The artes a file may go into: visible ones, and the empty arte the upload's
+  # grouping has just made (POST /artes) — no file yet, so no one's records,
+  # and not visible to a cliente final until his first file lands in it.
+  def artes_que_recebem
+    visiveis(Arte).or(Arte.where.not(id: Arquivo.where.not(arte_id: nil).select(:arte_id)))
   end
 
   # Only arte files go into an arte; a DXF sent with one stays a corte.

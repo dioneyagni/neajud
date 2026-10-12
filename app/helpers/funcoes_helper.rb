@@ -14,9 +14,11 @@ module FuncoesHelper
   }.freeze
 
   # [label, value] pairs for an área's level select on the Funções grid.
+  # A client's função or extras stop at Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE (2.8, 4b).
   # Usage: options_for_select(opcoes_de_nivel("lixeira"), funcao.niveis["lixeira"])
-  def opcoes_de_nivel(area)
+  def opcoes_de_nivel(area, para_cliente: false)
     rotulos = area == "lixeira" ? ROTULOS_NIVEL_LIXEIRA : ROTULOS_NIVEL
+    rotulos = rotulos.select { |valor, _| valor <= Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE.fetch(area) } if para_cliente
     rotulos.map { |valor, rotulo| [ rotulo, valor ] }
   end
 

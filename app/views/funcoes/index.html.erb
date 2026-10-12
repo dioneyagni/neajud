@@ -41,7 +41,7 @@
                   <span class="funcao-so-equipe" title="The team's only">—</span>
                 <% else %>
                   <select name="funcoes[<%= funcao.uuid %>][niveis][<%= area %>]" aria-label="<%= funcao.nome %>: <%= area %>">
-                    <%= options_for_select(opcoes_de_nivel(area), funcao.niveis.to_h[area].to_i) %>
+                    <%= options_for_select(opcoes_de_nivel(area, para_cliente: funcao.para_cliente?), funcao.niveis.to_h[area].to_i) %>
                   </select>
                 <% end %>
               </td>

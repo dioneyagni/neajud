@@ -18,7 +18,12 @@ class Autorizacao
   # Never given to a cliente final (Etapa 2.8, 2/5): the trash and the
   # factory's own actions. Costs and margin are never shown to a client; the
   # price per pair reaches him by the visibility's "Valores" (3/5).
-  AREAS_DA_EQUIPE = %w[lixeira].freeze
+  # The most a client's função or extras may give per área (Etapa 2.8, 4b,
+  # decided 12/10/2026): artes up to editar (he uploads; trashing is the
+  # team's, he couldn't restore), the rest only ver — so no client registers
+  # clients, moldes, the common peças or stock. Pedidos opens with his drafts (5/5).
+  NIVEL_MAXIMO_PARA_CLIENTE = { "pedidos" => 1, "clientes" => 1, "artes" => 2, "catalogo" => 1, "estoque" => 1, "lixeira" => 0 }.freeze
+  AREAS_DA_EQUIPE = NIVEL_MAXIMO_PARA_CLIENTE.select { |_, nivel| nivel.zero? }.keys.freeze
   ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores].freeze
 
   # Shape check shared by Funcao#niveis/acoes and Vinculo#acessos_extras.
@@ -32,8 +37,12 @@ class Autorizacao
   # What a client's função or vínculo may not have, shared by Funcao and Vinculo.
   # Usage: Autorizacao.erros_para_cliente({ "lixeira" => 1 }, []) # => ["a client's access can't have lixeira"]
   def self.erros_para_cliente(niveis, acoes)
-    areas = AREAS_DA_EQUIPE.select { |area| niveis.to_h.stringify_keys[area].to_i.positive? }
-    (areas + (Array(acoes).map(&:to_s) & ACOES_DA_EQUIPE)).map { |item| "a client's access can't have #{item}; it is the team's" }
+    acima = niveis.to_h.stringify_keys.select { |area, nivel| nivel.to_i > NIVEL_MAXIMO_PARA_CLIENTE.fetch(area, 0) }
+    erros = acima.keys.map do |area|
+      maximo = NIVEL_MAXIMO_PARA_CLIENTE.fetch(area, 0)
+      maximo.zero? ? "a client's access can't have #{area}; it is the team's" : "a client's access can't go above #{NIVEIS.key(maximo)} in #{area}"
+    end
+    erros + (Array(acoes).map(&:to_s) & ACOES_DA_EQUIPE).map { |acao| "a client's access can't have #{acao}; it is the team's" }
   end
 
   def self.nivel_maximo(area)

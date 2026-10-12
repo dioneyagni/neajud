@@ -6,6 +6,11 @@
 # Why not keep `client_id` with a uuid value: Rails casts "8f3a…" to the
 # integer 8 without complaint, which would silently link the wrong record.
 #
+# The uuid is looked up through the signed-in person's Visibilidade (Etapa
+# 2.8, 4b): a cliente final pointing a record at another client's molde,
+# client or tamanho gets RecordNotFound, like reading it. With nobody signed
+# in (jobs, the console, specs) it is the team's view: everything.
+#
 # Usage: class Molde < ApplicationRecord; atribui_por_uuid :client, :modelo; end
 #        Molde.new(nome: "X", client_uuid: params[:client_uuid])
 module AtribuiPorUuid
@@ -24,7 +29,7 @@ module AtribuiPorUuid
 
       define_method(:"#{associacao}_uuid") { public_send(associacao)&.uuid }
       define_method(:"#{associacao}_uuid=") do |uuid|
-        public_send(:"#{associacao}=", uuid.presence && classe.por_uuid!(uuid))
+        public_send(:"#{associacao}=", uuid.presence && Visibilidade.new(Current.user&.cliente).escopo(classe).por_uuid!(uuid))
       end
     end
   end
