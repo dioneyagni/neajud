@@ -3473,3 +3473,149 @@ li.aprovacao--cancelada {
 .conferencia-tipo {
   font-size: 0.82rem;
 }
+
+/* ── The cor lisa, measured (Etapa 2.5b) ── */
+
+.cor-amostra {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.cor-amostra--grande {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 6px;
+}
+
+.cor-lisa-medida {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cor-lisa-nome {
+  font-size: 1.1rem;
+}
+
+.cor-lisa-lab,
+.cores-lab {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cor-lisa-material {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.88rem;
+}
+
+.cor-parecidas {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #f2d49a;
+  border-radius: 6px;
+  background: #fffbf2;
+  font-size: 0.88rem;
+}
+
+.cor-parecidas p {
+  margin: 0 0 0.35rem;
+}
+
+.cor-parecidas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cor-parecida {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cor-parecida-grau {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #7a4500;
+  font-size: 0.78rem;
+}
+
+.cor-parecida--praticamente_igual .cor-parecida-grau {
+  background: #fde2e1;
+  color: #8a1c14;
+}
+
+.cor-parecida-delta,
+.cor-parecida-material {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stamp-card-parecida {
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #7a4500;
+  font-weight: 500;
+}
+
+.cartela {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #1f1e1d;
+  overflow-x: auto;
+}
+
+.cartela-grade {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(1.6rem, 1fr));
+  gap: 3px;
+  min-width: 26rem;
+}
+
+.cartela-celula {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  aspect-ratio: 1;
+  border-radius: 3px;
+}
+
+.cartela-celula small {
+  padding: 0 0.2rem;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.65rem;
+}
+
+.cartela-celula--vazia {
+  background: #3a3836;
+}
+
+.cartela-legenda {
+  margin: 0.5rem 0 0;
+  color: #bdb9b3;
+  font-size: 0.78rem;
+}
+
+.tabela-rolavel {
+  overflow-x: auto;
+}

@@ -1,0 +1,64 @@
+<%# Every cor lisa (Etapa 2.5b, the layout in docs/cor-lisa/): the chart
+    fills as colors come in — a column per 30° of hue (grays first), a row
+    per band of lightness — and the table below, by family and material. %>
+<h2>Cores</h2>
+
+<section class="cartela" aria-label="Chart of colors">
+  <div class="cartela-grade">
+    <% @cartela.linhas.each do |linha| %>
+      <% linha.each do |celula| %>
+        <% cores = celula.cores %>
+        <% if cores.any? %>
+          <span class="cartela-celula" style="background: <%= cores.first.last.cor_hex %>"
+                title="<%= cores.map { |arte, _| arte.codigo || "medindo…" }.join(", ") %> (<%= cores.size %>)"
+                data-coluna="<%= celula.coluna %>" data-faixa="<%= celula.faixa %>" data-contagem="<%= cores.size %>">
+            <% if cores.size > 1 %><small><%= cores.size %></small><% end %>
+          </span>
+        <% else %>
+          <span class="cartela-celula cartela-celula--vazia" aria-hidden="true"></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+  <p class="cartela-legenda">Columns: grays, then the hue every 30°. Rows: lightness, lightest on top.</p>
+</section>
+
+<nav class="pedidos-filtro cores-filtro" aria-label="Filter by family">
+  <%= link_to "All", cores_path(materia_prima_uuid: params[:materia_prima_uuid]), "aria-current": (params[:familia].blank? ? "page" : nil) %>
+  <% @familias.each do |familia| %>
+    <%= link_to familia, cores_path(familia: familia, materia_prima_uuid: params[:materia_prima_uuid]), "aria-current": (params[:familia] == familia ? "page" : nil) %>
+  <% end %>
+</nav>
+<% if @materiais.any? %>
+  <nav class="pedidos-filtro cores-filtro" aria-label="Filter by material">
+    <%= link_to "Any material", cores_path(familia: params[:familia]), "aria-current": (params[:materia_prima_uuid].blank? ? "page" : nil) %>
+    <% @materiais.each do |material| %>
+      <%= link_to material.nome_completo, cores_path(familia: params[:familia], materia_prima_uuid: material.uuid), "aria-current": (params[:materia_prima_uuid] == material.uuid ? "page" : nil) %>
+    <% end %>
+  </nav>
+<% end %>
+
+<div class="tabela-rolavel">
+  <table class="clients-table cores-tabela">
+    <thead>
+      <tr><th></th><th>Color</th><th>Family</th><th>Material</th><th>Client</th><th>L*a*b*</th><th>Since</th></tr>
+    </thead>
+    <tbody>
+      <% @cores.each do |arte, versao| %>
+        <tr data-codigo="<%= arte.codigo %>">
+          <td><span class="cor-amostra" style="background: <%= versao.cor_hex %>" aria-hidden="true"></span></td>
+          <td><%= link_to arte.codigo || "medindo…", arquivo_path(arte.principal) %><%= " · catálogo" if arte.no_catalogo %></td>
+          <td><%= arte.familia.presence || "—" %></td>
+          <td><%= arte.materia_prima&.nome_completo || "—" %></td>
+          <%# Whose a color of the coleção geral is stays the team's (Etapa 2.5a). %>
+          <td><%= do_proprio_cliente?(arte.principal) ? (arte.principal.client&.name || "—") : "—" %></td>
+          <td class="cores-lab"><%= rotulo_lab(versao.lab) %></td>
+          <td><%= l arte.created_at.to_date, format: :short %></td>
+        </tr>
+      <% end %>
+      <% if @cores.empty? %>
+        <tr><td colspan="7" class="gallery-empty">No measured cor lisa yet. Upload one as "Cor lisa".</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

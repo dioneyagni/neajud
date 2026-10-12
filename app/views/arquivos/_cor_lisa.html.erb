@@ -1,0 +1,52 @@
+<%# A cor lisa's measured color (Etapa 2.5b, decided 12/10/2026): its name
+    by the system ("Laranja 1"), L*a*b* of the version in use, the optional
+    material, and the colors nearest to it — a notice, never a block. %>
+<% arte = arquivo.arte %>
+<% versao = arte.cor_medida %>
+<div class="stamp-detail-section stamp-detail-section--full" id="cor-lisa-section" data-codigo="<%= arte.codigo %>">
+  <h3>Color</h3>
+  <% if versao %>
+    <div class="cor-lisa-medida">
+      <span class="cor-amostra cor-amostra--grande" style="background: <%= versao.cor_hex %>" aria-hidden="true"></span>
+      <div>
+        <strong class="cor-lisa-nome"><%= arte.codigo || "medindo…" %></strong>
+        <div class="cor-lisa-lab"><%= rotulo_lab(versao.lab) %> · <%= versao.cor_hex %></div>
+      </div>
+    </div>
+  <% else %>
+    <p class="cor-lisa-medindo">Measuring the color — the name comes with it.</p>
+  <% end %>
+
+  <div class="cor-lisa-material">
+    <span>Material:</span> <strong><%= arte.materia_prima&.nome_completo || "—" %></strong>
+    <% if pode_editar_arquivo?(arquivo) %>
+      <%= form_with url: material_arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "cor-lisa-material-form", data: { controller: "auto-submit" } do %>
+        <select name="materia_prima_uuid" id="cor-lisa-material-select" aria-label="Material" data-action="change->auto-submit#submit">
+          <option value="">—</option>
+          <% visiveis(MateriaPrima).order(:id).each do |material| %>
+            <option value="<%= material.uuid %>" <%= "selected" if arte.materia_prima_id == material.id %>><%= material.nome_completo %></option>
+          <% end %>
+        </select>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% parecidas = CoresParecidas.call(arte, candidatas: visiveis(Arte)) %>
+  <% if parecidas.any? %>
+    <div class="cor-parecidas" role="note">
+      <p>Already in the system:</p>
+      <ul>
+        <% parecidas.each do |parecida| %>
+          <% outra = parecida.arte %>
+          <li class="cor-parecida cor-parecida--<%= parecida.grau %>" data-codigo="<%= outra.codigo %>">
+            <span class="cor-amostra" style="background: <%= outra.cor_medida&.cor_hex %>" aria-hidden="true"></span>
+            <%= link_to outra.codigo, arquivo_path(outra.principal) %>
+            <span class="cor-parecida-grau"><%= parecida.grau == :praticamente_igual ? "praticamente igual" : "parecida" %></span>
+            <span class="cor-parecida-delta">ΔE <%= number_with_precision(parecida.delta_e, precision: 1, separator: ",") %></span>
+            <% if outra.materia_prima %><span class="cor-parecida-material"><%= outra.materia_prima.nome_completo %></span><% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+</div>

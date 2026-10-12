@@ -59,6 +59,8 @@ Rails.application.routes.draw do
     # Etapa 2.5a: the arte's kind and the coleção geral.
     resource :tipo_da_arte, only: :update, controller: "tipos_da_arte" do
       patch :catalogo
+      # Etapa 2.5b: a cor lisa's optional material.
+      patch :material
     end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
@@ -143,6 +145,9 @@ Rails.application.routes.draw do
   end
 
   resources :movimentos, only: %i[index new create]
+
+  # Etapa 2.5b: every cor lisa — the chart and the table.
+  resources :cores, only: :index
 
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
     collection do

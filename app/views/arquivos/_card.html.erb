@@ -58,7 +58,14 @@
     <div class="stamp-card-body">
       <%# Etapa 2.5a: a work without corte shows its kind and number. %>
       <% if arquivo.arte && !arquivo.arte.calcado? %>
-        <div class="stamp-card-tipo" data-tipo="<%= arquivo.arte.tipo %>"><%= arquivo.arte.codigo || arquivo.arte.rotulo_do_tipo %><%= " · catálogo" if arquivo.arte.no_catalogo %></div>
+        <div class="stamp-card-tipo" data-tipo="<%= arquivo.arte.tipo %>">
+          <%# Etapa 2.5b: a cor lisa's measured color; "parecida" never names the other (the card goes live to several clients). %>
+          <% if (medida = arquivo.arte.tipo == "cor_lisa" && arquivo.arte.cor_medida) %>
+            <span class="cor-amostra" style="background: <%= medida.cor_hex %>" aria-hidden="true"></span>
+          <% end %>
+          <%= arquivo.arte.codigo || (arquivo.arte.tipo == "cor_lisa" ? "Cor lisa · medindo…" : arquivo.arte.rotulo_do_tipo) %><%= " · catálogo" if arquivo.arte.no_catalogo %>
+          <% if medida && CoresParecidas.alguma?(arquivo.arte) %><span class="stamp-card-parecida" title="A similar color is already in the system">parecida</span><% end %>
+        </div>
       <% end %>
       <div class="stamp-card-name"><%= arquivo.filename %>.<%= arquivo.extension %></div>
       <% if (resumo = resumo_da_arte(arquivo)) %>

@@ -139,4 +139,10 @@ module ArquivosHelper
       "#{number_with_precision(largura.to_i / 1000.0, precision: 2, separator: ",")} m: #{number_with_precision(1 / metros.to_f, precision: 1, separator: ",")} peças/m"
     end.join(" · ")
   end
+
+  # A measured color as people read it (Etapa 2.5b).
+  # Usage: rotulo_lab([54.29, 64.67, 55.31]) # => "L* 54,3 · a* 64,7 · b* 55,3"
+  def rotulo_lab(lab)
+    %w[L* a* b*].zip(lab).map { |eixo, valor| "#{eixo} #{number_with_precision(valor, precision: 1, separator: ",")}" }.join(" · ")
+  end
 end

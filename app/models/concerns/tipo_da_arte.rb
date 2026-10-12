@@ -20,6 +20,10 @@ module TipoDaArte
     validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a kind of arte; expected one of #{TIPOS.join(", ")}" }
     validate :catalogo_so_sem_corte
     before_save :numerar, if: :will_save_change_to_tipo?
+    # Etapa 2.5b: an arte that becomes a cor lisa is measured (its name comes with it).
+    after_update_commit :medir_cor, if: -> { saved_change_to_tipo? && tipo == "cor_lisa" }
+    belongs_to :materia_prima, optional: true
+    atribui_por_uuid :materia_prima
     scope :da_colecao_geral, -> { where(no_catalogo: true) }
   end
 
@@ -35,10 +39,34 @@ module TipoDaArte
     tipo == "calcado"
   end
 
-  # Usage: arte.codigo # => "DTF-863", nil for calçado or a cor lisa (2.5b)
+  # Usage: arte.codigo # => "DTF-863"; "Laranja 1" for a measured cor lisa;
+  #        nil for calçado or a cor lisa not measured yet
   def codigo
+    return "#{familia} #{numero}" if tipo == "cor_lisa" && numero
+
     prefixo = PREFIXOS[tipo]
     "#{prefixo}-#{numero}" if prefixo && numero
+  end
+
+  # The cor lisa's family and number, at its first measure (Etapa 2.5b,
+  # decided 12/10/2026: the system names it — "Laranja 1" —, numbered per
+  # family, never changed by a later version).
+  # Usage: arte.batizar!([54.3, 64.7, 55.3]) # => "Laranja 1"
+  def batizar!(lab)
+    with_lock do
+      return codigo if numero
+
+      self.familia = FamiliasDeCor.classificar(lab)
+      self.numero = Sequencia.proximo!("cor_lisa:#{familia.parameterize}")
+      save!
+    end
+    codigo
+  end
+
+  # The measured color of a cor lisa: its file's version in use.
+  # Usage: arte.cor_medida&.cor_hex # => "#EF4123"
+  def cor_medida
+    principal&.approved_version&.then { |v| v if v.lab }
   end
 
   # Usage: arte.rotulo_do_tipo # => "Etiqueta DTF"
@@ -59,9 +87,16 @@ module TipoDaArte
 
   private
 
+  # The cor lisa's number comes with its family, at the first measure (batizar!).
   def numerar
     prefixo = PREFIXOS[tipo]
+    self.familia = ""
     self.numero = prefixo ? Sequencia.proximo!(tipo) : nil
+  end
+
+  def medir_cor
+    versao = principal&.approved_version
+    MedirCorJob.perform_later(versao.id) if versao&.status == "processed"
   end
 
   def catalogo_so_sem_corte
