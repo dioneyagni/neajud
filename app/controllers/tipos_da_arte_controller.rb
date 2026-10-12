@@ -25,6 +25,16 @@ class TiposDaArteController < ApplicationController
     redirect_to @arquivo, notice: arte.no_catalogo ? "#{arte.titulo} is in the catálogo: every client sees it." : "#{arte.titulo} left the catálogo: only its client sees it."
   end
 
+  # A cor lisa's optional material (Etapa 2.5b): not in its name.
+  # Usage: PATCH /arquivos/:arquivo_id/tipo_da_arte/material, materia_prima_uuid=…
+  def material
+    arte = @arquivo.arte
+    arte.materia_prima_uuid = params[:materia_prima_uuid]
+    return redirect_to @arquivo, alert: "#{arte.titulo}: #{arte.errors.full_messages.to_sentence}" unless arte.save
+
+    redirect_to @arquivo, notice: "Material of #{arte.titulo}: #{arte.materia_prima&.nome_completo || "none"}."
+  end
+
   private
 
   def set_arquivo

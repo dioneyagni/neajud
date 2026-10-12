@@ -42,6 +42,8 @@
           <%= link_to "Pecas", pecas_path, class: "header-nav-link" %>
           <%= link_to "Moldes", moldes_path, class: "header-nav-link" if aberto_ao_cliente?(:moldes) %>
         <% end %>
+        <%# Etapa 2.5b: every cor lisa. %>
+        <%= link_to "Cores", cores_path, class: "header-nav-link" if pode?(:artes, :ver) %>
         <% if pode?(:estoque, :ver) && aberto_ao_cliente?(:estoque) %>
           <%= link_to "Materials", materiais_path, class: "header-nav-link" %>
           <%= link_to "Movements", movimentos_path, class: "header-nav-link" %>

@@ -11,6 +11,8 @@ class ArquivoVersion < ApplicationRecord
   # than this one, so it still read "processing" and the final card/refresh
   # never went out.
   after_update_commit -> { arquivo.reload.broadcast_status_change }, if: :saved_change_to_status?
+  # Etapa 2.5b: a cor lisa's version is measured once processed.
+  after_update_commit -> { MedirCorJob.perform_later(id) }, if: -> { saved_change_to_status? && status == "processed" && arquivo.arte&.tipo == "cor_lisa" }
 
   validates :version_number, presence: true, uniqueness: { scope: :arquivo_id }
   validates :filename, presence: true
@@ -20,6 +22,12 @@ class ArquivoVersion < ApplicationRecord
   validates :status, presence: true
 
   scope :approved_first, -> { order(approved: :desc, version_number: :desc) }
+
+  # The measured color of a cor lisa's version (Etapa 2.5b), nil until measured.
+  # Usage: version.lab # => [54.3, 64.7, 55.3]
+  def lab
+    [ lab_l, lab_a, lab_b ] if lab_l
+  end
 
   def storage_dir
     File.join(STORAGE_BASE, arquivo.uuid, "v#{version_number}")

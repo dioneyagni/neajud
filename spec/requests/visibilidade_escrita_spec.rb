@@ -37,6 +37,8 @@ RSpec.describe "Visibilidade: a client writes only inside his client", type: :re
     # Etapa 2.5a: a work in the coleção geral — every client reads it, none but its own changes it.
     colecao = create(:arquivo, filename: "colecao-#{nome}", client: client, arte: Arte.new(tipo: "dtf", no_catalogo: true))
     colecao.update!(approved_version: create(:arquivo_version, arquivo: colecao, version_number: 1, status: :processed))
+    # Etapa 2.5b: a cor lisa in the coleção geral (its material is a write).
+    colecao.arte.update_columns(tipo: "cor_lisa", familia: "Laranja", numero: nome == "ALFA" ? 1 : 2)
     { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, referencia: referencia, colecao: colecao }
   end
 

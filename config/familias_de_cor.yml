@@ -1,0 +1,37 @@
+# The cor lisa's color families (Etapa 2.5b, decided 12/10/2026): fixed, the
+# Neajud's, like the official catalog. A color is measured in CIE Lab and
+# read as LCh: lightness L* (0–100), chroma C* (0 = gray), hue h° (0–360).
+# The first rule that matches names the family, so the narrower ones
+# (bordô, marrom, bege) come before the hue bands they sit in. A hue band
+# may wrap past 360 (de: 330, ate: 15). Changing a band only reaches colors
+# measured afterwards: a name given is never changed.
+#
+# Measured on the factory's samples (12/10/2026, sRGB D65 via SWOP):
+# amarelos 84–100°, laranjas 40.5–48°, azul 272°, bordô 11° at L* 24.
+
+# ΔE2000 for the "similar color" notice on a cor lisa's page.
+parecida:
+  praticamente_igual: 1.0
+  parecida: 3.0
+
+neutras:
+  croma_abaixo_de: 12
+  familias:
+    - { nome: Preto, claridade_abaixo_de: 25 }
+    - { nome: Branco, claridade_a_partir_de: 85 }
+    - { nome: Cinza }
+
+familias:
+  - { nome: Bordô, de: 345, ate: 39, claridade_abaixo_de: 35 }
+  - { nome: Marrom, de: 39, ate: 90, claridade_abaixo_de: 50 }
+  - { nome: Bege, de: 50, ate: 100, claridade_a_partir_de: 70, croma_abaixo_de: 30 }
+  # A light red is a pink (salmão): the table of 12/10/2026 named the pale
+  # fluor file (L* 74, C* 31, h 26°) Vermelho.
+  - { nome: Rosa, de: 345, ate: 39, claridade_a_partir_de: 65 }
+  - { nome: Rosa, de: 330, ate: 15 }
+  - { nome: Vermelho, de: 15, ate: 39 }
+  - { nome: Laranja, de: 39, ate: 70 }
+  - { nome: Amarelo, de: 70, ate: 105 }
+  - { nome: Verde, de: 105, ate: 200 }
+  - { nome: Azul, de: 200, ate: 290 }
+  - { nome: Roxo, de: 290, ate: 330 }

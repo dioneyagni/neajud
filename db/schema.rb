@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_12_171117) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_183429) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -100,9 +100,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_171117) do
     t.integer "arquivo_id", null: false
     t.string "category"
     t.text "category_notes"
+    t.string "cor_hex"
     t.datetime "created_at", null: false
     t.string "extension", null: false
     t.string "filename", null: false
+    t.float "lab_a"
+    t.float "lab_b"
+    t.float "lab_l"
     t.string "mime_type", null: false
     t.string "original_file", null: false
     t.string "preview_file"
@@ -189,13 +193,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_171117) do
 
   create_table "artes", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "familia", default: "", null: false
+    t.integer "materia_prima_id"
     t.boolean "no_catalogo", default: false, null: false
     t.integer "numero"
     t.string "tipo", default: "calcado", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.index ["materia_prima_id"], name: "index_artes_on_materia_prima_id"
     t.index ["no_catalogo"], name: "index_artes_on_no_catalogo"
-    t.index ["tipo", "numero"], name: "index_artes_on_tipo_and_numero", unique: true
+    t.index ["tipo", "familia", "numero"], name: "index_artes_on_tipo_and_familia_and_numero", unique: true
     t.index ["uuid"], name: "index_artes_on_uuid", unique: true
   end
 
@@ -696,6 +703,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_171117) do
   add_foreign_key "arquivos", "pecas"
   add_foreign_key "arquivos", "referencias"
   add_foreign_key "arquivos", "tamanhos"
+  add_foreign_key "artes", "materia_primas"
   add_foreign_key "baixas_producao", "pedidos"
   add_foreign_key "baixas_producao", "pedidos", column: "reposicao_id"
   add_foreign_key "baixas_producao", "users"

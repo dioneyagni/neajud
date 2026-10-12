@@ -32,7 +32,12 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     # client reads it, never whose it is.
     dtf = create(:arquivo, filename: "dtf-#{nome}", client: client, arte: Arte.novo_do_tipo("dtf"))
     colecao = create(:arquivo, filename: "colecao-#{nome.downcase.reverse}", client: client, arte: Arte.new(tipo: "dtf", no_catalogo: true))
-    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral, movimento: movimento, faixa: faixa, dtf: dtf, colecao: colecao }
+    # Etapa 2.5b: his own cor lisa, the same tone for both clients — "Cores"
+    # and the near colors of A's page must never show B's (family "VAZOU").
+    cor = create(:arquivo, filename: "cor-#{nome}", client: client, arte: Arte.new(tipo: "cor_lisa"))
+    cor.arte.update_columns(familia: nome, numero: 1)
+    cor.update!(approved_version: create(:arquivo_version, arquivo: cor, version_number: 1, status: :processed, lab_l: 54.3, lab_a: 64.7, lab_b: 55.3, cor_hex: "#EF4123"))
+    { cor: cor, client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral, movimento: movimento, faixa: faixa, dtf: dtf, colecao: colecao }
   end
 
   # Every level and action, the team's too — more than a função para clientes
@@ -152,6 +157,15 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     expect(response).to have_http_status(:ok)
     get arquivo_path(b[:dtf])
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "never shows client A the other's cor lisa among the near colors of his own" do
+    a = dados[:a]
+    dados[:b]
+    entrar_como_cliente(a[:client])
+    get arquivo_path(a[:cor])
+    expect(response.body).to include("ALFA 1")
+    expect(response.body).not_to include(MARCA)
   end
 
   it "answers 404 to the other client's uuid" do

@@ -1149,6 +1149,39 @@ change.
   refuses, the card hides "Pedido") until Etapas 2.6 / 2.7.
 - E2E: `e2e/tipo-da-arte.spec.js`.
 
+### The cor lisa, measured (Etapa 2.5b)
+
+Decided 12/10/2026 (the calibrator by photo comes after the beta —
+`docs/cor-lisa/`):
+
+- **Measured per version** in CIE Lab: `MedirCorJob` (queued by
+  `ArquivoVersion` when a cor lisa's version finishes processing, and by
+  `TipoDaArte` when an arte becomes one) calls `MedidaDeCor` — ImageMagick:
+  CMYK → sRGB by the previews' ICC profiles, averaged to one pixel; sRGB →
+  Lab in Ruby — into `arquivo_versions.lab_l/lab_a/lab_b/cor_hex`. Injectable
+  (`MedirCorJob.medidor`, `FakeMedidaDeCor` in specs). A file it can't read
+  is logged and left "medindo…".
+- **Named by the system** at the first measure (`Arte#batizar!`): the family
+  from `config/familias_de_cor.yml` (`FamiliasDeCor`, LCh: grays by chroma,
+  then the first band that holds the hue — fixed, the Neajud's, measured on
+  the factory's samples) and the next number of that family
+  (`Sequencia` "cor_lisa:laranja"): **`Laranja 1`** (no "v"). Family and
+  number never change; a new version is a tone adjustment, measured again
+  (the Lab follows the version in use). Unique key: tipo + familia + numero.
+- **Near colors** (`CoresParecidas`, `DeltaE2000` — pure Ruby, checked
+  against Sharma's pairs): on its page the colors within ΔE ≤ 3 —
+  "praticamente igual" (≤ 1) or "parecida" — among those the person sees
+  (`visiveis(Arte)`); the card only says "parecida", never which (it goes
+  live to several clients). A notice, never a block. Limits in the YAML.
+- **Material** optional (`artes.materia_prima_id`, set on its page —
+  `TiposDaArteController#material`), not in the name.
+- **"Cores"** (`/cores`, `CoresController`): the chart (`CartelaDeCores`: a
+  column per 30° of hue, grays first; a row per band of lightness) and the
+  table, by family and material.
+- Restart the dev server after editing `config/familias_de_cor.yml`
+  (`FamiliasDeCor` keeps it in memory).
+- E2E: `e2e/cor-lisa.spec.js` (makes its solid-color files with `convert`).
+
 ## Official catalog (Etapa 1.1, 3/5)
 
 Produto (with its grade of individual sizes) and Modelo (the category, with
