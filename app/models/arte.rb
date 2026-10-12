@@ -8,6 +8,7 @@
 class Arte < ApplicationRecord
   include GeraUuid
   include Aprovavel
+  include TipoDaArte
 
   has_many :arquivos, dependent: :restrict_with_error
 
@@ -83,6 +84,6 @@ class Arte < ApplicationRecord
     arquivo = principal
     return "" unless arquivo
 
-    [ arquivo.molde&.codigo, arquivo.referencia&.nome, arquivo.nome ].compact_blank.join(" · ").presence || arquivo.filename
+    [ codigo, arquivo.molde&.codigo, arquivo.referencia&.nome, arquivo.nome ].compact_blank.join(" · ").presence || arquivo.filename
   end
 end

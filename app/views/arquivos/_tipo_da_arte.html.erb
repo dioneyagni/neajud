@@ -1,0 +1,33 @@
+<%# The kind of work and its number (Etapa 2.5a, decided 12/10/2026):
+    changed while no pedido uses it; "Entra no catálogo" opens a work without
+    corte to every client — the team's. %>
+<% arte = arquivo.arte %>
+<div class="stamp-detail-section stamp-detail-section--full" id="tipo-da-arte-section" data-tipo="<%= arte.tipo %>">
+  <h3>Kind of work</h3>
+  <p class="tipo-da-arte-atual">
+    <strong><%= arte.rotulo_do_tipo %></strong>
+    <% if arte.codigo %><code class="tipo-da-arte-codigo"><%= arte.codigo %></code><% end %>
+    <% if arte.no_catalogo %><span class="tipo-da-arte-catalogo">no catálogo</span><% end %>
+  </p>
+  <% if pode_editar_arquivo?(arquivo) %>
+    <%= form_with url: arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "tipo-da-arte-form" do %>
+      <label for="tipo-da-arte-select">Change kind</label>
+      <select name="tipo" id="tipo-da-arte-select">
+        <% TipoDaArte::ROTULOS.each do |tipo, rotulo| %>
+          <option value="<%= tipo %>" <%= "selected" if arte.tipo == tipo %>><%= rotulo %></option>
+        <% end %>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline" data-turbo-confirm="A DTF or an estampa corrida gets a new number; the old one is never reused.">Change</button>
+    <% end %>
+    <% if !arte.calcado? && !cliente_final? %>
+      <%= form_with url: catalogo_arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "tipo-da-arte-catalogo-form", data: { controller: "auto-submit" } do %>
+        <input type="hidden" name="no_catalogo" value="0">
+        <label><input type="checkbox" name="no_catalogo" value="1" id="tipo-da-arte-no-catalogo" <%= "checked" if arte.no_catalogo %> data-action="change->auto-submit#submit"> Entra no catálogo (every client sees it)</label>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% if !arte.calcado? && !arte.no_catalogo && arquivo.client_id.nil? %>
+    <%# The client is required outside the catálogo; the pedido blocks it (2.6). %>
+    <p class="tipo-da-arte-sem-cliente">Without client: choose one, or mark it Entra no catálogo.</p>
+  <% end %>
+</div>

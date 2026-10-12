@@ -14,6 +14,7 @@ module MembroDeArte
     # Before validation, not before_create: the belongs_to autosave runs in
     # before_save, ahead of before_create, so a new Arte set there was never saved.
     before_validation :criar_arte, on: :create
+    validate :sem_molde_fora_do_calcado
     after_update_commit :compartilhar_com_a_arte!, if: -> { arte_id && (saved_changes.keys & CAMPOS_DA_ARTE).any? }
   end
 
@@ -87,10 +88,15 @@ module MembroDeArte
   def separar_da_arte!
     raise ArgumentError, "#{filename.inspect} is the only file of its arte; expected an arte with two or more files" unless irmaos.ativos.exists?
 
-    update!(arte: Arte.create!)
+    update!(arte: Arte.create!(tipo: arte.tipo, no_catalogo: arte.no_catalogo))
   end
 
   private
+
+  # A work without corte (Etapa 2.5a) has no molde: its sizes are its own.
+  def sem_molde_fora_do_calcado
+    errors.add(:molde, "can't be set: #{arte.rotulo_do_tipo} is a work without corte") if molde_id && arte && !arte.calcado?
+  end
 
   def criar_arte
     self.arte ||= Arte.new unless corte?

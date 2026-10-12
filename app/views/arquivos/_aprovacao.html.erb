@@ -50,7 +50,8 @@
     <%= render "aprovacao_em_outra_versao", arquivo: arquivo, aprovacao: arte.aprovacao_em_outra_versao %>
   <% end %>
 
-  <% if estado == :aguardando && cliente_final? && pode_acao?(:aprovar_arte) && !arquivo.excluido? %>
+  <%# Only the work's own client answers — never one reading it in the coleção geral (Etapa 2.5a). %>
+  <% if estado == :aguardando && cliente_final? && do_proprio_cliente?(arquivo) && pode_acao?(:aprovar_arte) && !arquivo.excluido? %>
     <%= render "resposta_do_cliente", arquivo: arquivo %>
   <% end %>
 

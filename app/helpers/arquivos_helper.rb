@@ -1,9 +1,11 @@
 module ArquivosHelper
   # Whether the edit controls of an arquivo page show: Artes or, for a corte,
-  # Catálogo at "editar" (the server checks the same in ArquivosController).
+  # Catálogo at "editar" (the server checks the same in ArquivosController) —
+  # and, for a cliente final, his own work, not the coleção geral's (Etapa
+  # 2.5a: writes never reach it).
   # Usage: <% if pode_editar_arquivo?(@arquivo) %>…<% end %>
   def pode_editar_arquivo?(arquivo)
-    pode?(arquivo.area_de_acesso, :editar)
+    pode?(arquivo.area_de_acesso, :editar) && do_proprio_cliente?(arquivo)
   end
 
   # Versions, the version in use and the client are the team's even when a

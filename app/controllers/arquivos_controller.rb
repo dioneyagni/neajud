@@ -440,7 +440,12 @@ class ArquivosController < ApplicationController
     # A cliente final's file is always his client's (Etapa 2.8, 4b): unsaved
     # without it, it would vanish from him the moment it was created.
     atributos[:client] = Current.user.cliente if cliente_final?
-    arte ? arte.novo_arquivo(**atributos) : visiveis(Arquivo).new(atributos)
+    return arte.novo_arquivo(**atributos) if arte
+
+    # A file sent alone gets an arte of the kind chosen in the upload (Etapa
+    # 2.5a); a corte never has one (MembroDeArte#criar_arte).
+    atributos[:arte] = Arte.novo_do_tipo(dados[:tipo]) if dados[:tipo].present? && arquivo_de_arte?(dados[:original_file])
+    visiveis(Arquivo).new(atributos)
   end
 
   # The artes a file may go into: visible ones, and the empty arte the upload's
@@ -461,7 +466,11 @@ class ArquivosController < ApplicationController
     @page = [ params[:page].to_i, 1 ].max
 
     # Etapa 1.2 (2/3): one card per arte (its first file), not one per file.
-    base = visiveis(Arquivo).ativos.where(category: visiveis(Arquivo).categorias_visiveis(autorizacao)).principais_das_artes
+    # Etapa 2.5a: ?tipo=dtf lists one kind of work.
+    @tipo = params[:tipo] if TipoDaArte::TIPOS.include?(params[:tipo])
+    base = visiveis(Arquivo).ativos.where(category: visiveis(Arquivo).categorias_visiveis(autorizacao))
+    base = base.where(arte_id: Arte.where(tipo: @tipo).select(:id)) if @tipo
+    base = base.principais_das_artes
                   .includes(:client, :tamanhos, approved_version: :image_metadata, molde: :modelo).order(created_at: :desc)
     @total = base.count
     @total_pages = (@total.to_f / per_page).ceil

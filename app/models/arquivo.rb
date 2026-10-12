@@ -320,6 +320,18 @@ class Arquivo < ApplicationRecord
     pedidos_que_usam.each { |pedido| CanaisAoVivo.recarregar(pedido) }
   end
 
+  # Redraws the arte's card after who sees it changed (Etapa 2.5a, "Entra no
+  # catálogo"): removed from the galleries that no longer see it, replaced in
+  # the rest. canais_antes: CanaisAoVivo.dos_cartoes_de before the change.
+  # Usage: arquivo.redesenhar_cartao!(canais_antes)
+  def redesenhar_cartao!(canais_antes)
+    cartao = arte&.principal || self
+    (canais_antes - CanaisAoVivo.dos_cartoes_de(cartao)).each do |canal|
+      Turbo::StreamsChannel.broadcast_remove_to(canal, target: CanaisAoVivo.id_do_cartao(cartao))
+    end
+    broadcast_arquivo_card
+  end
+
   # Pedidos with an item for this arte, or with it as one of an item's pieces.
   def pedidos_que_usam
     item_ids = ItemPedidoPeca.where(arquivo_id: id).select(:item_pedido_id)

@@ -31,6 +31,14 @@ class Visibilidade
     "AlteracaoArte" => ->(c) { AlteracaoArte.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
     "FaixaDePreco" => ->(c) { FaixaDePreco.where(molde_id: Molde.where(client_id: c.id)) }
   }.freeze
+  # The coleção geral (Etapa 2.5a, decided 12/10/2026): works "no catálogo"
+  # open to every client — to read only. Writes never see them (escopo's
+  # colecao_geral: false, the default), so no client edits another's work.
+  COLECAO_GERAL = {
+    "Arte" => -> { Arte.da_colecao_geral },
+    "Arquivo" => -> { Arquivo.where(arte_id: Arte.da_colecao_geral.select(:id)) },
+    "ArquivoVersion" => -> { ArquivoVersion.where(arquivo_id: Arquivo.where(arte_id: Arte.da_colecao_geral.select(:id)).select(:id)) }
+  }.freeze
   # The same for everyone: the official catalog and the empresa's lists.
   COMUNS = %w[Produto Modelo Peca MateriaPrima GrupoMaterial CorMaterial].freeze
   # The team's own business: a cliente final sees none of it.
@@ -56,8 +64,11 @@ class Visibilidade
     @abertos = abertos || (cliente && TiposParaCliente.abertos_para(cliente))
   end
 
+  # colecao_geral: true adds the coleção geral — for reading (GET pages, live
+  # updates); writes leave it out.
   # Usage: visibilidade.escopo(Molde).ativos.order(:nome)
-  def escopo(modelo)
+  #        visibilidade.escopo(Arquivo, colecao_geral: true)
+  def escopo(modelo, colecao_geral: false)
     nome = modelo.name
     regra = DO_CLIENTE[nome]
     raise ArgumentError, "#{nome} has no visibility rule; expected one of #{(DO_CLIENTE.keys + COMUNS + DA_EQUIPE).sort.join(", ")}" unless regra || COMUNS.include?(nome) || DA_EQUIPE.include?(nome)
@@ -65,6 +76,7 @@ class Visibilidade
     return modelo.none if DA_EQUIPE.include?(nome) || fechado_por_tipo?(nome)
 
     escopo = regra.call(@cliente)
+    escopo = escopo.or(COLECAO_GERAL[nome].call) if colecao_geral && COLECAO_GERAL.key?(nome)
     aberto?("cortes") ? escopo : SO_ARTES.fetch(nome, :itself.to_proc).call(escopo)
   end
 

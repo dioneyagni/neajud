@@ -8,7 +8,9 @@ class AgrupamentosUploadController < ApplicationController
   def create
     arquivos = Array(params[:arquivos]).map { |a| { nome: a[:nome].to_s, bytes: a[:bytes].to_i } }
     resultado = AgrupamentoDoUpload.call(arquivos, pecas: visiveis(Peca).ativos.to_a, candidatas: visiveis(Arquivo))
-    render json: { conferir: resultado[:conferir], pecas: pecas_json, grupos: resultado[:grupos].map { |g| grupo_json(g) } }
+    # tipos: each group's kind of work in the conference (Etapa 2.5a).
+    render json: { conferir: resultado[:conferir], pecas: pecas_json, grupos: resultado[:grupos].map { |g| grupo_json(g) },
+                   tipos: TipoDaArte::ROTULOS.map { |tipo, rotulo| { tipo: tipo, rotulo: rotulo } } }
   end
 
   private

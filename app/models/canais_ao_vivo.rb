@@ -41,11 +41,13 @@ module CanaisAoVivo
 
   # Every stream a card goes to: the team's, and each client that sees the
   # file — its arte's client, or a client of a molde the corte is linked to,
-  # each by its own Visibilidade (a closed cortes kind keeps the corte away).
+  # each by its own Visibilidade (a closed cortes kind keeps the corte away);
+  # a work in the coleção geral, every client (Etapa 2.5a).
   # Usage: CanaisAoVivo.dos_cartoes_de(arquivo) # => ["cartoes:equipe", "cartoes:8f3a…"]
   def dos_cartoes_de(arquivo)
     candidatos = Client.where(id: arquivo.client_id).or(Client.where(id: arquivo.moldes.select(:client_id)))
-    [ EQUIPE ] + candidatos.select { |c| Visibilidade.new(c).escopo(Arquivo).exists?(id: arquivo.id) }.map { |c| cartoes(c) }
+    candidatos = Client.all if arquivo.arte&.no_catalogo
+    [ EQUIPE ] + candidatos.select { |c| Visibilidade.new(c).escopo(Arquivo, colecao_geral: true).exists?(id: arquivo.id) }.map { |c| cartoes(c) }
   end
 
   # Morph-refreshes the record's page for whoever has it open.
@@ -60,7 +62,8 @@ module CanaisAoVivo
     return chave == (user.cliente&.uuid || "equipe") if tipo == "cartoes"
 
     modelo = REGISTROS[tipo]
-    !modelo.nil? && Visibilidade.new(user.cliente).escopo(modelo.constantize).exists?(uuid: chave)
+    # A page shows what it reads: the coleção geral too (Etapa 2.5a).
+    !modelo.nil? && Visibilidade.new(user.cliente).escopo(modelo.constantize, colecao_geral: true).exists?(uuid: chave)
   end
 
   def assinar(nome)

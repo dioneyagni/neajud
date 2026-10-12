@@ -21,7 +21,7 @@
               <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
             <% end %>
             <%# Etapa 1.2 (3/3, parte 3c): the side of a mirrored part's file. %>
-            <% if pode?(:artes, :editar) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>
+            <% if pode_editar_arquivo?(arquivo) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>
               <%= form_with url: definir_lado_arquivo_arte_path(membro), method: :patch, class: "arte-acao-inline arte-lado", data: { controller: "auto-submit", turbo: false } do %>
                 <select name="lado" aria-label="Side of <%= membro.filename %>" data-action="change->auto-submit#submit">
                   <option value="">no side</option>
@@ -58,7 +58,7 @@
             <% if pode_baixar_original? %>
               <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
             <% end %>
-            <% if pode?(:artes, :editar) %>
+            <% if pode_editar_arquivo?(arquivo) %>
               <% if membro.piloto? %>
                 <%= button_to "Back to production", voltar_para_producao_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm", form: { class: "arte-acao-inline arte-voltar-producao" } %>
               <% else %>
@@ -66,7 +66,7 @@
                       data: { turbo_confirm: "Make #{membro.filename} the piloto (editable master) of #{membro.resolved_peca&.nome || "its part"}?" } %>
               <% end %>
             <% end %>
-            <% if total > 1 && pode?(:artes, :editar) %>
+            <% if total > 1 && pode_editar_arquivo?(arquivo) %>
               <%= button_to "Separate", separar_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm",
                     form: { class: "arte-separar" }, data: { turbo_confirm: "Take #{membro.filename} out of this arte into an arte of its own?" } %>
             <% end %>
@@ -76,7 +76,7 @@
     </div>
   <% end %>
 
-  <% if pode?(:artes, :editar) %>
+  <% if pode_editar_arquivo?(arquivo) %>
     <% sugestoes = arquivo.mesma_arte_em_outro_envelope.to_a %>
     <% sugestoes.each do |outra| %>
       <div class="arte-sugestao-juntar" data-arquivo-uuid="<%= outra.uuid %>">

@@ -56,6 +56,10 @@ Rails.application.routes.draw do
       post :voltar_para_producao
       patch :definir_lado
     end
+    # Etapa 2.5a: the arte's kind and the coleção geral.
+    resource :tipo_da_arte, only: :update, controller: "tipos_da_arte" do
+      patch :catalogo
+    end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
     # The cliente final's own answer (Etapa 2.8, 4a).

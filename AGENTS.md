@@ -1107,6 +1107,48 @@ search and (until part 2) the client approval stay per file.
 - Pedidos still point at a file until Etapa 1.2 (3/3).
 - E2E: `e2e/artes-arquivos.spec.js`.
 
+## Kind of work, numbers and the coleção geral (Etapa 2.5a)
+
+Decided 12/10/2026: an arte says what kind of work it is — `Arte#tipo`
+(`TipoDaArte::TIPOS`: `calcado`, everything until then; `dtf`, `corrida`,
+`cor_lisa`, the works without corte). A file is still an `Arquivo` of
+category `artes`: upload, previews, versions, approval and grouping don't
+change.
+
+- **Chosen in the upload** (the gallery's "Kind of work", each group's in the
+  conference — `upload_controller.js` / `conferencia_upload.js`): `POST
+  /artes` takes `tipo`, a file sent alone takes `arquivo[tipo]`
+  (`Arte.novo_do_tipo`); a DXF is always a corte. Changed on the arte page
+  (`TiposDaArteController#update`, `Arte#trocar_tipo!`) while no pedido uses
+  it and it has no molde — a work without corte takes no molde (validated in
+  `MembroDeArte`), and its page hides molde, referência and the corte's size.
+  Artes of different kinds are never joined (`JuntarArtesService`).
+- **Numbers** (`Sequencia.proximo!`, table `sequencias`, one row per kind): a
+  DTF or a corrida takes the next number when it gets the kind — `codigo`
+  `DTF-863` / `CR-4114`, unique per kind, never reused (a new kind = a new
+  number, a separated file = a new arte and number). Each empresa starts at 1;
+  old hand-made numbers stay in the upload's file name. The cor lisa's comes
+  with its color family (2.5b). The full name of a work without corte starts
+  with it: `DTF-863_Arcoverde_P`; the card shows it; the gallery filters by
+  kind (`?tipo=`).
+- **The coleção geral** (`Arte#no_catalogo`, "Entra no catálogo", a work
+  without corte only; a cor lisa is born in it; marking is the team's —
+  `exige_equipe`): every cliente final reads it. `Visibilidade::COLECAO_GERAL`
+  adds it to `escopo(…, colecao_geral: true)`; `visiveis` passes it **only on
+  GET/HEAD** — a write sees the client's own records, so no client changes
+  another's work (an action that must read it in a write asks
+  `visiveis(Model, colecao_geral: true)`). Live cards and pages follow
+  (`CanaisAoVivo`; `Arquivo#redesenhar_cartao!` removes a card from the
+  galleries that stop seeing it). On a work he only reads, a cliente final
+  gets no controls, no client field and no answer to an approval
+  (`do_proprio_cliente?`, used by `pode_editar_arquivo?`). Both sweeps carry a
+  B work in the coleção geral.
+- Outside the catálogo the client is required: for now a warning on its page
+  ("Without client"); the pedido blocks it when DTF and corrida get theirs.
+- **Not in pedidos yet**: only calçado artes go into a pedido (`adicionar_item`
+  refuses, the card hides "Pedido") until Etapas 2.6 / 2.7.
+- E2E: `e2e/tipo-da-arte.spec.js`.
+
 ## Official catalog (Etapa 1.1, 3/5)
 
 Produto (with its grade of individual sizes) and Modelo (the category, with

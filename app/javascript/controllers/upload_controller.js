@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import ConferenciaDoUpload from "controllers/conferencia_upload"
 
 export default class extends Controller {
-  static targets = ["dropzone", "input", "fileList", "submit"]
+  static targets = ["dropzone", "input", "fileList", "submit", "tipo"]
   static values = { fieldName: { type: String, default: "arquivo[original_file]" }, agrupamentoUrl: String, artesUrl: String }
 
   connect() {
@@ -69,7 +69,7 @@ export default class extends Controller {
       // Drawn again only when the conference shows: redrawing the plain list
       // would swap elements someone may be about to click.
       if (this.agrupando !== pedido || !resposta?.conferir) return
-      this.conferencia = new ConferenciaDoUpload(resposta, s => this.escapeHtml(s))
+      this.conferencia = new ConferenciaDoUpload(resposta, s => this.escapeHtml(s), this.tipoEscolhido())
       this.render()
     })
   }
@@ -86,13 +86,22 @@ export default class extends Controller {
     }
   }
 
+  // Etapa 2.5a: the kind of work chosen for the whole upload.
+  tipoEscolhido() {
+    return this.hasTipoTarget ? this.tipoTarget.value : "calcado"
+  }
+
+  mudarTipo() {
+    if (this.conferencia?.todosDoTipo(this.tipoEscolhido())) this.render()
+  }
+
   conferir(event) {
     if (this.conferencia?.aplicar(event)) this.render()
   }
 
-  async criarArte() {
+  async criarArte(tipo) {
     try {
-      const resp = await fetch(this.artesUrlValue, { method: "POST", headers: this.cabecalhosJson(), credentials: "same-origin" })
+      const resp = await fetch(this.artesUrlValue, { method: "POST", headers: this.cabecalhosJson(), credentials: "same-origin", body: JSON.stringify({ tipo }) })
       return resp.ok ? (await resp.json()).uuid : null
     } catch {
       return null
@@ -148,7 +157,7 @@ export default class extends Controller {
     let failure = 0
     const enviados = []
     await this.agrupando
-    const plano = this.conferencia ? await this.conferencia.plano(() => this.criarArte()) : this.files.map((_, indice) => ({ indice, campos: {} }))
+    const plano = this.conferencia ? await this.conferencia.plano(tipo => this.criarArte(tipo)) : this.files.map((_, indice) => ({ indice, campos: { tipo: this.tipoEscolhido() } }))
 
     for (const { indice, campos } of plano) {
       const file = this.files[indice]

@@ -17,10 +17,16 @@ module NomeDeArte
   end
 
   # Usage: arte.nome_completo(para_arquivo: true) # => "001-TNS_19_Lingua_Lateral_29-30"
+  # A work without corte starts with its number (Etapa 2.5a): DTF-863_Arcoverde_P.
   def nome_completo(para_arquivo: false)
-    return nil unless arte_com_molde?
+    texto = if arte_com_molde?
+      [ molde.codigo, referencia&.nome, nome, resolved_peca&.nome, tamanho&.nome, lado_abreviado ]
+    elsif arte&.codigo
+      [ arte.codigo, nome.presence || filename, rotulo_de_tamanho ]
+    end
+    return nil unless texto
 
-    texto = [ molde.codigo, referencia&.nome, nome, resolved_peca&.nome, tamanho&.nome, lado_abreviado ].map(&:presence).compact.join("_")
+    texto = texto.map(&:presence).compact.join("_")
     para_arquivo ? I18n.transliterate(texto).gsub(%r{[/\\:*?"<>|]}, "-") : texto
   end
 

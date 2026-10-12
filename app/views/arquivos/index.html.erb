@@ -26,6 +26,15 @@
             accept: accept_ext,
             class: "upload-file-input" %>
     </div>
+    <%# Etapa 2.5a: the kind of work of everything this upload makes (each
+        group's in the conference); a DXF is always a corte. %>
+    <label class="upload-tipo">Kind of work
+      <select data-upload-target="tipo" data-action="change->upload#mudarTipo">
+        <% TipoDaArte::ROTULOS.each do |tipo, rotulo| %>
+          <option value="<%= tipo %>"><%= rotulo %></option>
+        <% end %>
+      </select>
+    </label>
     <div class="upload-file-list" data-upload-target="fileList"></div>
     <%= f.submit "Upload", data: { upload_target: "submit" }, class: "upload-submit" %>
   <% end %>
@@ -36,6 +45,13 @@
 <div data-controller="add-to-order">
 <section data-controller="batch-select" data-batch-select-delete-url="<%= batch_destroy_arquivos_path %>">
   <h3>Gallery</h3>
+  <%# Etapa 2.5a: by kind of work. %>
+  <nav class="galeria-tipos" aria-label="Kind of work">
+    <%= link_to "All", arquivos_path(view: @view), "aria-current": (@tipo.nil? ? "page" : nil) %>
+    <% TipoDaArte::ROTULOS.each do |tipo, rotulo| %>
+      <%= link_to rotulo, arquivos_path(view: @view, tipo: tipo), "aria-current": (@tipo == tipo ? "page" : nil), data: { tipo: tipo } %>
+    <% end %>
+  </nav>
   <% if @arquivos.any? %>
     <%= canal_dos_cartoes %>
 
@@ -48,9 +64,10 @@
       <label class="select-all-label">
         <input type="checkbox" data-batch-select-target="selectAll" data-action="batch-select#toggleAll">
       </label>
-      <%= link_to "Grid", arquivos_path(view: "grid"), class: "view-toggle-btn #{@view == 'grid' ? 'view-toggle-btn--active' : ''}" %>
-      <%= link_to "List", arquivos_path(view: "list"), class: "view-toggle-btn #{@view == 'list' ? 'view-toggle-btn--active' : ''}" %>
+      <%= link_to "Grid", arquivos_path(view: "grid", tipo: @tipo), class: "view-toggle-btn #{@view == 'grid' ? 'view-toggle-btn--active' : ''}" %>
+      <%= link_to "List", arquivos_path(view: "list", tipo: @tipo), class: "view-toggle-btn #{@view == 'list' ? 'view-toggle-btn--active' : ''}" %>
     </div>
+
 
     <% if @view == "list" %>
       <div class="list-view" data-batch-select-target="list">
@@ -78,19 +95,19 @@
     <% if @total_pages > 1 %>
       <div class="pagination">
         <% if @page > 1 %>
-          <%= link_to "&laquo; Previous".html_safe, arquivos_path(view: @view, page: @page - 1), class: "pagination-link" %>
+          <%= link_to "&laquo; Previous".html_safe, arquivos_path(view: @view, tipo: @tipo, page: @page - 1), class: "pagination-link" %>
         <% end %>
         <% (1..@total_pages).each do |p| %>
           <% if p == @page %>
             <span class="pagination-current"><%= p %></span>
           <% elsif p == 1 || p == @total_pages || (p - @page).abs <= 2 %>
-            <%= link_to p, arquivos_path(view: @view, page: p), class: "pagination-link" %>
+            <%= link_to p, arquivos_path(view: @view, tipo: @tipo, page: p), class: "pagination-link" %>
           <% elsif p == @page - 3 || p == @page + 3 %>
             <span class="pagination-ellipsis">&hellip;</span>
           <% end %>
         <% end %>
         <% if @page < @total_pages %>
-          <%= link_to "Next &raquo;".html_safe, arquivos_path(view: @view, page: @page + 1), class: "pagination-link" %>
+          <%= link_to "Next &raquo;".html_safe, arquivos_path(view: @view, tipo: @tipo, page: @page + 1), class: "pagination-link" %>
         <% end %>
       </div>
     <% end %>
