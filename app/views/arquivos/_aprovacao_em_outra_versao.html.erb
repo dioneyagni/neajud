@@ -1,0 +1,20 @@
+<%# The client approved other versions than the ones in use (Etapa 2.8, 4a):
+    each file that differs, with "Usar esta versão" for the team — once every
+    one is in use, the arte is approved (Aprovavel). %>
+<% em_uso = arquivo.arte.arquivos.ativos.index_by(&:id) %>
+<ul class="aprovacao-outra-versao" id="aprovacao-outra-versao">
+  <% visiveis(ArquivoVersion).where(id: aprovacao.versoes_por_arquivo.values).includes(:arquivo).each do |versao| %>
+    <% membro = em_uso[versao.arquivo_id] %>
+    <% next if membro.nil? || membro.approved_version_id == versao.id %>
+    <li data-arquivo="<%= membro.uuid %>">
+      <%= link_to membro.filename, arquivo_path(membro) %>: the client approved <strong>v<%= versao.version_number %></strong>
+      (in use v<%= membro.approved_version&.version_number %>)
+      <% if cliente_final? %>
+        — the factory will switch to it.
+      <% elsif pode_editar_arquivo?(membro) %>
+        <%= button_to "Usar esta versão", approve_version_arquivo_path(membro, version_uuid: versao.uuid), method: :patch,
+              class: "btn btn-primary btn-sm", form: { style: "display: inline-block;" } %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>

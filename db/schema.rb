@@ -10,7 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_11_000139) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_122701) do
+  create_table "alteracoes_arte", force: :cascade do |t|
+    t.integer "arquivo_id", null: false
+    t.integer "arquivo_version_id", null: false
+    t.json "arquivo_version_ids", default: [], null: false
+    t.integer "arte_id", null: false
+    t.datetime "cancelada_em"
+    t.integer "cancelada_por_id"
+    t.datetime "created_at", null: false
+    t.text "recado", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.string "uuid", null: false
+    t.index ["arquivo_id"], name: "index_alteracoes_arte_on_arquivo_id"
+    t.index ["arquivo_version_id"], name: "index_alteracoes_arte_on_arquivo_version_id"
+    t.index ["arte_id"], name: "index_alteracoes_arte_on_arte_id"
+    t.index ["user_id"], name: "index_alteracoes_arte_on_user_id"
+    t.index ["uuid"], name: "index_alteracoes_arte_on_uuid", unique: true
+  end
+
   create_table "aprovacoes_arte", force: :cascade do |t|
     t.string "anexo_arquivo"
     t.string "anexo_nome"
@@ -623,6 +642,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_11_000139) do
     t.index ["uuid"], name: "index_vinculos_on_uuid", unique: true
   end
 
+  add_foreign_key "alteracoes_arte", "arquivo_versions"
+  add_foreign_key "alteracoes_arte", "arquivos"
+  add_foreign_key "alteracoes_arte", "artes"
+  add_foreign_key "alteracoes_arte", "users"
   add_foreign_key "aprovacoes_arte", "arquivo_versions"
   add_foreign_key "aprovacoes_arte", "arquivos"
   add_foreign_key "aprovacoes_arte", "artes"

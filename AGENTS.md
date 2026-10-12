@@ -880,8 +880,16 @@ each empresa is its own instance.
   `arquivo_<uuid>` (`id_do_cartao`). The sweep checks every stream a page
   subscribes; E2E: `e2e/canais-ao-vivo.spec.js` listens to the client's
   WebSocket frames.
-- Not yet (2.8 4/5–5/5): approving and uploading as a client, and the
-  client's drafts.
+- **The client answers in the system (4a, decided 12/10/2026):** for a
+  função para clientes, `aprovar_arte` means answering a request (the default
+  "Cliente final" has it): on the arte's page, while it is `:aguardando`,
+  `RespostaDoClienteController` (`exige_cliente_final`) — **Approve** the
+  version he picks of each file (`AprovarNoSistemaService`, canal `sistema`,
+  "No sistema"; the photo is his choice) or **Ask for changes** with a note
+  (`PedirAlteracaoService` → `AlteracaoArte`). Sending and registering stay
+  the team's (`exige_equipe`), whatever his grid says.
+- Not yet (2.8 4b–5/5): uploading as a client (every write kept inside his
+  client), and the client's drafts.
 
 ## Art approval (Etapa 0.5, 4/4)
 
@@ -893,6 +901,13 @@ confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
   channel the client used (`CANAIS`; "outro" needs `canal_detalhe`), the date,
   notes and an optional attachment. Cortes are never approved. Cancelled by
   mistake → `cancelar!` (kept in the history, struck through).
+- **The client's own answer (Etapa 2.8, 4a):** two more states, both only
+  after the request in force — `:alteracao_pedida` (an `AlteracaoArte`: the
+  note shows on the arte's page and the badge; the team uses "Send for
+  approval again") and `:aprovada_em_outra_versao` (he approved versions not
+  in use: `_aprovacao_em_outra_versao` lists them with "Usar esta versão";
+  once every one is in use the photo matches and the arte is `:aprovada`).
+  The team's form never offers canal `sistema` (`AprovacaoArte::CANAL_SISTEMA`).
 - **Nothing waits until it is sent** (changed before merge, 28/09/2026):
   `SolicitacaoAprovacao` = "Enviar para aprovação" for the version in use.
   `Aprovavel#estado_aprovacao` is `:nao_enviada` (default — no badge, no

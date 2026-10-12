@@ -11,6 +11,8 @@ module AprovacoesHelper
     case arte.estado_aprovacao
     when :aprovada then selo_aprovada(arte.aprovacao_vigente)
     when :aguardando then selo_aguardando(arte.solicitacao_vigente, confirmado: pedido&.saiu_do_rascunho?)
+    when :alteracao_pedida then selo_alteracao(arte.alteracao_pedida)
+    when :aprovada_em_outra_versao then selo_outra_versao(arte.aprovacao_em_outra_versao)
     end
   end
 
@@ -25,7 +27,8 @@ module AprovacoesHelper
 
   private
 
-  ROTULOS_CURTOS = { aprovada: "✅ Aprovada", aguardando: "⏳ Aguardando" }.freeze
+  ROTULOS_CURTOS = { aprovada: "✅ Aprovada", aguardando: "⏳ Aguardando", alteracao_pedida: "✏ Alteração pedida",
+                     aprovada_em_outra_versao: "✅ Aprovada em outra versão" }.freeze
 
   def selo_compacto(arte)
     rotulo = ROTULOS_CURTOS[arte.estado_aprovacao]
@@ -46,5 +49,16 @@ module AprovacoesHelper
 
     enviada = "sent #{l(solicitacao.created_at.to_date, format: '%d/%m/%Y')} by #{solicitacao.user.nome}"
     tag.span("⏳ Aguardando aprovação", class: "badge-aprovacao badge-aprovacao--aguardando", title: enviada)
+  end
+
+  # Etapa 2.8 (4a): the client's answers in the system.
+  def selo_alteracao(alteracao)
+    tag.span("✏ Alteração pedida", class: "badge-aprovacao badge-aprovacao--alteracao_pedida",
+             title: "#{alteracao.user.nome}, #{l(alteracao.created_at.to_date, format: '%d/%m/%Y')}: #{alteracao.recado}")
+  end
+
+  def selo_outra_versao(aprovacao)
+    tag.span("✅ Aprovada em outra versão", class: "badge-aprovacao badge-aprovacao--aprovada_em_outra_versao",
+             title: "#{aprovacao.user.nome} approved #{descricao_da_foto(aprovacao)}; switch to those versions")
   end
 end

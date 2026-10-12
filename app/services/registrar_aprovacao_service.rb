@@ -26,6 +26,8 @@ class RegistrarAprovacaoService
     @aprovacao.errors.add(:arquivo_version, "missing: the arte has no version yet") if @aprovacao.arquivo_version.nil?
     @aprovacao.errors.add(:base, "#{@arte.filename} is #{@arte.rotulo_estado_aprovacao}; send it for approval first") unless @arte.estado_aprovacao == :aguardando
     @aprovacao.errors.add(:anexo, @anexo.erro) if @anexo.erro
+    # Only the client approves in the system (AprovarNoSistemaService).
+    @aprovacao.errors.add(:canal, "sistema is the client's own approval; expected one of #{AprovacaoArte::CANAIS.keys.join(", ")}") if @aprovacao.no_sistema?
     return @aprovacao if @aprovacao.errors.any?
 
     AprovacaoArte.transaction do

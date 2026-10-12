@@ -20,7 +20,7 @@ class Arquivo < ApplicationRecord
   has_many :aprovacoes_registradas, class_name: "AprovacaoArte", dependent: :destroy
   has_many :solicitacoes_registradas, class_name: "SolicitacaoAprovacao", dependent: :destroy
   delegate :estado_aprovacao, :rotulo_estado_aprovacao, :aprovacao_vigente, :solicitacao_vigente,
-           :alterada_depois_da_aprovacao?, to: :arte, allow_nil: true
+           :alterada_depois_da_aprovacao?, :alteracao_pedida, :aprovacao_em_outra_versao, to: :arte, allow_nil: true
   has_many :vinculo_logs, -> { order(created_at: :desc) }, class_name: "ArquivoVinculoLog", dependent: :destroy
   belongs_to :approved_version, class_name: "ArquivoVersion", optional: true
   belongs_to :client, optional: true

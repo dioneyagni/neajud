@@ -58,6 +58,9 @@ Rails.application.routes.draw do
     end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
+    # The cliente final's own answer (Etapa 2.8, 4a).
+    post :aprovar_no_sistema, to: "resposta_do_cliente#aprovar"
+    post :pedir_alteracao, to: "resposta_do_cliente#pedir_alteracao"
     member do
       patch :update_time
       patch :update_client

@@ -18,8 +18,13 @@
         <%# Client approval is the arte's (Etapa 1.2, 2/3): shown, never blocking. %>
         <%= selo_aprovacao(arquivo, pedido: pedido) %>
         <% if arquivo.estado_aprovacao == :aguardando && pode_acao?(:aprovar_arte) && !arquivo.excluido? %>
-          <%= link_to "Registrar aprovação", new_arquivo_aprovacao_path(arquivo, voltar_para: resumo_pedido_path(pedido)),
-                class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+          <%# A cliente final answers on the arte's page, where he picks the versions (Etapa 2.8, 4a). %>
+          <% if cliente_final? %>
+            <%= link_to "Aprovar", arquivo_path(arquivo, anchor: "aprovacao-section"), class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+          <% else %>
+            <%= link_to "Registrar aprovação", new_arquivo_aprovacao_path(arquivo, voltar_para: resumo_pedido_path(pedido)),
+                  class: "btn btn-sm btn-outline pedido-peca-aprovar" %>
+          <% end %>
         <% end %>
         <% if item.materia_prima %>
           <span class="pedido-item-material">Material: <%= item.materia_prima.nome_completo %></span>

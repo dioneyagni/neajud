@@ -3,6 +3,8 @@
 # one registered by mistake, and downloading its attachment.
 class AprovacoesController < ApplicationController
   exige_acao :aprovar_arte, only: %i[new create cancelar]
+  # The client approves in the system instead (RespostaDoClienteController).
+  exige_equipe only: %i[new create cancelar]
   exige :artes, :ver
   before_action :set_arte, only: %i[new create]
   before_action :set_aprovacao, only: %i[cancelar anexo]
