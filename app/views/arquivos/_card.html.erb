@@ -56,6 +56,10 @@
       </div>
     </div>
     <div class="stamp-card-body">
+      <%# Etapa 2.5a: a work without corte shows its kind and number. %>
+      <% if arquivo.arte && !arquivo.arte.calcado? %>
+        <div class="stamp-card-tipo" data-tipo="<%= arquivo.arte.tipo %>"><%= arquivo.arte.codigo || arquivo.arte.rotulo_do_tipo %><%= " · catálogo" if arquivo.arte.no_catalogo %></div>
+      <% end %>
       <div class="stamp-card-name"><%= arquivo.filename %>.<%= arquivo.extension %></div>
       <% if (resumo = resumo_da_arte(arquivo)) %>
         <div class="stamp-card-arte" title="Files of this arte"><%= resumo %></div>
@@ -74,7 +78,8 @@
       </div>
     </div>
   <% end %>
-  <% if arquivo.category == "artes" %>
+  <%# Pedidos are calçado's until DTF and corrida get theirs (Etapa 2.6, 2.7). %>
+  <% if arquivo.category == "artes" && (arquivo.arte.nil? || arquivo.arte.calcado?) %>
     <button type="button" class="btn-add-to-order"
             data-action="click->add-to-order#open"
             data-add-to-order-arte-uuid="<%= arquivo.uuid %>"

@@ -4,6 +4,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "aprovacao", "aprovacoes"
   inflect.irregular "solicitacao", "solicitacoes"
   inflect.irregular "referencia", "referencias"
+  # Etapa 2.5a: "-ia" took the "data" rule (plural "sequencia").
+  inflect.irregular "sequencia", "sequencias"
 end
 
 # These inflection rules are supported but not enabled by default:

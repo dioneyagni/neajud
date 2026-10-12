@@ -34,7 +34,10 @@ RSpec.describe "Visibilidade: a client writes only inside his client", type: :re
     pedido = create(:pedido, client: client)
     create(:item_pedido, pedido: pedido, arquivo: arte).grades.create!(tamanho_nome: "30", quantidade: 1)
     referencia = Referencia.create!(molde: molde, nome: "Ref #{nome}")
-    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, referencia: referencia }
+    # Etapa 2.5a: a work in the coleção geral — every client reads it, none but its own changes it.
+    colecao = create(:arquivo, filename: "colecao-#{nome}", client: client, arte: Arte.new(tipo: "dtf", no_catalogo: true))
+    colecao.update!(approved_version: create(:arquivo_version, arquivo: colecao, version_number: 1, status: :processed))
+    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, referencia: referencia, colecao: colecao }
   end
 
   def entrar_como_cliente(client)
@@ -73,11 +76,11 @@ RSpec.describe "Visibilidade: a client writes only inside his client", type: :re
   def foto(a, b)
     arte_b = b[:arte].arte
     {
-      registros_de_b: [ b[:client], b[:molde], b[:corte], b[:tamanho], b[:arte], b[:pedido], b[:referencia] ].map { |r| r.class.find(r.id).attributes.except("updated_at") },
+      registros_de_b: [ b[:client], b[:molde], b[:corte], b[:tamanho], b[:arte], b[:pedido], b[:referencia], b[:colecao], b[:colecao].arte ].map { |r| r.class.find(r.id).attributes.except("updated_at") },
       contagens_de_b: [ Arquivo.where(client: b[:client]).count, arte_b.arquivos.count, ArquivoVersion.where(arquivo: b[:arte]).count,
                         AprovacaoArte.where(arte: arte_b).count, AlteracaoArte.where(arte: arte_b).count, SolicitacaoAprovacao.where(arte: arte_b).count,
                         Molde.where(client: b[:client]).count, Referencia.where(molde: b[:molde]).count, MovimentoEstoque.where(client: b[:client]).count,
-                        ItemPedido.where(pedido: b[:pedido]).count, EventoPedido.where(pedido: b[:pedido]).count, ArquivoMolde.where(molde: b[:molde]).count ],
+                        ItemPedido.where(pedido: b[:pedido]).count, b[:colecao].arte.arquivos.count, ArquivoVersion.where(arquivo: b[:colecao]).count, EventoPedido.where(pedido: b[:pedido]).count, ArquivoMolde.where(molde: b[:molde]).count ],
       a_aponta_para_b: Arquivo.where(client: a[:client]).where(molde: b[:molde]).or(Arquivo.where(client: a[:client], tamanho: b[:tamanho]))
                               .or(Arquivo.where(client: a[:client], arte: arte_b)).or(Arquivo.where(client: a[:client], referencia: b[:referencia])).count
     }
@@ -85,7 +88,8 @@ RSpec.describe "Visibilidade: a client writes only inside his client", type: :re
 
   def alteracoes(a, b)
     rotas_de_escrita.flat_map do |verbo, caminho|
-      [ a, b ].filter_map do |no_caminho|
+      # B's work in the coleção geral in the path too: he reads it, never writes it.
+      [ a, b, b.merge(arte: b[:colecao]) ].filter_map do |no_caminho|
         antes = foto(a, b)
         url = preencher(caminho, no_caminho)
         public_send(verbo, url, params: params_de(b))

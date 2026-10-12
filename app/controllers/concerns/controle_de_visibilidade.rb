@@ -12,7 +12,7 @@ module ControleDeVisibilidade
   class VisibilidadeNaoAplicada < StandardError; end
 
   included do
-    helper_method :visiveis, :cliente_final?, :aberto_ao_cliente?, :pode_baixar_original?, :pode_ver_precos?
+    helper_method :visiveis, :cliente_final?, :aberto_ao_cliente?, :pode_baixar_original?, :pode_ver_precos?, :do_proprio_cliente?
     after_action :verificar_visibilidade, unless: -> { Rails.env.production? }
   end
 
@@ -37,10 +37,13 @@ module ControleDeVisibilidade
 
   private
 
+  # A page (GET) also reads the coleção geral (Etapa 2.5a); a write sees
+  # only the client's own — unless the action asks for it, to read a work it
+  # doesn't change (colecao_geral: true).
   # Usage: visiveis(Molde).ativos.order(:nome)
-  def visiveis(modelo)
+  def visiveis(modelo, colecao_geral: request.get? || request.head?)
     @visibilidade_aplicada = true
-    visibilidade.escopo(modelo)
+    visibilidade.escopo(modelo, colecao_geral: colecao_geral)
   end
 
   def visibilidade
@@ -49,6 +52,13 @@ module ControleDeVisibilidade
 
   def cliente_final?
     visibilidade.cliente?
+  end
+
+  # A record of the client's own, not one he only reads from the coleção
+  # geral (Etapa 2.5a): what he may change and approve. Always true for the team.
+  # Usage: do_proprio_cliente?(@arquivo)
+  def do_proprio_cliente?(arquivo)
+    !cliente_final? || arquivo.client_id == Current.user.cliente.id
   end
 
   # Always true for the team. Usage: aberto_ao_cliente?(:cortes)

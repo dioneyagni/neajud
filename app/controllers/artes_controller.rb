@@ -3,11 +3,14 @@
 class ArtesController < ApplicationController
   before_action { exigir!(pode?(:artes, :editar), "artes: editar") }
 
-  # Usage: POST /artes → { "uuid": "…" }
-  # Creates an empty arte; reads nothing.
+  # Usage: POST /artes (tipo: dtf) → { "uuid": "…" }
+  # Creates an empty arte of the group's kind (Etapa 2.5a); reads nothing.
   nao_le_registros only: :create
 
   def create
-    render json: { uuid: Arte.create!.uuid }, status: :created
+    arte = Arte.novo_do_tipo(params[:tipo])
+    return render json: { error: arte.errors.full_messages.to_sentence }, status: :unprocessable_content unless arte.save
+
+    render json: { uuid: arte.uuid }, status: :created
   end
 end

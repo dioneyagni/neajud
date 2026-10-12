@@ -48,6 +48,8 @@ class JuntarArtesService
   def validar!
     raise Recusado, "#{@origem.filename.inspect} and #{@destino.filename.inspect} must both be artes; got #{[ @origem.category, @destino.category ].inspect}" unless [ @origem, @destino ].all? { |a| a.arte_id && !a.corte? }
     raise Recusado, "#{@origem.filename.inspect} is already in this arte" if @origem.arte_id == @destino.arte_id
+    # Etapa 2.5a: an etiqueta DTF never becomes part of a calçado arte, nor of a corrida.
+    recusar_diferenca(:kind, @origem.arte.tipo, @destino.arte.tipo) if @origem.arte.tipo != @destino.arte.tipo
     recusar_diferenca(:molde, @origem.molde&.nome, @destino.molde&.nome) if @origem.molde_id && @origem.molde_id != @destino.molde_id
     recusar_diferenca(:client, @origem.client&.name, @destino.client&.name) if @origem.client_id && @origem.client_id != @destino.client_id
   end

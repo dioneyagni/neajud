@@ -64,6 +64,10 @@ class PedidosController < ApplicationController
     end
 
     arquivo = visiveis(Arquivo).ativos.find_by!(uuid: params[:arquivo_uuid])
+    # Etapa 2.5a: pedidos are calçado's until DTF and corrida get theirs (2.6, 2.7).
+    if arquivo.arte && !arquivo.arte.calcado?
+      return render json: { ok: false, error: "#{arquivo.arte.titulo} is #{arquivo.arte.rotulo_do_tipo}: only calçado artes go into a pedido for now" }, status: :unprocessable_content
+    end
     erro = erro_de_grade(arquivo.arte, params[:grade])
     return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 

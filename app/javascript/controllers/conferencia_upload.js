@@ -5,10 +5,12 @@
 // add a group to an existing arte (suggested, never chosen for the user).
 // Plain module: upload_controller.js owns the files and the sending.
 export default class ConferenciaDoUpload {
-  constructor(resposta, escapar) {
+  // tipo: the kind chosen for the upload (Etapa 2.5a), each group's to start.
+  constructor(resposta, escapar, tipo = "calcado") {
     this.pecas = resposta.pecas
     this.escapar = escapar
-    this.grupos = resposta.grupos.map((grupo, id) => ({ ...grupo, id, existente: null, arquivos: grupo.arquivos.map(a => ({ ...a })) }))
+    this.tipos = resposta.tipos || []
+    this.grupos = resposta.grupos.map((grupo, id) => ({ ...grupo, id, tipo, existente: null, arquivos: grupo.arquivos.map(a => ({ ...a })) }))
     this.proximoId = this.grupos.length
   }
 
@@ -20,7 +22,7 @@ export default class ConferenciaDoUpload {
   // Returns true when the list must be drawn again.
   aplicar(evento) {
     const alvo = evento.currentTarget
-    const acao = { parte: "escolherParte", tamanho: "editarTamanho", lado: "escolherLado", piloto: "marcarPiloto", separar: "separar", juntar: "juntar", existente: "escolherExistente" }[alvo.dataset.acao]
+    const acao = { parte: "escolherParte", tamanho: "editarTamanho", lado: "escolherLado", piloto: "marcarPiloto", separar: "separar", juntar: "juntar", existente: "escolherExistente", tipo: "escolherTipo" }[alvo.dataset.acao]
     return acao ? this[acao](alvo) : false
   }
 
@@ -52,7 +54,7 @@ export default class ConferenciaDoUpload {
     const arquivo = this.arquivo(alvo.dataset.indice)
     const grupo = this.grupoDe(arquivo)
     grupo.arquivos = grupo.arquivos.filter(a => a !== arquivo)
-    this.grupos.push({ id: this.proximoId++, titulo: alvo.dataset.nome, existentes: [], existente: null, arquivos: [arquivo] })
+    this.grupos.push({ id: this.proximoId++, titulo: alvo.dataset.nome, tipo: grupo.tipo, existentes: [], existente: null, arquivos: [arquivo] })
     return true
   }
 
@@ -62,6 +64,17 @@ export default class ConferenciaDoUpload {
     if (!origem || !destino) return false
     destino.arquivos.push(...origem.arquivos)
     this.grupos = this.grupos.filter(g => g !== origem)
+    return true
+  }
+
+  escolherTipo(alvo) {
+    this.grupos.find(g => g.id === Number(alvo.dataset.grupo)).tipo = alvo.value
+    return false
+  }
+
+  // The upload's kind changed: every group takes it. Returns true to redraw.
+  todosDoTipo(tipo) {
+    this.grupos.forEach(g => { g.tipo = tipo })
     return true
   }
 
@@ -75,9 +88,9 @@ export default class ConferenciaDoUpload {
     const plano = []
     for (const grupo of this.grupos) {
       const precisaDeArte = grupo.arquivos.length > 1 || grupo.arquivos.some(a => a.piloto)
-      const arteUuid = grupo.existente || (precisaDeArte ? await criarArte() : null)
+      const arteUuid = grupo.existente || (precisaDeArte ? await criarArte(grupo.tipo) : null)
       for (const a of grupo.arquivos) {
-        plano.push({ indice: a.indice, campos: { arte_uuid: arteUuid, peca_uuid: a.parte_uuid, tamanho_rotulo: a.tamanho, lado: a.lado, papel: a.piloto ? "piloto" : null } })
+        plano.push({ indice: a.indice, campos: { arte_uuid: arteUuid, tipo: grupo.tipo, peca_uuid: a.parte_uuid, tamanho_rotulo: a.tamanho, lado: a.lado, papel: a.piloto ? "piloto" : null } })
       }
     }
     return plano
@@ -93,11 +106,18 @@ export default class ConferenciaDoUpload {
       <div class="conferencia-grupo-topo">
         <strong class="conferencia-grupo-titulo">${this.escapar(this.tituloDe(grupo, arquivos))}</strong>
         <span class="conferencia-grupo-contagem">${grupo.arquivos.length} file${grupo.arquivos.length > 1 ? "s" : ""}</span>
+        ${this.htmlDoTipo(grupo)}
         ${outros ? `<select class="conferencia-juntar" data-acao="juntar" data-grupo="${grupo.id}" data-action="change->upload#conferir"><option value="">Join with…</option>${outros}</select>` : ""}
       </div>
       ${this.htmlDosExistentes(grupo)}
       ${grupo.arquivos.map(a => this.htmlDoArquivo(a, arquivos[a.indice], grupo)).join("")}
     </div>`
+  }
+
+  htmlDoTipo(grupo) {
+    if (!this.tipos.length) return ""
+    const opcoes = this.tipos.map(t => `<option value="${t.tipo}" ${t.tipo === grupo.tipo ? "selected" : ""}>${this.escapar(t.rotulo)}</option>`).join("")
+    return `<select class="conferencia-tipo" title="Kind of work" data-acao="tipo" data-grupo="${grupo.id}" data-action="change->upload#conferir">${opcoes}</select>`
   }
 
   htmlDosExistentes(grupo) {

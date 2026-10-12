@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_12_153004) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_171117) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -189,8 +189,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_153004) do
 
   create_table "artes", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.boolean "no_catalogo", default: false, null: false
+    t.integer "numero"
+    t.string "tipo", default: "calcado", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.index ["no_catalogo"], name: "index_artes_on_no_catalogo"
+    t.index ["tipo", "numero"], name: "index_artes_on_tipo_and_numero", unique: true
     t.index ["uuid"], name: "index_artes_on_uuid", unique: true
   end
 
@@ -573,6 +578,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_153004) do
     t.string "uuid", null: false
     t.index ["molde_id"], name: "index_referencias_on_molde_id"
     t.index ["uuid"], name: "index_referencias_on_uuid", unique: true
+  end
+
+  create_table "sequencias", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "nome", null: false
+    t.integer "ultimo", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["nome"], name: "index_sequencias_on_nome", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|

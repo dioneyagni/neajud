@@ -28,7 +28,11 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     material = MateriaPrima.find_or_create_by!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "80g")
     movimento = MovimentoEstoque.create!(client: client, materia_prima: material, tipo: "entrada", quantidade: 5)
     faixa = molde.faixas_de_preco.first
-    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral, movimento: movimento, faixa: faixa }
+    # Etapa 2.5a: an etiqueta of his own, and one in the coleção geral — every
+    # client reads it, never whose it is.
+    dtf = create(:arquivo, filename: "dtf-#{nome}", client: client, arte: Arte.novo_do_tipo("dtf"))
+    colecao = create(:arquivo, filename: "colecao-#{nome.downcase.reverse}", client: client, arte: Arte.new(tipo: "dtf", no_catalogo: true))
+    { client: client, molde: molde, corte: corte, tamanho: tamanho, arte: arte, pedido: pedido, peca: lateral, movimento: movimento, faixa: faixa, dtf: dtf, colecao: colecao }
   end
 
   # Every level and action, the team's too — more than a função para clientes
@@ -64,7 +68,7 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
 
   def vazamentos(b, marcas: { MARCA => MARCA })
     consulta = { q: MARCA, molde_uuid: b[:molde].uuid, client_uuid: b[:client].uuid, peca_uuid: b[:peca].uuid }
-    rotas_get.product([ b[:arte], b[:corte] ]).filter_map do |caminho, arquivo|
+    rotas_get.product([ b[:arte], b[:corte], b[:dtf], b[:colecao] ]).filter_map do |caminho, arquivo|
       url = preencher(caminho, b, arquivo)
       get url, params: consulta
       vistas = marcas.select { |_, marca| response.body.include?(marca) && !eco?(marca, consulta) }.keys + canais_proibidos
@@ -87,7 +91,11 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
   # A uuid the request itself sent, written back by an error page or a
   # hidden field (pecas/new keeps molde_uuid), is no record shown. The
   # VAZOU mark is never sent as a uuid, so the other-client sweep is untouched.
+  # A format the action doesn't answer (406, a JSON-only route asked for a
+  # page) renders Rails' debug page, which reprints the request — the query's
+  # q=VAZOU included (seen once the coleção geral opened a B file, 2.5a).
   def eco?(marca, consulta)
+    return true if response.status == 406
     return false if marca == MARCA
 
     response.status >= 400 || consulta.except(:q).values.include?(marca)
@@ -132,6 +140,18 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
       get url
       expect(response.status).to be >= 400, "#{url} answered #{response.status}"
     end
+  end
+
+  # Etapa 2.5a: the coleção geral is open to read, without its owner.
+  it "shows client A the other's work in the coleção geral, and never his own etiqueta" do
+    b = dados[:b]
+    entrar_como_cliente(dados[:a][:client])
+    get arquivos_path
+    expect(response.body).to include(b[:colecao].filename)
+    get arquivo_path(b[:colecao])
+    expect(response).to have_http_status(:ok)
+    get arquivo_path(b[:dtf])
+    expect(response).to have_http_status(:not_found)
   end
 
   it "answers 404 to the other client's uuid" do

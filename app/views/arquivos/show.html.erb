@@ -29,8 +29,11 @@
 
   <div class="stamp-detail-info">
     <div class="stamp-detail-grid">
-      <%= render "client_field" %>
-      <%= render "molde_field" %>
+      <%= render "tipo_da_arte", arquivo: @arquivo if @arquivo.arte %>
+      <%# A work of the coleção geral read by another client: its owner is no business of his (Etapa 2.5a). %>
+      <%= render "client_field" if do_proprio_cliente?(@arquivo) %>
+      <%# A work without corte has no molde (Etapa 2.5a). %>
+      <%= render "molde_field" if @arquivo.arte.nil? || @arquivo.arte.calcado? %>
       <%= render "nome_arte", arquivo: @arquivo %>
       <%= render "arte_arquivos", arquivo: @arquivo if @arquivo.arte %>
       <% if @arquivo.arte && @arquivo.molde && pode_acao?(:ver_valores) %>
@@ -66,7 +69,7 @@
         <%= render "size_selection", arquivo: @arquivo %>
         <div id="corte-comparison-section">
           <%# The corte is the cortes' kind: closed to a cliente final, hidden (2.8, 3a). %>
-          <%= render "corte_comparison", arquivo: @arquivo if aberto_ao_cliente?(:cortes) %>
+          <%= render "corte_comparison", arquivo: @arquivo if aberto_ao_cliente?(:cortes) && @arquivo.arte&.calcado? %>
         </div>
         <%= render "aprovacao", arquivo: @arquivo %>
       <% end %>
