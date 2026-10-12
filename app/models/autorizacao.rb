@@ -21,8 +21,9 @@ class Autorizacao
   # The most a client's função or extras may give per área (Etapa 2.8, 4b,
   # decided 12/10/2026): artes up to editar (he uploads; trashing is the
   # team's, he couldn't restore), the rest only ver — so no client registers
-  # clients, moldes, the common peças or stock. Pedidos opens with his drafts (5/5).
-  NIVEL_MAXIMO_PARA_CLIENTE = { "pedidos" => 1, "clientes" => 1, "artes" => 2, "catalogo" => 1, "estoque" => 1, "lixeira" => 0 }.freeze
+  # clients, moldes, the common peças or stock. Pedidos: editar is his drafts
+  # (5/5) — never confirming, which is the team's.
+  NIVEL_MAXIMO_PARA_CLIENTE = { "pedidos" => 2, "clientes" => 1, "artes" => 2, "catalogo" => 1, "estoque" => 1, "lixeira" => 0 }.freeze
   AREAS_DA_EQUIPE = NIVEL_MAXIMO_PARA_CLIENTE.select { |_, nivel| nivel.zero? }.keys.freeze
   ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores].freeze
 

@@ -1,0 +1,30 @@
+<%# A client's draft between him and the factory (Etapa 2.8, 5/5): the note
+    of a draft the factory returned; the client's "Enviar para a fábrica" /
+    "Retirar o envio"; the team's "Devolver ao cliente" with a note. %>
+<% devolucao = pedido.devolucao_pendente %>
+<% if devolucao %>
+  <div class="pedido-devolvido" id="pedido-devolvido" role="alert">
+    <strong>Devolvido pela fábrica</strong> em <%= l devolucao.created_at, format: "%d/%m/%Y %H:%M" %> por <%= devolucao.user.nome %>:
+    <blockquote><%= devolucao.recado %></blockquote>
+  </div>
+<% end %>
+<% if cliente_final? && pode?(:pedidos, :editar) && pedido.confirmavel? %>
+  <% if pedido.status == "rascunho" %>
+    <%= button_to "Enviar para a fábrica", enviar_pedido_path(pedido), method: :post,
+          class: "btn btn-primary pedido-enviar", disabled: pedido.itens_pedido.none?,
+          data: { turbo_confirm: "Send this pedido to the factory? You can take it back until it is confirmed." } %>
+  <% else %>
+    <p class="pedido-aguardando">Aguardando a fábrica: ela confirma o pedido ou devolve com um recado.</p>
+    <%= button_to "Retirar o envio", retirar_envio_pedido_path(pedido), method: :post, class: "btn btn-secondary pedido-retirar" %>
+  <% end %>
+<% elsif pedido.status == "enviado" && pedido_editavel?(pedido) %>
+  <p class="pedido-aguardando">O cliente enviou este pedido: confirme, ou devolva com o que ele precisa mudar.</p>
+  <details class="pedido-devolver">
+    <summary class="btn btn-sm btn-outline">Devolver ao cliente</summary>
+    <%= form_with url: devolver_pedido_path(pedido), class: "pedido-devolver-form" do %>
+      <label for="pedido-devolver-recado">Recado ao cliente</label>
+      <textarea name="recado" id="pedido-devolver-recado" rows="3" required placeholder="What must the client change?"></textarea>
+      <button type="submit" class="btn btn-sm btn-secondary">Devolver</button>
+    <% end %>
+  </details>
+<% end %>

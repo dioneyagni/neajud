@@ -12,7 +12,7 @@
 
 <% if @pedido.client %>
   <p><strong>Cliente:</strong> <%= @pedido.client.name %> <%= selo_excluido(@pedido.client) %></p>
-<% elsif @pedido.status == "rascunho" %>
+<% elsif @pedido.confirmavel? %>
   <%# A draft without client takes its artes' client — or is split by them
       when confirmed (01/10/2026: the page said nothing about it). %>
   <% clientes = @pedido.clientes_das_artes.to_a %>

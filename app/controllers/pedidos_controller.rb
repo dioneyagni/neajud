@@ -6,8 +6,12 @@ class PedidosController < ApplicationController
   exige_acao :atualizar_producao, only: %i[entregar gerar_reposicao]
   exige :pedidos, :editar, only: %i[create update adicionar_item remover_item atualizar_item alternar_peca confirmar artes_para_adicionar]
   exige :pedidos, :excluir, only: :destroy
+  # Etapa 2.8 (5/5): the client sends his draft (EnviosPedidoController); the
+  # factory confirms it.
+  exige_equipe only: :confirmar
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar gerar_reposicao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
+  before_action :recusar_pedido_travado, only: %i[update remover_item atualizar_item alternar_peca]
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
   # past the draft with its stages' progress.
@@ -19,8 +23,10 @@ class PedidosController < ApplicationController
                       .group(:id)
                       .order(created_at: :desc)
     @pedidos = @pedidos.where(status: @status) if @status
-    # Only drafts can be confirmed; there are few at a time.
-    @bloqueios_por_pedido = @pedidos.select { |p| p.status == "rascunho" }.to_h { |p| [ p.id, p.bloqueios_confirmacao.size ] }
+    # Only drafts (and those sent to the factory) can be confirmed; there are few at a time.
+    @bloqueios_por_pedido = @pedidos.select(&:confirmavel?).to_h { |p| [ p.id, p.bloqueios_confirmacao.size ] }
+    # Etapa 2.8 (5/5): the client's drafts the factory returned, on top with their note.
+    @devolvidos = cliente_final? ? visiveis(Pedido).ativos.rascunhos.filter_map(&:devolucao_pendente) : []
   end
 
   def show
@@ -62,7 +68,7 @@ class PedidosController < ApplicationController
     return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
     @pedido = pedido_de_destino(arquivo)
-    return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} can't take items: expected a draft, got #{situacao_do_pedido}" }, status: :unprocessable_content unless @pedido.editavel?
+    return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} can't take items: expected a draft, got #{situacao_do_pedido}" }, status: :unprocessable_content unless @pedido.editavel?(cliente_final: cliente_final?)
 
     session[:current_pedido_uuid] = @pedido.uuid
 
@@ -95,7 +101,7 @@ class PedidosController < ApplicationController
   end
 
   def confirmar
-    unless @pedido.status == "rascunho"
+    unless @pedido.confirmavel?
       return redirect_to pedidos_path, alert: "Pedido already confirmed."
     end
 
@@ -349,7 +355,6 @@ class PedidosController < ApplicationController
   end
 
   def alternar_peca_error
-    return "Pedido is #{@pedido.status}; pieces can only change while it is rascunho" unless @pedido.status == "rascunho"
     return "incluida must be \"true\" or \"false\", got #{params[:incluida].inspect}" unless %w[true false].include?(params[:incluida])
 
     nil
@@ -370,6 +375,23 @@ class PedidosController < ApplicationController
       "#{@pedido.rotulo_lixeira} has the old grade (by the corte's size name); it is read only"
     else
       "#{@pedido.rotulo_lixeira} is in the trash; restore it from Lixeira before changing it"
+    end
+    respond_to do |format|
+      format.json { render json: { ok: false, error: message }, status: :unprocessable_content }
+      format.any { redirect_to resumo_pedido_path(@pedido), alert: message }
+    end
+  end
+
+  # Etapa 2.8 (5/5): items, grade and parts change only while editable — a
+  # draft, or one sent to the factory for the team. Before this, a confirmed
+  # pedido's grade still took atualizar_item.
+  def recusar_pedido_travado
+    return if @pedido.editavel?(cliente_final: cliente_final?)
+
+    message = if @pedido.status == "enviado"
+      "#{@pedido.rotulo_lixeira} is waiting for the factory; take it back (Retirar o envio) to change it"
+    else
+      "#{@pedido.rotulo_lixeira} is #{@pedido.status}; items, grade and parts change only while it is rascunho"
     end
     respond_to do |format|
       format.json { render json: { ok: false, error: message }, status: :unprocessable_content }

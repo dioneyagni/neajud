@@ -19,9 +19,9 @@ class Funcao < ApplicationRecord
     { nome: "Produção", niveis: { pedidos: 1, clientes: 0, artes: 1, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[baixar_producao atualizar_producao] },
     # Etapa 2.8 (2/5): what a cliente final does; aprovar_arte is approving in
     # the system (4a), artes: editar is uploading his artes (4b), his drafts
-    # in 5/5. Whose records
+    # (pedidos: editar) in 5/5. Whose records
     # he sees is Visibilidade's.
-    { nome: "Cliente final", para_cliente: true, niveis: { pedidos: 1, clientes: 1, artes: 2, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[aprovar_arte] }
+    { nome: "Cliente final", para_cliente: true, niveis: { pedidos: 2, clientes: 1, artes: 2, catalogo: 1, estoque: 1, lixeira: 0 }, acoes: %w[aprovar_arte] }
   ].freeze
 
   has_many :vinculos, dependent: :restrict_with_error

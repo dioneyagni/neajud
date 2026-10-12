@@ -162,6 +162,11 @@ Rails.application.routes.draw do
       # Etapa 2.2 (4/4): sends the open reposição to production early.
       post :gerar_reposicao
       post :confirmar
+      # Etapa 2.8 (5/5): the client sends his draft and may take it back; the
+      # team returns it with a note.
+      post :enviar, to: "envios_pedido#enviar"
+      post :retirar_envio, to: "envios_pedido#retirar"
+      post :devolver, to: "envios_pedido#devolver"
       get :resumo
     end
   end

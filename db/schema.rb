@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_12_133618) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_153004) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -285,6 +285,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_133618) do
     t.json "visibilidade_cliente", default: {}, null: false
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
+  end
+
+  create_table "eventos_pedido", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "pedido_id", null: false
+    t.text "recado"
+    t.string "tipo", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.string "uuid", null: false
+    t.index ["pedido_id"], name: "index_eventos_pedido_on_pedido_id"
+    t.index ["user_id"], name: "index_eventos_pedido_on_user_id"
+    t.index ["uuid"], name: "index_eventos_pedido_on_uuid", unique: true
   end
 
   create_table "exclusao_logs", force: :cascade do |t|
@@ -676,6 +689,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_133618) do
   add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"
+  add_foreign_key "eventos_pedido", "pedidos"
+  add_foreign_key "eventos_pedido", "users"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "faixas_de_preco", "moldes"
   add_foreign_key "item_pedido_pecas", "arquivos"

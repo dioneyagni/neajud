@@ -25,6 +25,9 @@ class PedidoBloqueiosService
   # tamanho: the DXF size missing a file (what "Enviar arquivo" fills);
   # lado: the side missing, for :sem_lado; molde: where :sem_preco is settled.
   Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, :lado, :molde, keyword_init: true)
+  # What only the factory settles (Etapa 2.8, 5/5): a cliente final sees them
+  # as "em análise"; the rest (quantity 0, a file or side missing) are his.
+  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco].freeze
 
   def self.call(pedido)
     new(pedido).call

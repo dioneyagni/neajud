@@ -77,7 +77,7 @@ RSpec.describe "Visibilidade: a client writes only inside his client", type: :re
       contagens_de_b: [ Arquivo.where(client: b[:client]).count, arte_b.arquivos.count, ArquivoVersion.where(arquivo: b[:arte]).count,
                         AprovacaoArte.where(arte: arte_b).count, AlteracaoArte.where(arte: arte_b).count, SolicitacaoAprovacao.where(arte: arte_b).count,
                         Molde.where(client: b[:client]).count, Referencia.where(molde: b[:molde]).count, MovimentoEstoque.where(client: b[:client]).count,
-                        ItemPedido.where(pedido: b[:pedido]).count, ArquivoMolde.where(molde: b[:molde]).count ],
+                        ItemPedido.where(pedido: b[:pedido]).count, EventoPedido.where(pedido: b[:pedido]).count, ArquivoMolde.where(molde: b[:molde]).count ],
       a_aponta_para_b: Arquivo.where(client: a[:client]).where(molde: b[:molde]).or(Arquivo.where(client: a[:client], tamanho: b[:tamanho]))
                               .or(Arquivo.where(client: a[:client], arte: arte_b)).or(Arquivo.where(client: a[:client], referencia: b[:referencia])).count
     }

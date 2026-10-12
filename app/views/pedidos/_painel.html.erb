@@ -44,13 +44,18 @@
         <% end %>
       </div>
     <% end %>
+    <%# Etapa 2.8 (5/5): the client sends his draft; the team returns it. %>
+    <%= render "pedidos/envio", pedido: pedido %>
+    <% bloqueios = pedido.confirmavel? ? pedido.bloqueios_confirmacao : [] %>
     <% if pedido_editavel?(pedido) %>
-      <% bloqueios = pedido.bloqueios_confirmacao %>
-      <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
-            class: "btn btn-primary pedido-confirmar", disabled: bloqueios.any?,
-            data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
-      <% if bloqueios.any? %>
-        <p class="pedido-confirmar-aviso">Resolva <%= bloqueios.size == 1 ? "1 pendência" : "#{bloqueios.size} pendências" %> para confirmar</p>
+      <%# Confirming is the factory's (Etapa 2.8, 5/5). %>
+      <% unless cliente_final? %>
+        <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
+              class: "btn btn-primary pedido-confirmar", disabled: bloqueios.any?,
+              data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
+        <% if bloqueios.any? %>
+          <p class="pedido-confirmar-aviso">Resolva <%= bloqueios.size == 1 ? "1 pendência" : "#{bloqueios.size} pendências" %> para confirmar</p>
+        <% end %>
       <% end %>
       <% if pode?(:pedidos, :excluir) %>
         <%= button_to "Excluir rascunho", pedido, method: :delete,
@@ -60,7 +65,9 @@
     <% end %>
   </section>
 
-  <% if pedido_editavel?(pedido) && bloqueios.any? %>
+  <%# Etapa 2.8 (5/5): the client sees them too, his own with what settles
+      them; the factory's only as "em análise" — they never stop his sending. %>
+  <% if bloqueios.any? %>
     <% pode_enviar = pode?(:artes, :editar) %>
     <section class="pedido-painel-card pedido-pendencias" role="alert">
       <h3>Falta para confirmar (<%= bloqueios.size %>)</h3>
@@ -69,7 +76,9 @@
           <li class="pedido-pendencia pedido-pendencia--<%= bloqueio.tipo %>">
             <span class="pedido-pendencia-texto"><%= bloqueio.descricao %></span>
             <div class="pedido-pendencia-acoes">
-              <% if %i[sem_arquivo sem_lado].include?(bloqueio.tipo) && pode_enviar %>
+              <% if cliente_final? && PedidoBloqueiosService::DA_FABRICA.include?(bloqueio.tipo) %>
+                <span class="pedido-pendencia-em-analise">em análise</span>
+              <% elsif %i[sem_arquivo sem_lado].include?(bloqueio.tipo) && pode_enviar %>
                 <%# Not nested in any other form (see AGENTS.md "Nested forms gotcha"). %>
                 <%= form_with url: acrescentar_arquivo_arte_path(bloqueio.arquivo), multipart: true, class: "pedido-parte-enviar", data: { controller: "auto-submit", turbo: false } do %>
                   <input type="hidden" name="tamanho_uuid" value="<%= bloqueio.tamanho.uuid %>">
@@ -95,4 +104,6 @@
       </ul>
     </section>
   <% end %>
+
+  <%= render "pedidos/eventos", pedido: pedido %>
 </aside>

@@ -87,8 +87,17 @@ module PedidosHelper
     end
   end
 
-  ROTULOS_DE_STATUS = { "rascunho" => "rascunho", "confirmado" => "confirmado", "em_producao" => "em produção",
+  ROTULOS_DE_STATUS = { "rascunho" => "rascunho", "enviado" => "aguardando a fábrica", "confirmado" => "confirmado", "em_producao" => "em produção",
                         "entregue" => "entregue", "cancelado" => "cancelado" }.freeze
+
+  ROTULOS_DE_EVENTO = { "enviado" => "Enviado para a fábrica", "retirado" => "Envio retirado pelo cliente",
+                        "devolvido" => "Devolvido ao cliente" }.freeze
+
+  # An EventoPedido as the history shows it (Etapa 2.8, 5/5).
+  # Usage: rotulo_do_evento(evento) # => "Devolvido ao cliente"
+  def rotulo_do_evento(evento)
+    ROTULOS_DE_EVENTO.fetch(evento.tipo)
+  end
 
   # The pedido's status as people say it (Etapa 2.2, 3/3); a reposição
   # still gathering pieces is "em aberto" (4/4).
