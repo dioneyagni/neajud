@@ -120,6 +120,16 @@ module ArquivosHelper
     "#{total} files · #{tamanhos.join(" · ")}"
   end
 
+  # A work without corte's printed size, from its file in use (Etapa 2.6a):
+  # what the etiqueta measures on the film; nil without size or DPI.
+  # Usage: medida_do_arquivo(arquivo) # => "1,62 × 1,70 cm"
+  def medida_do_arquivo(arquivo)
+    medidas = arquivo.approved_version&.medidas_mm
+    return nil unless medidas
+
+    "#{medidas.map { |mm| number_with_precision(mm / 10, precision: 2, separator: ",") }.join(" × ")} cm"
+  end
+
   # How much paper one printed piece of this file takes on the paper's width
   # (Etapa 2.2, 1/3): pieces per meter and the share of a meter; nil without
   # the file's size/DPI or when it doesn't fit the roll.

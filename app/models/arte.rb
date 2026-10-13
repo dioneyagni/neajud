@@ -12,6 +12,9 @@ class Arte < ApplicationRecord
 
   has_many :arquivos, dependent: :restrict_with_error
 
+  # Etapa 2.6a: blank = the dono's default (Parâmetros).
+  validates :espacamento_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }, allow_nil: true
+
   # The file that stands for the arte (gallery card): its first active one.
   # Usage: arte.principal.filename
   def principal
@@ -20,13 +23,22 @@ class Arte < ApplicationRecord
 
   # Active files by part (nil = part not known yet, last), each part with its
   # piloto first, then in size order — the corte's order when the size is
-  # known, else the label.
+  # known, else the label. A work without corte has no corte to order by: its
+  # sizes go by the file's measure, the smaller first (Etapa 2.6a, decided
+  # 13/10/2026 — P, M, G whatever their names), the label breaking ties.
   # Usage: arte.arquivos_por_parte.each { |peca, arquivos| … }
   def arquivos_por_parte
-    ativos = arquivos.ativos.includes(:peca, :approved_version, tamanho: { arquivo: :peca }).to_a
+    ativos = arquivos.ativos.includes(:peca, tamanho: { arquivo: :peca }, approved_version: :image_metadata).to_a
     ativos.group_by(&:resolved_peca)
           .sort_by { |peca, _| [ peca ? 0 : 1, peca&.nome.to_s ] }
-          .to_h { |peca, lista| [ peca, lista.sort_by { |a| [ a.piloto? ? 0 : 1, a.tamanho&.position || 9999, a.rotulo_de_tamanho.to_s, a.id ] } ] }
+          .to_h { |peca, lista| [ peca, lista.sort_by { |a| ordem_na_arte(a) } ] }
+  end
+
+  # The space between this etiqueta's copies on the DTF film: its own, else
+  # the dono's default (Etapa 2.6a, decided 13/10/2026).
+  # Usage: arte.espacamento_efetivo_mm # => 1.5
+  def espacamento_efetivo_mm
+    espacamento_mm || Empresa.atual&.espacamento_dtf_mm
   end
 
   # A new file of this arte, with its molde, client, referência and nome
@@ -76,6 +88,16 @@ class Arte < ApplicationRecord
     end.uniq.sort_by { |n| [ n.to_i, n ] }
   end
   private :numeros_dos_cortes
+
+  # A file's place in its part: piloto first, then the corte's size order
+  # (calçado) or the measured area (a work without corte; without size/DPI
+  # at the end), then the label.
+  def ordem_na_arte(arquivo)
+    medidas = !usa_pecas? && arquivo.approved_version&.medidas_mm
+    posicao = medidas ? medidas.inject(:*) : arquivo.tamanho&.position || Float::INFINITY
+    [ arquivo.piloto? ? 0 : 1, posicao, arquivo.rotulo_de_tamanho.to_s, arquivo.id ]
+  end
+  private :ordem_na_arte
 
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.

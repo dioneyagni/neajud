@@ -17,6 +17,34 @@ RSpec.describe Arte do
     expect(arte.arquivos_por_parte).to eq(lateral => [ segundo, primeiro ], nil => [ sem_parte ])
   end
 
+  # Etapa 2.6a (decided 13/10/2026): a DTF has no corte to order its sizes
+  # by; the file's measure does it, the smaller first, the label on a tie.
+  it "orders a DTF's sizes by the file's measure, the label breaking ties, unmeasured last" do
+    medido = lambda do |arte, rotulo, lado_px|
+      create(:arquivo, arte: arte, tamanho_rotulo: rotulo).tap do |arquivo|
+        versao = create(:arquivo_version, arquivo: arquivo, approved: true)
+        ArquivoImageMetadata.create!(arquivo_version: versao, width_px: lado_px || 100, height_px: lado_px || 100, dpi: lado_px && 300)
+        arquivo.update!(approved_version: versao)
+      end
+    end
+    arte = Arte.novo_do_tipo("dtf").tap(&:save!)
+    g = medido.call(arte, "G", 400)
+    sem_dpi = medido.call(arte, "A", nil)
+    p = medido.call(arte, "P", 200)
+    m = medido.call(arte, "M", 300)
+    empate = medido.call(arte, "M2", 300)
+    expect(arte.arquivos_por_parte).to eq(nil => [ p, m, empate, g, sem_dpi ])
+  end
+
+  it "takes the dono's DTF spacing unless the arte has its own" do
+    create(:empresa)
+    arte = Arte.novo_do_tipo("dtf").tap(&:save!)
+    expect(arte.espacamento_efetivo_mm).to eq(1.5)
+    arte.update!(espacamento_mm: 2.5)
+    expect(arte.espacamento_efetivo_mm).to eq(2.5)
+    expect(arte.update(espacamento_mm: -1)).to be(false)
+  end
+
   it "is represented by its first active file, titled by molde, referência and nome" do
     primeiro = create(:arquivo, molde: molde, referencia: Referencia.do_molde!(molde, "19"), nome: "Bluey", filename: "a")
     create(:arquivo, arte: primeiro.arte, filename: "b")

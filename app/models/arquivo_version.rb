@@ -79,9 +79,11 @@ class ArquivoVersion < ApplicationRecord
     opcoes.min&.round(5)
   end
 
-  private
-
-  # [width, height] in mm, from the processed image's pixels and DPI.
+  # [width, height] in mm, from the processed image's pixels and DPI — read
+  # from the file every time, never stored (a new version changes it; Etapa
+  # 2.6a shows a DTF size's measure and orders the sizes by it). nil without
+  # size or DPI.
+  # Usage: version.medidas_mm # => [16.17, 17.02] (191 × 201 px at 300 dpi)
   def medidas_mm
     meta = image_metadata
     return nil unless meta&.width_px && meta.height_px && meta.dpi.to_f.positive?

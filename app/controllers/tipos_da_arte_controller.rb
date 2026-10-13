@@ -1,9 +1,10 @@
 # The kind of work an arte is, from its page (Etapa 2.5a, decided 12/10/2026):
 # changed while no pedido uses it — a DTF or a corrida takes a new number —
 # and "Entra no catálogo", the team's: it opens the work to every client.
+# A DTF's spacing on the film is the team's too (Etapa 2.6a).
 class TiposDaArteController < ApplicationController
   exige :artes, :editar
-  exige_equipe only: :catalogo
+  exige_equipe only: %i[catalogo espacamento]
   before_action :set_arquivo
 
   # Usage: PATCH /arquivos/:arquivo_id/tipo_da_arte, tipo=dtf
@@ -33,6 +34,18 @@ class TiposDaArteController < ApplicationController
     return redirect_to @arquivo, alert: "#{arte.titulo}: #{arte.errors.full_messages.to_sentence}" unless arte.save
 
     redirect_to @arquivo, notice: "Material of #{arte.titulo}: #{arte.materia_prima&.nome_completo || "none"}."
+  end
+
+  # A DTF's own space between its copies on the film (Etapa 2.6a, decided
+  # 13/10/2026): the team's, never shown to the cliente final; blank goes
+  # back to the dono's default.
+  # Usage: PATCH /arquivos/:arquivo_id/tipo_da_arte/espacamento, espacamento_mm=2,5
+  def espacamento
+    arte = @arquivo.arte
+    arte.espacamento_mm = params[:espacamento_mm].to_s.strip.tr(",", ".").presence
+    return redirect_to @arquivo, alert: "#{arte.titulo}: #{arte.errors.full_messages.to_sentence}" unless arte.save
+
+    redirect_to @arquivo, notice: "Spacing of #{arte.titulo}: #{helpers.number_with_precision(arte.espacamento_efetivo_mm, precision: 2, separator: ",", strip_insignificant_zeros: true)} mm#{" (the default)" unless arte.espacamento_mm}."
   end
 
   private

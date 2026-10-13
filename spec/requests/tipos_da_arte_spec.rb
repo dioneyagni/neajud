@@ -75,4 +75,38 @@ RSpec.describe "The kind of work of an arte", type: :request do
     expect(response).to have_http_status(:forbidden)
     expect(proprio.arte.reload.no_catalogo).to be(false)
   end
+
+  # Etapa 2.6a (decided 13/10/2026): a DTF's spacing on the film, the team's.
+  it "the team sets a DTF's own spacing, blank going back to the dono's default" do
+    arquivo = create(:arquivo, category: "artes", client: client, arte: Arte.novo_do_tipo("dtf"))
+    get arquivo_path(arquivo)
+    expect(Nokogiri::HTML(response.body).at_css("#espacamento-dtf-mm")["placeholder"]).to eq("1,5")
+    patch espacamento_arquivo_tipo_da_arte_path(arquivo), params: { espacamento_mm: "2,5" }
+    expect([ arquivo.arte.reload.espacamento_mm, flash[:notice] ]).to eq([ 2.5, "Spacing of #{arquivo.arte.titulo}: 2,5 mm." ])
+    patch espacamento_arquivo_tipo_da_arte_path(arquivo), params: { espacamento_mm: "" }
+    expect(arquivo.arte.reload.espacamento_efetivo_mm).to eq(1.5)
+    patch espacamento_arquivo_tipo_da_arte_path(arquivo), params: { espacamento_mm: "-1" }
+    expect(flash[:alert]).to include("Espacamento mm must be greater than or equal to 0")
+  end
+
+  it "the cliente final neither sees nor sets his own DTF's spacing" do
+    proprio = create(:arquivo, category: "artes", client: client, arte: Arte.novo_do_tipo("dtf"))
+    entrar_como_cliente_final
+    get arquivo_path(proprio)
+    # A production setting of the factory, not the client's (decided 13/10/2026).
+    expect(response.body).not_to include("espacamento-dtf-section")
+    patch espacamento_arquivo_tipo_da_arte_path(proprio), params: { espacamento_mm: "9" }
+    expect(response).to have_http_status(:forbidden)
+    expect(proprio.arte.reload.espacamento_mm).to be_nil
+  end
+
+  it "shows each DTF size's measure from its file, in cm" do
+    arte = Arte.novo_do_tipo("dtf").tap(&:save!)
+    arquivo = create(:arquivo, category: "artes", client: client, arte: arte, tamanho_rotulo: "P")
+    versao = create(:arquivo_version, arquivo: arquivo, approved: true)
+    ArquivoImageMetadata.create!(arquivo_version: versao, width_px: 191, height_px: 201, dpi: 300)
+    arquivo.update!(approved_version: versao)
+    get arquivo_path(arquivo)
+    expect(Nokogiri::HTML(response.body).at_css("#arte-arquivos .arte-arquivo-medida").text).to eq("1,62 × 1,70 cm")
+  end
 end
