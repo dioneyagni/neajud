@@ -63,4 +63,29 @@ RSpec.describe AgrupamentoDoUpload do
     grupo = agrupar([ "20-bluey azul-LATERAL-23_24.tif" ], [ "20-bluey azul-LATERAL-25_26.tif" ])[:grupos].first
     expect(grupo.existentes).to contain_exactly(com_molde, sem_molde)
   end
+
+  # Etapa 2.5c (decided 13/10/2026): a DTF's sizes came numbered one by one by
+  # hand; in a DTF upload that number doesn't separate them, nor suggests a piloto.
+  describe "a DTF upload" do
+    let(:nomes) { [ [ "872-ENCRUZILHADA DO SUL- P - 1,6 X 1,7.tif", 9 * mb ], [ "873-ENCRUZILHADA DO SUL - M - 2 X 2.tif" ], [ "874-ENCRUZILHADA DO SUL - G - 2,5 X 2,6.psd" ] ] }
+
+    def agrupar_como(tipo) = described_class.call(nomes.map { |nome, bytes| { nome: nome, bytes: bytes || mb } }, tipo: tipo)
+
+    it "joins the sizes whatever their leading number, without a piloto" do
+      resultado = agrupar_como("dtf")
+      expect(resultado[:grupos].map(&:titulo)).to eq([ "ENCRUZILHADA DO SUL" ])
+      expect(resultado[:grupos].first.arquivos.map { |a| [ a.tamanho, a.piloto ] }).to eq([ [ "P", false ], [ "M", false ], [ "G", false ] ])
+      expect(resultado[:conferir]).to be true
+    end
+
+    it "keeps the leading number separating calçado artes" do
+      expect(agrupar_como("calcado")[:grupos].map(&:titulo)).to eq([ "872 · ENCRUZILHADA DO SUL", "873 · ENCRUZILHADA DO SUL", "874 · ENCRUZILHADA DO SUL" ])
+    end
+
+    it "offers only an existing DTF with that name, never a calçado arte" do
+      dtf = create(:arquivo, category: "artes", filename: "860-ENCRUZILHADA DO SUL - P", arte: Arte.novo_do_tipo("dtf"))
+      create(:arquivo, category: "artes", filename: "ENCRUZILHADA DO SUL")
+      expect(agrupar_como("dtf")[:grupos].first.existentes).to eq([ dtf ])
+    end
+  end
 end

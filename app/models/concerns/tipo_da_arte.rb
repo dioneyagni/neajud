@@ -18,6 +18,11 @@ module TipoDaArte
   # Etapa 2.5c (decided 12/10/2026): sold by the meter, a corrida or a cor
   # lisa has no size either — a DTF keeps its P/M/G or numbers.
   SEM_TAMANHO = %w[corrida cor_lisa].freeze
+  # Etapa 2.5c (decided 13/10/2026): a DTF's sizes came numbered by hand one
+  # by one (872-ENCRUZILHADA P, 873-… M, 874-… G); now that the system
+  # numbers the etiqueta, that leading number doesn't separate them in the
+  # upload's grouping (it stays in each file's original name).
+  REFERENCIA_NAO_SEPARA = %w[dtf].freeze
 
   included do
     validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a kind of arte; expected one of #{TIPOS.join(", ")}" }

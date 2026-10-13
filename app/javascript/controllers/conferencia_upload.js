@@ -80,12 +80,6 @@ export default class ConferenciaDoUpload {
     return tipo ? { pecas: tipo.usa_pecas, tamanhos: tipo.usa_tamanhos } : { pecas: true, tamanhos: true }
   }
 
-  // The upload's kind changed: every group takes it. Returns true to redraw.
-  todosDoTipo(tipo) {
-    this.grupos.forEach(g => { g.tipo = tipo })
-    return true
-  }
-
   escolherExistente(alvo) {
     this.grupos.find(g => g.id === Number(alvo.dataset.grupo)).existente = alvo.value || null
     return false

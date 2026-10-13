@@ -91,6 +91,26 @@ runSpec("Tipo da arte E2E Tests", async ({ page, test }) => {
     if (!(await cartao(`55-ARCO${U}`).innerText()).includes("2 files")) throw new Error("The two sizes aren't one arte");
   });
 
+  // Etapa 2.5c (decided 13/10/2026): a DTF's sizes came numbered by hand one
+  // by one; in a DTF upload that leading number doesn't separate them.
+  await test("A DTF upload joins sizes numbered apart into one etiqueta", async () => {
+    await page.goto(`${BASE_URL}/arquivos`);
+    await page.setInputFiles('input[type="file"]', [copia(`872-PAIS${U} - P - 1,6 X 1,7`), copia(`873-PAIS${U} - M - 2 X 2`)]);
+    // As calçado, the leading number separates: two artes of one file, nothing to confer.
+    await page.locator(".upload-file").nth(1).waitFor({ timeout: 10000 });
+    if (await page.locator(".conferencia-grupo").count()) throw new Error("Calçado grouped files of different references");
+    await page.selectOption('[data-upload-target="tipo"]', "dtf");
+    const grupo = page.locator(".conferencia-grupo");
+    await grupo.first().waitFor({ timeout: 10000 });
+    if ((await grupo.count()) !== 1) throw new Error("The DTF's sizes aren't one group");
+    const titulo = (await grupo.locator(".conferencia-grupo-titulo").innerText()).trim();
+    if (titulo !== `PAIS${U}`) throw new Error(`The group is titled ${titulo}`);
+    await submitUploadAndWait(page, 2);
+    const resumo = await cartao(`PAIS${U}`).locator(".stamp-card-arte").innerText({ timeout: 10000 });
+    if (resumo.trim() !== "2 files · M, P") throw new Error(`The etiqueta sums up as ${resumo}`);
+    await page.selectOption('[data-upload-target="tipo"]', "calcado");
+  });
+
   // Etapa 2.5c: no part, consumption or piloto on a DTF's page — only its sizes.
   await test("The DTF's page lists its sizes, without part, paper consumption or piloto", async () => {
     await cartao(`55-ARCO${U}`).locator("a").first().click();

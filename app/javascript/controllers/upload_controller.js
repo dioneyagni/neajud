@@ -78,7 +78,7 @@ export default class extends Controller {
     try {
       const resp = await fetch(this.agrupamentoUrlValue, {
         method: "POST", headers: this.cabecalhosJson(), credentials: "same-origin",
-        body: JSON.stringify({ arquivos: this.files.map(f => ({ nome: f.name, bytes: f.size })) })
+        body: JSON.stringify({ arquivos: this.files.map(f => ({ nome: f.name, bytes: f.size })), tipo: this.tipoEscolhido() })
       })
       return resp.ok ? await resp.json() : null
     } catch {
@@ -91,8 +91,10 @@ export default class extends Controller {
     return this.hasTipoTarget ? this.tipoTarget.value : "calcado"
   }
 
+  // The kind changes the grouping (a DTF's leading number doesn't separate,
+  // Etapa 2.5c): asked again, every group of the new kind.
   mudarTipo() {
-    if (this.conferencia?.todosDoTipo(this.tipoEscolhido())) this.render()
+    this.agrupar()
   }
 
   conferir(event) {

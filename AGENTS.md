@@ -1156,6 +1156,11 @@ change.
   upload's conference (the grouping's `tipos` carry `usa_pecas` /
   `usa_tamanhos`) hide them, with the paper consumption per piece. Their
   pedidos (2.6, 2.7) have no parts matrix, consumption or cost per pair.
+  In a DTF upload the leading number doesn't separate the sizes (decided
+  13/10/2026, `TipoDaArte::REFERENCIA_NAO_SEPARA`: "872/873/874-ENCRUZILHADA"
+  P/M/G were numbered by hand one by one): `AgrupamentoDoUpload` takes the
+  upload's `tipo`, offers existing artes of that kind only, and changing the
+  upload's kind asks for the grouping again.
 - **Not in pedidos yet**: only calçado artes go into a pedido (`adicionar_item`
   refuses, the card hides "Pedido") until Etapas 2.6 / 2.7.
 - E2E: `e2e/tipo-da-arte.spec.js`.

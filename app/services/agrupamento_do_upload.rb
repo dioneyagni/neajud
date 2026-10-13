@@ -2,7 +2,9 @@
 # 1.2, 2/3 parte 3; docs/plano.md "Agrupamento no upload"). Files whose names
 # have the same referência (leading number) and nome — without part, size,
 # measure and copy leftovers, compared ignoring case and accents — are one
-# arte. Cortes and names without a nome stay alone.
+# arte. Cortes and names without a nome stay alone. For a DTF upload the
+# leading number doesn't separate (TipoDaArte::REFERENCIA_NAO_SEPARA): the
+# old hand-made one per size.
 #
 # Each file comes back with the part, size and side (DIR / ESQ, Etapa 1.2,
 # 3/3 parte 3c) read from its name and whether
@@ -26,18 +28,22 @@ class AgrupamentoDoUpload
 
   # candidatas: where existing artes are looked for — the visible ones
   # (Etapa 2.8: a cliente final's upload never suggests another client's arte).
-  def self.call(arquivos, pecas: Peca.ativos.to_a, candidatas: Arquivo.all)
-    new(arquivos, pecas, candidatas).call
+  # tipo: the upload's kind of work (Etapa 2.5a); existing artes are of it.
+  def self.call(arquivos, pecas: Peca.ativos.to_a, candidatas: Arquivo.all, tipo: "calcado")
+    new(arquivos, pecas, candidatas, tipo).call
   end
 
-  def initialize(arquivos, pecas, candidatas = Arquivo.all)
+  def initialize(arquivos, pecas, candidatas = Arquivo.all, tipo = "calcado")
     @arquivos = arquivos
     @pecas = pecas.index_by(&:nome)
     @candidatas = candidatas
+    @tipo = tipo
+    @referencia_separa = TipoDaArte::REFERENCIA_NAO_SEPARA.exclude?(tipo)
   end
 
   def call
-    grupos = agrupar.map { |grupo| grupo.tap { sugerir_pilotos(grupo.arquivos) } }
+    # Etapa 2.5c: a work without corte has no piloto, each file is the editable one.
+    grupos = agrupar.each { |grupo| sugerir_pilotos(grupo.arquivos) if Arte.new(tipo: @tipo).usa_pecas? }
     grupos.each { |grupo| grupo.existentes = existentes(grupo) if grupo.nome }
     { conferir: grupos.any? { |g| g.arquivos.size > 1 || g.arquivos.any?(&:piloto) }, grupos: grupos }
   end
@@ -56,13 +62,17 @@ class AgrupamentoDoUpload
 
   def novo_grupo(chave, lido)
     sozinho = chave.first == :sozinho
-    Grupo.new(chave: chave, referencia: lido[:referencia], nome: (lido[:nome] unless sozinho), arquivos: [], existentes: [])
+    Grupo.new(chave: chave, referencia: referencia_de(lido), nome: (lido[:nome] unless sozinho), arquivos: [], existentes: [])
   end
 
   # Alone (its own key) when it can't be grouped: a corte, or no nome left.
   def chave_de(nome, lido, indice)
     sozinho = lido[:nome].nil? || FileCategory.for_extension(extensao(nome)) != "artes"
-    sozinho ? [ :sozinho, indice ] : [ lido[:referencia], TextoComparavel.chave(lido[:nome]) ]
+    sozinho ? [ :sozinho, indice ] : [ referencia_de(lido), TextoComparavel.chave(lido[:nome]) ]
+  end
+
+  def referencia_de(lido)
+    lido[:referencia] if @referencia_separa
   end
 
   def sugerir_pilotos(arquivos)
@@ -88,16 +98,17 @@ class AgrupamentoDoUpload
   # stored ones once a molde gave them, else read from the file name.
   def existentes(grupo)
     palavra = grupo.nome.split.first.to_s
-    candidatas = @candidatas.ativos.where(category: "artes").principais_das_artes.includes(:referencia, :arte, molde: :modelo)
+    # Artes of other kinds are never joined (JuntarArtesService): not offered.
+    candidatas = @candidatas.ativos.where(category: "artes", arte_id: Arte.where(tipo: @tipo)).principais_das_artes.includes(:referencia, :arte, molde: :modelo)
                         .where("arquivos.nome LIKE :p OR arquivos.filename LIKE :p", p: "%#{Arquivo.sanitize_sql_like(palavra)}%").limit(200)
     candidatas.select { |arquivo| chave_existente(arquivo) == grupo.chave }.first(5)
   end
 
   def chave_existente(arquivo)
-    return [ arquivo.referencia&.nome, TextoComparavel.chave(arquivo.nome) ] if arquivo.nome.present?
+    return [ (arquivo.referencia&.nome if @referencia_separa), TextoComparavel.chave(arquivo.nome) ] if arquivo.nome.present?
 
     lido = NomeDoArquivo.ler(arquivo.filename, partes: @pecas.keys)
-    [ lido[:referencia], lido[:nome] && TextoComparavel.chave(lido[:nome]) ]
+    [ referencia_de(lido), lido[:nome] && TextoComparavel.chave(lido[:nome]) ]
   end
 
   def extensao(nome)
