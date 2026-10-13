@@ -112,7 +112,11 @@ module ArquivosHelper
     total = partes.values.sum(&:size)
     return nil if total < 2
 
-    tamanhos = partes.map { |peca, lista| [ peca&.nome || "No part", lista.map { |a| a.rotulo_de_tamanho || "?" }.join(", ") ].join(" ") }
+    # Etapa 2.5c: a DTF lists its sizes alone; a corrida or a cor lisa, nothing.
+    arte = arquivo.arte
+    return "#{total} files" unless arte.usa_tamanhos?
+
+    tamanhos = partes.map { |peca, lista| [ (peca&.nome || "No part" if arte.usa_pecas?), lista.map { |a| a.rotulo_de_tamanho || "?" }.join(", ") ].compact.join(" ") }
     "#{total} files · #{tamanhos.join(" · ")}"
   end
 

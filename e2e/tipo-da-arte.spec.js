@@ -74,11 +74,52 @@ runSpec("Tipo da arte E2E Tests", async ({ page, test }) => {
     const grupo = page.locator(".conferencia-grupo");
     await grupo.first().waitFor({ timeout: 10000 });
     if ((await grupo.count()) !== 1) throw new Error("Expected one group");
+    if ((await grupo.locator("select.conferencia-parte").count()) !== 2) throw new Error("A calçado group has no part per file");
+    // Etapa 2.5c: a DTF has no part, side or piloto (each file is the editable one), only its size.
     await grupo.locator("select.conferencia-tipo").selectOption("dtf");
+    await grupo.locator("select.conferencia-parte").first().waitFor({ state: "detached", timeout: 5000 });
+    if (await grupo.locator(".conferencia-lado, .conferencia-piloto").count()) throw new Error("A DTF group still has side or piloto");
+    if ((await grupo.locator(".conferencia-tamanho").count()) !== 2) throw new Error("A DTF group lost its sizes");
+    // A corrida, sold by the meter, has no size either.
+    await grupo.locator("select.conferencia-tipo").selectOption("corrida");
+    await grupo.locator(".conferencia-tamanho").first().waitFor({ state: "detached", timeout: 5000 });
+    await grupo.locator("select.conferencia-tipo").selectOption("dtf");
+    await grupo.locator(".conferencia-tamanho").nth(1).waitFor({ timeout: 5000 });
     await submitUploadAndWait(page, 2);
     const codigo = await cartao(`55-ARCO${U}`).locator(".stamp-card-tipo").innerText({ timeout: 10000 });
     if (!/^DTF-\d+$/.test(codigo.trim())) throw new Error(`The group shows ${codigo}`);
     if (!(await cartao(`55-ARCO${U}`).innerText()).includes("2 files")) throw new Error("The two sizes aren't one arte");
+  });
+
+  // Etapa 2.5c (decided 13/10/2026): a DTF's sizes came numbered by hand one
+  // by one; in a DTF upload that leading number doesn't separate them.
+  await test("A DTF upload joins sizes numbered apart into one etiqueta", async () => {
+    await page.goto(`${BASE_URL}/arquivos`);
+    await page.setInputFiles('input[type="file"]', [copia(`872-PAIS${U} - P - 1,6 X 1,7`), copia(`873-PAIS${U} - M - 2 X 2`)]);
+    // As calçado, the leading number separates: two artes of one file, nothing to confer.
+    await page.locator(".upload-file").nth(1).waitFor({ timeout: 10000 });
+    if (await page.locator(".conferencia-grupo").count()) throw new Error("Calçado grouped files of different references");
+    await page.selectOption('[data-upload-target="tipo"]', "dtf");
+    const grupo = page.locator(".conferencia-grupo");
+    await grupo.first().waitFor({ timeout: 10000 });
+    if ((await grupo.count()) !== 1) throw new Error("The DTF's sizes aren't one group");
+    const titulo = (await grupo.locator(".conferencia-grupo-titulo").innerText()).trim();
+    if (titulo !== `PAIS${U}`) throw new Error(`The group is titled ${titulo}`);
+    await submitUploadAndWait(page, 2);
+    const resumo = await cartao(`PAIS${U}`).locator(".stamp-card-arte").innerText({ timeout: 10000 });
+    if (resumo.trim() !== "2 files · M, P") throw new Error(`The etiqueta sums up as ${resumo}`);
+    await page.selectOption('[data-upload-target="tipo"]', "calcado");
+  });
+
+  // Etapa 2.5c: no part, consumption or piloto on a DTF's page — only its sizes.
+  await test("The DTF's page lists its sizes, without part, paper consumption or piloto", async () => {
+    await cartao(`55-ARCO${U}`).locator("a").first().click();
+    const lista = page.locator("#arte-arquivos");
+    await lista.waitFor({ timeout: 10000 });
+    if ((await lista.locator(".arte-arquivo-tamanho").count()) !== 2) throw new Error("The DTF's sizes aren't listed");
+    if (await lista.locator("h4, .arte-arquivo-consumo, .arte-tornar-piloto, .arte-lado, select[name=peca_uuid]").count()) {
+      throw new Error("A DTF's page shows part, consumption or piloto");
+    }
   });
 
   await test("Each gets its client; one becomes an estampa corrida and enters the catálogo", async () => {
@@ -96,6 +137,8 @@ runSpec("Tipo da arte E2E Tests", async ({ page, test }) => {
     await page.locator("#tipo-da-arte-no-catalogo").check();
     await waitForText(page, "is in the catálogo: every client sees it.");
     if ((await page.locator("#tipo-da-arte-section").getAttribute("data-tipo")) !== "corrida") throw new Error("The kind didn't change");
+    // Sold by the meter: a corrida's file has no size.
+    if (await page.locator("#arte-arquivos .arte-arquivo-tamanho, #arte-arquivos input[name=tamanho_rotulo]").count()) throw new Error("A corrida shows a size");
   });
 
   await test("Another client's person sees the catálogo's work, without its owner or controls, and never the other", async () => {

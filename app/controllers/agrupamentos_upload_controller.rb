@@ -4,16 +4,23 @@
 class AgrupamentosUploadController < ApplicationController
   before_action { exigir!(pode?(:artes, :editar) || pode?(:catalogo, :editar), "artes or catalogo: editar") }
 
-  # Usage: POST /arquivos/agrupamento (arquivos: [{ nome:, bytes: }]) → JSON
+  # Usage: POST /arquivos/agrupamento (arquivos: [{ nome:, bytes: }], tipo: "dtf") → JSON
   def create
     arquivos = Array(params[:arquivos]).map { |a| { nome: a[:nome].to_s, bytes: a[:bytes].to_i } }
-    resultado = AgrupamentoDoUpload.call(arquivos, pecas: visiveis(Peca).ativos.to_a, candidatas: visiveis(Arquivo))
+    tipo = TipoDaArte::TIPOS.include?(params[:tipo]) ? params[:tipo] : "calcado"
+    resultado = AgrupamentoDoUpload.call(arquivos, pecas: visiveis(Peca).ativos.to_a, candidatas: visiveis(Arquivo), tipo: tipo)
     # tipos: each group's kind of work in the conference (Etapa 2.5a).
     render json: { conferir: resultado[:conferir], pecas: pecas_json, grupos: resultado[:grupos].map { |g| grupo_json(g) },
-                   tipos: TipoDaArte::ROTULOS.map { |tipo, rotulo| { tipo: tipo, rotulo: rotulo } } }
+                   tipos: TipoDaArte::ROTULOS.map { |tipo, rotulo| tipo_na_conferencia(tipo, rotulo) } }
   end
 
   private
+
+  # Etapa 2.5c: which fields the conference shows for a group of this kind.
+  def tipo_na_conferencia(tipo, rotulo)
+    arte = Arte.new(tipo: tipo)
+    { tipo: tipo, rotulo: rotulo, usa_pecas: arte.usa_pecas?, usa_tamanhos: arte.usa_tamanhos? }
+  end
 
   def pecas_json
     visiveis(Peca).ativos.order(:nome).map { |peca| { uuid: peca.uuid, nome: peca.nome } }

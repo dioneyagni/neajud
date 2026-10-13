@@ -15,6 +15,14 @@ module TipoDaArte
   ROTULOS = { "calcado" => "Calçado", "dtf" => "Etiqueta DTF", "corrida" => "Estampa corrida", "cor_lisa" => "Cor lisa" }.freeze
   # The kinds numbered now, with their code's prefix.
   PREFIXOS = { "dtf" => "DTF", "corrida" => "CR" }.freeze
+  # Etapa 2.5c (decided 12/10/2026): sold by the meter, a corrida or a cor
+  # lisa has no size either — a DTF keeps its P/M/G or numbers.
+  SEM_TAMANHO = %w[corrida cor_lisa].freeze
+  # Etapa 2.5c (decided 13/10/2026): a DTF's sizes came numbered by hand one
+  # by one (872-ENCRUZILHADA P, 873-… M, 874-… G); now that the system
+  # numbers the etiqueta, that leading number doesn't separate them in the
+  # upload's grouping (it stays in each file's original name).
+  REFERENCIA_NAO_SEPARA = %w[dtf].freeze
 
   included do
     validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a kind of arte; expected one of #{TIPOS.join(", ")}" }
@@ -37,6 +45,25 @@ module TipoDaArte
 
   def calcado?
     tipo == "calcado"
+  end
+
+  # Parts, sides and pilotos are calçado's (Etapa 2.5c, decided 12/10/2026):
+  # a work without corte has none — each of its files is already the editable
+  # one, and production compacts (corrida, cor lisa) or lays out (DTF) it.
+  def usa_pecas?
+    calcado?
+  end
+
+  def usa_tamanhos?
+    SEM_TAMANHO.exclude?(tipo)
+  end
+
+  # What a file of this kind doesn't keep: cleared on every save of the file
+  # (MembroDeArte) and on its files when the arte changes kind.
+  # Usage: arte.campos_fora_do_tipo # => { peca_id: nil, lado: nil, tamanho_id: nil, tamanho_rotulo: nil }
+  def campos_fora_do_tipo
+    campos = usa_pecas? ? {} : { peca_id: nil, lado: nil }
+    usa_tamanhos? ? campos : campos.merge(tamanho_id: nil, tamanho_rotulo: nil)
   end
 
   # Usage: arte.codigo # => "DTF-863"; "Laranja 1" for a measured cor lisa;
@@ -82,7 +109,12 @@ module TipoDaArte
     errors.add(:tipo, "can't be #{ROTULOS[novo] || novo} while #{titulo} has a molde: unlink it first") if novo != "calcado" && arquivos.where.not(molde_id: nil).exists?
     return false if errors.any?
 
-    update(tipo: novo, no_catalogo: novo == "cor_lisa" || (no_catalogo && novo != "calcado"))
+    transaction do
+      raise ActiveRecord::Rollback unless update(tipo: novo, no_catalogo: novo == "cor_lisa" || (no_catalogo && novo != "calcado"))
+
+      limpar_arquivos_fora_do_tipo
+    end
+    errors.none?
   end
 
   private
@@ -92,6 +124,13 @@ module TipoDaArte
     prefixo = PREFIXOS[tipo]
     self.familia = ""
     self.numero = prefixo ? Sequencia.proximo!(tipo) : nil
+  end
+
+  # No pedido uses the arte (trocar_tipo! checks), so nothing reads these.
+  def limpar_arquivos_fora_do_tipo
+    campos = campos_fora_do_tipo
+    campos = campos.merge(papel: "producao") unless usa_pecas?
+    arquivos.update_all(campos.merge(updated_at: Time.current)) if campos.any?
   end
 
   def medir_cor

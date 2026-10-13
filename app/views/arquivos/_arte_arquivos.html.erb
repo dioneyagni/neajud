@@ -3,25 +3,30 @@
     or together by mistake (decided 02/10/2026; with previews 05/10/2026). Each
     part's piloto (the editable master) comes first (parte 2b, 05/10/2026). %>
 <% partes = arquivo.arte.arquivos_por_parte %>
-<% largura_papel = Empresa.atual&.largura_papel_efetiva_mm %>
+<%# Etapa 2.5c: a work without corte has no parts, sides, piloto or paper
+    consumption (sold by the meter or laid out on the film in 2.6); a
+    corrida or a cor lisa has no size either. %>
+<% usa_pecas = arquivo.arte.usa_pecas? %>
+<% usa_tamanhos = arquivo.arte.usa_tamanhos? %>
+<% largura_papel = usa_pecas ? Empresa.atual&.largura_papel_efetiva_mm : nil %>
 <% total = partes.values.sum(&:size) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="arte-arquivos">
   <h3>Files of this arte <span class="badge-count"><%= total %></span></h3>
 
   <% partes.each do |peca, lista| %>
     <div class="arte-parte" data-parte="<%= peca&.nome || "" %>">
-      <h4><%= peca&.nome || "Part not known yet" %></h4>
+      <% if usa_pecas %><h4><%= peca&.nome || "Part not known yet" %></h4><% end %>
       <ul class="arte-arquivos-lista">
         <% lista.each do |membro| %>
           <li class="arte-arquivo<%= " arte-arquivo--atual" if membro == arquivo %><%= " arte-arquivo--piloto" if membro.piloto? %>" data-arquivo-uuid="<%= membro.uuid %>" data-papel="<%= membro.papel %>">
             <%= miniatura_do_arquivo(membro, classe: "arte-arquivo-thumb") %>
             <% if membro.piloto? %>
               <span class="arte-arquivo-tamanho" title="The editable master file of this part">★ Piloto</span>
-            <% else %>
+            <% elsif usa_tamanhos %>
               <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
             <% end %>
             <%# Etapa 1.2 (3/3, parte 3c): the side of a mirrored part's file. %>
-            <% if pode_editar_arquivo?(arquivo) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>
+            <% if usa_pecas && pode_editar_arquivo?(arquivo) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>
               <%= form_with url: definir_lado_arquivo_arte_path(membro), method: :patch, class: "arte-acao-inline arte-lado", data: { controller: "auto-submit", turbo: false } do %>
                 <select name="lado" aria-label="Side of <%= membro.filename %>" data-action="change->auto-submit#submit">
                   <option value="">no side</option>
@@ -58,7 +63,7 @@
             <% if pode_baixar_original? %>
               <%= link_to "Download", download_arquivo_path(membro), class: "btn btn-secondary btn-sm", data: { turbo: false } %>
             <% end %>
-            <% if pode_editar_arquivo?(arquivo) %>
+            <% if usa_pecas && pode_editar_arquivo?(arquivo) %>
               <% if membro.piloto? %>
                 <%= button_to "Back to production", voltar_para_producao_arquivo_arte_path(membro), class: "btn btn-secondary btn-sm", form: { class: "arte-acao-inline arte-voltar-producao" } %>
               <% else %>
@@ -94,7 +99,7 @@
     <% end %>
 
     <details class="arte-acrescentar">
-      <summary>Add a file (another part or size)</summary>
+      <summary><%= usa_pecas ? "Add a file (another part or size)" : usa_tamanhos ? "Add a file (another size)" : "Add a file" %></summary>
       <%= form_with url: acrescentar_arquivo_arte_path(arquivo), method: :post, multipart: true, data: { turbo: false }, class: "arte-acrescentar-form" do %>
         <input type="file" name="original_file" required>
         <% if arquivo.molde %>
@@ -109,7 +114,7 @@
               </optgroup>
             <% end %>
           </select>
-        <% else %>
+        <% elsif usa_pecas %>
           <select name="peca_uuid">
             <option value="">Part (optional)</option>
             <% visiveis(Peca).ativos.order(:nome).each do |peca| %>
@@ -117,13 +122,17 @@
             <% end %>
           </select>
           <input type="text" name="tamanho_rotulo" placeholder="Size (29-30, P…)">
+        <% elsif usa_tamanhos %>
+          <input type="text" name="tamanho_rotulo" placeholder="Size (P, M, G, 10…)">
         <% end %>
-        <select name="lado" aria-label="Side">
-          <option value="">Side (mirrored parts)</option>
-          <% LadoNaArte::ABREVIACOES.each do |lado, abreviado| %>
-            <option value="<%= lado %>"><%= abreviado %></option>
-          <% end %>
-        </select>
+        <% if usa_pecas %>
+          <select name="lado" aria-label="Side">
+            <option value="">Side (mirrored parts)</option>
+            <% LadoNaArte::ABREVIACOES.each do |lado, abreviado| %>
+              <option value="<%= lado %>"><%= abreviado %></option>
+            <% end %>
+          </select>
+        <% end %>
         <button type="submit" class="btn btn-primary btn-sm">Add</button>
       <% end %>
     </details>
