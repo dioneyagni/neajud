@@ -31,6 +31,7 @@
     <div class="stamp-detail-grid">
       <%= render "tipo_da_arte", arquivo: @arquivo if @arquivo.arte %>
       <%= render "cor_lisa", arquivo: @arquivo if @arquivo.arte&.tipo == "cor_lisa" %>
+      <%= render "espacamento_dtf", arquivo: @arquivo if @arquivo.arte&.tipo == "dtf" && !cliente_final? %>
       <%# A work of the coleção geral read by another client: its owner is no business of his (Etapa 2.5a). %>
       <%= render "client_field" if do_proprio_cliente?(@arquivo) %>
       <%# A work without corte has no molde (Etapa 2.5a). %>

@@ -125,6 +125,12 @@ RSpec.describe ArquivoVersion, type: :model do
       expect(com_medidas(3000, 600, 300).metros_por_peca(1600)).to eq(0.00847)
     end
 
+    it "measures the file in mm from its pixels and DPI (Etapa 2.6a)" do
+      # The DTF sample "1,6 X 1,7": 191 × 201 px at 300 dpi.
+      expect(com_medidas(191, 201, 300).medidas_mm.map { |mm| mm.round(1) }).to eq([ 16.2, 17.0 ])
+      expect(com_medidas(191, 201, nil).medidas_mm).to be_nil
+    end
+
     it "tries 90° too when asked, keeping the better" do
       expect(com_medidas(3000, 600, 300).metros_por_peca(1600, girar: true)).to eq(0.00819)
     end

@@ -3619,3 +3619,34 @@ li.aprovacao--cancelada {
 .tabela-rolavel {
   overflow-x: auto;
 }
+
+/* Etapa 2.6a: the DTF film in Parâmetros and an etiqueta's spacing and sizes. */
+.parametros-dtf {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  margin: 1rem 0;
+}
+
+.parametros-dtf legend {
+  font-weight: 600;
+  padding: 0 0.3rem;
+}
+
+.espacamento-dtf-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.espacamento-dtf-form input {
+  width: 5rem;
+}
+
+.espacamento-dtf-efetivo,
+.arte-arquivo-medida {
+  color: #666;
+  font-size: 0.82rem;
+}

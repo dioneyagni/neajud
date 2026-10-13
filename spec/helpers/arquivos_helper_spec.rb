@@ -41,6 +41,17 @@ RSpec.describe ArquivosHelper, type: :helper do
     end
   end
 
+  # Etapa 2.6a: a DTF size's measure on the film, from its file in use.
+  describe "#medida_do_arquivo" do
+    it "gives width × height in cm, nil without the file's size" do
+      version = create(:arquivo_version)
+      ArquivoImageMetadata.create!(arquivo_version: version, width_px: 191, height_px: 201, dpi: 300)
+      arquivo = version.arquivo.tap { |a| a.update!(approved_version: version) }
+      expect(helper.medida_do_arquivo(arquivo)).to eq("1,62 × 1,70 cm")
+      expect(helper.medida_do_arquivo(create(:arquivo))).to be_nil
+    end
+  end
+
   describe "#pecas_por_metro_do_tamanho" do
     it "lists pieces per meter on each fitted width, nil while none was computed" do
       expect(helper.pecas_por_metro_do_tamanho(build(:tamanho, metros_por_peca: { "1600" => 0.01551, "1250" => 0.01971 })))

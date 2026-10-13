@@ -24,6 +24,10 @@
               <span class="arte-arquivo-tamanho" title="The editable master file of this part">★ Piloto</span>
             <% elsif usa_tamanhos %>
               <span class="arte-arquivo-tamanho"><%= membro.rotulo_de_tamanho || "size ?" %></span>
+              <%# Etapa 2.6a: a DTF size's measure, read from its file in use. %>
+              <% if !usa_pecas && (medida = medida_do_arquivo(membro)) %>
+                <span class="arte-arquivo-medida" title="From the file's pixels and DPI"><%= medida %></span>
+              <% end %>
             <% end %>
             <%# Etapa 1.2 (3/3, parte 3c): the side of a mirrored part's file. %>
             <% if usa_pecas && pode_editar_arquivo?(arquivo) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>

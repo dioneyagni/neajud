@@ -1162,7 +1162,7 @@ change.
   upload's `tipo`, offers existing artes of that kind only, and changing the
   upload's kind asks for the grouping again.
 - **Not in pedidos yet**: only calçado artes go into a pedido (`adicionar_item`
-  refuses, the card hides "Pedido") until Etapas 2.6 / 2.7.
+  refuses, the card hides "Pedido") until Etapas 2.6b / 2.7.
 - E2E: `e2e/tipo-da-arte.spec.js`.
 
 ### The cor lisa, measured (Etapa 2.5b)
@@ -1197,6 +1197,27 @@ Decided 12/10/2026 (the calibrator by photo comes after the beta —
 - Restart the dev server after editing `config/familias_de_cor.yml`
   (`FamiliasDeCor` keeps it in memory).
 - E2E: `e2e/cor-lisa.spec.js` (makes its solid-color files with `convert`).
+
+## The DTF etiqueta (Etapa 2.6a)
+
+Decided 13/10/2026; 2.6 comes in three PRs (2.6a the etiqueta and the
+parameters, 2.6b the DTF pedido and its fit on the film, 2.6c the charging):
+
+- **Sizes by measure**: a work without corte has no corte to order its sizes
+  by, so `Arte#arquivos_por_parte` orders them by the file's area
+  (`ArquivoVersion#medidas_mm`, pixels ÷ DPI, never stored), smaller first,
+  the label breaking ties, unmeasured last — "P, M, G" on the card and the
+  page. The page shows each size's measure (`medida_do_arquivo`, "1,62 ×
+  1,70 cm").
+- **The film is a width, not a material** (Parâmetros, "DTF film"):
+  `Empresa#largura_filme_dtf_mm` (600), `margem_filme_dtf_mm` (15 at each
+  edge, `largura_util_filme_dtf_mm` = 570), `espacamento_dtf_mm` (1,5, both
+  ways) and `fileiras_extras_dtf` (0, a pedido may change it in 2.6b).
+- **The etiqueta's own spacing** (`artes.espacamento_mm`, blank = the
+  default; `Arte#espacamento_efetivo_mm`): set on its page
+  (`TiposDaArteController#espacamento`, `exige_equipe`); the cliente final
+  never sees it.
+- E2E: `e2e/etiqueta-dtf.spec.js` (makes its sizes with `convert` at 300 dpi).
 
 ## Official catalog (Etapa 1.1, 3/5)
 

@@ -12,7 +12,8 @@ class ParametrosEmpresaController < ApplicationController
     @empresa = Empresa.atual
   end
 
-  # Usage: PATCH /parametros (empresa[largura_papel_mm|tolerancia_abaixo_pct|tolerancia_acima_pct|custo_impressao_metro|custo_corte_peca])
+  # Usage: PATCH /parametros (empresa[largura_papel_mm|tolerancia_abaixo_pct|tolerancia_acima_pct|custo_impressao_metro|custo_corte_peca],
+  #   Etapa 2.6a: empresa[largura_filme_dtf_mm|margem_filme_dtf_mm|espacamento_dtf_mm|fileiras_extras_dtf])
   def update
     @empresa = Empresa.atual
     return redirect_to edit_parametros_path, notice: "Production parameters saved." if @empresa.update(parametros)
@@ -25,11 +26,18 @@ class ParametrosEmpresaController < ApplicationController
 
   def parametros
     dados = params.require(:empresa).permit(:papel_padrao_uuid, :largura_papel_mm, :tolerancia_abaixo_pct, :tolerancia_acima_pct,
-                                            :custo_impressao_metro, :custo_corte_peca)
+                                            :custo_impressao_metro, :custo_corte_peca,
+                                            :largura_filme_dtf_mm, :margem_filme_dtf_mm, :espacamento_dtf_mm, :fileiras_extras_dtf)
     papel = dados.delete(:papel_padrao_uuid)
     dados[:papel_padrao] = visiveis(MateriaPrima).papeis.find_by(uuid: papel) if papel
     # Etapa 2.4: "4,50" as typed; blank = not set.
-    %i[custo_impressao_metro custo_corte_peca].each { |campo| dados[campo] = dados[campo].to_s.strip.tr(",", ".").presence if dados.key?(campo) }
+    %i[custo_impressao_metro custo_corte_peca].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
+    # Etapa 2.6a: "1,5" mm as typed.
+    dados[:espacamento_dtf_mm] = decimal_digitado(dados[:espacamento_dtf_mm]) if dados.key?(:espacamento_dtf_mm)
     dados
+  end
+
+  def decimal_digitado(valor)
+    valor.to_s.strip.tr(",", ".").presence
   end
 end

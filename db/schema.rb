@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_12_215128) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_13_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -193,6 +193,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_215128) do
 
   create_table "artes", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.decimal "espacamento_mm", precision: 5, scale: 2
     t.string "familia", default: "", null: false
     t.integer "materia_prima_id"
     t.boolean "no_catalogo", default: false, null: false
@@ -287,7 +288,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_12_215128) do
     t.datetime "created_at", null: false
     t.decimal "custo_corte_peca", precision: 10, scale: 4
     t.decimal "custo_impressao_metro", precision: 10, scale: 2
+    t.decimal "espacamento_dtf_mm", precision: 5, scale: 2, default: "1.5", null: false
+    t.integer "fileiras_extras_dtf", default: 0, null: false
+    t.integer "largura_filme_dtf_mm", default: 600, null: false
     t.integer "largura_papel_mm", default: 1600, null: false
+    t.integer "margem_filme_dtf_mm", default: 15, null: false
     t.string "nome", null: false
     t.integer "papel_padrao_id"
     t.integer "tolerancia_abaixo_pct", default: 10, null: false

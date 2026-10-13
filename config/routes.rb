@@ -61,6 +61,8 @@ Rails.application.routes.draw do
       patch :catalogo
       # Etapa 2.5b: a cor lisa's optional material.
       patch :material
+      # Etapa 2.6a: a DTF's own space between copies on the film.
+      patch :espacamento
     end
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes

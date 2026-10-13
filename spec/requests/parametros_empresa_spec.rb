@@ -37,4 +37,20 @@ RSpec.describe "Production parameters", type: :request do
     patch parametros_path, params: { empresa: { custo_corte_peca: "" } }
     expect(Empresa.atual.reload.custos_definidos?).to be(false)
   end
+
+  # Etapa 2.6a (decided 13/10/2026): the DTF film is a width, not a material.
+  it "saves the DTF film, its margins, the default spacing typed with a comma and the extra rows" do
+    get edit_parametros_path
+    expect(Nokogiri::HTML(response.body).at_css(".parametros-dtf-util").text).to eq("570 mm left for the etiquetas.")
+    patch parametros_path, params: { empresa: { largura_filme_dtf_mm: "580", margem_filme_dtf_mm: "10", espacamento_dtf_mm: "2,5", fileiras_extras_dtf: "1" } }
+    expect(Empresa.atual.attributes.values_at("largura_filme_dtf_mm", "margem_filme_dtf_mm", "espacamento_dtf_mm", "fileiras_extras_dtf")).to eq([ 580, 10, 2.5, 1 ])
+    expect(Empresa.atual.largura_util_filme_dtf_mm).to eq(560)
+  end
+
+  it "refuses margins that leave nothing of the film, saying why" do
+    patch parametros_path, params: { empresa: { margem_filme_dtf_mm: "300" } }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("300 mm at each edge leaves nothing of the 600 mm film")
+    expect(Empresa.atual.reload.margem_filme_dtf_mm).to eq(15)
+  end
 end
