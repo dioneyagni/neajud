@@ -309,8 +309,8 @@ Key files:
 
 Decided 05/10/2026, in three parts; done 07/10/2026 (Fase 1 complete):
 
-- `pedidos.tipo` (`Pedido::TIPOS`: calcado; DTF and tecido in Fase 2) — one
-  type per pedido.
+- `pedidos.tipo` (`Pedido::TIPOS`: calcado, dtf since Etapa 2.6b1; tecido in
+  2.7) — one type per pedido, from its items.
 - An item is an **arte** (`itens_pedido.arte_id`); `arquivo_id` is the file it
   was added from, still what the pieces below start from until part 2 reads
   them from the arte. Its grade is by **individual size**
@@ -1161,8 +1161,8 @@ change.
   P/M/G were numbered by hand one by one): `AgrupamentoDoUpload` takes the
   upload's `tipo`, offers existing artes of that kind only, and changing the
   upload's kind asks for the grouping again.
-- **Not in pedidos yet**: only calçado artes go into a pedido (`adicionar_item`
-  refuses, the card hides "Pedido") until Etapas 2.6b / 2.7.
+- **Not in pedidos yet**: the corrida and the cor lisa (`adicionar_item`
+  refuses, the card hides "Pedido") until Etapa 2.7; the DTF since 2.6b1.
 - E2E: `e2e/tipo-da-arte.spec.js`.
 
 ### The cor lisa, measured (Etapa 2.5b)
@@ -1218,6 +1218,41 @@ parameters, 2.6b the DTF pedido and its fit on the film, 2.6c the charging):
   (`TiposDaArteController#espacamento`, `exige_equipe`); the cliente final
   never sees it.
 - E2E: `e2e/etiqueta-dtf.spec.js` (makes its sizes with `convert` at 300 dpi).
+
+## The DTF pedido (Etapa 2.6b1)
+
+Decided 13/10/2026 (2.6b2 adds the stages and the RIP download, 2.6c the
+prices):
+
+- **Type from the item**: `Pedido.tipo_para(arte)`; `adicionar_item` sends an
+  etiqueta to the client's **DTF** draft (`pedido_de_destino` filters by
+  type), an empty draft takes its first item's type (`aceita_tipo?`), a
+  pedido page refuses an item of another type. A DTF item has no parts.
+- **The fit is stored per size**: `EncaixeDaEtiqueta` writes
+  `arquivos.encaixe_dtf` (copies per row and the row's step, standing and
+  turned) when the version is processed or changes, the arte's spacing or
+  kind changes, or the dono changes the film (callbacks on `ArquivoVersion`,
+  `Arquivo`, `Arte`, `Empresa`). Existing files: `bin/rails
+  producao:encaixe_dtf`. The arte page shows it (`encaixe_do_arquivo`; the
+  turn and the spacing only for the team).
+- **The pedido counts rows**: `EncaixeDoPedidoDtf` — each etiqueta × size in
+  its own rows, the orientation with fewer meters (standing on a tie), the
+  last row completed, the extra rows (`itens_pedido_grade.fileiras_extras`,
+  blank = `pedidos.fileiras_extras`, which starts at the dono's). Confirming
+  writes each line's fit into `itens_pedido_grade.encaixe_dtf`; a confirmed
+  pedido reads that.
+- **The client is the pedido's** (`confirmar_dtf`: never split):
+  `PedidosDtfController` sets the delivery (`pedidos.entrega`, rolo /
+  cortada), the extra rows (the cliente final too, on his draft) and the
+  client (the team's). `adicionar_item` reads the coleção geral
+  (`visiveis(Arquivo, colecao_geral: true)`) so a cliente final orders a
+  catálogo etiqueta into his own draft; the card's "Pedido" and the search
+  (`artes_para_adicionar?tipo=dtf&q=`) never carry a catálogo work's owner.
+- **Pendências**: `PedidoBloqueiosDtf` (pedido without client, an etiqueta
+  outside the catálogo of another client, quantity 0, a size without file,
+  without measure or wider than the film).
+- `config/etapas_producao.yml` has `dtf: []` until 2.6b2.
+- E2E: `e2e/pedido-dtf.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 

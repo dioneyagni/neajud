@@ -85,14 +85,17 @@
       </div>
     </div>
   <% end %>
-  <%# Pedidos are calçado's until DTF and corrida get theirs (Etapa 2.6, 2.7). %>
-  <% if arquivo.category == "artes" && (arquivo.arte.nil? || arquivo.arte.calcado?) %>
+  <%# Calçado and DTF (Etapa 2.6b1) go into pedidos; the tecido's come in 2.7. %>
+  <% if arquivo.category == "artes" && (arquivo.arte.nil? || arquivo.arte.calcado? || arquivo.arte.tipo == "dtf") %>
+    <%# The card goes to every client who reads a catálogo work: it never says whose it is (Etapa 2.5a). %>
+    <% dono = arquivo.client unless arquivo.arte&.no_catalogo %>
     <button type="button" class="btn-add-to-order"
             data-action="click->add-to-order#open"
             data-add-to-order-arte-uuid="<%= arquivo.uuid %>"
             data-add-to-order-arte-filename="<%= arquivo.filename %>"
-            data-add-to-order-arte-client="<%= arquivo.client&.name %>"
-            data-add-to-order-arte-client-uuid="<%= arquivo.client&.uuid %>"
+            data-add-to-order-arte-tipo="<%= arquivo.arte&.tipo %>"
+            data-add-to-order-arte-client="<%= dono&.name %>"
+            data-add-to-order-arte-client-uuid="<%= dono&.uuid %>"
             data-add-to-order-arte-preview="<%= arquivo.preview_file.present? ? preview_arquivo_path(arquivo) : "" %>"
             data-add-to-order-tamanhos="<%= tamanhos_for_arte(arquivo).to_json %>"
             data-add-to-order-grade-completa="<%= grade_completa_for_arte(arquivo).to_json %>"

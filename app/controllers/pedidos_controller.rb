@@ -63,25 +63,31 @@ class PedidosController < ApplicationController
       return render json: { ok: false, error: "Informe ao menos 1 unidade (quantidade total 0)." }, status: :unprocessable_content
     end
 
-    arquivo = visiveis(Arquivo).ativos.find_by!(uuid: params[:arquivo_uuid])
-    # Etapa 2.5a: pedidos are calçado's until DTF and corrida get theirs (2.6, 2.7).
-    if arquivo.arte && !arquivo.arte.calcado?
-      return render json: { ok: false, error: "#{arquivo.arte.titulo} is #{arquivo.arte.rotulo_do_tipo}: only calçado artes go into a pedido for now" }, status: :unprocessable_content
-    end
-    erro = erro_de_grade(arquivo.arte, params[:grade])
+    # Etapa 2.6b1 (D4): an etiqueta of the coleção geral is ordered by whoever
+    # reads it — only to add it, into his own pedido (visiveis(Pedido) below).
+    arquivo = visiveis(Arquivo, colecao_geral: true).ativos.find_by!(uuid: params[:arquivo_uuid])
+    erro = erro_do_item(arquivo) || erro_de_grade(arquivo.arte, params[:grade])
     return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
-    @pedido = pedido_de_destino(arquivo)
+    tipo = Pedido.tipo_para(arquivo.arte)
+    @pedido = pedido_de_destino(arquivo, tipo)
     return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} can't take items: expected a draft, got #{situacao_do_pedido}" }, status: :unprocessable_content unless @pedido.editavel?(cliente_final: cliente_final?)
+    # Decided 13/10/2026: the pedido's type comes from its items, one type per pedido.
+    return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} is a #{@pedido.tipo} pedido; #{arquivo.arte.titulo} goes into a #{tipo} one" }, status: :unprocessable_content unless @pedido.aceita_tipo?(tipo)
 
     session[:current_pedido_uuid] = @pedido.uuid
 
-    materia_prima = visiveis(MateriaPrima).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
+    # Etapa 2.6b1: a DTF is printed on the film, never on a material.
+    materia_prima = visiveis(MateriaPrima).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present? && tipo != "dtf"
 
     ItemPedido.transaction do
+      @pedido.update!(tipo: tipo) unless @pedido.tipo == tipo
       item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
-      item.compor_pecas!(MoldeComposicaoService.call(arquivo))
-      item.excluir_pecas!(params[:excluir_arquivos])
+      # A DTF has no parts (Etapa 2.5c): its sizes are its own files.
+      unless @pedido.dtf?
+        item.compor_pecas!(MoldeComposicaoService.call(arquivo))
+        item.excluir_pecas!(params[:excluir_arquivos])
+      end
 
       grade_params = params[:grade]
       if grade_params.respond_to?(:each)
@@ -114,6 +120,8 @@ class PedidosController < ApplicationController
       return redirect_to resumo_pedido_path(@pedido),
                          alert: "Não é possível confirmar: #{bloqueios.map(&:descricao).join("; ")}."
     end
+
+    return confirmar_dtf if @pedido.dtf?
 
     @pedido.gravar_precos!
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
@@ -277,6 +285,8 @@ class PedidosController < ApplicationController
   # arte, each choice narrowing the next.
   # Usage: GET /pedidos/artes_para_adicionar.json?molde_uuid=…&referencia_uuid=…
   def artes_para_adicionar
+    return render json: { artes: etiquetas_para_adicionar.map { |arquivo| arte_para_adicionar_json(arquivo) } } if params[:tipo] == "dtf"
+
     molde = visiveis(Molde).ativos.por_uuid!(params[:molde_uuid])
     artes = visiveis(Arquivo).ativos.where(category: "artes", molde: molde)
     artes = artes.where(referencia: molde.referencias.por_uuid!(params[:referencia_uuid])) if params[:referencia_uuid].present?
@@ -287,6 +297,18 @@ class PedidosController < ApplicationController
   end
 
   private
+
+  # A DTF pedido is its client's whatever its etiquetas' owners (Etapa 2.6b1,
+  # D4): never split. Its fit is written into the grade, so a later version or
+  # film change never moves what was confirmed.
+  def confirmar_dtf
+    Pedido.transaction do
+      EncaixeDoPedidoDtf.gravar!(@pedido)
+      @pedido.update!(status: "confirmado")
+    end
+    session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
+    redirect_to pedidos_path, notice: "Pedido confirmed."
+  end
 
   # Each file under its full name (NomeDeArte, without accents or path
   # characters), numbered when two would collide.
@@ -306,13 +328,36 @@ class PedidosController < ApplicationController
     "#{I18n.transliterate(nome).gsub(%r{[/\\:*?"<>|]}, "-")}.dxf"
   end
 
-  # The pedido page adds to itself; the gallery to the client's draft, else
-  # the one in session, else a new one.
-  def pedido_de_destino(arquivo)
+  # The pedido page adds to itself; the gallery to the client's draft of the
+  # item's type, else the one in session when of that type, else a new one
+  # (Etapa 2.6b1: a draft never mixes types). A DTF's client is the
+  # pedido's (D4): a cliente final's own, else the etiqueta's when it is no
+  # catálogo work — the team picks it on the pedido otherwise.
+  def pedido_de_destino(arquivo, tipo)
     return visiveis(Pedido).por_uuid!(params[:pedido_uuid]) if params[:pedido_uuid].present?
-    return visiveis(Pedido).ativos.find_by(client_id: arquivo.client_id, status: "rascunho") || visiveis(Pedido).create!(status: "rascunho", client_id: arquivo.client_id) if arquivo.client_id
 
-    visiveis(Pedido).ativos.find_by(uuid: session[:current_pedido_uuid]) || visiveis(Pedido).create!(status: "rascunho")
+    rascunhos = visiveis(Pedido).ativos.rascunhos.where(reposicao_de_id: nil)
+    client_id = cliente_do_pedido(arquivo, tipo)
+    return rascunhos.find_by(client_id: client_id, tipo: tipo) || visiveis(Pedido).create!(status: "rascunho", client_id: client_id, tipo: tipo) if client_id
+
+    da_sessao = rascunhos.find_by(uuid: session[:current_pedido_uuid])
+    da_sessao&.aceita_tipo?(tipo) ? da_sessao : visiveis(Pedido).create!(status: "rascunho", tipo: tipo)
+  end
+
+  def cliente_do_pedido(arquivo, tipo)
+    return arquivo.client_id unless tipo == "dtf"
+    return Current.user.cliente.id if cliente_final?
+
+    arquivo.client_id unless arquivo.arte.no_catalogo
+  end
+
+  # Only calçado and DTF go into a pedido until the tecido's (Etapa 2.7); a
+  # work the person only reads is a catálogo etiqueta to order, never more.
+  def erro_do_item(arquivo)
+    arte = arquivo.arte
+    return nil if arte.nil? || arte.calcado? || arte.tipo == "dtf"
+
+    "#{arte.titulo} is #{arte.rotulo_do_tipo}: only calçado and DTF artes go into a pedido for now"
   end
 
   # Etapa 1.2 (3/3): the grade is by the arte's individual sizes — any of
@@ -333,10 +378,25 @@ class PedidosController < ApplicationController
     @pedido.status
   end
 
+  # The DTF pedido page's search (Etapa 2.6b1): by number ("863", "DTF-863")
+  # or name, the coleção geral included (a GET reads it).
+  def etiquetas_para_adicionar
+    etiquetas = Arte.where(tipo: "dtf")
+    termo = params[:q].to_s.strip
+    if termo.present?
+      parecidos = Arquivo.where("arquivos.filename LIKE :t OR arquivos.nome LIKE :t", t: "%#{Arquivo.sanitize_sql_like(termo)}%").select(:arte_id)
+      etiquetas = etiquetas.where(id: parecidos).or(etiquetas.where(numero: termo[/\d+/]))
+    end
+    visiveis(Arquivo).ativos.where(category: "artes", arte: etiquetas).principais_das_artes
+                     .includes(:arte, :client).order(id: :desc).limit(40)
+  end
+
+  # A catálogo work of another client never says whose it is (Etapa 2.5a).
   def arte_para_adicionar_json(arquivo)
+    dono = arquivo.client if helpers.do_proprio_cliente?(arquivo)
     {
-      arquivo_uuid: arquivo.uuid, titulo: arquivo.arte.titulo, filename: arquivo.filename,
-      client: arquivo.client&.name, client_uuid: arquivo.client&.uuid,
+      arquivo_uuid: arquivo.uuid, titulo: arquivo.arte.titulo, filename: arquivo.filename, tipo: arquivo.arte.tipo,
+      client: dono&.name, client_uuid: dono&.uuid,
       preview: (preview_arquivo_path(arquivo) if arquivo.preview_file.present?),
       resumo: helpers.resumo_da_arte(arquivo), tamanhos: helpers.tamanhos_for_arte(arquivo),
       grade_completa: helpers.grade_completa_for_arte(arquivo)

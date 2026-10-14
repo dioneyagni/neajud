@@ -178,6 +178,9 @@ Rails.application.routes.draw do
       post :enviar, to: "envios_pedido#enviar"
       post :retirar_envio, to: "envios_pedido#retirar"
       post :devolver, to: "envios_pedido#devolver"
+      # Etapa 2.6b1: a DTF draft's delivery, extra rows and client.
+      patch :dtf, to: "pedidos_dtf#update"
+      patch "dtf/fileiras", to: "pedidos_dtf#fileiras", as: :dtf_fileiras
       get :resumo
     end
   end

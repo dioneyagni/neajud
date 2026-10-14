@@ -377,6 +377,15 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
   - o **espaçamento** padrão é de 1,5 mm nos dois sentidos. A etiqueta pode ter o seu, em mm, que só a equipe vê e altera na página dela; o cliente final não vê;
   - as **fileiras extras** por pedido são um parâmetro (padrão 0), que o pedido poderá mudar na 2.6b.
 
+  A 2.6b ficou em dois PRs (decidido em 13/10/2026): **2.6b1** o pedido de DTF e **2.6b2** a produção (etapas Impressão e Corte, baixas e o download para o RIP). Na 2.6b1:
+  - o **tipo do pedido vem do item**: a etiqueta vai para o rascunho DTF do cliente e o calçado para o de calçado; um rascunho vazio assume o tipo do primeiro item, e um pedido nunca mistura tipos;
+  - **cada tamanho de cada etiqueta tem as suas fileiras** (D2): a quantidade real completa a última fileira, e o excedente vai para o cliente. Cada linha usa a posição (em pé ou girada a 90°) que dá menos metros para a quantidade; no empate, em pé;
+  - as **fileiras extras** são por linha (D3): o pedido tem um padrão, que nasce do parâmetro do dono, e cada linha pode ter o seu (em branco segue o pedido);
+  - o **cliente é do pedido, não da etiqueta** (D4): a equipe escolhe o cliente no pedido DTF; o cliente final pede etiquetas da coleção geral para o próprio rascunho; uma etiqueta fora do catálogo tem de ser do cliente do pedido; a confirmação não divide o pedido por cliente;
+  - o **cliente final** vê a quantidade real, o excedente e a metragem, e altera as fileiras extras do próprio rascunho (D5: ele controla o que precisa a mais); a rotação e o espaçamento são da equipe;
+  - o **encaixe de cada tamanho fica gravado no arquivo** (quantas por fileira e o passo da fileira, em pé e girada), refeito quando a medida, o espaçamento ou o filme mudam, e aparece na página da etiqueta; o pedido só conta as fileiras. Ao **confirmar**, o encaixe de cada linha é gravado no pedido, para que uma versão nova ou um filme novo não mudem um pedido já confirmado;
+  - **rolo ou cortada** fica no pedido (padrão rolo).
+
 **Etapa 2.7 — Estampa corrida e cor lisa.** Estampa corrida: só o módulo é guardado (o RIP monta a repetição); pedido em metros lineares, na largura do tecido (editável no pedido), sobre um material da empresa ou do cliente; preço da impressão por metro linear, mais o tecido (preço do cadastro) quando o material é da empresa; metragem mínima, com aprovação de quem tem a ação na grade abaixo dela. Cor lisa: cada versão é uma cor própria (família reconhecida pelo tom + variação, material, cliente opcional, arquivo de referência 5 × 5 cm) e todas continuam valendo; é pedida como tecido liso, com as mesmas regras da estampa corrida. Só a cor final é cadastrada (as tentativas do desenvolvimento ficam fora).
 
 **Etapa 2.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").

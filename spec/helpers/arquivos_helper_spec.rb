@@ -52,6 +52,18 @@ RSpec.describe ArquivosHelper, type: :helper do
     end
   end
 
+  # Etapa 2.6b1: a DTF size's fit on the film, the turn only for the team.
+  describe "#encaixe_do_arquivo" do
+    it "gives copies per row and the row's step, both ways or only how it fits" do
+      arquivo = build(:arquivo, encaixe_dtf: { "em_pe" => { "por_fileira" => 32, "passo_mm" => 18.52 }, "girada" => { "por_fileira" => 30, "passo_mm" => 17.67 } })
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: true)).to eq("32 por fileira · 18,52 mm · girada: 30 por fileira · 17,67 mm")
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: false)).to eq("32 por fileira · 18,52 mm")
+      arquivo.encaixe_dtf = { "em_pe" => nil, "girada" => nil }
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: true)).to eq("não cabe no filme")
+      expect(helper.encaixe_do_arquivo(build(:arquivo), com_girada: true)).to be_nil
+    end
+  end
+
   describe "#pecas_por_metro_do_tamanho" do
     it "lists pieces per meter on each fitted width, nil while none was computed" do
       expect(helper.pecas_por_metro_do_tamanho(build(:tamanho, metros_por_peca: { "1600" => 0.01551, "1250" => 0.01971 })))

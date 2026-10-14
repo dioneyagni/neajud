@@ -13,6 +13,8 @@ class ArquivoVersion < ApplicationRecord
   after_update_commit -> { arquivo.reload.broadcast_status_change }, if: :saved_change_to_status?
   # Etapa 2.5b: a cor lisa's version is measured once processed.
   after_update_commit -> { MedirCorJob.perform_later(id) }, if: -> { saved_change_to_status? && status == "processed" && arquivo.arte&.tipo == "cor_lisa" }
+  # Etapa 2.6b1: a DTF size's fit on the film follows its measure.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar!(arquivo.reload) }, if: -> { saved_change_to_status? && status == "processed" && arquivo.arte&.tipo == "dtf" }
 
   validates :version_number, presence: true, uniqueness: { scope: :arquivo_id }
   validates :filename, presence: true

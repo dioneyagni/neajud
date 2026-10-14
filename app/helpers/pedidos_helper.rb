@@ -3,6 +3,12 @@
 module PedidosHelper
   Colunas = Struct.new(:ordem, :visiveis, keyword_init: true)
 
+  # A DTF's film, to the millimeter: a row is a couple of centimeters
+  # (Etapa 2.6b1). Usage: metros_de_filme(0.0926) # => "0,093 m"
+  def metros_de_filme(valor)
+    "#{number_with_precision(valor, precision: 3, separator: ",", delimiter: ".")} m"
+  end
+
   # Every number the item may take, in the product's order, and the ones shown
   # at first: the molde's DXF numbers plus any already ordered. The others stay
   # hidden behind "+ 28" / "+ 32". An arte without molde has one column, the

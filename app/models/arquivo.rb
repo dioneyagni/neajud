@@ -33,6 +33,8 @@ class Arquivo < ApplicationRecord
 
   before_validation :set_default_tipo_corte
   after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
+  # Etapa 2.6b1: another version in use, or another arte (its spacing), moves a DTF size's fit.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar!(self) }, if: -> { (saved_changes.keys & %w[approved_version_id arte_id]).any? && (arte&.tipo == "dtf" || encaixe_dtf) }
   before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 

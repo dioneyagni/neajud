@@ -14,6 +14,8 @@ class Arte < ApplicationRecord
 
   # Etapa 2.6a: blank = the dono's default (Parâmetros).
   validates :espacamento_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }, allow_nil: true
+  # Etapa 2.6b1: its sizes' fit on the film follows its spacing and kind.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar_arte!(self) }, if: -> { saved_change_to_espacamento_mm? || saved_change_to_tipo? }
 
   # The file that stands for the arte (gallery card): its first active one.
   # Usage: arte.principal.filename
@@ -53,9 +55,11 @@ class Arte < ApplicationRecord
   # decided 05/10/2026: "from the DXF"): the numbers its molde's organized
   # cortes serve; without any, the product's whole grade. The molde's
   # stretch doesn't enter. Empty without a molde — the pedido then takes a
-  # single total.
+  # single total. A DTF's are its own sizes, by measure (Etapa 2.6b1).
   # Usage: arte.tamanhos_do_pedido # => ["23", "24", …, "34"]
   def tamanhos_do_pedido
+    return tamanhos_da_etiqueta if tipo == "dtf"
+
     molde = principal&.molde
     return [] unless molde
 
@@ -98,6 +102,13 @@ class Arte < ApplicationRecord
     [ arquivo.piloto? ? 0 : 1, posicao, arquivo.rotulo_de_tamanho.to_s, arquivo.id ]
   end
   private :ordem_na_arte
+
+  # A DTF's own grade (Etapa 2.6b1): its files' sizes, by measure. Empty for
+  # a single unlabeled file — the pedido takes a single total then.
+  def tamanhos_da_etiqueta
+    arquivos_por_parte.values.flatten.filter_map(&:rotulo_de_tamanho).uniq
+  end
+  private :tamanhos_da_etiqueta
 
   # What the arte is called before its files say which part and size:
   # "001-TNS · 19 · BLUEY PTO", or the first file's name without a molde.

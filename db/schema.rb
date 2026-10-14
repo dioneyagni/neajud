@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -153,6 +153,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_120000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
+    t.json "encaixe_dtf"
     t.integer "estimated_seconds", default: 0
     t.string "extension", null: false
     t.string "filename", null: false
@@ -404,6 +405,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_120000) do
 
   create_table "itens_pedido_grade", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.json "encaixe_dtf"
+    t.integer "fileiras_extras"
     t.integer "item_pedido_id", null: false
     t.decimal "preco_par", precision: 10, scale: 2
     t.integer "quantidade", default: 0, null: false
@@ -548,8 +551,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_120000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
+    t.string "entrega", default: "rolo", null: false
     t.datetime "entregue_em"
     t.integer "entregue_por_id"
+    t.integer "fileiras_extras", default: 0, null: false
     t.boolean "grade_antiga", default: false, null: false
     t.text "observacoes"
     t.integer "reposicao_de_id"

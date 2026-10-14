@@ -22,7 +22,8 @@
           stays hidden for single-piece artes. %>
       <div class="add-to-order-pecas" data-add-to-order-target="pecasContainer" hidden></div>
 
-      <div class="add-to-order-material"
+      <%# Etapa 2.6b1: a DTF is printed on the film — no material to choose. %>
+      <div class="add-to-order-material" data-add-to-order-target="materialSection"
            data-controller="combobox"
            data-combobox-search-url-value="/materiais/search"
            data-combobox-display-field-value="nome_completo"

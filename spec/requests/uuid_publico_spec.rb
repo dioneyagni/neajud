@@ -40,6 +40,16 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect(FaixaDePreco.exists?(faixa.id)).to be(true)
     end
 
+    # Etapa 2.6b1: a DTF line's extra rows are addressed by the item's uuid.
+    it "refuses a DTF pedido and its item by integer id" do
+      pedido = create(:pedido, tipo: "dtf")
+      item = create(:item_pedido, :com_quantidade, pedido: pedido)
+      patch "/pedidos/#{pedido.id}/dtf", params: { entrega: "cortada" }
+      expect(response).to have_http_status(:not_found)
+      patch "/pedidos/#{pedido.uuid}/dtf/fileiras", params: { item_uuid: item.id, tamanho_nome: "_total", fileiras_extras: "2" }
+      expect([ response.status, item.grades.first.reload.fileiras_extras ]).to eq([ 404, nil ])
+    end
+
     it "refuses a tamanho drawing by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/preview"

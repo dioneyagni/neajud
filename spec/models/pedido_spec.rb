@@ -152,8 +152,22 @@ RSpec.describe Pedido, type: :model do
   end
 
   it "refuses an unknown type, naming the expected ones" do
-    pedido = build(:pedido, tipo: "dtf")
+    pedido = build(:pedido, tipo: "tecido")
     expect(pedido).not_to be_valid
-    expect(pedido.errors[:tipo].first).to include("dtf is not a pedido type; expected one of calcado")
+    expect(pedido.errors[:tipo].first).to include("tecido is not a pedido type; expected one of calcado, dtf")
+  end
+
+  # Etapa 2.6b1 (decided 13/10/2026): the type comes from the item.
+  it "takes an item of its type, or any while empty; a DTF starts with the dono's extra rows" do
+    create(:empresa).update!(fileiras_extras_dtf: 2)
+    pedido = create(:pedido)
+    expect(pedido.aceita_tipo?("dtf")).to be(true)
+    pedido.update!(tipo: "dtf")
+    expect(pedido.fileiras_extras).to eq(2)
+    create(:item_pedido, pedido: pedido)
+    expect([ pedido.aceita_tipo?("dtf"), pedido.aceita_tipo?("calcado") ]).to eq([ true, false ])
+    expect(Pedido.tipo_para(Arte.new(tipo: "dtf"))).to eq("dtf")
+    expect(Pedido.tipo_para(Arte.new(tipo: "calcado"))).to eq("calcado")
+    expect(pedido.update(entrega: "dobrada")).to be(false)
   end
 end

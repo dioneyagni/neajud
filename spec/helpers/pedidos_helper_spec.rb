@@ -74,4 +74,11 @@ RSpec.describe PedidosHelper, type: :helper do
       expect(textos).to eq([ "sem material: sem metragem", "giro do corte não marcado", "metragem ainda não calculada" ])
     end
   end
+
+  # Etapa 2.6b1: a DTF row is a couple of centimeters of film.
+  describe "#metros_de_filme" do
+    it "shows the film's meters to the millimeter" do
+      expect(helper.metros_de_filme(0.0707)).to eq("0,071 m")
+    end
+  end
 end

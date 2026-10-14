@@ -11,8 +11,13 @@ class Pedido < ApplicationRecord
   # Etapa 2.8 (5/5): sent, taken back, returned with a note.
   has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
 
-  # One type per pedido (Etapa 1.2, 3/3): calçado now; DTF and tecido in Fase 2.
-  TIPOS = %w[calcado].freeze
+  # One type per pedido (Etapa 1.2, 3/3): calçado, DTF (Etapa 2.6b1); tecido
+  # in 2.7. The type comes from the item (decided 13/10/2026): an empty draft
+  # takes its first item's, and never takes an item of another type.
+  TIPOS = %w[calcado dtf].freeze
+  # A DTF pedido is delivered on the roll or cut (Etapa 2.6b1); the Corte
+  # stage only exists for cortada (2.6b2).
+  ENTREGAS = %w[rolo cortada].freeze
   # The cycle (Etapa 2.2, 3/3; decided 07/10/2026): rascunho → confirmado →
   # em_producao (on its first baixa, by itself) → entregue ("Marcar como
   # entregue"). cancelado: accepted, not used by any screen yet.
@@ -33,10 +38,32 @@ class Pedido < ApplicationRecord
   recusa_excluido :client
   validates :status, presence: true, inclusion: { in: STATUS, message: "%{value} is not a pedido status; expected one of #{STATUS.join(", ")}" }
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
+  validates :entrega, inclusion: { in: ENTREGAS, message: "%{value} is not a delivery; expected one of #{ENTREGAS.join(", ")}" }
+  validates :fileiras_extras, numericality: { only_integer: true, in: 0..100 }
+  # Etapa 2.6b1: a DTF pedido's extra rows start at the dono's default.
+  before_save :herdar_fileiras_extras, if: -> { will_save_change_to_tipo? && tipo == "dtf" }
+
+  # The pedido type an arte goes into: an etiqueta DTF's, else calçado's.
+  # Usage: Pedido.tipo_para(arte) # => "dtf"
+  def self.tipo_para(arte)
+    arte&.tipo == "dtf" ? "dtf" : "calcado"
+  end
 
   scope :rascunhos, -> { where(status: "rascunho") }
   scope :nao_confirmados, -> { where(status: ANTES_DA_CONFIRMACAO) }
   scope :confirmados, -> { where(status: "confirmado") }
+
+  # Usage: pedido.dtf? # => true for a DTF pedido
+  def dtf?
+    tipo == "dtf"
+  end
+
+  # Takes an item of this type: an empty draft takes any (and becomes its
+  # type), one with items only its own.
+  # Usage: pedido.aceita_tipo?("dtf") # => false for a calçado pedido with items
+  def aceita_tipo?(outro)
+    tipo == outro || itens_pedido.none?
+  end
 
   def rotulo_lixeira
     "Pedido #{uuid.first(8)}"
@@ -69,6 +96,11 @@ class Pedido < ApplicationRecord
     ultimo = eventos_pedido.order(:id).last
     ultimo if ultimo&.tipo == "devolvido"
   end
+
+  def herdar_fileiras_extras
+    self.fileiras_extras = Empresa.atual&.fileiras_extras_dtf || 0
+  end
+  private :herdar_fileiras_extras
 
   # A sub-pedido of the pieces a Conferência missed (Etapa 2.2, 4/4).
   # Usage: pedido.reposicao? # => true

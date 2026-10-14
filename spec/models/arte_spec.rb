@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/etiquetas_dtf"
 
 RSpec.describe Arte do
   let(:molde) { create(:molde) }
@@ -34,6 +35,12 @@ RSpec.describe Arte do
     m = medido.call(arte, "M", 300)
     empate = medido.call(arte, "M2", 300)
     expect(arte.arquivos_por_parte).to eq(nil => [ p, m, empate, g, sem_dpi ])
+  end
+
+  # Etapa 2.6b1: a DTF is ordered by its own sizes, smaller first.
+  it "asks a DTF's pedido in its own sizes, by measure" do
+    arte = criar_etiqueta_dtf(tamanhos: { "G" => [ 400, 400 ], "P" => [ 200, 200 ], "M" => [ 300, 300 ] })
+    expect([ arte.tamanhos_do_pedido, arte.grade_completa_do_pedido ]).to eq([ %w[P M G], %w[P M G] ])
   end
 
   it "takes the dono's DTF spacing unless the arte has its own" do

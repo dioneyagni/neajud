@@ -130,6 +130,26 @@ module ArquivosHelper
     "#{medidas.map { |mm| number_with_precision(mm / 10, precision: 2, separator: ",") }.join(" × ")} cm"
   end
 
+  # A DTF size's fit on the film (Etapa 2.6b1, stored by EncaixeDaEtiqueta):
+  # copies per row and the row's step. Both ways for the team; the cliente
+  # final never sees the turn, only how it fits. nil without a measure.
+  # Usage: encaixe_do_arquivo(arquivo, com_girada: true) # => "32 por fileira · 18,52 mm · girada: 30 por fileira · 17,67 mm"
+  def encaixe_do_arquivo(arquivo, com_girada:)
+    encaixe = arquivo.encaixe_dtf
+    return nil unless encaixe
+
+    em_pe, girada = encaixe.values_at("em_pe", "girada")
+    return "não cabe no filme" unless em_pe || girada
+    return texto_da_fileira(em_pe || girada) unless com_girada
+
+    [ (em_pe ? texto_da_fileira(em_pe) : "em pé não cabe"), ("girada: #{texto_da_fileira(girada)}" if girada) ].compact.join(" · ")
+  end
+
+  def texto_da_fileira(posicao)
+    "#{posicao["por_fileira"]} por fileira · #{number_with_precision(posicao["passo_mm"], precision: 2, separator: ",", strip_insignificant_zeros: true)} mm"
+  end
+  private :texto_da_fileira
+
   # How much paper one printed piece of this file takes on the paper's width
   # (Etapa 2.2, 1/3): pieces per meter and the share of a meter; nil without
   # the file's size/DPI or when it doesn't fit the roll.

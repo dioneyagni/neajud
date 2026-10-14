@@ -6,6 +6,9 @@
 <aside class="pedido-painel">
   <section class="pedido-painel-card pedido-resumo">
     <h3>Resumo</h3>
+    <% if pedido.dtf? %>
+      <%= render "pedidos/resumo_dtf", pedido: pedido %>
+    <% else %>
     <dl class="pedido-resumo-lista">
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
       <% if pedido.reposicao? %>
@@ -14,6 +17,7 @@
         <dt>Pares</dt><dd data-resumo="pares"><%= itens.sum { |i| i.grades.sum(&:quantidade) } %></dd>
       <% end %>
     </dl>
+    <% end %>
     <%# Etapa 2.2 (3/3): the stages' progress, and delivering. %>
     <% if pedido.saiu_do_rascunho? %>
       <ul class="pedido-andamento">
@@ -52,7 +56,7 @@
       <% unless cliente_final? %>
         <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
               class: "btn btn-primary pedido-confirmar", disabled: bloqueios.any?,
-              data: { turbo_confirm: "Confirm this pedido? It will be split by client." } %>
+              data: { turbo_confirm: pedido.dtf? ? "Confirm this pedido? Its quantities on the film are kept as they are now." : "Confirm this pedido? It will be split by client." } %>
         <% if bloqueios.any? %>
           <p class="pedido-confirmar-aviso">Resolva <%= bloqueios.size == 1 ? "1 pendência" : "#{bloqueios.size} pendências" %> para confirmar</p>
         <% end %>
@@ -95,7 +99,10 @@
               <% elsif bloqueio.tipo == :sem_preco && bloqueio.molde %>
                 <%# Etapa 2.4: the price per pair is set on the molde page. %>
                 <%= link_to "abrir molde", molde_path(bloqueio.molde, anchor: "molde-precos"), class: "pedido-pendencias-item pedido-pendencia-molde" %>
-              <% else %>
+              <% elsif bloqueio.tipo == :pedido_sem_cliente %>
+                <%# Etapa 2.6b1: no arte to open — the client is chosen at the top of the page. %>
+                <a href="#pedido-cliente-dtf" class="pedido-pendencias-item">escolher cliente</a>
+              <% elsif bloqueio.arquivo %>
                 <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
               <% end %>
             </div>
