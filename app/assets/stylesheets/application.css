@@ -3650,3 +3650,76 @@ li.aprovacao--cancelada {
   color: #666;
   font-size: 0.82rem;
 }
+
+/* Etapa 2.6b1: a DTF pedido — each etiqueta a table of its sizes on the film. */
+.pedido-dtf-tabela-wrap {
+  overflow-x: auto;
+}
+
+.pedido-dtf-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pedido-dtf-tabela th,
+.pedido-dtf-tabela td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid #eee;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pedido-dtf-tabela th:first-child,
+.pedido-dtf-tabela thead th {
+  text-align: left;
+}
+
+.pedido-dtf-tabela input[type="number"] {
+  width: 4.5rem;
+}
+
+.pedido-dtf-linha--pendente td.pedido-dtf-pendencia {
+  color: #a33;
+  text-align: left;
+}
+
+.pedido-dtf-girada,
+.pedido-item-catalogo {
+  font-size: 0.75rem;
+  color: #666;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0 0.3rem;
+}
+
+.pedido-dtf-ajustes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-top: 0.6rem;
+  font-size: 0.86rem;
+}
+
+.pedido-dtf-ajustes input[type="number"] {
+  width: 4rem;
+}
+
+.pedido-cliente-dtf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.pedido-adicionar-busca {
+  width: min(24rem, 100%);
+}
+
+.arte-arquivo-encaixe {
+  color: #666;
+  font-size: 0.82rem;
+}

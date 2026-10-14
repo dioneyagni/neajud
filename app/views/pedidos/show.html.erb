@@ -10,7 +10,9 @@
   <%= selo_excluido(@pedido) %>
 </h2>
 
-<% if @pedido.client %>
+<% if @pedido.dtf? %>
+  <%= render "cliente_dtf", pedido: @pedido %>
+<% elsif @pedido.client %>
   <p><strong>Cliente:</strong> <%= @pedido.client.name %> <%= selo_excluido(@pedido.client) %></p>
 <% elsif @pedido.confirmavel? %>
   <%# A draft without client takes its artes' client — or is split by them
@@ -53,8 +55,16 @@
       <%= render "itens_reposicao", pedido: @pedido %>
     <% else %>
       <h3>Itens (<%= @pedido.itens_pedido.count %>)</h3>
-      <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
-        <%= render "item", item: item, pedido: @pedido %>
+      <% if @pedido.dtf? %>
+        <%# Etapa 2.6b1: an etiqueta per item, its sizes on the film. %>
+        <% linhas_dtf = EncaixeDoPedidoDtf.call(@pedido).group_by(&:item) %>
+        <% @pedido.itens_pedido.includes(:grades, :arte, arquivo: :client).order(:id).each do |item| %>
+          <%= render "item_dtf", item: item, pedido: @pedido, linhas: linhas_dtf.fetch(item, []) %>
+        <% end %>
+      <% else %>
+        <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
+          <%= render "item", item: item, pedido: @pedido %>
+        <% end %>
       <% end %>
     <% end %>
 
@@ -64,26 +74,36 @@
 
     <%# Etapa 2.4: a reposição is internal, never charged. A cliente final
         sees the price only, by his grid's "valores" (2.8, 3a). %>
-    <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
+    <%# A DTF has no price per pair: its charging comes in Etapa 2.6c. %>
+    <% if pode_ver_precos? && !@pedido.reposicao? && !@pedido.dtf? && @pedido.itens_pedido.any? %>
       <%= render "pedidos/valores", pedido: @pedido %>
     <% end %>
 
     <% if pedido_editavel?(@pedido) %>
       <%# Etapa 1.2 (3/3, decided 05/10/2026): an item enters by molde → referência
-          → arte here too, not only from the gallery's card. %>
-      <% moldes = (@pedido.client ? visiveis(Molde).ativos.where(client: @pedido.client) : visiveis(Molde).ativos).includes(:client).order(:nome) %>
+          → arte here too, not only from the gallery's card. Etapa 2.6b1: a DTF
+          pedido searches its etiquetas by number or name instead; an empty
+          draft offers both (its type comes from the first item), one modal. %>
+      <% vazio = @pedido.itens_pedido.empty? %>
       <div class="pedido-adicionar" data-controller="add-to-order pedido-adicionar"
            data-add-to-order-pedido-uuid-value="<%= @pedido.uuid %>"
            data-pedido-adicionar-url-value="<%= artes_para_adicionar_pedidos_path(format: :json) %>">
-        <h3>Adicionar arte</h3>
+        <h3><%= @pedido.dtf? ? "Adicionar etiqueta DTF" : "Adicionar arte" %></h3>
         <div class="pedido-adicionar-filtros">
-          <select data-pedido-adicionar-target="molde" data-action="change->pedido-adicionar#escolherMolde">
-            <option value="">Molde…</option>
-            <% moldes.each do |molde| %>
-              <option value="<%= molde.uuid %>"><%= molde.nome %><%= " (#{molde.client.name})" unless @pedido.client %></option>
-            <% end %>
-          </select>
-          <select data-pedido-adicionar-target="referencia" data-action="change->pedido-adicionar#escolherReferencia" hidden></select>
+          <% unless @pedido.dtf? %>
+            <% moldes = (@pedido.client ? visiveis(Molde).ativos.where(client: @pedido.client) : visiveis(Molde).ativos).includes(:client).order(:nome) %>
+            <select data-pedido-adicionar-target="molde" data-action="change->pedido-adicionar#escolherMolde">
+              <option value="">Molde…</option>
+              <% moldes.each do |molde| %>
+                <option value="<%= molde.uuid %>"><%= molde.nome %><%= " (#{molde.client.name})" unless @pedido.client %></option>
+              <% end %>
+            </select>
+            <select data-pedido-adicionar-target="referencia" data-action="change->pedido-adicionar#escolherReferencia" hidden></select>
+          <% end %>
+          <% if @pedido.dtf? || vazio %>
+            <input type="search" class="pedido-adicionar-busca" placeholder="Etiqueta DTF: número ou nome (863, Arcoverde…)" aria-label="Buscar etiqueta DTF"
+                   data-pedido-adicionar-target="busca" data-action="input->pedido-adicionar#buscar">
+          <% end %>
         </div>
         <div class="pedido-adicionar-artes" data-pedido-adicionar-target="artes"></div>
         <%= render "pedidos/add_to_order_modal" %>

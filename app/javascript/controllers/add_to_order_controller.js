@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["modal", "preview", "filename", "client",
                     "materialHidden", "gradeContainer",
-                    "submitBtn", "errorContainer", "pecasContainer"]
+                    "submitBtn", "errorContainer", "pecasContainer", "materialSection"]
 
   static values = {
     arteUuid: String,
@@ -13,6 +13,8 @@ export default class extends Controller {
     artePreview: String,
     tamanhos: Array,
     gradeCompleta: Array,
+    // The arte's kind (Etapa 2.6b1): a DTF has no material nor parts.
+    arteTipo: String,
     // The pedido page (Etapa 1.2, 3/3) adds to itself and reloads.
     pedidoUuid: String
   }
@@ -28,6 +30,7 @@ export default class extends Controller {
     this.arteClientValue = btn.dataset.addToOrderArteClient || ""
     this.artePreviewValue = btn.dataset.addToOrderArtePreview || ""
     this.arteClientUuidValue = btn.dataset.addToOrderArteClientUuid || ""
+    this.arteTipoValue = btn.dataset.addToOrderArteTipo || ""
 
     let tamanhos = []
     try {
@@ -40,9 +43,11 @@ export default class extends Controller {
       this.gradeCompletaValue = []
     }
 
+    const dtf = this.arteTipoValue === "dtf"
+    if (this.hasMaterialSectionTarget) this.materialSectionTarget.hidden = dtf
     this._updateComboboxUrl()
     this._populateModal()
-    this._loadPecas()
+    if (!dtf) this._loadPecas()
     this.modalTarget.showModal()
     this.modalTarget.addEventListener("click", this.boundClose)
   }
@@ -81,7 +86,7 @@ export default class extends Controller {
     formData.append("arquivo_uuid", this.arteUuidValue)
 
     const materialUuid = this.materialHiddenTarget.value
-    if (materialUuid) {
+    if (materialUuid && this.arteTipoValue !== "dtf") {
       formData.append("materia_prima_uuid", materialUuid)
     }
 

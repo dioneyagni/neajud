@@ -63,8 +63,8 @@ runSpec("Tipo da arte E2E Tests", async ({ page, test }) => {
       ids[nome] = (await cartao(nome).getAttribute("id")).replace(/^arquivo_/, "");
     }
     if (Math.abs(numeros[0] - numeros[1]) !== 1) throw new Error(`Numbers aren't the next ones: ${numeros}`);
-    // Pedidos are calçado's until DTF gets its own (Etapa 2.6).
-    if (await cartao(nomes.um).locator(".btn-add-to-order").count()) throw new Error("A DTF card offers Pedido");
+    // Etapa 2.6b1: a DTF goes into its own pedido (e2e/pedido-dtf.spec.js).
+    if (!(await cartao(nomes.um).locator(".btn-add-to-order").count())) throw new Error("A DTF card doesn't offer Pedido");
   });
 
   // The conference's own kind per group: two sizes of one etiqueta, one arte, one number.

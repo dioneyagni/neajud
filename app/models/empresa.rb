@@ -20,6 +20,8 @@ class Empresa < ApplicationRecord
   validates :margem_filme_dtf_mm, :fileiras_extras_dtf, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :espacamento_dtf_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }
   validate :margens_cabem_no_filme
+  # Etapa 2.6b1: every DTF size's fit follows the film.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar_todas! }, if: -> { (saved_changes.keys & %w[largura_filme_dtf_mm margem_filme_dtf_mm espacamento_dtf_mm]).any? }
   validate :papel_padrao_e_papel
   validate :visibilidade_cliente_valida
   validate :unica_por_instancia, on: :create

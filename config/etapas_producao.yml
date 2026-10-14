@@ -41,3 +41,6 @@ calcado:
     niveis: [linha, referencia, pedido]
     trava: [estamparia]
     reposicao: true
+# Etapa 2.6b1: the DTF pedido exists; its stages (Impressão, and Corte when
+# cortada) come in 2.6b2.
+dtf: []

@@ -38,6 +38,7 @@
       <tr>
         <th>Pedido</th>
         <th>Cliente</th>
+        <th>Tipo</th>
         <th>Itens</th>
         <th>Status</th>
         <th>Data</th>
@@ -52,6 +53,8 @@
             <% if p.reposicao? %><div class="pedido-reposicao-de">reposição de #<%= p.reposicao_de.uuid.first(8) %></div><% end %>
           </td>
           <td><%= p.client&.name || "—" %></td>
+          <%# Etapa 2.6b1: one type per pedido, from its items. %>
+          <td class="pedido-tipo" data-tipo="<%= p.tipo %>"><%= p.dtf? ? "DTF" : "Calçado" %></td>
           <td><%= p.itens_count %></td>
           <td>
             <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status, reposicao: p.reposicao?) %></span>
@@ -85,7 +88,7 @@
         </tr>
       <% end %>
       <% if @pedidos.empty? %>
-        <tr><td colspan="6" class="gallery-empty">No pedidos yet.</td></tr>
+        <tr><td colspan="7" class="gallery-empty">No pedidos yet.</td></tr>
       <% end %>
     </tbody>
   </table>

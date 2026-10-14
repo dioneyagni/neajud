@@ -3,9 +3,26 @@ import { Controller } from "@hotwired/stimulus"
 // The pedido page's "add an arte" (Etapa 1.2, 3/3; decided 05/10/2026):
 // molde → referência → the artes, each with its preview. Choosing one opens
 // the same "Adicionar ao Pedido" modal as the gallery (add-to-order).
+// A DTF pedido searches its etiquetas by number or name instead (Etapa 2.6b1).
 export default class extends Controller {
-  static targets = ["molde", "referencia", "artes"]
+  static targets = ["molde", "referencia", "artes", "busca"]
   static values = { url: String }
+
+  buscar() {
+    clearTimeout(this.espera)
+    this.espera = setTimeout(() => this.carregarEtiquetas(), 250)
+  }
+
+  async carregarEtiquetas() {
+    const termo = this.buscaTarget.value.trim()
+    const params = new URLSearchParams({ tipo: "dtf", q: termo })
+    const resposta = await fetch(`${this.urlValue}?${params}`, { headers: { "Accept": "application/json" } })
+    // A slower answer to an older search never overwrites the latest one.
+    if (!resposta.ok || termo !== this.buscaTarget.value.trim()) return
+
+    const dados = await resposta.json()
+    this.artesTarget.innerHTML = dados.artes.length ? dados.artes.map(a => this.card(a)).join("") : '<p class="gallery-empty">No etiqueta found.</p>'
+  }
 
   escolherMolde() {
     this.referenciaTarget.innerHTML = '<option value="">All references</option>'
@@ -37,7 +54,7 @@ export default class extends Controller {
       <strong>${this.escapar(arte.titulo)}</strong>
       <span>${this.escapar(arte.resumo || arte.filename)}</span>
       <button type="button" class="btn btn-sm btn-primary" data-action="click->add-to-order#open"
-              data-add-to-order-arte-uuid="${arte.arquivo_uuid}" data-add-to-order-arte-filename="${this.escapar(arte.titulo)}"
+              data-add-to-order-arte-uuid="${arte.arquivo_uuid}" data-add-to-order-arte-filename="${this.escapar(arte.titulo)}" data-add-to-order-arte-tipo="${arte.tipo || ""}"
               data-add-to-order-arte-client="${this.escapar(arte.client || "")}" data-add-to-order-arte-client-uuid="${arte.client_uuid || ""}"
               data-add-to-order-arte-preview="${arte.preview || ""}" data-add-to-order-tamanhos="${this.escapar(JSON.stringify(arte.tamanhos))}"
               data-add-to-order-grade-completa="${this.escapar(JSON.stringify(arte.grade_completa))}">Adicionar</button>

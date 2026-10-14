@@ -13,4 +13,13 @@ namespace :producao do
     MetrosPorPecaJob.perform_later(ids, larguras, refazer: refazer)
     puts "Queued #{ids.size} sizes × widths #{larguras.inspect} mm#{" (redoing)" if refazer}."
   end
+
+  # Etapa 2.6b1: the fit of the DTF sizes uploaded before it (new ones get it
+  # when processed). Plain arithmetic, run here; safe to repeat.
+  # Usage: bin/rails producao:encaixe_dtf
+  desc "Compute every DTF size's fit on the film"
+  task encaixe_dtf: :environment do
+    EncaixeDaEtiqueta.atualizar_todas!
+    puts "#{Arquivo.where.not(encaixe_dtf: nil).count} DTF sizes fitted on the film."
+  end
 end

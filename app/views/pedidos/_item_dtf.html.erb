@@ -1,0 +1,92 @@
+<%# One etiqueta of a DTF pedido (Etapa 2.6b1, decided 13/10/2026): no parts
+    matrix — a row per size, by measure, with its fit on the film
+    (EncaixeDoPedidoDtf): copies per row, rows (+ extra, editable while the
+    draft is: blank = the pedido's), printed, the excess that goes to the
+    client and the meters. Turned 90° is the team's (the cliente final
+    neither sees nor sets the fit, only the extra rows — D5). %>
+<% arquivo = item.arquivo %>
+<% editavel = pedido_editavel?(pedido) %>
+<% por_tamanho = linhas.index_by { |linha| linha.grade.tamanho_nome } %>
+<% tamanhos = item.arte.tamanhos_do_pedido.presence || [ ProducaoPedidoService::TOTAL_KEY ] %>
+<% quantidades = item.grades.to_h { |g| [ g.tamanho_nome, g.quantidade ] } %>
+<% total = quantidades.values.sum %>
+<article class="pedido-item pedido-item-dtf" data-item-uuid="<%= item.uuid %>"
+         data-controller="grade-editor"
+         data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(pedido, id: item.uuid) %>">
+  <div class="pedido-item-header">
+    <% if arquivo.preview_file.present? && !(arquivo.pending? || arquivo.processing?) %>
+      <img class="pedido-item-thumb" src="<%= preview_arquivo_path(arquivo) %>" alt="">
+    <% else %>
+      <span class="pedido-item-thumb pedido-item-thumb--vazio" aria-hidden="true"></span>
+    <% end %>
+    <div class="pedido-item-titulo">
+      <strong><%= link_to item.arte.titulo.presence || arquivo.filename, arquivo %></strong> <%= selo_excluido(arquivo) %>
+      <div class="pedido-item-sub">
+        <% if item.arte.no_catalogo %><span class="pedido-item-catalogo">catálogo</span><% end %>
+        <% if arquivo.client && do_proprio_cliente?(arquivo) %><span class="pedido-item-client"><%= arquivo.client.name %></span><% end %>
+      </div>
+    </div>
+    <strong class="pedido-item-total"><%= total %> <%= total == 1 ? "unidade" : "unidades" %></strong>
+  </div>
+
+  <div class="pedido-dtf-tabela-wrap">
+    <table class="pedido-dtf-tabela">
+      <thead>
+        <tr>
+          <th>Tamanho</th><th>Medida</th><th>Pedidas</th><th>Por fileira</th><th>Fileiras</th><th>Extras</th>
+          <th>Impressas</th><th>Excedente</th><th>Filme</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% tamanhos.each do |tamanho| %>
+          <% linha = por_tamanho[tamanho] %>
+          <% grade = item.grades.find { |g| g.tamanho_nome == tamanho } %>
+          <tr class="pedido-dtf-linha<%= " pedido-dtf-linha--pendente" if linha&.pendencia %>" data-tamanho="<%= tamanho %>">
+            <th scope="row"><%= tamanho == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : tamanho %></th>
+            <td class="pedido-dtf-medida"><%= linha&.arquivo ? medida_do_arquivo(linha.arquivo) : "—" %></td>
+            <td>
+              <% if editavel %>
+                <input type="number" class="grade-qtd-input pedido-dtf-qtd" data-tamanho-nome="<%= tamanho %>" value="<%= quantidades[tamanho] || 0 %>" min="0" step="1" aria-label="Quantidade <%= tamanho %>">
+              <% else %>
+                <%= quantidades[tamanho] || 0 %>
+              <% end %>
+            </td>
+            <% if linha && !linha.pendencia %>
+              <td class="pedido-dtf-por-fileira"><%= linha.por_fileira %><% if linha.girada && !cliente_final? %> <span class="pedido-dtf-girada" title="Turned 90°: fewer meters for this quantity">girada</span><% end %></td>
+              <td class="pedido-dtf-fileiras"><%= linha.fileiras %></td>
+              <td class="pedido-dtf-extras">
+                <% if editavel %>
+                  <%= form_with url: dtf_fileiras_pedido_path(pedido), method: :patch, class: "pedido-dtf-extras-form", data: { controller: "auto-submit" } do %>
+                    <input type="hidden" name="item_uuid" value="<%= item.uuid %>">
+                    <input type="hidden" name="tamanho_nome" value="<%= tamanho %>">
+                    <input type="number" name="fileiras_extras" min="0" max="100" step="1" value="<%= grade.fileiras_extras %>" placeholder="<%= pedido.fileiras_extras %>"
+                           aria-label="Fileiras extras <%= tamanho %>" data-action="change->auto-submit#submit">
+                  <% end %>
+                <% else %>
+                  <%= linha.extras %>
+                <% end %>
+              </td>
+              <td class="pedido-dtf-impressas"><%= linha.impressas %></td>
+              <td class="pedido-dtf-excedente"><%= "+#{linha.excedente}" %></td>
+              <td class="pedido-dtf-metros"><%= metros_de_filme(linha.metros) %></td>
+            <% elsif linha %>
+              <td colspan="6" class="pedido-dtf-pendencia"><%= PedidoBloqueiosDtf::DESCRICOES_DO_ENCAIXE.fetch(linha.pendencia).last %></td>
+            <% else %>
+              <td colspan="6" class="pedido-dtf-vazio">—</td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if editavel %>
+    <div class="pedido-item-actions">
+      <%= button_to "Remover item", remover_item_pedido_path(pedido, id: item.uuid),
+            method: :delete, class: "btn btn-secondary btn-sm",
+            data: { turbo_confirm: "Remove this item?" } %>
+      <button type="button" class="btn btn-sm btn-primary grade-save-btn"
+              data-action="click->grade-editor#save">Salvar quantidades</button>
+    </div>
+  <% end %>
+</article>

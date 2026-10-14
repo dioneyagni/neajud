@@ -26,6 +26,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "create a pedido", "pedidos", 2, -> { post pedidos_path } ],
     [ "list artes to add to a pedido", "pedidos", 2, -> { get artes_para_adicionar_pedidos_path(molde_uuid: molde.uuid), as: :json } ],
     [ "trash a pedido", "pedidos", 3, -> { delete pedido_path(pedido) } ],
+    # Etapa 2.6b1: a DTF draft's delivery, extra rows and client.
+    [ "set a DTF pedido's delivery", "pedidos", 2, -> { patch dtf_pedido_path(create(:pedido, tipo: "dtf")), params: { entrega: "cortada" } } ],
+    [ "set a DTF line's extra rows", "pedidos", 2, -> { patch dtf_fileiras_pedido_path(create(:pedido, tipo: "dtf")), params: { fileiras_extras: "1" } } ],
     [ "list clients", "clientes", 1, -> { get clients_path } ],
     [ "register a client", "clientes", 2, -> { post clients_path, params: { client: { name: "Novo", responsible: "X" } } } ],
     [ "trash a client", "clientes", 3, -> { delete client_path(client) } ],
