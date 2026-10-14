@@ -1,6 +1,7 @@
 class Client < ApplicationRecord
   include GeraUuid
   include Excluivel
+  include PrecosDoDtf
 
   has_many :arquivos, dependent: :nullify
   has_many :moldes, dependent: :destroy
@@ -14,6 +15,11 @@ class Client < ApplicationRecord
 
   def rotulo_lixeira
     name
+  end
+
+  # Its etiquetas outside the catálogo: their unit price comes from its price per meter.
+  def etiquetas_do_preco
+    Arquivo.where(client: self, arte: Arte.where(tipo: "dtf", no_catalogo: false))
   end
 
   scope :search, ->(q) {

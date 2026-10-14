@@ -50,6 +50,18 @@ RSpec.describe TipoDaArte do
     expect(arquivo.arte.titulo).to start_with("DTF-1")
   end
 
+  # Decided 14/10/2026: the DTF pedido showed only "DTF-4".
+  it "names a DTF or a corrida from its file name, like a calçado arte; never over a name, nor a cor lisa" do
+    dtf = create(:arquivo, filename: "872-ENCRUZILHADA DO SUL- P - 1,6 X 1,7", arte: Arte.novo_do_tipo("dtf"))
+    expect([ dtf.nome, dtf.arte.titulo ]).to eq([ "ENCRUZILHADA DO SUL", "DTF-1 · ENCRUZILHADA DO SUL" ])
+    expect(create(:arquivo, filename: "40-FOLHAS", nome: "Folhagem", arte: Arte.novo_do_tipo("corrida")).nome).to eq("Folhagem")
+    expect(create(:arquivo, filename: "AZUL BEBE", arte: Arte.novo_do_tipo("cor_lisa")).nome).to be_nil
+    tenis = create(:arquivo, filename: "876-CAETES - M")
+    expect(tenis.nome).to be_nil
+    tenis.arte.trocar_tipo!("dtf")
+    expect(tenis.reload.nome).to eq("CAETES")
+  end
+
   it "takes no molde on a work without corte" do
     arquivo = create(:arquivo, category: "artes", arte: Arte.novo_do_tipo("dtf"))
     arquivo.molde = create(:molde)

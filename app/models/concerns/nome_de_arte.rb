@@ -14,6 +14,18 @@ module NomeDeArte
     belongs_to :referencia, optional: true
     atribui_por_uuid :referencia
     validate :referencia_do_mesmo_molde
+    before_create :preencher_nome_sem_corte
+  end
+
+  # A DTF's or corrida's name, read from its file name when blank (decided
+  # 14/10/2026); the other files of its arte get it too.
+  # Usage: arquivo.nomear_pelo_arquivo!
+  def nomear_pelo_arquivo!
+    return if nome.present? || !arte&.nomeada_pelo_arquivo?
+
+    preencher_nome_sem_corte
+    update_columns(nome: nome)
+    compartilhar_com_a_arte!
   end
 
   # Usage: arte.nome_completo(para_arquivo: true) # => "001-TNS_19_Lingua_Lateral_29-30"
@@ -77,6 +89,13 @@ module NomeDeArte
     lido = NomeDoArquivo.ler(filename, partes: Peca.pluck(:nome))
     self.referencia ||= Referencia.do_molde!(molde, lido[:referencia]) if lido[:referencia]
     self.nome = lido[:nome] if nome.blank?
+  end
+
+  # The leading number isn't a referência here (Etapa 2.5c): only the name is taken.
+  def preencher_nome_sem_corte
+    return if nome.present? || category != "artes" || !arte&.nomeada_pelo_arquivo?
+
+    self.nome = NomeDoArquivo.ler(filename, partes: [])[:nome]
   end
 
   def referencia_do_mesmo_molde

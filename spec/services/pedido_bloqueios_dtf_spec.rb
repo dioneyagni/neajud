@@ -22,6 +22,7 @@ RSpec.describe PedidoBloqueiosDtf do
 
   # D4: the catálogo's etiquetas belong to whoever orders them.
   it "takes a catálogo etiqueta of another client, never one outside it" do
+    create(:empresa, preco_metro_dtf: 120)
     pedido = create(:pedido, client: client, tipo: "dtf")
     catalogo = criar_etiqueta_dtf(client: create(:client), no_catalogo: true)
     create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: catalogo.arquivos.first)

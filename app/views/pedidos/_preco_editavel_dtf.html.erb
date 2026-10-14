@@ -1,0 +1,17 @@
+<%# One editable price of a DTF draft (Etapa 2.6c, D3): a line's unit price,
+    the price per meter or per unit cut; blank goes back to the starting one. %>
+<% campo, url, extras = if parte.linha
+     [ "preco_unidade", dtf_preco_linha_pedido_path(pedido), { item_uuid: parte.linha.item.uuid, tamanho_nome: parte.linha.grade.tamanho_nome } ]
+   elsif parte.descricao == "Filme"
+     [ "preco_metro", dtf_precos_pedido_path(pedido), {} ]
+   else
+     [ "preco_corte", dtf_precos_pedido_path(pedido), {} ]
+   end %>
+<% editado = parte.linha ? parte.linha.grade.preco_unidade : pedido.public_send(campo) %>
+<%= form_with url: url, method: :patch, class: "pedido-preco-form", data: { controller: "auto-submit" } do %>
+  <% extras.each do |nome, valor| %><input type="hidden" name="<%= nome %>" value="<%= valor %>"><% end %>
+  <input type="text" inputmode="decimal" name="<%= campo %>" aria-label="Preço de <%= parte.descricao %>"
+         placeholder="<%= parte.preco_partida && number_with_precision(parte.preco_partida, precision: campo == "preco_corte" ? 4 : 2, separator: ",", strip_insignificant_zeros: campo == "preco_corte") %>"
+         value="<%= editado && number_with_precision(editado, precision: campo == "preco_corte" ? 4 : 2, separator: ",", strip_insignificant_zeros: campo == "preco_corte") %>"
+         data-action="change->auto-submit#submit">
+<% end %>

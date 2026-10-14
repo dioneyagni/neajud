@@ -225,6 +225,25 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(molde.faixas_de_preco.sole.preco_par).to eq(9)
     end
 
+    # Etapa 2.6c: the DTF's prices too — the client's, the etiqueta's, the pedido's.
+    {
+      "a client's DTF prices" => [ "clientes", -> { patch precos_dtf_client_path(create(:client)), params: { preco_metro_dtf: "9" } }, -> { Client.where(preco_metro_dtf: 9).exists? } ],
+      "an etiqueta's agreed price" => [ "artes", -> { patch arquivo_preco_dtf_path(create(:arquivo, arte: Arte.novo_do_tipo("dtf"))), params: { preco_unidade_combinado: "9" } }, -> { Arquivo.where(preco_unidade_combinado: 9).exists? } ],
+      "a DTF pedido's prices" => [ "pedidos", -> { patch dtf_precos_pedido_path(create(:pedido, tipo: "dtf")), params: { preco_metro: "9" } }, -> { Pedido.where(preco_metro: 9).exists? } ]
+    }.each do |descricao, (area, requisicao, gravou)|
+      it "#{descricao} need ver_valores and #{area}: editar" do
+        entrar_com_funcao(niveis: { area => 3 })
+        instance_exec(&requisicao)
+        expect(response).to have_http_status(:forbidden)
+        entrar_com_funcao(niveis: { area => 1 }, acoes: %w[ver_valores])
+        instance_exec(&requisicao)
+        expect(response).to have_http_status(:forbidden)
+        entrar_com_funcao(niveis: { area => 2 }, acoes: %w[ver_valores])
+        instance_exec(&requisicao)
+        expect(instance_exec(&gravou)).to be(true)
+      end
+    end
+
     it "the molde's prices, the pedido's values and the arte's cost per pair show only with ver_valores" do
       p = pedido
       create(:item_pedido, :com_preco, pedido: p)

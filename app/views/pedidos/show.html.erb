@@ -74,9 +74,9 @@
 
     <%# Etapa 2.4: a reposição is internal, never charged. A cliente final
         sees the price only, by his grid's "valores" (2.8, 3a). %>
-    <%# A DTF has no price per pair: its charging comes in Etapa 2.6c. %>
-    <% if pode_ver_precos? && !@pedido.reposicao? && !@pedido.dtf? && @pedido.itens_pedido.any? %>
-      <%= render "pedidos/valores", pedido: @pedido %>
+    <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c). %>
+    <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
+      <%= render(@pedido.dtf? ? "pedidos/valores_dtf" : "pedidos/valores", pedido: @pedido) %>
     <% end %>
 
     <% if pedido_editavel?(@pedido) %>

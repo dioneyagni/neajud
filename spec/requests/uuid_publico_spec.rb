@@ -48,6 +48,11 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect(response).to have_http_status(:not_found)
       patch "/pedidos/#{pedido.uuid}/dtf/fileiras", params: { item_uuid: item.id, tamanho_nome: "_total", fileiras_extras: "2" }
       expect([ response.status, item.grades.first.reload.fileiras_extras ]).to eq([ 404, nil ])
+      # Etapa 2.6c: a line's price, an etiqueta's and a client's, by uuid only.
+      patch "/pedidos/#{pedido.uuid}/dtf/preco_linha", params: { item_uuid: item.id, tamanho_nome: "_total", preco_unidade: "2" }
+      expect([ response.status, item.grades.first.reload.preco_unidade ]).to eq([ 404, nil ])
+      patch "/clients/#{item.arquivo.client.id}/precos_dtf", params: { preco_metro_dtf: "2" }
+      expect(response).to have_http_status(:not_found)
     end
 
     it "refuses a tamanho drawing by integer id" do

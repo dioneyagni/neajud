@@ -3723,3 +3723,28 @@ li.aprovacao--cancelada {
   color: #666;
   font-size: 0.82rem;
 }
+
+/* Etapa 2.6c: the DTF's prices — on the pedido, the client and the etiqueta. */
+.pedido-preco-form input,
+.arte-preco-form input,
+.precos-dtf-form input[type="text"] {
+  width: 6rem;
+}
+
+.pedido-dtf-cobranca,
+.precos-dtf-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin: 0.5rem 0;
+  font-size: 0.86rem;
+}
+
+.arte-arquivo-preco {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #666;
+  font-size: 0.82rem;
+}

@@ -7,7 +7,10 @@
 #   :zerado     — an item whose total quantity is 0;
 #   :tamanho_sem_arquivo — a size ordered that has no active file;
 #   :sem_medida — the size's file has no size or DPI: no fit on the film;
-#   :nao_cabe   — the size is wider than the film's useful width both ways.
+#   :nao_cabe   — the size is wider than the film's useful width both ways;
+#   :sem_preco_dtf — something to charge has no price (Etapa 2.6c): a line,
+#                 the meter or the cut, nowhere in the cascade — confirming
+#                 writes the prices, so it would never have one.
 # Unlike calçado, nothing here splits the pedido by client.
 #
 # Usage: PedidoBloqueiosDtf.call(pedido).map(&:descricao)
@@ -28,7 +31,7 @@ class PedidoBloqueiosDtf
   end
 
   def call
-    sem_cliente + de_outro_cliente + zerados + do_encaixe
+    sem_cliente + de_outro_cliente + zerados + do_encaixe + sem_preco
   end
 
   private
@@ -54,6 +57,12 @@ class PedidoBloqueiosDtf
   def zerados
     itens.select { |item| item.grades.sum(&:quantidade).zero? }.map do |item|
       Bloqueio.new(tipo: :zerado, descricao: "Item #{item.arte.titulo} com quantidade total 0", arquivo: item.arquivo)
+    end
+  end
+
+  def sem_preco
+    ValoresDoPedidoDtf.call(@pedido).faltas.map do |parte|
+      Bloqueio.new(tipo: :sem_preco_dtf, descricao: "#{parte.descricao} sem preço: defina o preço do DTF nos Parâmetros, no cliente ou na etiqueta", arquivo: parte.linha&.arquivo)
     end
   end
 

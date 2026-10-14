@@ -15,7 +15,8 @@ class Arte < ApplicationRecord
   # Etapa 2.6a: blank = the dono's default (Parâmetros).
   validates :espacamento_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }, allow_nil: true
   # Etapa 2.6b1: its sizes' fit on the film follows its spacing and kind.
-  after_update_commit -> { EncaixeDaEtiqueta.atualizar_arte!(self) }, if: -> { saved_change_to_espacamento_mm? || saved_change_to_tipo? }
+  # Etapa 2.6c: in or out of the catálogo changes whose price per meter gives its unit price.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar_arte!(self) }, if: -> { saved_change_to_espacamento_mm? || saved_change_to_tipo? || saved_change_to_no_catalogo? }
 
   # The file that stands for the arte (gallery card): its first active one.
   # Usage: arte.principal.filename

@@ -102,6 +102,9 @@
               <% elsif bloqueio.tipo == :pedido_sem_cliente %>
                 <%# Etapa 2.6b1: no arte to open — the client is chosen at the top of the page. %>
                 <a href="#pedido-cliente-dtf" class="pedido-pendencias-item">escolher cliente</a>
+              <% elsif bloqueio.tipo == :sem_preco_dtf && dono? && bloqueio.arquivo.nil? %>
+                <%# Etapa 2.6c: the dono's price per meter or per unit cut. %>
+                <%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-dtf"), class: "pedido-pendencias-item" %>
               <% elsif bloqueio.arquivo %>
                 <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
               <% end %>

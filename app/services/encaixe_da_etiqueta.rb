@@ -4,7 +4,8 @@
 # turned 90°. It doesn't depend on any quantity, so it is computed once per
 # file and stored (arquivos.encaixe_dtf), when the file's measure, the
 # arte's spacing or the dono's film change; a pedido only counts rows on it
-# (EncaixeDoPedidoDtf). Plain arithmetic, run in the request.
+# (EncaixeDoPedidoDtf). Plain arithmetic, run in the request. Its unit
+# price is calculated with it (Etapa 2.6c, PrecoDaEtiqueta).
 #
 #   { "medida_mm" => [16.17, 17.02], "largura_util_mm" => 570, "espacamento_mm" => 1.5,
 #     "em_pe" => { "por_fileira" => 32, "passo_mm" => 18.52 },
@@ -36,20 +37,28 @@ class EncaixeDaEtiqueta
       "girada" => posicao(altura, largura, largura_util_mm, espacamento) }
   end
 
-  # Recomputes one file's fit; a file outside a DTF keeps none.
+  # Recomputes one file's fit and unit price; a file outside a DTF keeps none.
   def self.atualizar!(arquivo, empresa: Empresa.atual)
     arte = arquivo.arte
     encaixe = (calcular(arquivo.approved_version&.medidas_mm, largura_util_mm: empresa&.largura_util_filme_dtf_mm, espacamento_mm: arte.espacamento_efetivo_mm) if arte&.tipo == "dtf")
-    arquivo.update_column(:encaixe_dtf, encaixe) unless arquivo.encaixe_dtf == encaixe
+    preco = encaixe && PrecoDaEtiqueta.calculado(arquivo, encaixe)
+    return if arquivo.encaixe_dtf == encaixe && arquivo.preco_unidade_calculado == preco
+
+    arquivo.update_columns(encaixe_dtf: encaixe, preco_unidade_calculado: preco)
   end
 
   # Every file of an arte (its spacing or kind changed).
   def self.atualizar_arte!(arte)
-    arte.arquivos.includes(approved_version: :image_metadata).find_each { |arquivo| atualizar!(arquivo) }
+    atualizar_varios!(arte.arquivos)
   end
 
   # Every DTF file (the dono changed the film or the default spacing).
   def self.atualizar_todas!
-    Arquivo.where(arte: Arte.where(tipo: "dtf")).includes(:arte, approved_version: :image_metadata).find_each { |arquivo| atualizar!(arquivo) }
+    atualizar_varios!(Arquivo.where(arte: Arte.where(tipo: "dtf")))
+  end
+
+  # Usage: EncaixeDaEtiqueta.atualizar_varios!(client.etiquetas_do_preco)
+  def self.atualizar_varios!(arquivos)
+    arquivos.includes(:arte, :client, approved_version: :image_metadata).find_each { |arquivo| atualizar!(arquivo) }
   end
 end

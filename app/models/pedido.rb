@@ -2,6 +2,7 @@ class Pedido < ApplicationRecord
   include GeraUuid
   include Excluivel
   include ReferenciaAtiva
+  include CobrancaDoPedidoDtf
 
   belongs_to :client, optional: true
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy

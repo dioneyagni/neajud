@@ -1,0 +1,70 @@
+require "rails_helper"
+require_relative "../support/etiquetas_dtf"
+
+# Etapa 2.6c (decided 13-14/10/2026): what a DTF pedido charges — by quantity
+# or meter (D2), the unit price's cascade (D1, D4, D6), the edited prices with
+# the starting ones beside (D3), the cut on every printed unit (D5).
+RSpec.describe ValoresDoPedidoDtf do
+  let(:client) { create(:client) }
+  # P 100: turned, 4 rows of 30 → 120 printed (20 over), 0,0707 m; 0,07 a unit at R$ 120/m.
+  let!(:etiqueta) { criar_etiqueta_dtf(client: client) }
+  let(:pedido) { create(:pedido, client: client, tipo: "dtf") }
+  let!(:item) do
+    create(:item_pedido, pedido: pedido, arquivo: etiqueta.arquivos.first).tap { |i| i.grades.create!(tamanho_nome: "P", quantidade: 100) }
+  end
+
+  before { Empresa.atual.update!(preco_metro_dtf: 120, preco_corte_dtf: 0.05) }
+
+  def valores
+    described_class.call(pedido.reload)
+  end
+
+  def linha
+    valores.partes.first
+  end
+
+  it "charges by quantity the printed units, the excess too by default; the client may say not" do
+    expect(linha.to_h.slice(:quantidade, :preco_partida, :preco)).to eq(quantidade: 120, preco_partida: BigDecimal("0.07"), preco: BigDecimal("0.07"))
+    expect(valores.total).to eq(8.4)
+    client.update!(cobrar_excedente_dtf: false)
+    expect([ linha.quantidade, valores.total ]).to eq([ 100, 7.0 ])
+    pedido.update!(cobrar_excedente: true)
+    expect(linha.quantidade).to eq(120)
+  end
+
+  it "takes the etiqueta's agreed price first, else the ordering client's price per meter" do
+    etiqueta.arquivos.first.update!(preco_unidade_combinado: 0.05)
+    expect(linha.preco_partida).to eq(BigDecimal("0.05"))
+    etiqueta.arquivos.first.update!(preco_unidade_combinado: nil)
+    outro = create(:client, preco_metro_dtf: 240)
+    pedido.update!(client: outro)
+    # 240 / 1727,9 = 0,139 → 0,14, for this client only (the etiqueta keeps 0,07).
+    expect([ linha.preco_partida, etiqueta.arquivos.first.reload.preco_unidade_calculado ]).to eq([ BigDecimal("0.14"), BigDecimal("0.07") ])
+  end
+
+  it "charges an edited price, measuring the discount on the starting one" do
+    item.grades.first.update!(preco_unidade: 0.06)
+    expect([ linha.preco, valores.total, valores.desconto ]).to eq([ BigDecimal("0.06"), 7.2, 1.2 ])
+  end
+
+  it "charges by meter the whole film, and the cut on every unit printed" do
+    pedido.update!(cobranca_dtf: "metro", entrega: "cortada")
+    expect(valores.partes.map { |p| [ p.descricao, p.quantidade, p.preco, p.subtotal ] }).to eq([ [ "Filme", 0.0707, BigDecimal("120"), 8.48 ], [ "Corte", 120, BigDecimal("0.05"), 6.0 ] ])
+  end
+
+  it "names what has no price" do
+    Empresa.atual.update!(preco_metro_dtf: nil, preco_corte_dtf: nil)
+    pedido.update!(entrega: "cortada")
+    expect(valores.faltas.map(&:descricao)).to eq([ "#{etiqueta.titulo} P", "Corte" ])
+  end
+
+  it "keeps what was confirmed, whatever the prices do next" do
+    item.grades.first.update!(preco_unidade: 0.06)
+    EncaixeDoPedidoDtf.gravar!(pedido)
+    described_class.gravar!(pedido.reload)
+    pedido.update!(status: "confirmado")
+    Empresa.atual.update!(preco_metro_dtf: 300, cobrar_excedente_dtf: false)
+    expect(linha.to_h.slice(:quantidade, :preco_partida, :preco)).to eq(quantidade: 120, preco_partida: BigDecimal("0.07"), preco: BigDecimal("0.06"))
+    expect(pedido.reload.attributes.values_at("cobranca_dtf", "cobrar_excedente")).to eq([ "quantidade", true ])
+  end
+end

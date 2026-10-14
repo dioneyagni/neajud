@@ -7,6 +7,8 @@ require_relative "../support/etiquetas_dtf"
 RSpec.describe "The DTF pedido", type: :request do
   let(:client) { create(:client, name: "Arcoverde Calçados") }
   let(:etiqueta) { criar_etiqueta_dtf(client: client, tamanhos: { "P" => [ 191, 201 ], "M" => [ 300, 300 ] }) }
+  # Etapa 2.6c: no price, no confirming.
+  before { Empresa.atual.update!(preco_metro_dtf: 120) }
 
   def adicionar(arquivo, grade, **extra)
     post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: grade, **extra }, as: :json

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -169,6 +169,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
     t.string "papel", default: "producao", null: false
     t.integer "peca_id"
     t.string "peca_nome", default: "Nova Peça"
+    t.decimal "preco_unidade_calculado", precision: 10, scale: 2
+    t.decimal "preco_unidade_combinado", precision: 10, scale: 2
     t.datetime "preparando_tamanhos_desde"
     t.integer "referencia_id"
     t.datetime "restored_at"
@@ -245,10 +247,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
   end
 
   create_table "clients", force: :cascade do |t|
+    t.string "cobranca_dtf"
+    t.boolean "cobrar_excedente_dtf"
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
     t.text "name", null: false
+    t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.decimal "preco_metro_dtf", precision: 10, scale: 2
     t.text "responsible", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
@@ -286,6 +292,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
   end
 
   create_table "empresas", force: :cascade do |t|
+    t.string "cobranca_dtf", default: "quantidade", null: false
+    t.boolean "cobrar_excedente_dtf", default: true, null: false
     t.datetime "created_at", null: false
     t.decimal "custo_corte_peca", precision: 10, scale: 4
     t.decimal "custo_impressao_metro", precision: 10, scale: 2
@@ -296,6 +304,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
     t.integer "margem_filme_dtf_mm", default: 15, null: false
     t.string "nome", null: false
     t.integer "papel_padrao_id"
+    t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.decimal "preco_metro_dtf", precision: 10, scale: 2
     t.integer "tolerancia_abaixo_pct", default: 10, null: false
     t.integer "tolerancia_acima_pct", default: 25, null: false
     t.datetime "updated_at", null: false
@@ -409,6 +419,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
     t.integer "fileiras_extras"
     t.integer "item_pedido_id", null: false
     t.decimal "preco_par", precision: 10, scale: 2
+    t.decimal "preco_unidade", precision: 10, scale: 2
+    t.decimal "preco_unidade_partida", precision: 10, scale: 2
     t.integer "quantidade", default: 0, null: false
     t.string "tamanho_nome", null: false
     t.datetime "updated_at", null: false
@@ -548,6 +560,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
 
   create_table "pedidos", force: :cascade do |t|
     t.integer "client_id"
+    t.string "cobranca_dtf"
+    t.boolean "cobrar_excedente"
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
@@ -557,6 +571,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_150000) do
     t.integer "fileiras_extras", default: 0, null: false
     t.boolean "grade_antiga", default: false, null: false
     t.text "observacoes"
+    t.decimal "preco_corte", precision: 10, scale: 4
+    t.decimal "preco_corte_partida", precision: 10, scale: 4
+    t.decimal "preco_metro", precision: 10, scale: 2
+    t.decimal "preco_metro_partida", precision: 10, scale: 2
     t.integer "reposicao_de_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"

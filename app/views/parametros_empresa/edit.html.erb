@@ -64,6 +64,28 @@
       <%= form.number_field :fileiras_extras_dtf, min: 0, step: 1, required: true %>
       <small>Printed beyond what was ordered, to cover losses; a pedido may change it.</small>
     </div>
+    <%# Etapa 2.6c: the dono's DTF prices; a client may have his own (his page). %>
+    <div class="client-field">
+      <label for="empresa_preco_metro_dtf">Price per meter (R$)</label>
+      <input type="text" inputmode="decimal" name="empresa[preco_metro_dtf]" id="empresa_preco_metro_dtf"
+             value="<%= @empresa.preco_metro_dtf && number_with_precision(@empresa.preco_metro_dtf, precision: 2, separator: ",") %>">
+      <small>Each etiqueta's unit price is calculated from it and its fit on the film.</small>
+    </div>
+    <div class="client-field">
+      <label for="empresa_preco_corte_dtf">Price per unit cut (R$)</label>
+      <input type="text" inputmode="decimal" name="empresa[preco_corte_dtf]" id="empresa_preco_corte_dtf"
+             value="<%= @empresa.preco_corte_dtf && number_with_precision(@empresa.preco_corte_dtf, precision: 4, separator: ",", strip_insignificant_zeros: true) %>">
+      <small>A pedido delivered cut pays it on every unit printed.</small>
+    </div>
+    <div class="client-field">
+      <%= form.label :cobranca_dtf, "Charge a pedido by" %>
+      <%= form.select :cobranca_dtf, [ [ "Quantity", "quantidade" ], [ "Meter", "metro" ] ] %>
+    </div>
+    <div class="client-field">
+      <%= form.label :cobrar_excedente_dtf, "Charge the excess (by quantity)" %>
+      <%= form.select :cobrar_excedente_dtf, [ [ "Yes", true ], [ "No", false ] ] %>
+      <small>The units printed beyond the ordered ones. A client or a pedido may say otherwise.</small>
+    </div>
   </fieldset>
   <%= form.submit "Save", class: "btn btn-primary" %>
 <% end %>

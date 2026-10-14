@@ -73,6 +73,8 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
     await page.goto(BASE_URL);
     ids.dono = await criarCliente(nomes.dono);
     ids.leitor = await criarCliente(nomes.leitor);
+    // Etapa 2.6c: no price, no confirming (e2e/precos-dtf.spec.js covers the prices).
+    if (!(await postar("/parametros", { _method: "patch", "empresa[preco_metro_dtf]": "120", "empresa[preco_corte_dtf]": "0,05" }))) throw new Error("Couldn't set the DTF's prices");
     await page.goto(`${BASE_URL}/arquivos`);
     await page.selectOption('[data-upload-target="tipo"]', "dtf");
     await page.setInputFiles('input[type="file"]', [etiqueta(701, "P", 200), etiqueta(702, "M", 300)]);
@@ -116,6 +118,9 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
 
   await test("The pedido shows the size on the film: the last row completed, the excess to the client", async () => {
     await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    // Named from its file like a calçado arte (decided 14/10/2026): "DTF-n · ETQ…".
+    const titulo = (await page.locator(".pedido-item-dtf .pedido-item-titulo strong").first().innerText()).trim();
+    if (!new RegExp(`^DTF-\\d+ · ${nomes.etiqueta}$`).test(titulo)) throw new Error(`The etiqueta is titled ${titulo}`);
     // P: 16,93 mm square → 31 a row (571,5 / 18,43), 100 → 4 rows → 124, 73,7 mm.
     const valores = [await celula("por-fileira"), await celula("fileiras"), await celula("impressas"), await celula("excedente"), await celula("metros")];
     if (valores.join(" | ") !== "31 | 4 | 124 | +24 | 0,074 m") throw new Error(`The P line reads ${valores.join(" | ")}`);
