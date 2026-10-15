@@ -10,6 +10,14 @@
   <%= selo_excluido(@pedido) %>
 </h2>
 
+<%# A DTF pedido's fit and charges, computed once for its tables, its
+    "Valores do pedido" and the panel (decided 14/10/2026: the prices sit in
+    each etiqueta's table). Nil prices: the person doesn't see them. %>
+<% if @pedido.dtf? %>
+  <% linhas_dtf = EncaixeDoPedidoDtf.call(@pedido) %>
+  <% valores_dtf = ValoresDoPedidoDtf.call(@pedido, linhas: linhas_dtf) if pode_ver_precos? && @pedido.itens_pedido.any? %>
+<% end %>
+
 <% if @pedido.dtf? %>
   <%= render "cliente_dtf", pedido: @pedido %>
 <% elsif @pedido.client %>
@@ -57,9 +65,9 @@
       <h3>Itens (<%= @pedido.itens_pedido.count %>)</h3>
       <% if @pedido.dtf? %>
         <%# Etapa 2.6b1: an etiqueta per item, its sizes on the film. %>
-        <% linhas_dtf = EncaixeDoPedidoDtf.call(@pedido).group_by(&:item) %>
+        <% linhas_por_item = linhas_dtf.group_by(&:item) %>
         <% @pedido.itens_pedido.includes(:grades, :arte, arquivo: :client).order(:id).each do |item| %>
-          <%= render "item_dtf", item: item, pedido: @pedido, linhas: linhas_dtf.fetch(item, []) %>
+          <%= render "item_dtf", item: item, pedido: @pedido, linhas: linhas_por_item.fetch(item, []), valores: valores_dtf %>
         <% end %>
       <% else %>
         <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
@@ -76,7 +84,11 @@
         sees the price only, by his grid's "valores" (2.8, 3a). %>
     <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c). %>
     <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
-      <%= render(@pedido.dtf? ? "pedidos/valores_dtf" : "pedidos/valores", pedido: @pedido) %>
+      <% if @pedido.dtf? %>
+        <%= render "pedidos/valores_dtf", pedido: @pedido, valores: valores_dtf %>
+      <% else %>
+        <%= render "pedidos/valores", pedido: @pedido %>
+      <% end %>
     <% end %>
 
     <% if pedido_editavel?(@pedido) %>
@@ -111,7 +123,7 @@
     <% end %>
   </div>
 
-  <%= render "painel", pedido: @pedido %>
+  <%= render "painel", pedido: @pedido, linhas_dtf: linhas_dtf, valores_dtf: valores_dtf %>
 </div>
 
 <div class="back-link-wrapper" style="margin-top:1rem;">

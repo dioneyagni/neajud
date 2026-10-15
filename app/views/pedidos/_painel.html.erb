@@ -7,7 +7,7 @@
   <section class="pedido-painel-card pedido-resumo">
     <h3>Resumo</h3>
     <% if pedido.dtf? %>
-      <%= render "pedidos/resumo_dtf", pedido: pedido %>
+      <%= render "pedidos/resumo_dtf", pedido: pedido, linhas: linhas_dtf, valores: valores_dtf %>
     <% else %>
     <dl class="pedido-resumo-lista">
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>

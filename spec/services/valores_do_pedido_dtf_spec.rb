@@ -58,6 +58,37 @@ RSpec.describe ValoresDoPedidoDtf do
     expect(valores.faltas.map(&:descricao)).to eq([ "#{etiqueta.titulo} P", "Corte" ])
   end
 
+  # Decided 14/10/2026: each line's price sits in its etiqueta's table, and
+  # "Valores do pedido" keeps only the etiquetas summed and the pedido's own.
+  describe "the sums for the pedido page" do
+    let!(:outra) { criar_etiqueta_dtf(client: client) }
+    let!(:outro_item) do
+      create(:item_pedido, pedido: pedido, arquivo: outra.arquivos.first).tap { |i| i.grades.create!(tamanho_nome: "P", quantidade: 30, preco_unidade: 0.06) }
+    end
+
+    it "finds a line's charge, sums each etiqueta and all of them, apart from the cut" do
+      pedido.update!(entrega: "cortada")
+      atual = valores
+      linha_do_outro = EncaixeDoPedidoDtf.call(pedido).find { |l| l.item == outro_item }
+      # The other's 30 → 1 row of 30, at the edited 0,06 (starting 0,07).
+      expect(atual.da_linha(linha_do_outro).to_h.slice(:quantidade, :preco)).to eq(quantidade: 30, preco: BigDecimal("0.06"))
+      expect(atual.do_item(item).to_h).to eq(quantidade: 120, subtotal: 8.4, subtotal_partida: 8.4)
+      expect(atual.das_etiquetas.to_h).to eq(quantidade: 150, subtotal: 10.2, subtotal_partida: 10.5)
+      expect(atual.do_pedido.map(&:descricao)).to eq([ "Corte" ])
+    end
+
+    it "has no line charges by meter: the film is the pedido's" do
+      pedido.update!(cobranca_dtf: "metro")
+      expect([ valores.das_etiquetas, valores.da_linha(EncaixeDoPedidoDtf.call(pedido).first), valores.do_pedido.map(&:descricao) ]).to eq([ nil, nil, [ "Filme" ] ])
+    end
+
+    it "reuses the fit it is given" do
+      linhas = EncaixeDoPedidoDtf.call(pedido)
+      expect(EncaixeDoPedidoDtf).not_to receive(:call)
+      expect(described_class.call(pedido, linhas: linhas).total).to eq(10.2)
+    end
+  end
+
   it "keeps what was confirmed, whatever the prices do next" do
     item.grades.first.update!(preco_unidade: 0.06)
     EncaixeDoPedidoDtf.gravar!(pedido)

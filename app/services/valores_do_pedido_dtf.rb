@@ -37,10 +37,53 @@ class ValoresDoPedidoDtf
     def faltas
       partes.reject(&:preco)
     end
+
+    # The charge of one line of the fit, shown in its etiqueta's table
+    # (decided 14/10/2026: one table per etiqueta); nil by meter.
+    # Usage: valores.da_linha(linha).subtotal # => 8.96
+    def da_linha(linha)
+      @por_linha ||= das_linhas.index_by { |parte| chave_da_linha(parte.linha) }
+      @por_linha[chave_da_linha(linha)]
+    end
+
+    # An etiqueta's lines summed: its table's footer.
+    # Usage: valores.do_item(item).subtotal # => 46.03
+    def do_item(item)
+      somar(das_linhas.select { |parte| parte.linha.item.id == item.id })
+    end
+
+    # Every etiqueta's lines summed, one row of "Valores do pedido"; nil by meter.
+    def das_etiquetas
+      das_linhas.any? ? somar(das_linhas) : nil
+    end
+
+    # What isn't any etiqueta's: the film by meter and the cut.
+    def do_pedido
+      partes.reject(&:linha)
+    end
+
+    private
+
+    def das_linhas
+      partes.select(&:linha)
+    end
+
+    def chave_da_linha(linha)
+      [ linha.item.id, linha.grade.tamanho_nome ]
+    end
+
+    def somar(cobrancas)
+      Soma.new(quantidade: cobrancas.sum(&:quantidade), subtotal: cobrancas.filter_map(&:subtotal).sum,
+               subtotal_partida: cobrancas.sum { |parte| parte.subtotal_partida || parte.subtotal || 0 })
+    end
   end
 
-  def self.call(pedido)
-    new(pedido).call
+  # Lines summed: their units and what they charge, at the starting price too.
+  Soma = Struct.new(:quantidade, :subtotal, :subtotal_partida, keyword_init: true)
+
+  # linhas: the pedido's fit when the caller already has it (the pedido page).
+  def self.call(pedido, linhas: nil)
+    new(pedido, linhas: linhas).call
   end
 
   # Writes each line's starting and charged unit price, and the pedido's
@@ -53,13 +96,14 @@ class ValoresDoPedidoDtf
     pedido.confirmar_cobranca!
   end
 
-  def initialize(pedido)
+  def initialize(pedido, linhas: nil)
     @pedido = pedido
+    @linhas = linhas
     @confirmado = Pedido::ANTES_DA_CONFIRMACAO.exclude?(pedido.status)
   end
 
   def call
-    linhas = EncaixeDoPedidoDtf.call(@pedido).reject(&:pendencia)
+    linhas = (@linhas || EncaixeDoPedidoDtf.call(@pedido)).reject(&:pendencia)
     partes = @pedido.cobranca_efetiva == "metro" ? [ por_metro(linhas) ] : linhas.map { |linha| por_unidade(linha) }
     partes << do_corte(linhas) if @pedido.entrega == "cortada"
     Valores.new(cobranca: @pedido.cobranca_efetiva, cobra_excedente: @pedido.cobra_excedente?, partes: partes)

@@ -50,8 +50,13 @@ RSpec.describe "The DTF's prices", type: :request do
     patch dtf_preco_linha_pedido_path(pedido), params: { item_uuid: item.uuid, tamanho_nome: "P", preco_unidade: "0,06" }
     get resumo_pedido_path(pedido)
     html = Nokogiri::HTML(response.body)
-    expect(%w[partida subtotal].map { |c| html.at_css("#valores-dtf .pedido-valores-linha .pedido-valores-#{c}").text.squish }).to eq([ "R$ 0,07", "R$ 7,20" ])
-    expect(html.at_css("#valores-dtf .pedido-valores-desconto").text).to eq("R$ 1,20")
+    # The line's price sits in its etiqueta's table (decided 14/10/2026);
+    # "Valores do pedido" sums the etiquetas, never repeating a size.
+    linha = html.at_css(".pedido-item-dtf .pedido-dtf-linha[data-tamanho='P']")
+    expect(%w[partida subtotal].map { |c| linha.at_css(".pedido-valores-#{c}").text.squish }).to eq([ "0,07", "R$ 7,20" ])
+    expect(linha.at_css('input[name="preco_unidade"]')["value"]).to eq("0,06")
+    expect(html.css("#valores-dtf .pedido-valores-linha").map { |tr| [ tr["data-parte"], tr.at_css(".pedido-valores-subtotal").text ] }).to eq([ [ "Etiquetas", "R$ 7,20" ] ])
+    expect([ html.at_css("#valores-dtf .pedido-valores-desconto").text, html.at_css('[data-resumo="total"]').text ]).to eq([ "R$ 1,20", "R$ 7,20" ])
     post confirmar_pedido_path(pedido)
     expect(item.grades.first.reload.attributes.values_at("preco_unidade_partida", "preco_unidade")).to eq([ 0.07, 0.06 ])
     patch dtf_precos_pedido_path(pedido), params: { cobranca_dtf: "metro" }
@@ -79,9 +84,11 @@ RSpec.describe "The DTF's prices", type: :request do
     pedido.itens_pedido.first.grades.first.update!(preco_unidade: 0.06)
     entrar_como_cliente_final(valores_abertos: true)
     get resumo_pedido_path(pedido)
-    secao = Nokogiri::HTML(response.body).at_css("#valores-dtf")
-    # The starting price and the discount are the factory's business.
-    expect([ secao.at_css(".pedido-valores-total").text, secao.css(".pedido-valores-partida, .pedido-valores-desconto, input").size ]).to eq([ "R$ 7,20", 0 ])
+    html = Nokogiri::HTML(response.body)
+    # The starting price and the discount are the factory's business, in
+    # the etiqueta's table too.
+    expect([ html.at_css("#valores-dtf .pedido-valores-total").text, html.css(".pedido-valores-partida, .pedido-valores-desconto, .pedido-preco-form").size ]).to eq([ "R$ 7,20", 0 ])
+    expect(html.at_css(".pedido-dtf-linha[data-tamanho='P'] .pedido-valores-preco").text.squish).to eq("R$ 0,06")
     get arquivo_path(arquivo)
     expect(response.body).not_to include("arte-arquivo-preco")
     patch dtf_preco_linha_pedido_path(pedido), params: { item_uuid: pedido.itens_pedido.first.uuid, tamanho_nome: "P", preco_unidade: "0,01" }
@@ -95,6 +102,15 @@ RSpec.describe "The DTF's prices", type: :request do
     pedido = pedido_com(100)
     entrar_como_cliente_final(valores_abertos: false)
     get resumo_pedido_path(pedido)
-    expect(response.body).not_to include("valores-dtf")
+    # No price column in the etiqueta's table either, nor the panel's total.
+    expect(response.body).not_to include("valores-dtf", "pedido-valores-subtotal", 'data-resumo="total"')
+  end
+
+  it "the team without \"ver valores\" sees the fit, no price" do
+    Empresa.atual.update!(preco_metro_dtf: 120)
+    pedido = pedido_com(100)
+    entrar_com_funcao(niveis: { "pedidos" => 2 })
+    get resumo_pedido_path(pedido)
+    expect([ response.body.include?("pedido-dtf-impressas"), response.body.include?("pedido-valores-subtotal") ]).to eq([ true, false ])
   end
 end

@@ -1,0 +1,17 @@
+<%# One line's price cells in its etiqueta's table (Etapa 2.6c, decided
+    14/10/2026): the starting price (the team's), the unit price — editable
+    on the team's draft — and the subtotal. By meter a line has no price of
+    its own: the film is charged whole, in "Valores do pedido". %>
+<% if equipe %>
+  <td class="pedido-valores-partida" data-rotulo="Partida"><%= por_metro || parte.preco_partida.nil? ? "—" : number_with_precision(parte.preco_partida, precision: 2, separator: ",") %></td>
+<% end %>
+<td class="pedido-valores-preco" data-rotulo="Preço un.">
+  <% if por_metro %>
+    —
+  <% elsif edita_preco %>
+    <%= render "pedidos/preco_editavel_dtf", pedido: pedido, parte: parte %>
+  <% else %>
+    <%= parte.preco ? reais(parte.preco) : "sem preço" %>
+  <% end %>
+</td>
+<td class="pedido-valores-subtotal pedido-dtf-subtotal" data-rotulo="Subtotal"><%= por_metro ? "—" : reais(parte.subtotal) %></td>

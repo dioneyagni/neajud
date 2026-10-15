@@ -1283,6 +1283,15 @@ need fixing):
   edits them (`PrecosDoPedidoDtfController`); confirming writes the starting
   (`*_partida`) and charged prices and the choices. `:sem_preco_dtf` blocks
   confirming. A cliente final with "valores" open sees only what he pays.
+- **One table per etiqueta** (decided 14/10/2026): each line's starting
+  price, unit price and subtotal sit in the etiqueta's fit table
+  (`_item_dtf`, `_precos_da_linha_dtf`), its footer sums the etiqueta;
+  "Valores do pedido" (`_valores_dtf`) keeps only the etiquetas summed, the
+  film by meter, the cut and the total (`ValoresDoPedidoDtf::Valores#da_linha`,
+  `do_item`, `das_etiquetas`, `do_pedido`); the panel shows the total. The
+  pedido page computes the fit and the values once and passes them down.
+  Under 600px each row is a block (`.pedido-dtf-blocos`, cells labelled by
+  `data-rotulo`).
 - E2E: `e2e/precos-dtf.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)

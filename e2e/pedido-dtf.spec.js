@@ -131,7 +131,8 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
 
   await test("A line takes its own extra rows, the pedido its delivery and default", async () => {
     await linhaP().locator('input[name="fileiras_extras"]').fill("1");
-    await linhaP().locator('input[name="fileiras_extras"]').dispatchEvent("change");
+    // Leaving the field fires the real "change" (a synthetic one saves it twice; see precos-dtf).
+    await linhaP().locator('input[name="fileiras_extras"]').blur();
     await waitForText(page, "Extra rows of P: 1.");
     if ((await celula("impressas")) !== "155") throw new Error(`With 1 extra row the P prints ${await celula("impressas")}`);
     await page.selectOption("#pedido-dtf-entrega", "cortada");
@@ -176,7 +177,7 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
     // The fit's turn and the client choice are the team's (D4, D5).
     if (corpo.includes(nomes.dono) || corpo.includes("girada") || (await page.locator("#pedido-cliente-dtf").count())) throw new Error("He sees the owner, the turn or the client choice");
     await page.fill("#pedido-dtf-fileiras-extras", "1");
-    await page.locator("#pedido-dtf-fileiras-extras").dispatchEvent("change");
+    await page.locator("#pedido-dtf-fileiras-extras").blur();
     await waitForText(page, "Pedido updated.");
     if ((await page.locator("#pedido-dtf-fileiras-extras").inputValue()) !== "1") throw new Error("His extra rows weren't kept");
   });

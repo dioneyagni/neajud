@@ -35,9 +35,12 @@ runSpec("Preços DTF E2E Tests", async ({ page, test }) => {
   }
 
   // Types into an auto-submitting field and waits for the page it redirects to.
+  // Types and leaves the field, like a person: a synthetic "change" left the
+  // field dirty, so a later blur (the morph, a resize) fired a real one and
+  // saved it again — its notice replaced the next step's (headed run, 14/10/2026).
   async function digitar(seletor, valor, aviso) {
     await page.fill(seletor, valor);
-    await page.locator(seletor).dispatchEvent("change");
+    await page.locator(seletor).blur();
     await waitForText(page, aviso);
   }
 
@@ -92,12 +95,34 @@ runSpec("Preços DTF E2E Tests", async ({ page, test }) => {
     ids.pedido = (await resposta.json()).pedido_uuid;
     await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
     // 100 ordered → 4 rows of 31 = 124 printed, the excess charged: 124 × the agreed 0,10.
-    const linha = "#valores-dtf .pedido-valores-linha";
-    if ((await texto(`${linha} .pedido-valores-partida`)) !== "R$ 0,10") throw new Error(`Starting price: ${await texto(`${linha} .pedido-valores-partida`)}`);
+    // The line's price sits in its etiqueta's table (decided 14/10/2026).
+    const linha = ".pedido-item-dtf .pedido-dtf-linha[data-tamanho='P']";
+    if ((await texto(`${linha} .pedido-valores-partida`)) !== "0,10") throw new Error(`Starting price: ${await texto(`${linha} .pedido-valores-partida`)}`);
     if ((await texto(`${linha} .pedido-valores-subtotal`)) !== "R$ 12,40") throw new Error(`Subtotal: ${await texto(`${linha} .pedido-valores-subtotal`)}`);
     await digitar(`${linha} input[name="preco_unidade"]`, "0,09", "Unit price of P: edited.");
     if ((await texto(`${linha} .pedido-valores-subtotal`)) !== "R$ 11,16") throw new Error("The edited price didn't charge");
     if ((await texto("#valores-dtf .pedido-valores-desconto")) !== "R$ 1,24") throw new Error(`Discount: ${await texto("#valores-dtf .pedido-valores-desconto")}`);
+    // "Valores do pedido" sums the etiquetas, never repeating a size; the panel shows the total.
+    const partes = await page.locator("#valores-dtf .pedido-valores-linha").evaluateAll((trs) => trs.map((tr) => tr.dataset.parte));
+    if (partes.join() !== "Etiquetas") throw new Error(`Valores do pedido lists ${partes.join()}`);
+    if ((await texto('[data-resumo="total"]')) !== "R$ 11,16") throw new Error(`The panel's total: ${await texto('[data-resumo="total"]')}`);
+  });
+
+  await test("On a phone each size is a block: its cells labelled, nothing wider than the card", async () => {
+    // Headed runs have no fixed viewport (null): come back to a desktop one.
+    const antes = page.viewportSize() || { width: 1280, height: 720 };
+    await page.setViewportSize({ width: 390, height: 844 });
+    try {
+      const bloco = await page.locator(".pedido-item-dtf .pedido-dtf-linha[data-tamanho='P']").evaluate((tr) => ({
+        display: getComputedStyle(tr).display,
+        rotulo: getComputedStyle(tr.querySelector(".pedido-valores-preco"), "::before").content,
+      }));
+      if (bloco.display !== "grid" || bloco.rotulo !== '"Preço un."') throw new Error(`The P line on a phone: ${JSON.stringify(bloco)}`);
+      const larga = await page.locator(".pedido-item-dtf .pedido-dtf-tabela-wrap").evaluate((wrap) => wrap.scrollWidth > wrap.clientWidth);
+      if (larga) throw new Error("The etiqueta's table is wider than its card on a phone");
+    } finally {
+      await page.setViewportSize(antes);
+    }
   });
 
   await test("Charged by meter, the film at the client's price; confirming writes it", async () => {

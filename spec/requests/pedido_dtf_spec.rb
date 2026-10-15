@@ -48,7 +48,7 @@ RSpec.describe "The DTF pedido", type: :request do
     get resumo_pedido_path(pedido)
     html = Nokogiri::HTML(response.body)
     linha = html.at_css(".pedido-dtf-linha[data-tamanho='P']")
-    expect(%w[por-fileira fileiras impressas excedente metros].map { |c| linha.at_css(".pedido-dtf-#{c}").text.squish }).to eq([ "30 girada", "4", "120", "+20", "0,071 m" ])
+    expect(%w[por-fileira fileiras impressas excedente metros].map { |c| linha.at_css(".pedido-dtf-#{c}").text.squish }).to eq([ "30 ↻", "4", "120", "+20", "0,071 m" ])
     # Calçado's price per pair isn't the DTF's (its charging is Etapa 2.6c).
     expect(response.body).not_to include("price per pair")
     post confirmar_pedido_path(pedido)
