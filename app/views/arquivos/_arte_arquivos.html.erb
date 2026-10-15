@@ -33,6 +33,10 @@
                 <%# The spacing is the team's (Etapa 2.6a): never in the cliente final's page. %>
                 <span class="arte-arquivo-encaixe" title="<%= cliente_final? ? "On the DTF film" : "On the #{membro.encaixe_dtf["largura_util_mm"]} mm useful width of the film, #{membro.encaixe_dtf["espacamento_mm"].to_s.tr(".", ",")} mm apart" %>"><%= encaixe %></span>
               <% end %>
+              <%# Etapa 2.6c: its unit price, calculated, and the one agreed over it (the team's). %>
+              <% if !usa_pecas && pode_acao?(:ver_valores) && !cliente_final? %>
+                <%= render "arquivos/preco_da_etiqueta", membro: membro, editavel: pode_editar_arquivo?(arquivo) %>
+              <% end %>
             <% end %>
             <%# Etapa 1.2 (3/3, parte 3c): the side of a mirrored part's file. %>
             <% if usa_pecas && pode_editar_arquivo?(arquivo) && !membro.piloto? && (membro.lado || membro.parte_espelhada?) %>

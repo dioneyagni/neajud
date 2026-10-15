@@ -7,6 +7,8 @@ require_relative "../support/etiquetas_dtf"
 RSpec.describe "The DTF pedido", type: :request do
   let(:client) { create(:client, name: "Arcoverde Calçados") }
   let(:etiqueta) { criar_etiqueta_dtf(client: client, tamanhos: { "P" => [ 191, 201 ], "M" => [ 300, 300 ] }) }
+  # Etapa 2.6c: no price, no confirming.
+  before { Empresa.atual.update!(preco_metro_dtf: 120) }
 
   def adicionar(arquivo, grade, **extra)
     post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: grade, **extra }, as: :json
@@ -46,7 +48,7 @@ RSpec.describe "The DTF pedido", type: :request do
     get resumo_pedido_path(pedido)
     html = Nokogiri::HTML(response.body)
     linha = html.at_css(".pedido-dtf-linha[data-tamanho='P']")
-    expect(%w[por-fileira fileiras impressas excedente metros].map { |c| linha.at_css(".pedido-dtf-#{c}").text.squish }).to eq([ "30 girada", "4", "120", "+20", "0,071 m" ])
+    expect(%w[por-fileira fileiras impressas excedente metros].map { |c| linha.at_css(".pedido-dtf-#{c}").text.squish }).to eq([ "30 ↻", "4", "120", "+20", "0,071 m" ])
     # Calçado's price per pair isn't the DTF's (its charging is Etapa 2.6c).
     expect(response.body).not_to include("price per pair")
     post confirmar_pedido_path(pedido)

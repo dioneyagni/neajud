@@ -299,11 +299,13 @@ class PedidosController < ApplicationController
   private
 
   # A DTF pedido is its client's whatever its etiquetas' owners (Etapa 2.6b1,
-  # D4): never split. Its fit is written into the grade, so a later version or
-  # film change never moves what was confirmed.
+  # D4): never split. Its fit and prices are written (2.6c), so a later
+  # version, film or price change never moves what was confirmed.
   def confirmar_dtf
     Pedido.transaction do
       EncaixeDoPedidoDtf.gravar!(@pedido)
+      # Etapa 2.6c: the prices too, read on the fit just written.
+      ValoresDoPedidoDtf.gravar!(@pedido.reload)
       @pedido.update!(status: "confirmado")
     end
     session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid

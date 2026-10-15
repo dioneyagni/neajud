@@ -101,6 +101,15 @@ module TipoDaArte
     ROTULOS.fetch(tipo)
   end
 
+  # A numbered work without corte (DTF, corrida) is named from its file
+  # name, like a calçado arte when its molde is chosen (decided 14/10/2026:
+  # "872-ENCRUZILHADA DO SUL- P - 1,6 X 1,7" → "ENCRUZILHADA DO SUL"; the
+  # pedido showed only "DTF-4"). The cor lisa is named by the system.
+  # Usage: arte.nomeada_pelo_arquivo? # => true for a DTF
+  def nomeada_pelo_arquivo?
+    PREFIXOS.key?(tipo)
+  end
+
   # Another kind while no pedido uses it (decided 12/10/2026): a pedido read
   # its parts and sizes by the kind it had.
   # Usage: arte.trocar_tipo!("corrida") # => false with errors when refused
@@ -113,6 +122,8 @@ module TipoDaArte
       raise ActiveRecord::Rollback unless update(tipo: novo, no_catalogo: novo == "cor_lisa" || (no_catalogo && novo != "calcado"))
 
       limpar_arquivos_fora_do_tipo
+      # The principal's name is shared with the arte's other files.
+      principal&.nomear_pelo_arquivo! if nomeada_pelo_arquivo?
     end
     errors.none?
   end

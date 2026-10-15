@@ -3,13 +3,24 @@
     (EncaixeDoPedidoDtf): copies per row, rows (+ extra, editable while the
     draft is: blank = the pedido's), printed, the excess that goes to the
     client and the meters. Turned 90° is the team's (the cliente final
-    neither sees nor sets the fit, only the extra rows — D5). %>
+    neither sees nor sets the fit, only the extra rows — D5).
+    Its prices sit in the same table (decided 14/10/2026, Etapa 2.6c): the
+    starting one (the team's with "ver valores"), the unit price — edited
+    there on the team's draft — and the subtotal, "—" when the pedido is
+    charged by meter; the footer sums the etiqueta. valores is nil for who
+    doesn't see prices. Under 600px each row becomes a block, its cells
+    labelled by data-rotulo (CSS). %>
 <% arquivo = item.arquivo %>
 <% editavel = pedido_editavel?(pedido) %>
 <% por_tamanho = linhas.index_by { |linha| linha.grade.tamanho_nome } %>
 <% tamanhos = item.arte.tamanhos_do_pedido.presence || [ ProducaoPedidoService::TOTAL_KEY ] %>
 <% quantidades = item.grades.to_h { |g| [ g.tamanho_nome, g.quantidade ] } %>
 <% total = quantidades.values.sum %>
+<% equipe = valores && !cliente_final? && pode_acao?(:ver_valores) %>
+<% edita_preco = equipe && pedido.editavel? %>
+<% colunas_de_preco = valores ? (equipe ? 3 : 2) : 0 %>
+<% por_metro = valores&.cobranca == "metro" %>
+<% medidas = linhas.reject(&:pendencia) %>
 <article class="pedido-item pedido-item-dtf" data-item-uuid="<%= item.uuid %>"
          data-controller="grade-editor"
          data-grade-editor-save-url-value="<%= atualizar_item_pedido_path(pedido, id: item.uuid) %>">
@@ -30,11 +41,18 @@
   </div>
 
   <div class="pedido-dtf-tabela-wrap">
-    <table class="pedido-dtf-tabela">
+    <table class="pedido-dtf-tabela pedido-dtf-blocos">
       <thead>
+        <% if valores %>
+          <tr class="pedido-dtf-grupos">
+            <th colspan="2"></th><th colspan="5" class="pedido-dtf-grupo">Encaixe no filme</th><th colspan="<%= colunas_de_preco %>" class="pedido-dtf-grupo">Valores</th>
+          </tr>
+        <% end %>
         <tr>
-          <th>Tamanho</th><th>Medida</th><th>Pedidas</th><th>Por fileira</th><th>Fileiras</th><th>Extras</th>
-          <th>Impressas</th><th>Excedente</th><th>Filme</th>
+          <th>Tamanho</th><th>Pedidas</th><th>Por fileira</th><th>Fileiras</th><th>Extras</th>
+          <th>Impressas</th><th>Filme</th>
+          <% if equipe %><th>Partida</th><% end %>
+          <% if valores %><th>Preço un.</th><th>Subtotal</th><% end %>
         </tr>
       </thead>
       <tbody>
@@ -42,9 +60,11 @@
           <% linha = por_tamanho[tamanho] %>
           <% grade = item.grades.find { |g| g.tamanho_nome == tamanho } %>
           <tr class="pedido-dtf-linha<%= " pedido-dtf-linha--pendente" if linha&.pendencia %>" data-tamanho="<%= tamanho %>">
-            <th scope="row"><%= tamanho == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : tamanho %></th>
-            <td class="pedido-dtf-medida"><%= linha&.arquivo ? medida_do_arquivo(linha.arquivo) : "—" %></td>
-            <td>
+            <th scope="row">
+              <%= tamanho == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : tamanho %>
+              <% if linha&.arquivo %><small class="pedido-dtf-medida"><%= medida_do_arquivo(linha.arquivo) %></small><% end %>
+            </th>
+            <td class="pedido-dtf-pedidas" data-rotulo="Pedidas">
               <% if editavel %>
                 <input type="number" class="grade-qtd-input pedido-dtf-qtd" data-tamanho-nome="<%= tamanho %>" value="<%= quantidades[tamanho] || 0 %>" min="0" step="1" aria-label="Quantidade <%= tamanho %>">
               <% else %>
@@ -52,9 +72,9 @@
               <% end %>
             </td>
             <% if linha && !linha.pendencia %>
-              <td class="pedido-dtf-por-fileira"><%= linha.por_fileira %><% if linha.girada && !cliente_final? %> <span class="pedido-dtf-girada" title="Turned 90°: fewer meters for this quantity">girada</span><% end %></td>
-              <td class="pedido-dtf-fileiras"><%= linha.fileiras %></td>
-              <td class="pedido-dtf-extras">
+              <td class="pedido-dtf-por-fileira pedido-dtf-encaixe" data-rotulo="Por fileira"><%= linha.por_fileira %><% if linha.girada && !cliente_final? %> <span class="pedido-dtf-girada" title="Girada 90°: menos metros para esta quantidade" aria-label="girada">↻</span><% end %></td>
+              <td class="pedido-dtf-fileiras pedido-dtf-encaixe" data-rotulo="Fileiras"><%= linha.fileiras %></td>
+              <td class="pedido-dtf-extras" data-rotulo="Extras">
                 <% if editavel %>
                   <%= form_with url: dtf_fileiras_pedido_path(pedido), method: :patch, class: "pedido-dtf-extras-form", data: { controller: "auto-submit" } do %>
                     <input type="hidden" name="item_uuid" value="<%= item.uuid %>">
@@ -66,17 +86,30 @@
                   <%= linha.extras %>
                 <% end %>
               </td>
-              <td class="pedido-dtf-impressas"><%= linha.impressas %></td>
-              <td class="pedido-dtf-excedente"><%= "+#{linha.excedente}" %></td>
-              <td class="pedido-dtf-metros"><%= metros_de_filme(linha.metros) %></td>
+              <td class="pedido-dtf-impressas-celula" data-rotulo="Impressas"><span class="pedido-dtf-impressas"><%= linha.impressas %></span> <span class="pedido-dtf-excedente"><%= "+#{linha.excedente}" %></span></td>
+              <td class="pedido-dtf-metros pedido-dtf-encaixe" data-rotulo="Filme"><%= metros_de_filme(linha.metros) %></td>
+              <%= render "pedidos/precos_da_linha_dtf", pedido: pedido, parte: valores.da_linha(linha), equipe: equipe, edita_preco: edita_preco, por_metro: por_metro if valores %>
             <% elsif linha %>
-              <td colspan="6" class="pedido-dtf-pendencia"><%= PedidoBloqueiosDtf::DESCRICOES_DO_ENCAIXE.fetch(linha.pendencia).last %></td>
+              <td colspan="<%= 5 + colunas_de_preco %>" class="pedido-dtf-pendencia"><%= PedidoBloqueiosDtf::DESCRICOES_DO_ENCAIXE.fetch(linha.pendencia).last %></td>
             <% else %>
-              <td colspan="6" class="pedido-dtf-vazio">—</td>
+              <td colspan="<%= 5 + colunas_de_preco %>" class="pedido-dtf-vazio">—</td>
             <% end %>
           </tr>
         <% end %>
       </tbody>
+      <% if medidas.any? %>
+        <% soma = valores&.do_item(item) %>
+        <tfoot>
+          <tr class="pedido-dtf-soma">
+            <th scope="row">Etiqueta</th>
+            <td class="pedido-dtf-encaixe" data-rotulo="Pedidas"><%= total %></td><td></td><td></td><td></td>
+            <td class="pedido-dtf-encaixe" data-rotulo="Impressas"><span><%= medidas.sum(&:impressas) %></span> <span class="pedido-dtf-excedente"><%= "+#{medidas.sum(&:excedente)}" %></span></td>
+            <td class="pedido-dtf-encaixe" data-rotulo="Filme"><%= metros_de_filme(medidas.sum(&:metros)) %></td>
+            <% if equipe %><td></td><% end %>
+            <% if valores %><td></td><td class="pedido-valores-subtotal pedido-dtf-subtotal" data-rotulo="Subtotal"><%= por_metro ? "—" : reais(soma.subtotal) %></td><% end %>
+          </tr>
+        </tfoot>
+      <% end %>
     </table>
   </div>
 

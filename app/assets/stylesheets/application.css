@@ -3677,7 +3677,34 @@ li.aprovacao--cancelada {
 }
 
 .pedido-dtf-tabela input[type="number"] {
-  width: 4.5rem;
+  width: 4rem;
+}
+
+/* With the prices the etiqueta's table has 12 columns (14/10/2026): tighter
+   cells and fields so it fits the card next to the panel. */
+.pedido-item-dtf .pedido-dtf-tabela th,
+.pedido-item-dtf .pedido-dtf-tabela td {
+  padding: 0.3rem 0.3rem;
+}
+
+.pedido-item-dtf .pedido-dtf-extras input[type="number"] {
+  width: 3rem;
+}
+
+.pedido-item-dtf .pedido-preco-form input {
+  width: 4.2rem;
+}
+
+.pedido-dtf-excedente {
+  color: #b06000;
+  font-size: 0.82em;
+}
+
+.pedido-dtf-medida {
+  display: block;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: #666;
 }
 
 .pedido-dtf-linha--pendente td.pedido-dtf-pendencia {
@@ -3720,6 +3747,155 @@ li.aprovacao--cancelada {
 }
 
 .arte-arquivo-encaixe {
+  color: #666;
+  font-size: 0.82rem;
+}
+
+/* Etapa 2.6c: the DTF's prices — on the pedido, the client and the etiqueta. */
+.pedido-preco-form input,
+.arte-preco-form input,
+.precos-dtf-form input[type="text"] {
+  width: 6rem;
+}
+
+.pedido-dtf-cobranca,
+.precos-dtf-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin: 0.5rem 0;
+  font-size: 0.86rem;
+}
+
+/* The prices in each etiqueta's table (decided 14/10/2026): the groups
+   over the columns, the footer summing the etiqueta. */
+.pedido-dtf-grupos th {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pedido-dtf-tabela thead th.pedido-dtf-grupo {
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #80868b;
+  border-left: 1px solid #e0e0e0;
+}
+
+.pedido-dtf-soma th,
+.pedido-dtf-soma td {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+/* Phone: each size (or charge) a block — the title (size, measure,
+   subtotal), then its cells labelled by data-rotulo, on a 12-column grid:
+   the fields in threes, the fit's four cells in fours. */
+@media (max-width: 600px) {
+  .pedido-dtf-blocos thead {
+    display: none;
+  }
+
+  .pedido-dtf-blocos,
+  .pedido-dtf-blocos tbody,
+  .pedido-dtf-blocos tfoot {
+    display: block;
+  }
+
+  .pedido-dtf-blocos tr {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.5rem 0.6rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid #eee;
+  }
+
+  .pedido-dtf-blocos th,
+  .pedido-dtf-blocos td {
+    grid-column: span 4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    align-content: flex-end;
+    justify-content: flex-end;
+    gap: 0 0.3rem;
+    padding: 0;
+    border: none;
+    white-space: normal;
+    font-size: 1rem;
+  }
+
+  .pedido-dtf-blocos td:empty {
+    display: none;
+  }
+
+  .pedido-dtf-blocos td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    flex-basis: 100%;
+    text-align: left;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #80868b;
+  }
+
+  .pedido-dtf-blocos tr > th:first-child {
+    grid-row: 1;
+    grid-column: 1 / span 5;
+    flex-direction: column;
+    align-items: flex-start;
+    align-content: flex-start;
+    font-size: 1.1rem;
+  }
+
+  .pedido-dtf-blocos .pedido-dtf-subtotal {
+    grid-row: 1;
+    grid-column: 6 / -1;
+    font-weight: 600;
+  }
+
+  .pedido-dtf-blocos .pedido-dtf-subtotal::before {
+    display: none;
+  }
+
+  .pedido-dtf-blocos .pedido-dtf-pedidas { order: 1; }
+  .pedido-dtf-blocos .pedido-dtf-extras { order: 2; }
+  .pedido-dtf-blocos .pedido-dtf-impressas-celula { order: 3; }
+  .pedido-dtf-blocos .pedido-dtf-encaixe { order: 4; color: #5f6368; font-size: 0.88rem; }
+  .pedido-dtf-blocos .pedido-valores-partida { order: 5; grid-column: span 6; color: #5f6368; }
+  .pedido-dtf-blocos .pedido-valores-preco { order: 6; grid-column: span 6; }
+  .pedido-dtf-blocos .pedido-dtf-soma td { grid-column: span 4; }
+  .pedido-dtf-blocos .pedido-dtf-soma .pedido-dtf-subtotal { grid-column: 6 / -1; }
+
+  .pedido-dtf-blocos .pedido-dtf-pendencia,
+  .pedido-dtf-blocos .pedido-dtf-vazio {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .pedido-dtf-blocos form,
+  .pedido-item-dtf .pedido-dtf-blocos td input[type] {
+    width: 100%;
+  }
+
+  .pedido-dtf-blocos td input[type] {
+    width: 100%;
+    min-height: 2.5rem;
+    font-size: 1rem;
+    text-align: right;
+  }
+
+  .pedido-item-dtf .pedido-item-actions .btn {
+    min-height: 2.75rem;
+  }
+}
+
+.arte-arquivo-preco {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: #666;
   font-size: 0.82rem;
 }

@@ -1,0 +1,31 @@
+<%# The DTF prices agreed with this client (Etapa 2.6c): blank follows the
+    dono's (Parâmetros). The team's, with "ver valores" (clients/show). %>
+<% empresa = Empresa.atual %>
+<% numero = ->(valor, casas) { valor && number_with_precision(valor, precision: casas, separator: ",", strip_insignificant_zeros: casas > 2) } %>
+<div class="stamp-detail-section stamp-detail-section--full" id="precos-dtf">
+  <h3>Preços do DTF</h3>
+  <p class="page-hint">What <%= client.name %> pays for DTF etiquetas. Blank follows the empresa's<% if dono? %> (<%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-dtf") %>)<% end %>.</p>
+  <%= form_with url: precos_dtf_client_path(client), method: :patch, class: "precos-dtf-form" do %>
+    <label>Price per meter (R$)
+      <input type="text" inputmode="decimal" name="preco_metro_dtf" id="cliente-preco-metro-dtf" value="<%= numero.call(client.preco_metro_dtf, 2) %>" placeholder="<%= numero.call(empresa&.preco_metro_dtf, 2) %>">
+    </label>
+    <label>Per unit cut (R$)
+      <input type="text" inputmode="decimal" name="preco_corte_dtf" id="cliente-preco-corte-dtf" value="<%= numero.call(client.preco_corte_dtf, 4) %>" placeholder="<%= numero.call(empresa&.preco_corte_dtf, 4) %>">
+    </label>
+    <label>Charge by
+      <select name="cobranca_dtf" id="cliente-cobranca-dtf">
+        <option value="">Default (<%= empresa&.cobranca_dtf == "metro" ? "meter" : "quantity" %>)</option>
+        <option value="quantidade" <%= "selected" if client.cobranca_dtf == "quantidade" %>>Quantity</option>
+        <option value="metro" <%= "selected" if client.cobranca_dtf == "metro" %>>Meter</option>
+      </select>
+    </label>
+    <label>Charge the excess
+      <select name="cobrar_excedente_dtf" id="cliente-cobrar-excedente-dtf">
+        <option value="">Default (<%= empresa&.cobrar_excedente_dtf == false ? "no" : "yes" %>)</option>
+        <option value="true" <%= "selected" if client.cobrar_excedente_dtf == true %>>Yes</option>
+        <option value="false" <%= "selected" if client.cobrar_excedente_dtf == false %>>No</option>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Save DTF prices</button>
+  <% end %>
+</div>

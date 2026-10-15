@@ -64,6 +64,8 @@ Rails.application.routes.draw do
       # Etapa 2.6a: a DTF's own space between copies on the film.
       patch :espacamento
     end
+    # Etapa 2.6c: a DTF size's agreed unit price.
+    resource :preco_dtf, only: :update, controller: "precos_da_etiqueta"
     resources :aprovacoes, only: %i[new create]
     resources :solicitacoes_aprovacao, only: :create, as: :solicitacoes
     # The cliente final's own answer (Etapa 2.8, 4a).
@@ -105,7 +107,11 @@ Rails.application.routes.draw do
       get :search
     end
     # Etapa 2.8 (3a): this client's exceptions to the default visibility.
-    member { patch :visibilidade, to: "visibilidade_do_cliente#update" }
+    member do
+      patch :visibilidade, to: "visibilidade_do_cliente#update"
+      # Etapa 2.6c: the DTF prices agreed with this client.
+      patch :precos_dtf, to: "precos_dtf_do_cliente#update"
+    end
   end
 
   # Official list, read only (Etapa 1.1, 3/5).
@@ -181,6 +187,9 @@ Rails.application.routes.draw do
       # Etapa 2.6b1: a DTF draft's delivery, extra rows and client.
       patch :dtf, to: "pedidos_dtf#update"
       patch "dtf/fileiras", to: "pedidos_dtf#fileiras", as: :dtf_fileiras
+      # Etapa 2.6c: how it is charged and its edited prices.
+      patch "dtf/precos", to: "precos_do_pedido_dtf#update", as: :dtf_precos
+      patch "dtf/preco_linha", to: "precos_do_pedido_dtf#linha", as: :dtf_preco_linha
       get :resumo
     end
   end

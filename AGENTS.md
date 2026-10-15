@@ -1127,7 +1127,12 @@ change.
   DTF or a corrida takes the next number when it gets the kind — `codigo`
   `DTF-863` / `CR-4114`, unique per kind, never reused (a new kind = a new
   number, a separated file = a new arte and number). Each empresa starts at 1;
-  old hand-made numbers stay in the upload's file name. The cor lisa's comes
+  old hand-made numbers stay in the upload's file name. A DTF or a corrida is
+  **named from its file name** on upload or when it gets the kind
+  (`nomeada_pelo_arquivo?`, decided 14/10/2026: "872-ENCRUZILHADA DO SUL- P -
+  1,6 X 1,7" → "ENCRUZILHADA DO SUL", the pedido shows "DTF-4 · ENCRUZILHADA
+  DO SUL"; existing ones: `bin/rails artes:nomear_sem_corte`); the cor lisa is
+  named by the system. The cor lisa's comes
   with its color family (2.5b). The full name of a work without corte starts
   with it: `DTF-863_Arcoverde_P`; the card shows it; the gallery filters by
   kind (`?tipo=`).
@@ -1253,6 +1258,41 @@ prices):
   without measure or wider than the film).
 - `config/etapas_producao.yml` has `dtf: []` until 2.6b2.
 - E2E: `e2e/pedido-dtf.spec.js`.
+
+## The DTF's prices (Etapa 2.6c)
+
+Decided 13-14/10/2026, before 2.6b2 (a pedido confirmed without prices would
+need fixing):
+
+- **Dono and client** (`PrecosDoDtf`, on `Empresa` and `Client`):
+  `preco_metro_dtf`, `preco_corte_dtf`, `cobranca_dtf` (quantidade / metro),
+  `cobrar_excedente_dtf`; a client's blank follows the dono's. Parâmetros, and
+  the client's page (`PrecosDtfDoClienteController`, the team's with
+  `ver_valores`).
+- **The etiqueta's unit price per size**: `PrecoDaEtiqueta` calculates
+  `arquivos.preco_unidade_calculado` (price per meter ÷ units per meter,
+  rounded up to the cent; the client's price unless a catálogo work, else the
+  dono's) with the fit (`EncaixeDaEtiqueta`), and again when a price per
+  meter or the file's client changes. `preco_unidade_combinado` is typed over
+  it (`PrecosDaEtiquetaController`) and stops following.
+- **The pedido** (`CobrancaDoPedidoDtf` on `Pedido`, `ValoresDoPedidoDtf`):
+  the charging and the excess cascade dono → cliente → pedido; each line's
+  unit price: edited (`itens_pedido_grade.preco_unidade`) > agreed >
+  calculated with the ordering client's price per meter > calculated; by
+  meter, the whole film; cortada, the cut on every printed unit. The team
+  edits them (`PrecosDoPedidoDtfController`); confirming writes the starting
+  (`*_partida`) and charged prices and the choices. `:sem_preco_dtf` blocks
+  confirming. A cliente final with "valores" open sees only what he pays.
+- **One table per etiqueta** (decided 14/10/2026): each line's starting
+  price, unit price and subtotal sit in the etiqueta's fit table
+  (`_item_dtf`, `_precos_da_linha_dtf`), its footer sums the etiqueta;
+  "Valores do pedido" (`_valores_dtf`) keeps only the etiquetas summed, the
+  film by meter, the cut and the total (`ValoresDoPedidoDtf::Valores#da_linha`,
+  `do_item`, `das_etiquetas`, `do_pedido`); the panel shows the total. The
+  pedido page computes the fit and the values once and passes them down.
+  Under 600px each row is a block (`.pedido-dtf-blocos`, cells labelled by
+  `data-rotulo`).
+- E2E: `e2e/precos-dtf.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 

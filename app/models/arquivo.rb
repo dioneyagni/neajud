@@ -33,8 +33,9 @@ class Arquivo < ApplicationRecord
 
   before_validation :set_default_tipo_corte
   after_update_commit :broadcast_arquivo_card, if: :saved_change_to_approved_version_id?
-  # Etapa 2.6b1: another version in use, or another arte (its spacing), moves a DTF size's fit.
-  after_update_commit -> { EncaixeDaEtiqueta.atualizar!(self) }, if: -> { (saved_changes.keys & %w[approved_version_id arte_id]).any? && (arte&.tipo == "dtf" || encaixe_dtf) }
+  # Etapa 2.6b1: another version in use, or another arte (its spacing), moves a DTF size's fit;
+  # Etapa 2.6c: another client, its unit price.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar!(self) }, if: -> { (saved_changes.keys & %w[approved_version_id arte_id client_id]).any? && (arte&.tipo == "dtf" || encaixe_dtf) }
   before_destroy :prevent_destroy_with_linked_arquivos, prepend: true
   before_destroy :destroy_arquivo_with_versions, prepend: true
 
@@ -46,6 +47,8 @@ class Arquivo < ApplicationRecord
   after_create_commit :recompor_rascunhos_da_arte, if: :arte_id
   after_update_commit :recompor_rascunhos_da_arte, if: -> { (saved_changes.keys & %w[peca_id tamanho_id molde_id arte_id]).any? }
   validates :filename, presence: true
+  # Etapa 2.6c: a DTF size's agreed unit price; blank = the calculated one.
+  validates :preco_unidade_combinado, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :extension, presence: true
   validates :mime_type, presence: true
   validates :category, inclusion: { in: FileCategory.keys }, allow_nil: true

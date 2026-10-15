@@ -144,6 +144,10 @@
     <% if pode_acao?(:gerenciar_usuarios) %>
       <%= render "clients/visibilidade", client: @client %>
     <% end %>
+    <%# Etapa 2.6c: an agreement no client ever sees. %>
+    <% if pode_acao?(:ver_valores) && !cliente_final? && pode?(:clientes, :editar) %>
+      <%= render "clients/precos_dtf", client: @client %>
+    <% end %>
 
     <div class="stamp-detail-section stamp-detail-section--full" style="margin-top: 1.5rem;">
       <h3>Materials</h3>

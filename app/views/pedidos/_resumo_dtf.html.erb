@@ -2,13 +2,17 @@
     printed (the last row completed and the extra rows — the excess goes to
     the client), the film's meters, the delivery and the pedido's default
     extra rows, which a line may override. Both settings are the cliente
-    final's too on his draft (D5). %>
-<% linhas = EncaixeDoPedidoDtf.call(pedido).reject(&:pendencia) %>
+    final's too on his draft (D5). The total for who sees prices (Etapa
+    2.6c). linhas and valores come from the pedido page. %>
+<% linhas = linhas.reject(&:pendencia) %>
 <dl class="pedido-resumo-lista">
   <dt>Etiquetas</dt><dd data-resumo="itens"><%= pedido.itens_pedido.size %></dd>
   <dt>Pedidas</dt><dd data-resumo="pedidas"><%= pedido.total_itens %></dd>
   <dt>Impressas</dt><dd data-resumo="impressas"><%= linhas.sum(&:impressas) %></dd>
   <dt>Filme</dt><dd data-resumo="metros"><%= metros_de_filme(linhas.sum(&:metros)) %></dd>
+  <% if valores %>
+    <dt>Total</dt><dd data-resumo="total"><%= reais(valores.total) %></dd>
+  <% end %>
   <dt>Entrega</dt><dd data-resumo="entrega"><%= pedido.entrega == "cortada" ? "Cortada" : "Em rolo" %></dd>
 </dl>
 <% if pedido_editavel?(pedido) %>

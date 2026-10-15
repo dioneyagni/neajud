@@ -2,6 +2,7 @@
 # Etapa 3.1), so there is at most one row and data tables carry no empresa_id.
 class Empresa < ApplicationRecord
   include GeraUuid
+  include PrecosDoDtf
 
   has_many :vinculos, dependent: :destroy
   # Etapa 2.3: the paper whose width gives an arte's meters per piece.
@@ -42,6 +43,12 @@ class Empresa < ApplicationRecord
   # (Etapa 2.6a). Usage: Empresa.atual.largura_util_filme_dtf_mm # => 570
   def largura_util_filme_dtf_mm
     largura_filme_dtf_mm - (2 * margem_filme_dtf_mm)
+  end
+
+  # Every etiqueta: the dono's price per meter is the one of those without a
+  # client's own (PrecoDaEtiqueta skips them when their client has one).
+  def etiquetas_do_preco
+    Arquivo.where(arte: Arte.where(tipo: "dtf"))
   end
 
   # Both costs set: the cost per pair can be computed (Etapa 2.4).

@@ -29,7 +29,7 @@ class PedidoBloqueiosService
   # What only the factory settles (Etapa 2.8, 5/5): a cliente final sees them
   # as "em análise"; the rest (quantity 0, a file or side missing) are his.
   # Etapa 2.6b1: a DTF's own (PedidoBloqueiosDtf) — a size without a file is his.
-  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente etiqueta_de_outro_cliente sem_medida nao_cabe].freeze
+  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente etiqueta_de_outro_cliente sem_medida nao_cabe sem_preco_dtf].freeze
 
   def self.call(pedido)
     new(pedido).call

@@ -1,0 +1,15 @@
+<%# A DTF size's unit price (Etapa 2.6c, D6): the calculated one (price per
+    meter ÷ units per meter, rounded up) and the one agreed over it, which
+    stops following the recalculation; blank goes back to the calculated. %>
+<span class="arte-arquivo-preco" data-preco-calculado="<%= membro.preco_unidade_calculado %>">
+  <span class="arte-arquivo-preco-calculado">calculado <%= reais(membro.preco_unidade_calculado) %></span>
+  <% if editavel %>
+    <%= form_with url: arquivo_preco_dtf_path(membro), method: :patch, class: "arte-acao-inline arte-preco-form", data: { controller: "auto-submit", turbo: false } do %>
+      <input type="text" inputmode="decimal" name="preco_unidade_combinado" aria-label="Agreed unit price of <%= membro.rotulo_de_tamanho %>"
+             placeholder="combinado" value="<%= membro.preco_unidade_combinado && number_with_precision(membro.preco_unidade_combinado, precision: 2, separator: ",") %>"
+             data-action="change->auto-submit#submit">
+    <% end %>
+  <% elsif membro.preco_unidade_combinado %>
+    <span class="arte-arquivo-preco-combinado">combinado <%= reais(membro.preco_unidade_combinado) %></span>
+  <% end %>
+</span>

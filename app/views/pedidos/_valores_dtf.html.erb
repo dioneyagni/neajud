@@ -1,0 +1,74 @@
+<%# What a DTF pedido charges (Etapa 2.6c, decided 13-14/10/2026;
+    ValoresDoPedidoDtf): by quantity (each line's units × its unit price) or
+    by meter (the whole film), plus the cut when delivered cut. The team edits
+    the prices while the draft is editable, the starting one beside each with
+    the discount (D3); a cliente final sees only what he pays.
+    Each line's price sits in its etiqueta's table (decided 14/10/2026);
+    here only what is the whole pedido's: the etiquetas summed, the film by
+    meter, the cut, the total. valores comes from the pedido page. %>
+<% etiquetas = valores.das_etiquetas %>
+<% equipe = !cliente_final? && pode_acao?(:ver_valores) %>
+<% editavel = equipe && pedido.editavel? %>
+<section class="pedido-valores pedido-valores-dtf" id="valores-dtf">
+  <h3>Valores do pedido</h3>
+  <p class="pedido-valores-cobranca">
+    <%= valores.cobranca == "metro" ? "Por metro de filme" : "Por quantidade" %><%= valores.cobranca == "quantidade" ? (valores.cobra_excedente ? " · excedente cobrado" : " · excedente não cobrado") : "" %>
+  </p>
+  <% if editavel %>
+    <%= form_with url: dtf_precos_pedido_path(pedido), method: :patch, class: "pedido-dtf-cobranca", data: { controller: "auto-submit" } do %>
+      <label>Cobrança
+        <select name="cobranca_dtf" id="pedido-cobranca-dtf" data-action="change->auto-submit#submit">
+          <option value="" <%= "selected" unless pedido.cobranca_dtf %>>Padrão</option>
+          <option value="quantidade" <%= "selected" if pedido.cobranca_dtf == "quantidade" %>>Por quantidade</option>
+          <option value="metro" <%= "selected" if pedido.cobranca_dtf == "metro" %>>Por metro</option>
+        </select>
+      </label>
+      <label>Excedente
+        <select name="cobrar_excedente" id="pedido-cobrar-excedente" data-action="change->auto-submit#submit">
+          <option value="" <%= "selected" if pedido.cobrar_excedente.nil? %>>Padrão</option>
+          <option value="true" <%= "selected" if pedido.cobrar_excedente == true %>>Cobrar</option>
+          <option value="false" <%= "selected" if pedido.cobrar_excedente == false %>>Não cobrar</option>
+        </select>
+      </label>
+    <% end %>
+  <% end %>
+  <div class="pedido-dtf-tabela-wrap">
+    <table class="pedido-dtf-tabela pedido-valores-tabela pedido-dtf-blocos">
+      <thead>
+        <tr><th>Item</th><th>Quantidade</th><% if equipe %><th>Partida</th><% end %><th>Preço</th><th>Subtotal</th></tr>
+      </thead>
+      <tbody>
+        <% if etiquetas %>
+          <tr class="pedido-valores-linha" data-parte="Etiquetas">
+            <th scope="row">Etiquetas (<%= pedido.itens_pedido.size %>)</th>
+            <td class="pedido-dtf-pedidas" data-rotulo="Quantidade"><%= etiquetas.quantidade %></td>
+            <% if equipe %><td class="pedido-valores-partida" data-rotulo="Partida"><%= reais(etiquetas.subtotal_partida) %></td><% end %>
+            <td class="pedido-valores-preco"></td>
+            <td class="pedido-valores-subtotal pedido-dtf-subtotal"><%= reais(etiquetas.subtotal) %></td>
+          </tr>
+        <% end %>
+        <% valores.do_pedido.each do |parte| %>
+          <tr class="pedido-valores-linha" data-parte="<%= parte.descricao %>">
+            <th scope="row"><%= parte.descricao %></th>
+            <td class="pedido-dtf-pedidas" data-rotulo="Quantidade"><%= parte.descricao == "Filme" ? metros_de_filme(parte.quantidade) : parte.quantidade %></td>
+            <% if equipe %><td class="pedido-valores-partida" data-rotulo="Partida"><%= reais(parte.preco_partida) %></td><% end %>
+            <td class="pedido-valores-preco" data-rotulo="Preço">
+              <% if editavel %>
+                <%= render "pedidos/preco_editavel_dtf", pedido: pedido, parte: parte %>
+              <% else %>
+                <%= parte.preco ? reais(parte.preco) : "sem preço" %>
+              <% end %>
+            </td>
+            <td class="pedido-valores-subtotal pedido-dtf-subtotal"><%= reais(parte.subtotal) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Total</th><td colspan="<%= equipe ? 3 : 2 %>"></td><td class="pedido-valores-total pedido-dtf-subtotal"><%= reais(valores.total) %></td></tr>
+        <% if equipe && valores.desconto.nonzero? %>
+          <tr><th scope="row">Desconto</th><td colspan="3"></td><td class="pedido-valores-desconto pedido-dtf-subtotal"><%= reais(valores.desconto) %></td></tr>
+        <% end %>
+      </tfoot>
+    </table>
+  </div>
+</section>
