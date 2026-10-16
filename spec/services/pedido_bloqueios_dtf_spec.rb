@@ -20,6 +20,18 @@ RSpec.describe PedidoBloqueiosDtf do
     ])
   end
 
+  # 16/10/2026: it turns only when the team marks it — the pendência says which way.
+  it "asks to mark or unmark the turn when a size fits only the other way, the factory's to settle" do
+    etiqueta = criar_etiqueta_dtf(client: client, tamanhos: { "P" => [ 6800, 118 ] }) # 575,7 mm wide: fits only turned
+    pedido = create(:pedido, client: client, tipo: "dtf")
+    create(:item_pedido, pedido: pedido, arquivo: etiqueta.arquivos.first).grades.create!(tamanho_nome: "P", quantidade: 3)
+    descricoes = -> { described_class.call(pedido.reload).select { |b| b.tipo.to_s.start_with?("nao_cabe") }.map { |b| [ b.tipo, b.descricao ] } }
+    expect(descricoes.call).to eq([ [ :nao_cabe_em_pe, "#{etiqueta.titulo} P (3): não cabe em pé no filme: marque Girar 90° na etiqueta" ] ])
+    expect(PedidoBloqueiosService::DA_FABRICA).to include(:nao_cabe_em_pe, :nao_cabe_girada)
+    etiqueta.update!(girar_dtf: true)
+    expect(descricoes.call).to be_empty
+  end
+
   # D4: the catálogo's etiquetas belong to whoever orders them.
   it "takes a catálogo etiqueta of another client, never one outside it" do
     create(:empresa, preco_metro_dtf: 120)

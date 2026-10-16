@@ -1,10 +1,11 @@
 <%# A DTF's space between its copies on the film (Etapa 2.6a, decided
-    13/10/2026): its own, else the dono's default in Parâmetros. The team's
-    only — the cliente final never sees it (show.html.erb). %>
+    13/10/2026): its own, else the dono's default in Parâmetros; and whether
+    it goes turned 90° (decided 16/10/2026: only when marked, every size).
+    The team's only — the cliente final never sees it (show.html.erb). %>
 <% arte = arquivo.arte %>
 <% padrao = number_with_precision(Empresa.atual&.espacamento_dtf_mm, precision: 2, separator: ",", strip_insignificant_zeros: true) %>
 <div class="stamp-detail-section stamp-detail-section--full" id="espacamento-dtf-section">
-  <h3>Spacing on the film</h3>
+  <h3>On the film</h3>
   <% if pode_editar_arquivo?(arquivo) %>
   <%= form_with url: espacamento_arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "espacamento-dtf-form" do %>
     <label for="espacamento-dtf-mm">Between copies (mm)</label>
@@ -12,6 +13,14 @@
            value="<%= arte.espacamento_mm && number_with_precision(arte.espacamento_mm, precision: 2, separator: ",", strip_insignificant_zeros: true) %>">
     <button type="submit" class="btn btn-sm btn-outline">Save</button>
   <% end %>
+  <% end %>
+  <% if pode_editar_arquivo?(arquivo) %>
+  <%= form_with url: giro_arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "giro-dtf-form", data: { controller: "auto-submit", turbo: false } do %>
+    <input type="hidden" name="girar_dtf" value="0">
+    <label><input type="checkbox" name="girar_dtf" value="1" id="giro-dtf"<%= " checked" if arte.girar_dtf %> data-action="change->auto-submit#submit"> Girar 90° no filme</label>
+  <% end %>
+  <% else %>
+  <p class="giro-dtf-estado"><%= arte.girar_dtf ? "Girada 90° no filme" : "Em pé no filme" %></p>
   <% end %>
   <small class="espacamento-dtf-efetivo"><%= arte.espacamento_mm ? "Its own; blank goes back to the default (#{padrao} mm)." : "Blank: the default, #{padrao} mm (Parâmetros)." %></small>
 </div>

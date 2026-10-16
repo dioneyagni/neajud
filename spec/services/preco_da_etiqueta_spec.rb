@@ -11,10 +11,20 @@ RSpec.describe PrecoDaEtiqueta do
   let(:arquivo) { etiqueta.arquivos.first }
 
   it "divides the price per meter by the units a meter holds, rounding up to the cent" do
-    expect(described_class.unidades_por_metro(arquivo.encaixe_dtf).round(1)).to eq(1727.9)
+    expect(described_class.unidades_por_metro(arquivo.encaixe_dtf, "em_pe").round(1)).to eq(1727.9)
+    expect(described_class.unidades_por_metro(arquivo.encaixe_dtf, "girada").round(1)).to eq(1697.8)
     # 120 / 1727,9 = 0,0694 → 0,07.
-    expect(described_class.unitario(arquivo.encaixe_dtf, 120)).to eq(BigDecimal("0.07"))
-    expect([ described_class.unitario(nil, 120), described_class.unitario(arquivo.encaixe_dtf, nil) ]).to eq([ nil, nil ])
+    expect(described_class.unitario(arquivo.encaixe_dtf, 120, "em_pe")).to eq(BigDecimal("0.07"))
+    expect([ described_class.unitario(nil, 120, "em_pe"), described_class.unitario(arquivo.encaixe_dtf, nil, "em_pe") ]).to eq([ nil, nil ])
+  end
+
+  # 16/10/2026: the price follows the orientation the etiqueta goes, not the denser one.
+  it "is calculated in the etiqueta's orientation, and follows its turn mark" do
+    Empresa.atual.update!(preco_metro_dtf: 500)
+    # 500 / 1727,9 = 0,2894 → 0,29 standing; 500 / 1697,8 = 0,2945 → 0,30 turned.
+    expect(arquivo.reload.preco_unidade_calculado).to eq(BigDecimal("0.29"))
+    etiqueta.update!(girar_dtf: true)
+    expect(arquivo.reload.preco_unidade_calculado).to eq(BigDecimal("0.30"))
   end
 
   it "is stored from the dono's price per meter, then from the client's own, and follows them" do

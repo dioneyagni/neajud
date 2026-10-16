@@ -8,6 +8,9 @@
 #   :tamanho_sem_arquivo — a size ordered that has no active file;
 #   :sem_medida — the size's file has no size or DPI: no fit on the film;
 #   :nao_cabe   — the size is wider than the film's useful width both ways;
+#   :nao_cabe_em_pe / :nao_cabe_girada — it fits only the other way than
+#                 the etiqueta's "turn" mark (decided 16/10/2026): the team
+#                 marks or unmarks it on the arte's page;
 #   :sem_preco_dtf — something to charge has no price (Etapa 2.6c): a line,
 #                 the meter or the cut, nowhere in the cascade — confirming
 #                 writes the prices, so it would never have one.
@@ -19,7 +22,9 @@ class PedidoBloqueiosDtf
   DESCRICOES_DO_ENCAIXE = {
     sem_arquivo: [ :tamanho_sem_arquivo, "sem arquivo ativo desse tamanho" ],
     sem_medida: [ :sem_medida, "sem medida (o arquivo não tem tamanho ou DPI)" ],
-    nao_cabe: [ :nao_cabe, "não cabe no filme nem girada" ]
+    nao_cabe: [ :nao_cabe, "não cabe no filme nem girada" ],
+    nao_cabe_em_pe: [ :nao_cabe_em_pe, "não cabe em pé no filme: marque Girar 90° na etiqueta" ],
+    nao_cabe_girada: [ :nao_cabe_girada, "não cabe girada no filme: desmarque Girar 90° na etiqueta" ]
   }.freeze
 
   def self.call(pedido)

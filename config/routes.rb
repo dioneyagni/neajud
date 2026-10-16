@@ -63,6 +63,8 @@ Rails.application.routes.draw do
       patch :material
       # Etapa 2.6a: a DTF's own space between copies on the film.
       patch :espacamento
+      # 16/10/2026: a DTF turns 90° on the film only when marked.
+      patch :giro
     end
     # Etapa 2.6c: a DTF size's agreed unit price.
     resource :preco_dtf, only: :update, controller: "precos_da_etiqueta"

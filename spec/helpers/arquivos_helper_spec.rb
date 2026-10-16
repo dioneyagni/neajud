@@ -52,8 +52,19 @@ RSpec.describe ArquivosHelper, type: :helper do
     end
   end
 
-  # Etapa 2.6b1: a DTF size's fit on the film, the turn only for the team.
+  # Etapa 2.6b1: a DTF size's fit on the film, the turn only for the team;
+  # the way it goes first (16/10/2026: turned only when the etiqueta is marked).
   describe "#encaixe_do_arquivo" do
+    it "gives the turned fit first when the etiqueta is marked, and says when the marked way doesn't fit" do
+      arquivo = build(:arquivo, arte: Arte.new(tipo: "dtf", girar_dtf: true),
+                                encaixe_dtf: { "em_pe" => { "por_fileira" => 32, "passo_mm" => 18.52 }, "girada" => { "por_fileira" => 30, "passo_mm" => 17.67 } })
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: true)).to eq("↻ girada: 30 por fileira · 17,67 mm · em pé: 32 por fileira · 18,52 mm")
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: false)).to eq("30 por fileira · 17,67 mm")
+      arquivo.encaixe_dtf = { "em_pe" => { "por_fileira" => 32, "passo_mm" => 18.52 }, "girada" => nil }
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: true)).to eq("girada não cabe · em pé: 32 por fileira · 18,52 mm")
+      expect(helper.encaixe_do_arquivo(arquivo, com_girada: false)).to eq("não cabe no filme")
+    end
+
     it "gives copies per row and the row's step, both ways or only how it fits" do
       arquivo = build(:arquivo, encaixe_dtf: { "em_pe" => { "por_fileira" => 32, "passo_mm" => 18.52 }, "girada" => { "por_fileira" => 30, "passo_mm" => 17.67 } })
       expect(helper.encaixe_do_arquivo(arquivo, com_girada: true)).to eq("32 por fileira · 18,52 mm · girada: 30 por fileira · 17,67 mm")

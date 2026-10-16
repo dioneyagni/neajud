@@ -1,8 +1,9 @@
 // Etapa 2.6a (decided 13/10/2026): the DTF etiqueta. Three sizes uploaded out
 // of order come back ordered by the file's measure — P, M, G whatever their
 // names say alphabetically — each with its measure in cm; the team sets the
-// etiqueta's own spacing on the film (blank = the dono's default), and the dono
-// sets the film in Parâmetros.
+// etiqueta's own spacing on the film (blank = the dono's default) and whether
+// it turns 90° on the film (decided 16/10/2026: only when marked), and the
+// dono sets the film in Parâmetros.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -62,6 +63,20 @@ runSpec("Etiqueta DTF E2E Tests", async ({ page, test }) => {
     await page.locator("#espacamento-dtf-mm").fill("");
     await page.locator('#espacamento-dtf-section button[type="submit"]').click();
     await waitForText(page, ": 1,5 mm (the default).");
+  });
+
+  await test("The team marks the etiqueta to turn 90° on the film, every size showing the turned fit first, and unmarks it", async () => {
+    const giro = page.locator("#giro-dtf");
+    if (await giro.isChecked()) throw new Error("An etiqueta starts turned");
+    const encaixes = page.locator(".arte-arquivo-encaixe");
+    if ((await encaixes.allInnerTexts()).some((t) => t.startsWith("↻"))) throw new Error("An unmarked size shows turned");
+    await giro.check();
+    await waitForText(page, "goes turned 90° on the film.");
+    const girados = await encaixes.allInnerTexts();
+    if (girados.length !== 3 || !girados.every((t) => t.startsWith("↻ girada: "))) throw new Error(`Marked, the sizes show ${girados.join(" | ")}`);
+    await page.locator("#giro-dtf").uncheck();
+    await waitForText(page, "goes standing on the film.");
+    if (await page.locator("#giro-dtf").isChecked()) throw new Error("The mark didn't go");
   });
 
   await test("The dono sets the DTF film in Parâmetros and sees the width left for etiquetas", async () => {

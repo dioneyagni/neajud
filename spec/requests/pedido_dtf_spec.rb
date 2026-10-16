@@ -43,6 +43,7 @@ RSpec.describe "The DTF pedido", type: :request do
 
   it "shows each size's fit on the page and confirms without splitting, keeping the fit" do
     catalogo = criar_etiqueta_dtf(client: create(:client, name: "Outra"), no_catalogo: true)
+    etiqueta.update!(girar_dtf: true) # it turns only when marked (16/10/2026)
     pedido = Pedido.find_by!(uuid: adicionar(etiqueta.arquivos.first, { "P" => 100 })["pedido_uuid"])
     adicionar(catalogo.arquivos.first, { "P" => 10 }, pedido_uuid: pedido.uuid)
     get resumo_pedido_path(pedido)

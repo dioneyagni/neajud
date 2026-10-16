@@ -7,7 +7,8 @@ require_relative "../support/fake_giro_de_arquivo"
 # turned when the fit turned it, the units in its name — alone or zipped.
 RSpec.describe "A DTF pedido's production", type: :request do
   let(:pedido) { pedido_dtf_confirmado }
-  let(:titulo) { pedido.itens_pedido.first.arte.arquivos.first.nome_completo(para_arquivo: true).delete_suffix("_P") }
+  let(:titulo_p) { titulo_do_tamanho(pedido, "P") }
+  let(:titulo_g) { titulo_do_tamanho(pedido, "G") }
   let(:linhas) { LinhasDeProducao.call(pedido, EtapasProducao.etapa("dtf", "impressao")) }
 
   before do
@@ -39,7 +40,7 @@ RSpec.describe "A DTF pedido's production", type: :request do
     get producao_dtf_pedido_path(pedido, etapa: "impressao")
     html = Nokogiri::HTML(response.body)
     expect(html.css(".producao-dtf-linha").map { |tr| [ tr["data-tamanho"], tr.at_css("[data-impressas]").text ] }).to eq([ %w[P 44], %w[G 18] ])
-    expect(html.at_css(".producao-dtf-linha[data-tamanho='P'] .producao-dtf-arquivo")["data-nome"]).to eq("#{titulo}_P_44un.tif")
+    expect(html.at_css(".producao-dtf-linha[data-tamanho='P'] .producao-dtf-arquivo")["data-nome"]).to eq("#{titulo_p}_P_44un.tif")
     expect(html.at_css(".producao-dtf-linha[data-tamanho='G'] .producao-dtf-preparando").text).to eq("preparando…")
     expect(html.at_css("[data-controller='processamento']")["data-processamento-url-value"]).to eq(dtf_girados_pedido_path(pedido))
     expect(html.css(".producao-dtf-linha .baixa-abrir").size).to eq(2)
@@ -51,7 +52,7 @@ RSpec.describe "A DTF pedido's production", type: :request do
 
   it "downloads a line's file under the units to print, the turned one once ready" do
     get dtf_arquivo_pedido_path(pedido, linha: linhas.first.chave)
-    expect(response.headers["Content-Disposition"]).to include("#{titulo}_P_44un.tif")
+    expect(response.headers["Content-Disposition"]).to include("#{titulo_p}_P_44un.tif")
     expect(response.body.b).to eq(File.binread(Rails.root.join("spec/fixtures/files/01.tif")))
 
     get dtf_girados_pedido_path(pedido)
@@ -63,7 +64,7 @@ RSpec.describe "A DTF pedido's production", type: :request do
     get dtf_girados_pedido_path(pedido)
     expect(response.parsed_body).to eq("final" => true)
     get dtf_arquivo_pedido_path(pedido, linha: linhas.last.chave)
-    expect(response.headers["Content-Disposition"]).to include("#{titulo}_G_18un_girada.tif")
+    expect(response.headers["Content-Disposition"]).to include("#{titulo_g}_G_18un_girada.tif")
   end
 
   # A draft's fit still changes (more units, extra rows): nothing goes to the RIP yet.
@@ -90,7 +91,7 @@ RSpec.describe "A DTF pedido's production", type: :request do
     get baixar_impressao_pedido_path(pedido)
     follow_redirect!
     expect(response.headers["Content-Disposition"]).to include("Impressao #{pedido.uuid.first(8)}.zip")
-    expect(nomes_do_zip).to eq([ "#{titulo}_P_44un.tif", "#{titulo}_G_18un_girada.tif" ])
+    expect(nomes_do_zip).to eq([ "#{titulo_p}_P_44un.tif", "#{titulo_g}_G_18un_girada.tif" ])
   end
 
   it "confirming a DTF pedido turns its files for the RIP" do

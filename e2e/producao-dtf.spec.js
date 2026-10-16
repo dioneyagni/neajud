@@ -4,7 +4,9 @@
 // line's file for the RIP — the turned size turned 90° in the background,
 // the units in the name — alone or zipped. The Impressão's baixa is in
 // meters of film (warned outside the dono's band), the Corte's in units,
-// only after printing. On a phone each size is a block.
+// only after printing. On a phone each size is a block. A size turns only
+// when the team marks its etiqueta (decided 16/10/2026): one too wide to go
+// standing is a pendência until marked on the arte's page.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -16,7 +18,7 @@ const { waitForText, waitForQueuedTask } = require("./support/wait");
 runSpec("Produção DTF E2E Tests", async ({ page, test }) => {
   const U = Date.now();
   // "Em pé" 50 × 15 mm: 11 a row, 40 → 4 rows of 11 = 44 printed.
-  // "Girada" 100 × 30 mm: 18 across turned, one row, against 4 rows standing.
+  // "Girada" 600 × 30 mm (72 dpi): wider than the film's 570 standing, 18 across turned.
   const nomes = { cliente: `Cliente Producao ${U}`, empe: `PDE${U}`, girada: `PDG${U}` };
   const ids = {};
   // Outside the repo: an "e2e-" prefix would be read as part of the name.
@@ -38,9 +40,9 @@ runSpec("Produção DTF E2E Tests", async ({ page, test }) => {
   }
 
   // One etiqueta of the client, of one size, in the pedido.
-  async function etiqueta(nome, largura, altura, quantidade) {
+  async function etiqueta(nome, largura, altura, quantidade, dpi = 300) {
     const arquivo = path.join(pasta, `9-${nome} - P.tif`);
-    execFileSync("convert", ["-size", `${largura}x${altura}`, "xc:#36c", "-units", "PixelsPerInch", "-density", "300", arquivo]);
+    execFileSync("convert", ["-size", `${largura}x${altura}`, "xc:#36c", "-units", "PixelsPerInch", "-density", String(dpi), arquivo]);
     await page.goto(`${BASE_URL}/arquivos`);
     await page.selectOption('[data-upload-target="tipo"]', "dtf");
     await uploadFileAndWait(page, arquivo);
@@ -80,7 +82,23 @@ runSpec("Produção DTF E2E Tests", async ({ page, test }) => {
     if (!(await postar("/clients", { "client[name]": nomes.cliente, "client[responsible]": "T" }))) throw new Error("Couldn't create the client");
     ids.cliente = await page.evaluate(async (nome) => (await (await fetch(`/clients/search?q=${encodeURIComponent(nome)}`)).json()).find((c) => c.name === nome)?.id, nomes.cliente);
     await etiqueta(nomes.empe, 591, 177, 40);
-    await etiqueta(nomes.girada, 1181, 354, 18);
+    await etiqueta(nomes.girada, 1700, 85, 18, 72);
+  });
+
+  await test("A size that fits only turned waits for its etiqueta's mark, set on the arte's page", async () => {
+    await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    // Never turned behind the team's back: it says which mark is missing.
+    const pendencia = page.locator(".pedido-pendencia--nao_cabe_em_pe", { hasText: "não cabe em pé no filme: marque Girar 90° na etiqueta" });
+    await pendencia.waitFor();
+    await pendencia.locator("a", { hasText: "abrir arte" }).click();
+    await page.waitForURL(/#espacamento-dtf-section$/);
+    await page.locator("#giro-dtf").check();
+    await waitForText(page, "goes turned 90° on the film.");
+    if (!(await page.locator("#giro-dtf").isChecked())) throw new Error("The mark wasn't kept");
+    if (!/^↻ girada: 18 por fileira/.test(await page.locator(".arte-arquivo-encaixe").innerText())) throw new Error("The arte page doesn't show the turned fit first");
+    await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    await page.locator(".pedido-confirmar").waitFor();
+    if (await page.locator(".pedido-pendencia--nao_cabe_em_pe").count()) throw new Error("The pendência stayed after marking");
   });
 
   await test("On the roll there is no Corte; delivered cut there is", async () => {
@@ -115,7 +133,7 @@ runSpec("Produção DTF E2E Tests", async ({ page, test }) => {
     const salvo = path.join(pasta, "girada.tif");
     await arquivo.saveAs(salvo);
     const medidas = execFileSync("identify", ["-format", "%wx%h\\n", `${salvo}[0]`]).toString().trim();
-    if (medidas !== "354x1181") throw new Error(`The turned file is ${medidas}, expected 354x1181`);
+    if (medidas !== "85x1700") throw new Error(`The turned file is ${medidas}, expected 85x1700`);
     const [empe] = await Promise.all([page.waitForEvent("download"), linha("empe").locator(".producao-dtf-arquivo").click()]);
     if (!/_P_44un\.tif$/.test(empe.suggestedFilename())) throw new Error(`Standing file named ${empe.suggestedFilename()}`);
     const [zip] = await Promise.all([page.waitForEvent("download"), page.click(".impressao-zip")]);

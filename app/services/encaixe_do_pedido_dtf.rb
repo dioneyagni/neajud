@@ -1,8 +1,9 @@
 # A DTF pedido's lines on the film (Etapa 2.6b1, decided 13/10/2026): one
 # line per etiqueta × size, each in its own rows (D2). The size's stored fit
-# (EncaixeDaEtiqueta) gives the copies per row both ways; the line takes the
-# orientation with fewer meters for its quantity (standing on a tie),
-# completes the last row and adds its extra rows — its own, else the
+# (EncaixeDaEtiqueta) gives the copies per row both ways; the line goes
+# standing, or turned when the team marked the etiqueta to turn (decided
+# 16/10/2026: picking the one with fewer meters turned too many), completes
+# the last row and adds its extra rows — its own, else the
 # pedido's (D3). What is printed beyond the quantity goes to the client.
 # A confirmed pedido reads the fit written at confirmation (gravar!), so a
 # later version or film change never moves it.
@@ -11,7 +12,9 @@
 #        EncaixeDoPedidoDtf.call(pedido).first.impressas # => 32
 class EncaixeDoPedidoDtf
   # pendencia: :sem_arquivo (no active file of that size), :sem_medida (the
-  # file has no size or DPI), :nao_cabe (wider than the film both ways).
+  # file has no size or DPI), :nao_cabe (wider than the film both ways),
+  # :nao_cabe_em_pe / :nao_cabe_girada (it fits only the other way than the
+  # etiqueta's mark: the team marks or unmarks "turn").
   Linha = Struct.new(:item, :grade, :arquivo, :pedidas, :extras, :por_fileira, :passo_mm, :girada,
                      :fileiras, :impressas, :metros, :pendencia, keyword_init: true) do
     def excedente
@@ -61,29 +64,29 @@ class EncaixeDoPedidoDtf
     base = { item: item, grade: grade, arquivo: arquivo, pedidas: grade.quantidade, extras: grade.fileiras_extras || @pedido.fileiras_extras }
     return Linha.new(**base, **gravada(grade.encaixe_dtf)) if grade.encaixe_dtf && !@pedido.confirmavel?
 
-    pendencia = pendencia_de(arquivo)
+    pendencia = pendencia_de(arquivo, item.arte.orientacao_dtf)
     return Linha.new(**base, pendencia: pendencia) if pendencia
 
-    Linha.new(**base, **melhor_posicao(arquivo.encaixe_dtf, grade.quantidade, base[:extras]))
+    Linha.new(**base, **na_orientacao(arquivo.encaixe_dtf, item.arte.orientacao_dtf, grade.quantidade, base[:extras]))
   end
 
   def gravada(encaixe)
     encaixe.slice("por_fileira", "passo_mm", "girada", "fileiras", "impressas", "metros").transform_keys(&:to_sym).merge(extras: encaixe["extras"])
   end
 
-  # The orientation with fewer meters; standing wins a tie.
-  def melhor_posicao(encaixe, pedidas, extras)
-    opcoes = { false => encaixe["em_pe"], true => encaixe["girada"] }.compact.map do |girada, posicao|
-      fileiras, impressas, metros = self.class.fileiras_de(pedidas, posicao, extras)
-      { girada: girada, por_fileira: posicao["por_fileira"], passo_mm: posicao["passo_mm"], fileiras: fileiras, impressas: impressas, metros: metros }
-    end
-    opcoes.min_by { |opcao| [ opcao[:metros], opcao[:girada] ? 1 : 0 ] }
+  # The fit in the etiqueta's orientation ("em_pe" / "girada").
+  def na_orientacao(encaixe, orientacao, pedidas, extras)
+    posicao = encaixe.fetch(orientacao)
+    fileiras, impressas, metros = self.class.fileiras_de(pedidas, posicao, extras)
+    { girada: orientacao == "girada", por_fileira: posicao["por_fileira"], passo_mm: posicao["passo_mm"],
+      fileiras: fileiras, impressas: impressas, metros: metros }
   end
 
-  def pendencia_de(arquivo)
+  def pendencia_de(arquivo, orientacao)
     return :sem_arquivo unless arquivo
     return :sem_medida unless arquivo.encaixe_dtf
     return :nao_cabe unless arquivo.encaixe_dtf["em_pe"] || arquivo.encaixe_dtf["girada"]
+    return :"nao_cabe_#{orientacao}" unless arquivo.encaixe_dtf[orientacao]
 
     nil
   end

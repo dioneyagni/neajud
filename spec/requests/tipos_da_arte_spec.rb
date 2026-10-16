@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/etiquetas_dtf"
 
 # Etapa 2.5a (decided 12/10/2026): the kind of work chosen in the upload,
 # changed on the arte page, and "Entra no catálogo" — the team's.
@@ -98,6 +99,34 @@ RSpec.describe "The kind of work of an arte", type: :request do
     patch espacamento_arquivo_tipo_da_arte_path(proprio), params: { espacamento_mm: "9" }
     expect(response).to have_http_status(:forbidden)
     expect(proprio.arte.reload.espacamento_mm).to be_nil
+  end
+
+  # Decided 16/10/2026: a DTF turns on the film only when the team marks it —
+  # every size, its fit and its unit price follow.
+  it "the team marks a DTF to turn 90° on the film, and its sizes' fit and price follow" do
+    Empresa.atual.update!(preco_metro_dtf: 120)
+    arte = criar_etiqueta_dtf(client: client)
+    arquivo = arte.arquivos.first
+    get arquivo_path(arquivo)
+    html = Nokogiri::HTML(response.body)
+    expect([ html.at_css("#giro-dtf")["checked"], html.at_css(".arte-arquivo-encaixe").text ]).to eq([ nil, "32 por fileira · 18,52 mm · girada: 30 por fileira · 17,67 mm" ])
+    patch giro_arquivo_tipo_da_arte_path(arquivo), params: { girar_dtf: "1" }
+    expect([ arte.reload.girar_dtf, flash[:notice], arquivo.reload.preco_unidade_calculado ]).to eq([ true, "#{arte.titulo} goes turned 90° on the film.", BigDecimal("0.08") ])
+    get arquivo_path(arquivo)
+    html = Nokogiri::HTML(response.body)
+    expect([ html.at_css("#giro-dtf")["checked"], html.at_css(".arte-arquivo-encaixe").text ]).to eq([ "checked", "↻ girada: 30 por fileira · 17,67 mm · em pé: 32 por fileira · 18,52 mm" ])
+    patch giro_arquivo_tipo_da_arte_path(arquivo), params: { girar_dtf: "0" }
+    expect([ arte.reload.girar_dtf, arquivo.reload.preco_unidade_calculado ]).to eq([ false, BigDecimal("0.07") ])
+  end
+
+  it "turns only a DTF, and never by the cliente final" do
+    calcado = create(:arquivo, category: "artes", client: client)
+    patch giro_arquivo_tipo_da_arte_path(calcado), params: { girar_dtf: "1" }
+    expect([ calcado.arte.reload.girar_dtf, flash[:alert] ]).to eq([ false, "#{calcado.arte.titulo}: only a DTF etiqueta turns on the film." ])
+    proprio = create(:arquivo, category: "artes", client: client, arte: Arte.novo_do_tipo("dtf"))
+    entrar_como_cliente_final
+    patch giro_arquivo_tipo_da_arte_path(proprio), params: { girar_dtf: "1" }
+    expect([ response.status, proprio.arte.reload.girar_dtf ]).to eq([ 403, false ])
   end
 
   it "shows each DTF size's measure from its file, in cm" do

@@ -131,24 +131,36 @@ module ArquivosHelper
   end
 
   # A DTF size's fit on the film (Etapa 2.6b1, stored by EncaixeDaEtiqueta):
-  # copies per row and the row's step. Both ways for the team; the cliente
-  # final never sees the turn, only how it fits. nil without a measure.
+  # copies per row and the row's step, in the orientation its etiqueta goes
+  # (Arte#orientacao_dtf, decided 16/10/2026: turned only when marked). The
+  # team also sees the other way; the cliente final never sees the turn,
+  # only how it fits. nil without a measure.
   # Usage: encaixe_do_arquivo(arquivo, com_girada: true) # => "32 por fileira · 18,52 mm · girada: 30 por fileira · 17,67 mm"
   def encaixe_do_arquivo(arquivo, com_girada:)
     encaixe = arquivo.encaixe_dtf
     return nil unless encaixe
+    return "não cabe no filme" unless encaixe["em_pe"] || encaixe["girada"]
 
-    em_pe, girada = encaixe.values_at("em_pe", "girada")
-    return "não cabe no filme" unless em_pe || girada
-    return texto_da_fileira(em_pe || girada) unless com_girada
+    orientacao = arquivo.arte&.orientacao_dtf || "em_pe"
+    return encaixe_da_equipe(encaixe, orientacao) if com_girada
 
-    [ (em_pe ? texto_da_fileira(em_pe) : "em pé não cabe"), ("girada: #{texto_da_fileira(girada)}" if girada) ].compact.join(" · ")
+    encaixe[orientacao] ? texto_da_fileira(encaixe[orientacao]) : "não cabe no filme"
+  end
+
+  ORIENTACOES_DTF = { "em_pe" => "em pé", "girada" => "girada" }.freeze
+
+  # The orientation used first ("↻ girada:" when turned), then the other one.
+  def encaixe_da_equipe(encaixe, orientacao)
+    outra = (ORIENTACOES_DTF.keys - [ orientacao ]).first
+    usada = encaixe[orientacao]
+    primeira = usada ? "#{"↻ girada: " if orientacao == "girada"}#{texto_da_fileira(usada)}" : "#{ORIENTACOES_DTF[orientacao]} não cabe"
+    [ primeira, ("#{ORIENTACOES_DTF[outra]}: #{texto_da_fileira(encaixe[outra])}" if encaixe[outra]) ].compact.join(" · ")
   end
 
   def texto_da_fileira(posicao)
     "#{posicao["por_fileira"]} por fileira · #{number_with_precision(posicao["passo_mm"], precision: 2, separator: ",", strip_insignificant_zeros: true)} mm"
   end
-  private :texto_da_fileira
+  private :encaixe_da_equipe, :texto_da_fileira
 
   # How much paper one printed piece of this file takes on the paper's width
   # (Etapa 2.2, 1/3): pieces per meter and the share of a meter; nil without

@@ -1239,10 +1239,18 @@ prices):
   turned) when the version is processed or changes, the arte's spacing or
   kind changes, or the dono changes the film (callbacks on `ArquivoVersion`,
   `Arquivo`, `Arte`, `Empresa`). Existing files: `bin/rails
-  producao:encaixe_dtf`. The arte page shows it (`encaixe_do_arquivo`; the
-  turn and the spacing only for the team).
+  producao:encaixe_dtf`. The arte page shows it (`encaixe_do_arquivo`, the
+  way it goes first; the turn and the spacing only for the team).
+- **It turns only when marked** (decided 16/10/2026: picking the orientation
+  with fewer meters turned too many): `artes.girar_dtf`, one mark for the
+  whole etiqueta — "Girar 90° no filme" on its page, the team's
+  (`TiposDaArteController#giro`). `Arte#orientacao_dtf` ("em_pe" /
+  "girada") is the fit the pedido, the unit price and the RIP's file use;
+  changing it redoes the sizes' fit and price. A size that fits only the
+  other way is a pendência (`:nao_cabe_em_pe` "marque Girar",
+  `:nao_cabe_girada` "desmarque"); a confirmed pedido keeps its fit.
 - **The pedido counts rows**: `EncaixeDoPedidoDtf` — each etiqueta × size in
-  its own rows, the orientation with fewer meters (standing on a tie), the
+  its own rows, in its etiqueta's orientation (standing unless marked), the
   last row completed, the extra rows (`itens_pedido_grade.fileiras_extras`,
   blank = `pedidos.fileiras_extras`, which starts at the dono's). Confirming
   writes each line's fit into `itens_pedido_grade.encaixe_dtf`; a confirmed
@@ -1256,7 +1264,7 @@ prices):
   (`artes_para_adicionar?tipo=dtf&q=`) never carry a catálogo work's owner.
 - **Pendências**: `PedidoBloqueiosDtf` (pedido without client, an etiqueta
   outside the catálogo of another client, quantity 0, a size without file,
-  without measure or wider than the film).
+  without measure, wider than the film, or fitting only the way not marked).
 - Its production stages came in 2.6b2 (see "The DTF's production").
 - E2E: `e2e/pedido-dtf.spec.js`.
 
@@ -1273,8 +1281,9 @@ need fixing):
 - **The etiqueta's unit price per size**: `PrecoDaEtiqueta` calculates
   `arquivos.preco_unidade_calculado` (price per meter ÷ units per meter,
   rounded up to the cent; the client's price unless a catálogo work, else the
-  dono's) with the fit (`EncaixeDaEtiqueta`), and again when a price per
-  meter or the file's client changes. `preco_unidade_combinado` is typed over
+  dono's) with the fit (`EncaixeDaEtiqueta`) in the etiqueta's orientation
+  (`Arte#orientacao_dtf`), and again when a price per meter, the file's
+  client or the turn mark changes. `preco_unidade_combinado` is typed over
   it (`PrecosDaEtiquetaController`) and stops following.
 - **The pedido** (`CobrancaDoPedidoDtf` on `Pedido`, `ValoresDoPedidoDtf`):
   the charging and the excess cascade dono → cliente → pedido; each line's
@@ -1317,8 +1326,8 @@ Decided 15/10/2026, after the prices (2.6c):
   each size is a block (`.producao-dtf-tabela`, `data-rotulo`).
 - **The file for the RIP** (D4, once confirmed — a draft's fit still
   changes): `ArquivoDtfParaRip` names it with the units printed
-  (`DTF-4_ENCRUZILHADA DO SUL_P_128un_girada.tif`); a size the fit turned
-  goes turned 90°, a copy beside its version (`ArquivoGiradoDtf`,
+  (`DTF-4_ENCRUZILHADA DO SUL_P_128un_girada.tif`); a size of an etiqueta
+  marked to turn goes turned 90°, a copy beside its version (`ArquivoGiradoDtf`,
   `<version>/dtf/girada.<ext>`) made by `GirarArquivoDtfJob` on confirming or
   when the Impressão page finds it missing ("preparando…", polling
   `dtf/girados`). `GiroDeArquivo` wraps the tools: **TIFF with `tiffcrop -R

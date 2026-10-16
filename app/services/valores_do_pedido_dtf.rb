@@ -125,7 +125,7 @@ class ValoresDoPedidoDtf
     return arquivo.preco_unidade_combinado if arquivo.preco_unidade_combinado
 
     proprio = @pedido.client&.preco_metro_dtf
-    proprio ? PrecoDaEtiqueta.unitario(arquivo.encaixe_dtf, proprio) : arquivo.preco_unidade_calculado
+    proprio ? PrecoDaEtiqueta.unitario(arquivo.encaixe_dtf, proprio, linha.item.arte.orientacao_dtf) : arquivo.preco_unidade_calculado
   end
 
   def por_metro(linhas)

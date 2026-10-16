@@ -6,7 +6,8 @@ require_relative "../support/producao_dtf"
 # units after printing, only when delivered cut (D3).
 RSpec.describe "The DTF's production" do
   let(:pedido) { pedido_dtf_confirmado }
-  let(:item) { pedido.itens_pedido.first }
+  # P standing and G turned, each its own etiqueta (one turn mark per etiqueta).
+  let(:itens) { pedido.itens_pedido.order(:id).to_a }
 
   def etapa(chave) = EtapasProducao.etapa("dtf", chave, pedido: pedido)
   def linhas(chave) = LinhasDeProducao.call(pedido, etapa(chave))
@@ -17,9 +18,9 @@ RSpec.describe "The DTF's production" do
   it "keys a line per etiqueta × size, expecting the film's meters or the units printed" do
     impressao = linhas("impressao")
     p_, g = impressao
-    expect(impressao.map(&:chave)).to eq([ "#{item.uuid}/P/#{p_.arquivo.uuid}", "#{item.uuid}/G/#{g.arquivo.uuid}" ])
+    expect(impressao.map(&:chave)).to eq([ "#{itens[0].uuid}/P/#{p_.arquivo.uuid}", "#{itens[1].uuid}/G/#{g.arquivo.uuid}" ])
     expect(impressao.map { |l| [ l.referencia, l.encaixe.girada, l.pecas, l.esperado ] }).to eq([
-      [ item.uuid, false, 44, p_.encaixe.metros ], [ item.uuid, true, 18, g.encaixe.metros ]
+      [ itens[0].uuid, false, 44, p_.encaixe.metros ], [ itens[1].uuid, true, 18, g.encaixe.metros ]
     ])
     expect(linhas("corte").map(&:esperado)).to eq([ 44, 18 ])
   end
@@ -31,10 +32,10 @@ RSpec.describe "The DTF's production" do
   end
 
   it "takes the Impressão's baixa by etiqueta in meters, warning outside the dono's band" do
-    esperado = linhas("impressao").sum(&:esperado)
-    expect(baixa("impressao", "referencia", "5", alvo: item.uuid).estado).to eq(:aviso)
-    resultado = baixa("impressao", "referencia", esperado.to_s, alvo: item.uuid)
-    expect([ resultado.estado, resultado.baixa.linhas.size, pedido.reload.status ]).to eq([ :ok, 2, "em_producao" ])
+    esperado = linhas("impressao").first.esperado
+    expect(baixa("impressao", "referencia", "5", alvo: itens[0].uuid).estado).to eq(:aviso)
+    resultado = baixa("impressao", "referencia", esperado.to_s, alvo: itens[0].uuid)
+    expect([ resultado.estado, resultado.baixa.linhas.size, pedido.reload.status ]).to eq([ :ok, 1, "em_producao" ])
   end
 
   it "cuts a line only after it is printed, in units" do

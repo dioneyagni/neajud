@@ -106,7 +106,9 @@
                 <%# Etapa 2.6c: the dono's price per meter or per unit cut. %>
                 <%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-dtf"), class: "pedido-pendencias-item" %>
               <% elsif bloqueio.arquivo %>
-                <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo), class: "pedido-pendencias-item" %>
+                <%# 16/10/2026: a DTF that fits only the other way opens at its "Girar 90°" mark. %>
+                <% anchor = "espacamento-dtf-section" if %i[nao_cabe_em_pe nao_cabe_girada].include?(bloqueio.tipo) %>
+                <%= link_to "abrir arte", arquivo_path(bloqueio.arquivo, anchor: anchor), class: "pedido-pendencias-item" %>
               <% end %>
             </div>
           </li>
