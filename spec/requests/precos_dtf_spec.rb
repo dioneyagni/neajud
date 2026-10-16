@@ -6,7 +6,9 @@ require_relative "../support/etiquetas_dtf"
 # ones — the team's with "ver valores"; a cliente final sees only what he pays.
 RSpec.describe "The DTF's prices", type: :request do
   let(:client) { create(:client, name: "Arcoverde") }
-  let(:etiqueta) { criar_etiqueta_dtf(client: client) }
+  # Marked to turn (16/10/2026: only then it turns): P 100 → 4 rows of 30,
+  # 0,08 a unit at R$ 120/m (120 / 1697,8 a meter turned).
+  let(:etiqueta) { criar_etiqueta_dtf(client: client, girar_dtf: true) }
   let(:arquivo) { etiqueta.arquivos.first }
 
   def entrar_como_cliente_final(valores_abertos: false)
@@ -36,11 +38,11 @@ RSpec.describe "The DTF's prices", type: :request do
   it "the team agrees an etiqueta size's unit price over the calculated, and goes back to it" do
     Empresa.atual.update!(preco_metro_dtf: 120)
     get arquivo_path(arquivo)
-    expect(Nokogiri::HTML(response.body).at_css(".arte-arquivo-preco-calculado").text).to eq("calculado R$ 0,07")
+    expect(Nokogiri::HTML(response.body).at_css(".arte-arquivo-preco-calculado").text).to eq("calculado R$ 0,08")
     patch arquivo_preco_dtf_path(arquivo), params: { preco_unidade_combinado: "0,10" }
     expect(arquivo.reload.preco_unidade_combinado).to eq(0.1)
     patch arquivo_preco_dtf_path(arquivo), params: { preco_unidade_combinado: "" }
-    expect(arquivo.reload.attributes.values_at("preco_unidade_combinado", "preco_unidade_calculado")).to eq([ nil, 0.07 ])
+    expect(arquivo.reload.attributes.values_at("preco_unidade_combinado", "preco_unidade_calculado")).to eq([ nil, 0.08 ])
   end
 
   it "the team edits a draft's charging and prices; confirming writes the starting and the charged" do
@@ -53,12 +55,12 @@ RSpec.describe "The DTF's prices", type: :request do
     # The line's price sits in its etiqueta's table (decided 14/10/2026);
     # "Valores do pedido" sums the etiquetas, never repeating a size.
     linha = html.at_css(".pedido-item-dtf .pedido-dtf-linha[data-tamanho='P']")
-    expect(%w[partida subtotal].map { |c| linha.at_css(".pedido-valores-#{c}").text.squish }).to eq([ "0,07", "R$ 7,20" ])
+    expect(%w[partida subtotal].map { |c| linha.at_css(".pedido-valores-#{c}").text.squish }).to eq([ "0,08", "R$ 7,20" ])
     expect(linha.at_css('input[name="preco_unidade"]')["value"]).to eq("0,06")
     expect(html.css("#valores-dtf .pedido-valores-linha").map { |tr| [ tr["data-parte"], tr.at_css(".pedido-valores-subtotal").text ] }).to eq([ [ "Etiquetas", "R$ 7,20" ] ])
-    expect([ html.at_css("#valores-dtf .pedido-valores-desconto").text, html.at_css('[data-resumo="total"]').text ]).to eq([ "R$ 1,20", "R$ 7,20" ])
+    expect([ html.at_css("#valores-dtf .pedido-valores-desconto").text, html.at_css('[data-resumo="total"]').text ]).to eq([ "R$ 2,40", "R$ 7,20" ])
     post confirmar_pedido_path(pedido)
-    expect(item.grades.first.reload.attributes.values_at("preco_unidade_partida", "preco_unidade")).to eq([ 0.07, 0.06 ])
+    expect(item.grades.first.reload.attributes.values_at("preco_unidade_partida", "preco_unidade")).to eq([ 0.08, 0.06 ])
     patch dtf_precos_pedido_path(pedido), params: { cobranca_dtf: "metro" }
     expect(pedido.reload.cobranca_dtf).to eq("quantidade")
   end

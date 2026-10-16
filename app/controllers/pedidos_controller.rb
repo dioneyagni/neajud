@@ -203,6 +203,8 @@ class PedidosController < ApplicationController
   # The factory's Corte page (Etapa 1.2, 3/3 parte 3b): one line per part ×
   # DXF size, its drawing, the pieces to cut and the DXF.
   def corte
+    return redirect_to producao_dtf_pedido_path(@pedido, etapa: "corte") if @pedido.dtf?
+
     @linhas = @pedido.pecas_para_produzir
     @etapa = EtapasProducao.etapa(@pedido.tipo, "corte")
     @situacoes = RegistrarBaixaService.situacao(@pedido, "corte")
@@ -222,6 +224,8 @@ class PedidosController < ApplicationController
   # The printer's Impressão page (Etapa 1.2, 3/3 parte 3c): per arte, one
   # line per file to print, in pieces.
   def impressao
+    return redirect_to producao_dtf_pedido_path(@pedido, etapa: "impressao") if @pedido.dtf?
+
     @grupos = ImpressaoPedidoService.call(@pedido)
     @etapa = EtapasProducao.etapa(@pedido.tipo, "impressao")
     @situacoes = RegistrarBaixaService.situacao(@pedido, "impressao")
@@ -231,6 +235,8 @@ class PedidosController < ApplicationController
   # on disk (artes go up to 1 GB), old ones cleaned first.
   # Usage: GET /pedidos/:uuid/baixar_impressao → "Impressao a1b2c3d4.zip"
   def baixar_impressao
+    return redirect_to dtf_arquivos_pedido_path(@pedido) if @pedido.dtf?
+
     arquivos = ImpressaoPedidoService.call(@pedido).flat_map(&:linhas).filter_map(&:arquivo).uniq
     destino = ZipsTemporarios.novo_caminho
     ZipDeArquivos.gravar(entradas_de_impressao(arquivos), destino)
@@ -308,6 +314,8 @@ class PedidosController < ApplicationController
       ValoresDoPedidoDtf.gravar!(@pedido.reload)
       @pedido.update!(status: "confirmado")
     end
+    # Etapa 2.6b2: the files the fit turned, for the RIP.
+    LinhasDeProducao.call(@pedido, EtapasProducao.etapa("dtf", "impressao")).each { |linha| ArquivoDtfParaRip.new(linha).preparar! }
     session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
     redirect_to pedidos_path, notice: "Pedido confirmed."
   end

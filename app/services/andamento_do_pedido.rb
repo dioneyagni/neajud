@@ -11,7 +11,7 @@ class AndamentoDoPedido
   end
 
   def self.call(pedido)
-    EtapasProducao.do_tipo(pedido.tipo).map do |etapa|
+    EtapasProducao.do_tipo(pedido.tipo, pedido: pedido).map do |etapa|
       situacoes = RegistrarBaixaService.situacao(pedido, etapa.chave).values
       Andamento.new(etapa: etapa, feitas: situacoes.count { |s| s.estado == :feita }, total: situacoes.size)
     end

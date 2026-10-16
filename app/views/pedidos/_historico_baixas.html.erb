@@ -10,7 +10,7 @@
           <span class="historico-baixa-texto">
             <%= l baixa.created_at, format: "%d/%m %H:%M" %> · <%= baixa.user&.nome || baixa.changed_by %> ·
             <%= { "linha" => "linha", "referencia" => "referência", "pedido" => "pedido" }[baixa.nivel] %> (<%= baixa.linhas.size %> <%= baixa.linhas.one? ? "linha" : "linhas" %>) ·
-            <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= etapa.metragem? ? "m" : "peças" %>
+            <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= etapa.unidade_da_medida %>
             <% if baixa.esperado %>(esperado <%= number_with_precision(baixa.esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %>)<% end %>
             <% if baixa.fora_da_faixa %><span class="baixa-fora">fora da faixa</span><% end %>
           </span>

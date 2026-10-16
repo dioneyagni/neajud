@@ -3,7 +3,10 @@
 #   impressao lines (Impressão, Estamparia, Conferência): arte × part × size ×
 #     side, key "<item>/<part>/<size>/<file>/<side>"; corte_chave points at the
 #     Corte line it waits for (nil for a part "não corta");
-#   corte lines: part × DXF size × material, key "<part>/<size>/<material>".
+#   corte lines: part × DXF size × material, key "<part>/<size>/<material>";
+#   dtf lines (Etapa 2.6b2, D1): etiqueta × size, as on the pedido's table,
+#     key "<item>/<size>/<file>"; expected the film's meters or the units
+#     printed (excess included: it is printed and cut too).
 # Keys are made of uuids (nothing integer leaves the server). Lines with a
 # pendência (no file, no DXF) are left out: they can't be produced, and a
 # confirmed pedido has none.
@@ -12,8 +15,9 @@
 class LinhasDeProducao
   # dispensa: stages this line skips — a reposição's line not printed again
   # (Etapa 2.2, 4/4); its Estamparia doesn't wait for them.
+  # encaixe: a DTF line's fit on the film (EncaixeDoPedidoDtf::Linha).
   Linha = Struct.new(:chave, :referencia, :item, :peca, :tamanho, :arquivo, :lado, :materia_prima,
-                     :pecas, :esperado, :corte_chave, :origem, :dispensa, keyword_init: true)
+                     :pecas, :esperado, :corte_chave, :origem, :dispensa, :encaixe, keyword_init: true)
 
   def self.call(pedido, etapa, largura_papel_mm: Empresa.atual&.largura_papel_efetiva_mm)
     new(pedido, etapa, largura_papel_mm).call
@@ -31,6 +35,12 @@ class LinhasDeProducao
     [ item.uuid, linha.peca&.uuid, linha.tamanho&.uuid, linha.arquivo&.uuid, linha.lado ].join("/")
   end
 
+  # The key of a DTF line (Etapa 2.6b2), from its fit on the film.
+  # Usage: LinhasDeProducao.chave_do_dtf(encaixe) # => "<item>/P/<file>"
+  def self.chave_do_dtf(encaixe)
+    [ encaixe.item.uuid, encaixe.grade.tamanho_nome, encaixe.arquivo.uuid ].join("/")
+  end
+
   def initialize(pedido, etapa, largura_papel_mm)
     @pedido = pedido
     @etapa = etapa
@@ -38,7 +48,11 @@ class LinhasDeProducao
   end
 
   def call
-    @etapa.linhas == "corte" ? linhas_do_corte : linhas_da_impressao
+    case @etapa.linhas
+    when "corte" then linhas_do_corte
+    when "dtf" then linhas_do_dtf
+    else linhas_da_impressao
+    end
   end
 
   private
@@ -65,6 +79,14 @@ class LinhasDeProducao
       Linha.new(chave: self.class.chave_do_corte(linha.peca, linha.tamanho, linha.materia_prima), peca: linha.peca,
                 tamanho: linha.tamanho, materia_prima: linha.materia_prima, pecas: linha.pecas,
                 esperado: esperado(linha.pecas) { linha.metros_esperados })
+    end
+  end
+
+  def linhas_do_dtf
+    EncaixeDoPedidoDtf.call(@pedido).select(&:arquivo).reject(&:pendencia).map do |encaixe|
+      Linha.new(chave: self.class.chave_do_dtf(encaixe), referencia: encaixe.item.uuid, item: encaixe.item,
+                arquivo: encaixe.arquivo, pecas: encaixe.impressas, encaixe: encaixe, dispensa: [],
+                esperado: esperado(encaixe.impressas) { encaixe.metros })
     end
   end
 

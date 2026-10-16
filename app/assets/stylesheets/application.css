@@ -3645,6 +3645,20 @@ li.aprovacao--cancelada {
   width: 5rem;
 }
 
+/* 16/10/2026: the etiqueta turns on the film only when marked. */
+.giro-dtf-form,
+.giro-dtf-estado {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+}
+
+.giro-dtf-form label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
 .espacamento-dtf-efetivo,
 .arte-arquivo-medida {
   color: #666;

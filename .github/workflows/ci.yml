@@ -100,7 +100,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y imagemagick libimage-exiftool-perl
+          sudo apt-get install -y imagemagick libimage-exiftool-perl libtiff-tools
 
       - name: Install Node dependencies
         run: npm ci
@@ -130,7 +130,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y imagemagick libimage-exiftool-perl
+          sudo apt-get install -y imagemagick libimage-exiftool-perl libtiff-tools
 
       - name: Install Playwright
         run: |

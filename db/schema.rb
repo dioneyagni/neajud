@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -198,6 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
     t.datetime "created_at", null: false
     t.decimal "espacamento_mm", precision: 5, scale: 2
     t.string "familia", default: "", null: false
+    t.boolean "girar_dtf", default: false, null: false
     t.integer "materia_prima_id"
     t.boolean "no_catalogo", default: false, null: false
     t.integer "numero"

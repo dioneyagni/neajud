@@ -1,0 +1,99 @@
+<%# A DTF pedido's Impressão or Corte (Etapa 2.6b2, decided 15/10/2026): per
+    etiqueta, a line per size (D1) with its fit on the film, the meters
+    printed (D2) or the units to cut (D3) and its baixa. On the Impressão,
+    each line's file for the RIP (D4): turned 90° when the fit turned it, the
+    units in its name — "preparando…" while the turned copy is made — and
+    every one in a .zip. Under 600px each size is a block, its cells
+    labelled by data-rotulo (CSS). %>
+<% impressao = @etapa.chave == "impressao" %>
+<%# The files go to the RIP once confirmed: a draft's fit still changes. %>
+<% baixar = impressao && pode_acao?(:baixar_producao) && @pedido.saiu_do_rascunho? %>
+<% preparando = baixar && @rips.values.any? { |rip| rip.estado == :preparando } %>
+<% impressas = @linhas.sum { |l| l.encaixe.impressas } %>
+
+<%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+<%= render "pedidos/etapas_nav", pedido: @pedido, atual: @etapa.chave %>
+
+<div class="corte-cabecalho">
+  <div>
+    <h2><%= @etapa.nome %> <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
+    <p class="corte-sub">
+      <%= @pedido.client&.name || "sem cliente" %> ·
+      <%= @pedido.entrega == "cortada" ? "entrega cortada" : "entrega em rolo" %> ·
+      <span data-producao-dtf="impressas"><%= impressas %> <%= impressas == 1 ? "unidade" : "unidades" %></span> ·
+      <span data-producao-dtf="metros"><%= metros_de_filme(@linhas.sum { |l| l.encaixe.metros }) %> de filme</span>
+    </p>
+  </div>
+  <% if baixar && @linhas.any? %>
+    <div class="impressao-acoes"<% if preparando %> data-controller="processamento" data-processamento-url-value="<%= dtf_girados_pedido_path(@pedido) %>"<% end %>>
+      <% if preparando %><span class="badge producao-dtf-preparando">preparando os arquivos girados…</span><% end %>
+      <%= link_to "Baixar as artes (.zip)", dtf_arquivos_pedido_path(@pedido), class: "btn btn-primary impressao-zip", data: { turbo: false } %>
+    </div>
+  <% end %>
+</div>
+<%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
+
+<% @linhas.group_by(&:item).each do |item, linhas| %>
+  <% arquivo = item.arquivo %>
+  <section class="impressao-arte producao-dtf-etiqueta" data-arte="<%= item.arte.titulo %>">
+    <div class="impressao-arte-topo">
+      <div>
+        <strong><%= link_to item.arte.titulo.presence || arquivo.filename, arquivo %></strong>
+        <% unidades = linhas.sum { |l| l.encaixe.impressas } %>
+        <div class="corte-sub"><%= unidades %> <%= unidades == 1 ? "unidade" : "unidades" %> · <%= metros_de_filme(linhas.sum { |l| l.encaixe.metros }) %></div>
+      </div>
+      <%= render "pedidos/baixa_referencia", pedido: @pedido, etapa: @etapa, situacoes: @situacoes, item: item %>
+    </div>
+    <table class="clients-table corte-tabela producao-dtf-tabela">
+      <thead>
+        <tr>
+          <th>Arquivo</th><th>Tamanho</th><th>Encaixe</th><th>Impressas</th><th>Filme</th>
+          <% if baixar %><th class="corte-baixar">Para o RIP</th><% end %>
+          <th class="etapa-situacao"><%= @etapa.nome %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% linhas.each do |linha| %>
+          <% encaixe = linha.encaixe %>
+          <tr class="producao-dtf-linha" data-tamanho="<%= encaixe.grade.tamanho_nome %>">
+            <td class="producao-dtf-thumb"><%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %></td>
+            <td class="producao-dtf-tamanho">
+              <span class="corte-tamanho"><%= encaixe.grade.tamanho_nome == ProducaoPedidoService::TOTAL_KEY ? "Qtd" : encaixe.grade.tamanho_nome %></span>
+              <span class="corte-arquivo"><%= medida_do_arquivo(linha.arquivo) %></span>
+            </td>
+            <td class="producao-dtf-encaixe" data-rotulo="Encaixe">
+              <%= encaixe.por_fileira %> por fileira × <%= encaixe.fileiras %>
+              <% if encaixe.girada && !cliente_final? %><span class="pedido-dtf-girada" title="Girada 90°" aria-label="girada">↻</span><% end %>
+              <% if encaixe.extras.to_i.positive? %><span class="corte-conta">(<%= encaixe.extras %> extra<%= "s" if encaixe.extras > 1 %>)</span><% end %>
+            </td>
+            <td class="corte-total" data-rotulo="Impressas">
+              <strong data-impressas="<%= encaixe.impressas %>"><%= encaixe.impressas %></strong>
+              <span class="corte-conta"><%= encaixe.pedidas %> pedidas <span class="pedido-dtf-excedente">+<%= encaixe.excedente %></span></span>
+            </td>
+            <td data-rotulo="Filme"><%= metros_de_filme(encaixe.metros) %></td>
+            <% if baixar %>
+              <td class="corte-baixar" data-rotulo="Para o RIP">
+                <% rip = @rips[linha.chave] %>
+                <% if rip.estado == :preparando %>
+                  <span class="producao-dtf-preparando" title="<%= rip.nome %>">preparando…</span>
+                <% else %>
+                  <%= link_to "Arquivo", dtf_arquivo_pedido_path(@pedido, linha: linha.chave), class: "btn btn-sm btn-outline producao-dtf-arquivo",
+                        title: rip.nome, data: { turbo: false, nome: rip.nome } %>
+                <% end %>
+              </td>
+            <% end %>
+            <td class="etapa-situacao" data-rotulo="<%= @etapa.nome %>">
+              <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[linha.chave] %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>
+
+<% if @linhas.empty? %>
+  <p class="gallery-empty">Nenhuma etiqueta com encaixe neste pedido.</p>
+<% end %>
+
+<%= render "pedidos/historico_baixas", pedido: @pedido, etapa: @etapa %>

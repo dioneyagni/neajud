@@ -16,7 +16,9 @@ class Arte < ApplicationRecord
   validates :espacamento_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }, allow_nil: true
   # Etapa 2.6b1: its sizes' fit on the film follows its spacing and kind.
   # Etapa 2.6c: in or out of the catálogo changes whose price per meter gives its unit price.
-  after_update_commit -> { EncaixeDaEtiqueta.atualizar_arte!(self) }, if: -> { saved_change_to_espacamento_mm? || saved_change_to_tipo? || saved_change_to_no_catalogo? }
+  # 16/10/2026: turning it on the film is the team's mark, and changes its price.
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar_arte!(self) },
+                      if: -> { saved_change_to_espacamento_mm? || saved_change_to_tipo? || saved_change_to_no_catalogo? || saved_change_to_girar_dtf? }
 
   # The file that stands for the arte (gallery card): its first active one.
   # Usage: arte.principal.filename
@@ -42,6 +44,15 @@ class Arte < ApplicationRecord
   # Usage: arte.espacamento_efetivo_mm # => 1.5
   def espacamento_efetivo_mm
     espacamento_mm || Empresa.atual&.espacamento_dtf_mm
+  end
+
+  # Which of a size's fits (EncaixeDaEtiqueta) this etiqueta goes on the film
+  # with (decided 16/10/2026): standing, unless the team marked it to turn —
+  # the fit used to pick the one with fewer meters and turned too many.
+  # Usage: arte.orientacao_dtf # => "em_pe" / "girada"
+  #        arquivo.encaixe_dtf[arte.orientacao_dtf] # => { "por_fileira" => 32, "passo_mm" => 18.52 }
+  def orientacao_dtf
+    girar_dtf ? "girada" : "em_pe"
   end
 
   # A new file of this arte, with its molde, client, referência and nome

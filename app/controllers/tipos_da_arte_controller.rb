@@ -1,10 +1,11 @@
 # The kind of work an arte is, from its page (Etapa 2.5a, decided 12/10/2026):
 # changed while no pedido uses it — a DTF or a corrida takes a new number —
 # and "Entra no catálogo", the team's: it opens the work to every client.
-# A DTF's spacing on the film is the team's too (Etapa 2.6a).
+# A DTF's spacing on the film is the team's too (Etapa 2.6a), and so is
+# turning it 90° on the film (decided 16/10/2026).
 class TiposDaArteController < ApplicationController
   exige :artes, :editar
-  exige_equipe only: %i[catalogo espacamento]
+  exige_equipe only: %i[catalogo espacamento giro]
   before_action :set_arquivo
 
   # Usage: PATCH /arquivos/:arquivo_id/tipo_da_arte, tipo=dtf
@@ -46,6 +47,18 @@ class TiposDaArteController < ApplicationController
     return redirect_to @arquivo, alert: "#{arte.titulo}: #{arte.errors.full_messages.to_sentence}" unless arte.save
 
     redirect_to @arquivo, notice: "Spacing of #{arte.titulo}: #{helpers.number_with_precision(arte.espacamento_efetivo_mm, precision: 2, separator: ",", strip_insignificant_zeros: true)} mm#{" (the default)" unless arte.espacamento_mm}."
+  end
+
+  # Whether the etiqueta goes turned 90° on the film (decided 16/10/2026):
+  # every size, its fit and its price follow (Arte#orientacao_dtf); a
+  # confirmed pedido keeps the fit it was confirmed with.
+  # Usage: PATCH /arquivos/:arquivo_id/tipo_da_arte/giro, girar_dtf=1
+  def giro
+    arte = @arquivo.arte
+    return redirect_to @arquivo, alert: "#{arte.titulo}: only a DTF etiqueta turns on the film." unless arte.tipo == "dtf"
+
+    arte.update!(girar_dtf: params[:girar_dtf] == "1")
+    redirect_to @arquivo, notice: arte.girar_dtf ? "#{arte.titulo} goes turned 90° on the film." : "#{arte.titulo} goes standing on the film."
   end
 
   private
