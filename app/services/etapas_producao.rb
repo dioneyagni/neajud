@@ -5,29 +5,45 @@
 #
 # Usage: EtapasProducao.do_tipo("calcado").map(&:chave) # => ["impressao", "corte", "estamparia", "conferencia"]
 #        EtapasProducao.etapa("calcado", "estamparia").trava # => ["impressao", "corte"]
+#        EtapasProducao.do_tipo("dtf", pedido: pedido_em_rolo).map(&:chave) # => ["impressao"]
 class EtapasProducao
   ARQUIVO = Rails.root.join("config", "etapas_producao.yml")
   MEDIDAS = %w[metragem quantidade].freeze
-  ESPERADOS = %w[papel tecido pecas].freeze
-  LINHAS = %w[impressao corte].freeze
+  ESPERADOS = %w[papel tecido pecas filme].freeze
+  LINHAS = %w[impressao corte dtf].freeze
   NIVEIS = %w[linha referencia pedido].freeze
+  # What a stage's `quando` may ask of the pedido (Etapa 2.6b2, decided
+  # 15/10/2026: the DTF's Corte only when it is delivered cut).
+  QUANDO = { "entrega" => Pedido::ENTREGAS }.freeze
 
-  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, keyword_init: true) do
+  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, :quando, :unidade, keyword_init: true) do
     def metragem?
       medida == "metragem"
+    end
+
+    # What its measure is counted in: "m", else the YAML's unidade ("peças").
+    def unidade_da_medida
+      metragem? ? "m" : (unidade || "peças")
+    end
+
+    # Usage: etapa.vale_para?(pedido) # => false for the DTF's Corte on the roll
+    def vale_para?(pedido)
+      Array(quando).all? { |campo, valor| pedido.public_send(campo).to_s == valor.to_s }
     end
   end
 
   class Invalida < StandardError; end
 
-  def self.do_tipo(tipo)
-    todas.fetch(tipo.to_s) { raise Invalida, "no production stages for pedido type #{tipo.inspect}; expected one of #{todas.keys.join(", ")}" }
+  # A pedido given leaves out the stages it doesn't go through (`quando`).
+  def self.do_tipo(tipo, pedido: nil)
+    etapas = todas.fetch(tipo.to_s) { raise Invalida, "no production stages for pedido type #{tipo.inspect}; expected one of #{todas.keys.join(", ")}" }
+    pedido ? etapas.select { |etapa| etapa.vale_para?(pedido) } : etapas
   end
 
-  # Raises when the stage doesn't exist for the type.
-  def self.etapa(tipo, chave)
-    do_tipo(tipo).find { |e| e.chave == chave.to_s } ||
-      raise(Invalida, "unknown production stage #{chave.inspect} for #{tipo}; expected one of #{do_tipo(tipo).map(&:chave).join(", ")}")
+  # Raises when the stage doesn't exist for the type (or that pedido).
+  def self.etapa(tipo, chave, pedido: nil)
+    do_tipo(tipo, pedido: pedido).find { |e| e.chave == chave.to_s } ||
+      raise(Invalida, "unknown production stage #{chave.inspect} for #{tipo}#{" (this pedido)" if pedido}; expected one of #{do_tipo(tipo, pedido: pedido).map(&:chave).join(", ")}")
   end
 
   def self.todas
@@ -50,7 +66,19 @@ class EtapasProducao
     { medida: MEDIDAS, esperado: ESPERADOS, linhas: LINHAS }.filter_map { |campo, validos| "#{campo} #{etapa[campo].inspect} is not one of #{validos.join(", ")}" unless validos.include?(etapa[campo]) } +
       (Array(etapa.niveis) - NIVEIS).map { |nivel| "nivel #{nivel.inspect} is not one of #{NIVEIS.join(", ")}" } +
       (etapa.trava - chaves).map { |outra| "trava #{outra.inspect} is not a stage of this type" } +
-      (etapa.reposicao && etapa.medida != "quantidade" ? [ "reposicao needs medida quantidade (it counts missing pieces)" ] : [])
+      (etapa.reposicao && etapa.medida != "quantidade" ? [ "reposicao needs medida quantidade (it counts missing pieces)" ] : []) +
+      erros_do_quando(etapa.quando)
   end
-  private_class_method :ler, :etapa_de, :erros_da
+
+  def self.erros_do_quando(quando)
+    return [] if quando.nil?
+    return [ "quando #{quando.inspect} is not a map like { entrega: cortada }" ] unless quando.is_a?(Hash)
+
+    quando.filter_map do |campo, valor|
+      next "quando #{campo.inspect} is not one of #{QUANDO.keys.join(", ")}" unless QUANDO.key?(campo)
+
+      "quando #{campo} #{valor.inspect} is not one of #{QUANDO[campo].join(", ")}" unless QUANDO[campo].include?(valor)
+    end
+  end
+  private_class_method :ler, :etapa_de, :erros_da, :erros_do_quando
 end

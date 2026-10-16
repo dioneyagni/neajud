@@ -43,7 +43,7 @@
     <% if itens.any? || pedido.reposicao? %>
       <%# Etapa 2.2 (2/3): every production stage of the pedido's type. %>
       <div class="pedido-ir-producao">
-        <% EtapasProducao.do_tipo(pedido.tipo).each do |etapa| %>
+        <% EtapasProducao.do_tipo(pedido.tipo, pedido: pedido).each do |etapa| %>
           <%= link_to "#{etapa.nome} →", caminho_da_etapa(pedido, etapa), class: "btn btn-secondary pedido-ir-#{etapa.chave}" %>
         <% end %>
       </div>

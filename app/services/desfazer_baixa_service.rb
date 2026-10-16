@@ -36,7 +36,7 @@ class DesfazerBaixaService
   end
 
   def etapas_que_esperam
-    EtapasProducao.do_tipo(@pedido.tipo).select { |etapa| etapa.trava.include?(@baixa.etapa) }
+    EtapasProducao.do_tipo(@pedido.tipo, pedido: @pedido).select { |etapa| etapa.trava.include?(@baixa.etapa) }
   end
 
   # Does a standing baixa of the waiting stage cover a line that waited for this one?

@@ -190,6 +190,11 @@ Rails.application.routes.draw do
       # Etapa 2.6c: how it is charged and its edited prices.
       patch "dtf/precos", to: "precos_do_pedido_dtf#update", as: :dtf_precos
       patch "dtf/preco_linha", to: "precos_do_pedido_dtf#linha", as: :dtf_preco_linha
+      # Etapa 2.6b2: its production page and the files for the RIP.
+      get "dtf/producao/:etapa", to: "producao_dtf#show", as: :producao_dtf
+      get "dtf/arquivo", to: "producao_dtf#arquivo", as: :dtf_arquivo
+      get "dtf/arquivos", to: "producao_dtf#arquivos", as: :dtf_arquivos
+      get "dtf/girados", to: "producao_dtf#girados", as: :dtf_girados
       get :resumo
     end
   end

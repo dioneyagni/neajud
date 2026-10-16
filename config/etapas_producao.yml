@@ -3,16 +3,20 @@
 # then this file is the rule, read by EtapasProducao.
 #
 #   medida:  what the baixa asks — metragem (m) or quantidade (pieces)
+#   unidade: what a quantidade is counted in (default "peças")
 #   esperado: where the expected value comes from — papel (the arte's meters
 #            per piece on the paper's width), tecido (the DXF's fit on the
-#            item's material), pecas (the pieces of the lines)
-#   linhas:  whose lines — impressao (arte × part × size × side) or corte
-#            (part × DXF size × material)
+#            item's material), filme (the DTF line's meters on the film),
+#            pecas (the pieces of the lines; a DTF line's printed units)
+#   linhas:  whose lines — impressao (arte × part × size × side), corte
+#            (part × DXF size × material) or dtf (etiqueta × size)
 #   niveis:  where a baixa may be given — linha, referencia (the arte), pedido
 #   trava:   stages that must have the line's baixa first (no stamping without
 #            paper printed and pieces cut). A part "não corta" skips corte.
 #   reposicao: a baixa with fewer pieces than expected makes a reposição
 #            sub-pedido of the missing ones (Etapa 2.2, 4/4)
+#   quando:  the stage exists only for pedidos with these values (Etapa
+#            2.6b2: the DTF's Corte only when delivered cut)
 calcado:
   - chave: impressao
     nome: Impressão
@@ -41,6 +45,23 @@ calcado:
     niveis: [linha, referencia, pedido]
     trava: [estamparia]
     reposicao: true
-# Etapa 2.6b1: the DTF pedido exists; its stages (Impressão, and Corte when
-# cortada) come in 2.6b2.
-dtf: []
+# Etapa 2.6b2 (decided 15/10/2026): a line per etiqueta × size (D1); the
+# film's meters printed (D2); the units cut, after printing, only when the
+# pedido is delivered cut (D3). No Conferência or reposição yet.
+dtf:
+  - chave: impressao
+    nome: Impressão
+    medida: metragem
+    esperado: filme
+    linhas: dtf
+    niveis: [linha, referencia, pedido]
+  - chave: corte
+    nome: Corte
+    medida: quantidade
+    unidade: unidades
+    esperado: pecas
+    linhas: dtf
+    niveis: [linha, referencia, pedido]
+    trava: [impressao]
+    quando:
+      entrega: cortada

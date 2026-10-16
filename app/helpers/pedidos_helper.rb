@@ -86,6 +86,9 @@ module PedidosHelper
   # share the stage page (Etapa 2.2, 2/3).
   # Usage: caminho_da_etapa(pedido, etapa) # => "/pedidos/…/etapas/estamparia"
   def caminho_da_etapa(pedido, etapa)
+    # Etapa 2.6b2: the DTF's stages share one page.
+    return producao_dtf_pedido_path(pedido, etapa: etapa.chave) if pedido.dtf?
+
     case etapa.chave
     when "impressao" then impressao_pedido_path(pedido)
     when "corte" then corte_pedido_path(pedido)

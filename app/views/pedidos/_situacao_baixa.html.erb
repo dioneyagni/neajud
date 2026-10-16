@@ -6,7 +6,7 @@
 <% elsif situacao.estado == :feita %>
   <% baixa = situacao.baixa %>
   <span class="baixa-feita" title="<%= baixa.nivel == "linha" ? "Baixa desta linha" : "Baixa #{baixa.nivel == "pedido" ? "do pedido" : "da referência"} (#{baixa.linhas.size} linhas)" %>">
-    ✓ <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",", strip_insignificant_zeros: !etapa.metragem?) %> <%= etapa.metragem? ? "m" : "peças" %>
+    ✓ <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",", strip_insignificant_zeros: !etapa.metragem?) %> <%= etapa.unidade_da_medida %>
     · <%= baixa.user&.nome || baixa.changed_by %> · <%= l baixa.created_at, format: "%d/%m %H:%M" %>
   </span>
   <% if baixa.fora_da_faixa %><span class="baixa-fora" title="Confirmada fora da faixa (esperado <%= number_with_precision(baixa.esperado, precision: 2, separator: ",") %>)">fora da faixa</span><% end %>

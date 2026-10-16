@@ -26,7 +26,7 @@ class RegistrarBaixaService
 
   def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, user: nil, changed_by: nil)
     @pedido = pedido
-    @etapa = EtapasProducao.etapa(pedido.tipo, etapa)
+    @etapa = EtapasProducao.etapa(pedido.tipo, etapa, pedido: pedido)
     @nivel = nivel.to_s
     @alvo = alvo.to_s
     @medida = medida.to_s.tr(",", ".")
@@ -175,7 +175,7 @@ class RegistrarBaixaService
   end
 
   def aviso(esperado)
-    unidade = @etapa.metragem? ? " m" : " peças"
+    unidade = " #{@etapa.unidade_da_medida}"
     Resultado.new(estado: :aviso, esperado: esperado,
                   mensagem: "Esperado ~#{format("%.2f", esperado).tr(".", ",").delete_suffix(",00")}#{unidade}, você informou #{@medida.tr(".", ",")}#{unidade}. Confira e corrija, ou confirme assim mesmo.")
   end

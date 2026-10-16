@@ -622,6 +622,7 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 ## System dependencies
 
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
+- `tiffcrop` (`libtiff-tools`) — turns a DTF TIFF 90° for the RIP keeping every channel (Etapa 2.6b2: ImageMagick 6 dropped a spot channel)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
 
@@ -1256,7 +1257,7 @@ prices):
 - **Pendências**: `PedidoBloqueiosDtf` (pedido without client, an etiqueta
   outside the catálogo of another client, quantity 0, a size without file,
   without measure or wider than the film).
-- `config/etapas_producao.yml` has `dtf: []` until 2.6b2.
+- Its production stages came in 2.6b2 (see "The DTF's production").
 - E2E: `e2e/pedido-dtf.spec.js`.
 
 ## The DTF's prices (Etapa 2.6c)
@@ -1293,6 +1294,42 @@ need fixing):
   Under 600px each row is a block (`.pedido-dtf-blocos`, cells labelled by
   `data-rotulo`).
 - E2E: `e2e/precos-dtf.spec.js`.
+
+## The DTF's production (Etapa 2.6b2)
+
+Decided 15/10/2026, after the prices (2.6c):
+
+- **Stages** (`config/etapas_producao.yml`, `dtf:`): **Impressão** in meters
+  of film (`esperado: filme`, the dono's band warns) and **Corte** in units
+  (`unidade: unidades`, expected the units printed, excess included), locked
+  on the Impressão, only when the pedido is delivered cut — a stage's
+  `quando: { entrega: cortada }`, read by `EtapasProducao.do_tipo(tipo,
+  pedido:)` / `etapa(…, pedido:)` (the panel, the nav, the progress, the
+  delivery and the baixas pass the pedido). No Conferência or reposição yet.
+- **Lines** (`LinhasDeProducao`, `linhas: dtf`): one per etiqueta × size,
+  from `EncaixeDoPedidoDtf` (the fit written at confirmation), key
+  `<item>/<size>/<file>`, referência = the item; `Linha#encaixe` carries the
+  fit. `RegistrarBaixaService`, undoing, the progress and the delivery are
+  the calçado's.
+- **One page** for both stages (`ProducaoDtfController#show`,
+  `/pedidos/:uuid/dtf/producao/:etapa`; `caminho_da_etapa` and the old
+  `impressao` / `corte` / `baixar_impressao` send a DTF there). Under 600px
+  each size is a block (`.producao-dtf-tabela`, `data-rotulo`).
+- **The file for the RIP** (D4, once confirmed — a draft's fit still
+  changes): `ArquivoDtfParaRip` names it with the units printed
+  (`DTF-4_ENCRUZILHADA DO SUL_P_128un_girada.tif`); a size the fit turned
+  goes turned 90°, a copy beside its version (`ArquivoGiradoDtf`,
+  `<version>/dtf/girada.<ext>`) made by `GirarArquivoDtfJob` on confirming or
+  when the Impressão page finds it missing ("preparando…", polling
+  `dtf/girados`). `GiroDeArquivo` wraps the tools: **TIFF with `tiffcrop -R
+  90`** (`libtiff-tools`) — ImageMagick 6 dropped one of two spot channels,
+  the white — then `BlocoPhotoshopDoTiff` copies back the Photoshop block
+  (tag 34377) holding the spots' names; PNG with ImageMagick; other formats
+  go as they are, `_girar-no-RIP`. A failure is marked and never retried.
+  Each line has its link (`dtf/arquivo?linha=`) and "Baixar as artes (.zip)"
+  zips them all (`dtf/arquivos`); both need `baixar_producao`. Specs inject
+  `FakeGiroDeArquivo`.
+- E2E: `e2e/producao-dtf.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 
@@ -1585,7 +1622,7 @@ assuming global fixtures.
   DB, truncated once per `bin/e2e` run, and some reuse earlier files' data —
   keep their order in `E2E_SPECS`. Shared harness: `e2e/support/runner.js`
   (`runSpec`), fixture paths: `e2e/support/fixtures.js`.
-- System dependencies: `imagemagick`, `exiftool` packages required
+- System dependencies: `imagemagick`, `exiftool`, `libtiff-tools` packages required
 
 ## Code names vs docs/plano.md names
 
