@@ -40,13 +40,11 @@ RSpec.describe "The kind of work of an arte", type: :request do
     expect(arquivo.arte.reload.no_catalogo).to be(true)
   end
 
-  # Pedidos are calçado's and DTF's (Etapa 2.6b1) until the tecido's (2.7).
-  it "keeps a corrida out of pedidos" do
+  # Etapa 2.7a: every kind goes into a pedido — a corrida into a tecido one.
+  it "offers a corrida to a pedido from its card" do
     arquivo = create(:arquivo, category: "artes", client: client, arte: Arte.novo_do_tipo("corrida"))
-    post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, grade: { "_total" => 2 } }, as: :json
-    expect(response.parsed_body["error"]).to include("only calçado and DTF artes go into a pedido")
     get arquivos_path
-    expect(Nokogiri::HTML(response.body).css("##{CanaisAoVivo.id_do_cartao(arquivo)} .btn-add-to-order")).to be_empty
+    expect(Nokogiri::HTML(response.body).at_css("##{CanaisAoVivo.id_do_cartao(arquivo)} .btn-add-to-order")["data-add-to-order-arte-tipo"]).to eq("corrida")
   end
 
   it "filters the gallery by kind" do

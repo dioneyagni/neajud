@@ -405,6 +405,13 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
 **Etapa 2.7 — Estampa corrida e cor lisa.** Estampa corrida: só o módulo é guardado (o RIP monta a repetição); pedido em metros lineares, na largura do tecido (editável no pedido), sobre um material da empresa ou do cliente; preço da impressão por metro linear, mais o tecido (preço do cadastro) quando o material é da empresa; metragem mínima, com aprovação de quem tem a ação na grade abaixo dela. Cor lisa: cada versão é uma cor própria (família reconhecida pelo tom + variação, material, cliente opcional, arquivo de referência 5 × 5 cm) e todas continuam valendo; é pedida como tecido liso, com as mesmas regras da estampa corrida. Só a cor final é cadastrada (as tentativas do desenvolvimento ficam fora).
 
+  Decidida em 16/10/2026, em três PRs: **2.7a** o pedido de tecido; **2.7b** os preços (impressão por metro, o tecido da empresa, combinados com o cliente, editados no pedido com o de partida) e a metragem mínima com a aprovação; **2.7c** a produção (etapas, baixas e o arquivo para o RIP). Na 2.7a:
+  - **cada item é uma arte num material**, com os seus metros (uma casa decimal: "12,5 m") e a sua largura, que nasce da largura do material e pode ser editada; a mesma arte em dois tecidos são dois itens. Sem grade nem peças;
+  - **o dono do tecido** (do cliente ou da empresa) é um só para o pedido inteiro, como decidido na 2.3; a lista de tecidos de cada item mostra o saldo desse dono, só como informação;
+  - **o cliente é do pedido**, como no DTF (D4): as cores lisas e corridas do catálogo entram em qualquer pedido, uma arte fora do catálogo tem de ser do cliente do pedido, e a confirmação nunca divide;
+  - o **cliente final** altera no próprio rascunho o tecido, os metros e o dono do tecido; a largura (até onde o RIP repete o módulo) e o cliente são da equipe;
+  - o item nasce com o **material da cor lisa**, quando ela tem um. Pendências: pedido sem cliente, arte de outro cliente, item sem tecido, com 0 m ou sem largura. **Mais larga que o papel** é só um aviso, porque pode haver papel mais largo.
+
 **Etapa 2.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
 
   Decidido em 10/10/2026, numa série de 5 PRs:

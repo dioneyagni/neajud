@@ -85,8 +85,8 @@
       </div>
     </div>
   <% end %>
-  <%# Calçado and DTF (Etapa 2.6b1) go into pedidos; the tecido's come in 2.7. %>
-  <% if arquivo.category == "artes" && (arquivo.arte.nil? || arquivo.arte.calcado? || arquivo.arte.tipo == "dtf") %>
+  <%# Every kind goes into pedidos: calçado, DTF (Etapa 2.6b1), corrida and cor lisa (2.7a). %>
+  <% if arquivo.category == "artes" %>
     <%# The card goes to every client who reads a catálogo work: it never says whose it is (Etapa 2.5a). %>
     <% dono = arquivo.client unless arquivo.arte&.no_catalogo %>
     <button type="button" class="btn-add-to-order"

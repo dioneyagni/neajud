@@ -3,25 +3,28 @@ import { Controller } from "@hotwired/stimulus"
 // The pedido page's "add an arte" (Etapa 1.2, 3/3; decided 05/10/2026):
 // molde → referência → the artes, each with its preview. Choosing one opens
 // the same "Adicionar ao Pedido" modal as the gallery (add-to-order).
-// A DTF pedido searches its etiquetas by number or name instead (Etapa 2.6b1).
+// A DTF pedido searches its etiquetas by number or name instead (Etapa 2.6b1),
+// a tecido pedido its corridas and cores lisas (2.7a); an empty draft has both
+// boxes, each searching its own type (data-tipo).
 export default class extends Controller {
   static targets = ["molde", "referencia", "artes", "busca"]
   static values = { url: String }
 
-  buscar() {
+  buscar(event) {
+    const caixa = event.currentTarget
     clearTimeout(this.espera)
-    this.espera = setTimeout(() => this.carregarEtiquetas(), 250)
+    this.espera = setTimeout(() => this.carregarObras(caixa), 250)
   }
 
-  async carregarEtiquetas() {
-    const termo = this.buscaTarget.value.trim()
-    const params = new URLSearchParams({ tipo: "dtf", q: termo })
+  async carregarObras(caixa) {
+    const termo = caixa.value.trim()
+    const params = new URLSearchParams({ tipo: caixa.dataset.tipo, q: termo })
     const resposta = await fetch(`${this.urlValue}?${params}`, { headers: { "Accept": "application/json" } })
     // A slower answer to an older search never overwrites the latest one.
-    if (!resposta.ok || termo !== this.buscaTarget.value.trim()) return
+    if (!resposta.ok || termo !== caixa.value.trim()) return
 
     const dados = await resposta.json()
-    this.artesTarget.innerHTML = dados.artes.length ? dados.artes.map(a => this.card(a)).join("") : '<p class="gallery-empty">No etiqueta found.</p>'
+    this.artesTarget.innerHTML = dados.artes.length ? dados.artes.map(a => this.card(a)).join("") : '<p class="gallery-empty">Nothing found.</p>'
   }
 
   escolherMolde() {

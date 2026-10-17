@@ -1,4 +1,5 @@
 class PedidosController < ApplicationController
+  include NumeroDigitado
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
   # Etapa 2.8 (3a): the Corte page is the cortes' (DXF drawings).
@@ -12,6 +13,8 @@ class PedidosController < ApplicationController
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar gerar_reposicao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
   before_action :recusar_pedido_travado, only: %i[update remover_item atualizar_item alternar_peca]
+  # Etapa 2.7a: a tecido pedido has no production pages until 2.7c.
+  before_action :recusar_producao_do_tecido, only: %i[corte baixar_corte impressao baixar_impressao etapa]
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
   # past the draft with its stages' progress.
@@ -58,18 +61,15 @@ class PedidosController < ApplicationController
   end
 
   def adicionar_item
-    # Checked before touching anything, so a zero add doesn't even create a draft.
-    if grade_param_total(params[:grade]).zero?
-      return render json: { ok: false, error: "Informe ao menos 1 unidade (quantidade total 0)." }, status: :unprocessable_content
-    end
-
     # Etapa 2.6b1 (D4): an etiqueta of the coleção geral is ordered by whoever
     # reads it — only to add it, into his own pedido (visiveis(Pedido) below).
     arquivo = visiveis(Arquivo, colecao_geral: true).ativos.find_by!(uuid: params[:arquivo_uuid])
-    erro = erro_do_item(arquivo) || erro_de_grade(arquivo.arte, params[:grade])
+    tipo = Pedido.tipo_para(arquivo.arte)
+    # Checked before touching anything, so a zero add doesn't even create a draft.
+    erro = erro_da_quantidade(tipo) || erro_de_grade(arquivo.arte, params[:grade])
     return render json: { ok: false, error: erro }, status: :unprocessable_content if erro
 
-    tipo = Pedido.tipo_para(arquivo.arte)
+    materia_prima = material_do_item(arquivo, tipo)
     @pedido = pedido_de_destino(arquivo, tipo)
     return render json: { ok: false, error: "#{@pedido.rotulo_lixeira} can't take items: expected a draft, got #{situacao_do_pedido}" }, status: :unprocessable_content unless @pedido.editavel?(cliente_final: cliente_final?)
     # Decided 13/10/2026: the pedido's type comes from its items, one type per pedido.
@@ -77,14 +77,11 @@ class PedidosController < ApplicationController
 
     session[:current_pedido_uuid] = @pedido.uuid
 
-    # Etapa 2.6b1: a DTF is printed on the film, never on a material.
-    materia_prima = visiveis(MateriaPrima).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present? && tipo != "dtf"
-
     ItemPedido.transaction do
       @pedido.update!(tipo: tipo) unless @pedido.tipo == tipo
-      item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima)
-      # A DTF has no parts (Etapa 2.5c): its sizes are its own files.
-      unless @pedido.dtf?
+      item = @pedido.itens_pedido.create!(arquivo: arquivo, materia_prima: materia_prima, metros: (decimal_digitado(params[:metros]) if tipo == "tecido"))
+      # A work without corte has no parts (Etapa 2.5c): its sizes are its own files.
+      unless @pedido.cliente_do_pedido?
         item.compor_pecas!(MoldeComposicaoService.call(arquivo))
         item.excluir_pecas!(params[:excluir_arquivos])
       end
@@ -121,7 +118,7 @@ class PedidosController < ApplicationController
                          alert: "Não é possível confirmar: #{bloqueios.map(&:descricao).join("; ")}."
     end
 
-    return confirmar_dtf if @pedido.dtf?
+    return confirmar_sem_corte if @pedido.cliente_do_pedido?
 
     @pedido.gravar_precos!
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
@@ -291,7 +288,10 @@ class PedidosController < ApplicationController
   # arte, each choice narrowing the next.
   # Usage: GET /pedidos/artes_para_adicionar.json?molde_uuid=…&referencia_uuid=…
   def artes_para_adicionar
-    return render json: { artes: etiquetas_para_adicionar.map { |arquivo| arte_para_adicionar_json(arquivo) } } if params[:tipo] == "dtf"
+    if Pedido::DO_CLIENTE_DO_PEDIDO.include?(params[:tipo])
+      # Etapa 2.6b1, 2.7a: the coleção geral included (a GET reads it).
+      return render json: { artes: BuscaDeObras.call(visiveis(Arquivo), params[:tipo], params[:q]).map { |arquivo| arte_para_adicionar_json(arquivo) } }
+    end
 
     molde = visiveis(Molde).ativos.por_uuid!(params[:molde_uuid])
     artes = visiveis(Arquivo).ativos.where(category: "artes", molde: molde)
@@ -304,18 +304,20 @@ class PedidosController < ApplicationController
 
   private
 
-  # A DTF pedido is its client's whatever its etiquetas' owners (Etapa 2.6b1,
-  # D4): never split. Its fit and prices are written (2.6c), so a later
-  # version, film or price change never moves what was confirmed.
-  def confirmar_dtf
+  # A DTF or tecido pedido is its client's whatever its artes' owners (Etapa
+  # 2.6b1 D4, 2.7a): never split. A DTF's fit and prices are written (2.6c),
+  # so a later version, film or price change never moves what was confirmed.
+  def confirmar_sem_corte
     Pedido.transaction do
-      EncaixeDoPedidoDtf.gravar!(@pedido)
-      # Etapa 2.6c: the prices too, read on the fit just written.
-      ValoresDoPedidoDtf.gravar!(@pedido.reload)
+      if @pedido.dtf?
+        EncaixeDoPedidoDtf.gravar!(@pedido)
+        # Etapa 2.6c: the prices too, read on the fit just written.
+        ValoresDoPedidoDtf.gravar!(@pedido.reload)
+      end
       @pedido.update!(status: "confirmado")
     end
     # Etapa 2.6b2: the files the fit turned, for the RIP.
-    LinhasDeProducao.call(@pedido, EtapasProducao.etapa("dtf", "impressao")).each { |linha| ArquivoDtfParaRip.new(linha).preparar! }
+    LinhasDeProducao.call(@pedido, EtapasProducao.etapa("dtf", "impressao")).each { |linha| ArquivoDtfParaRip.new(linha).preparar! } if @pedido.dtf?
     session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
     redirect_to pedidos_path, notice: "Pedido confirmed."
   end
@@ -355,19 +357,33 @@ class PedidosController < ApplicationController
   end
 
   def cliente_do_pedido(arquivo, tipo)
-    return arquivo.client_id unless tipo == "dtf"
+    return arquivo.client_id unless Pedido::DO_CLIENTE_DO_PEDIDO.include?(tipo)
     return Current.user.cliente.id if cliente_final?
 
     arquivo.client_id unless arquivo.arte.no_catalogo
   end
 
-  # Only calçado and DTF go into a pedido until the tecido's (Etapa 2.7); a
-  # work the person only reads is a catálogo etiqueta to order, never more.
-  def erro_do_item(arquivo)
-    arte = arquivo.arte
-    return nil if arte.nil? || arte.calcado? || arte.tipo == "dtf"
+  # Etapa 2.7a: a tecido item is ordered in meters, the others by grade.
+  def erro_da_quantidade(tipo)
+    return erro_dos_metros(decimal_digitado(params[:metros])) if tipo == "tecido"
 
-    "#{arte.titulo} is #{arte.rotulo_do_tipo}: only calçado and DTF artes go into a pedido for now"
+    "Informe ao menos 1 unidade (quantidade total 0)." if grade_param_total(params[:grade]).zero?
+  end
+
+  # The item's own rule (one decimal), checked before any draft is created.
+  def erro_dos_metros(metros)
+    return "Informe os metros (maior que 0)." if metros.to_d <= 0
+
+    ItemPedido.new(metros: metros).tap(&:validate).errors.full_messages_for(:metros).first
+  end
+
+  # A DTF is printed on the film, never on a material (Etapa 2.6b1); a
+  # tecido on a fabric — the one chosen, else the cor lisa's (Etapa 2.7a).
+  def material_do_item(arquivo, tipo)
+    return nil if tipo == "dtf"
+    return visiveis(MateriaPrima).where(tipo: tipo == "tecido" ? "tecido" : MateriaPrima::TIPOS).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
+
+    arquivo.arte.materia_prima if tipo == "tecido"
   end
 
   # Etapa 1.2 (3/3): the grade is by the arte's individual sizes — any of
@@ -386,19 +402,6 @@ class PedidosController < ApplicationController
     return "a pedido in the trash" if @pedido.excluido?
 
     @pedido.status
-  end
-
-  # The DTF pedido page's search (Etapa 2.6b1): by number ("863", "DTF-863")
-  # or name, the coleção geral included (a GET reads it).
-  def etiquetas_para_adicionar
-    etiquetas = Arte.where(tipo: "dtf")
-    termo = params[:q].to_s.strip
-    if termo.present?
-      parecidos = Arquivo.where("arquivos.filename LIKE :t OR arquivos.nome LIKE :t", t: "%#{Arquivo.sanitize_sql_like(termo)}%").select(:arte_id)
-      etiquetas = etiquetas.where(id: parecidos).or(etiquetas.where(numero: termo[/\d+/]))
-    end
-    visiveis(Arquivo).ativos.where(category: "artes", arte: etiquetas).principais_das_artes
-                     .includes(:arte, :client).order(id: :desc).limit(40)
   end
 
   # A catálogo work of another client never says whose it is (Etapa 2.5a).
@@ -471,6 +474,10 @@ class PedidosController < ApplicationController
       format.json { render json: { ok: false, error: message }, status: :unprocessable_content }
       format.any { redirect_to resumo_pedido_path(@pedido), alert: message }
     end
+  end
+
+  def recusar_producao_do_tecido
+    redirect_to resumo_pedido_path(@pedido), alert: "#{@pedido.rotulo_lixeira} is a tecido pedido: its production stages come in Etapa 2.7c" if @pedido.tecido?
   end
 
   def pedido_params

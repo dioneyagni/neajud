@@ -141,7 +141,7 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
   });
 
   await test("Confirming keeps the client and the quantities on the film", async () => {
-    if ((await page.locator("#pedido-cliente-dtf").inputValue()) !== ids.dono) throw new Error("The pedido didn't take the etiqueta's client");
+    if ((await page.locator("#pedido-cliente-do-pedido").inputValue()) !== ids.dono) throw new Error("The pedido didn't take the etiqueta's client");
     // The runner accepts the confirmation dialog.
     await page.locator(".pedido-confirmar").click();
     await waitForText(page, "Pedido confirmed.");
@@ -175,7 +175,7 @@ runSpec("Pedido DTF E2E Tests", async ({ page, test }) => {
     const corpo = await page.locator("body").innerText();
     if (!corpo.includes(nomes.leitor)) throw new Error("His pedido isn't his client's");
     // The fit's turn and the client choice are the team's (D4, D5).
-    if (corpo.includes(nomes.dono) || corpo.includes("girada") || (await page.locator("#pedido-cliente-dtf").count())) throw new Error("He sees the owner, the turn or the client choice");
+    if (corpo.includes(nomes.dono) || corpo.includes("girada") || (await page.locator("#pedido-cliente-do-pedido").count())) throw new Error("He sees the owner, the turn or the client choice");
     await page.fill("#pedido-dtf-fileiras-extras", "1");
     await page.locator("#pedido-dtf-fileiras-extras").blur();
     await waitForText(page, "Pedido updated.");

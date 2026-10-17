@@ -1,9 +1,7 @@
 # What keeps a DTF draft from being confirmed (Etapa 2.6b1, decided
 # 13/10/2026), in PedidoBloqueiosService's shape:
-#   :pedido_sem_cliente — the client is the pedido's, not the etiqueta's (D4):
-#                 the team picks it on the pedido page;
-#   :etiqueta_de_outro_cliente — an etiqueta outside the catálogo belongs to
-#                 another client, or to none;
+#   :pedido_sem_cliente, :arte_de_outro_cliente — the client is the
+#                 pedido's, not the etiqueta's (D4): BloqueiosDoClienteDoPedido;
 #   :zerado     — an item whose total quantity is 0;
 #   :tamanho_sem_arquivo — a size ordered that has no active file;
 #   :sem_medida — the size's file has no size or DPI: no fit on the film;
@@ -18,6 +16,8 @@
 #
 # Usage: PedidoBloqueiosDtf.call(pedido).map(&:descricao)
 class PedidoBloqueiosDtf
+  include BloqueiosDoClienteDoPedido
+
   Bloqueio = PedidoBloqueiosService::Bloqueio
   DESCRICOES_DO_ENCAIXE = {
     sem_arquivo: [ :tamanho_sem_arquivo, "sem arquivo ativo desse tamanho" ],
@@ -36,27 +36,13 @@ class PedidoBloqueiosDtf
   end
 
   def call
-    sem_cliente + de_outro_cliente + zerados + do_encaixe + sem_preco
+    sem_cliente + de_outro_cliente("Etiqueta") + zerados + do_encaixe + sem_preco
   end
 
   private
 
   def itens
     @itens ||= @pedido.itens_pedido.includes(:grades, :arquivo, :arte).order(:id).to_a
-  end
-
-  def sem_cliente
-    return [] if @pedido.client_id
-
-    [ Bloqueio.new(tipo: :pedido_sem_cliente, descricao: "Pedido sem cliente: escolha o cliente do pedido") ]
-  end
-
-  def de_outro_cliente
-    itens.reject { |item| item.arte.no_catalogo || item.arquivo.client_id == @pedido.client_id }.uniq(&:arte_id).map do |item|
-      dono = item.arquivo.client&.name
-      descricao = dono ? "Etiqueta #{item.arte.titulo} é de #{dono}, não do cliente do pedido" : "Etiqueta #{item.arte.titulo} sem cliente: escolha um, ou marque Entra no catálogo"
-      Bloqueio.new(tipo: :etiqueta_de_outro_cliente, descricao: descricao, arquivo: item.arquivo)
-    end
   end
 
   def zerados

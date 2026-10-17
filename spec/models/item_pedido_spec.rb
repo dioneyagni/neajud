@@ -91,4 +91,23 @@ RSpec.describe ItemPedido, type: :model do
       expect(row.reload.estado).to eq(:incluida)
     end
   end
+
+  # Etapa 2.7a (decided 16/10/2026): a tecido item's meters and width.
+  describe "a tecido item" do
+    let(:tecido) { MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Oxford"), cor_material: CorMaterial.create!(nome: "Azul"), largura: "1.60", gramatura: "1g") }
+
+    it "takes meters with one decimal, never two nor negative" do
+      expect([ "12.5", "3" ].map { |m| build(:item_pedido, metros: m).valid? }).to eq([ true, true ])
+      expect(build(:item_pedido, metros: "12.55").tap(&:validate).errors[:metros]).to eq([ "12.55 has more than one decimal; expected meters like 12,5" ])
+      expect(build(:item_pedido, metros: "-1")).not_to be_valid
+    end
+
+    it "is printed on the width typed, else the material's" do
+      item = build(:item_pedido, materia_prima: tecido)
+      expect(item.largura_efetiva_mm).to eq(1600)
+      item.largura_mm = 1400
+      expect(item.largura_efetiva_mm).to eq(1400)
+      expect(build(:item_pedido).largura_efetiva_mm).to be_nil
+    end
+  end
 end

@@ -13,7 +13,8 @@ export default class extends Controller {
     artePreview: String,
     tamanhos: Array,
     gradeCompleta: Array,
-    // The arte's kind (Etapa 2.6b1): a DTF has no material nor parts.
+    // The arte's kind (Etapa 2.6b1): a DTF has no material nor parts; a
+    // corrida or cor lisa (Etapa 2.7a) is ordered in meters on a fabric.
     arteTipo: String,
     // The pedido page (Etapa 1.2, 3/3) adds to itself and reloads.
     pedidoUuid: String
@@ -47,7 +48,7 @@ export default class extends Controller {
     if (this.hasMaterialSectionTarget) this.materialSectionTarget.hidden = dtf
     this._updateComboboxUrl()
     this._populateModal()
-    if (!dtf) this._loadPecas()
+    if (!dtf && !this._tecido()) this._loadPecas()
     this.modalTarget.showModal()
     this.modalTarget.addEventListener("click", this.boundClose)
   }
@@ -63,12 +64,19 @@ export default class extends Controller {
     this.close()
   }
 
+  _tecido() {
+    return ["corrida", "cor_lisa"].includes(this.arteTipoValue)
+  }
+
   _updateComboboxUrl() {
     const materialField = this.modalTarget.querySelector("[data-controller='combobox']")
     if (!materialField) return
     let searchUrl = "/materiais/search"
     let registerUrl = "/materiais/new"
-    if (this.arteClientUuidValue) {
+    // Any fabric: whose it is (the client's or the empresa's) is the pedido's.
+    if (this._tecido()) {
+      searchUrl += "?tipo=tecido"
+    } else if (this.arteClientUuidValue) {
       const qs = `client_uuid=${encodeURIComponent(this.arteClientUuidValue)}`
       searchUrl += `?${qs}`
       registerUrl += `?${qs}`
@@ -89,6 +97,9 @@ export default class extends Controller {
     if (materialUuid && this.arteTipoValue !== "dtf") {
       formData.append("materia_prima_uuid", materialUuid)
     }
+
+    const metros = this.gradeContainerTarget.querySelector(".add-to-order-metros")
+    if (metros) formData.append("metros", metros.value)
 
     const gradeInputs = this.gradeContainerTarget.querySelectorAll(".add-to-order-grade-input")
     gradeInputs.forEach(input => {
@@ -163,7 +174,17 @@ export default class extends Controller {
   _renderGradeGrid() {
     if (!this.hasGradeContainerTarget) return
 
-    if (this.tamanhosValue.length > 0) {
+    if (this._tecido()) {
+      // Linear meters, one decimal (decided 16/10/2026); a blank material
+      // takes the cor lisa's.
+      this.gradeContainerTarget.innerHTML = `
+        <div class="add-to-order-qtd-row">
+          <label for="add-to-order-metros">Metros:</label>
+          <input type="text" inputmode="decimal" id="add-to-order-metros" class="add-to-order-metros" value="1" placeholder="12,5">
+        </div>
+        ${this.arteTipoValue === "cor_lisa" ? '<small class="add-to-order-dica">Sem material escolhido, vale o da cor lisa.</small>' : ""}
+      `
+    } else if (this.tamanhosValue.length > 0) {
       // Etapa 1.2 (3/3): by number, with "+ before / after" (grade-por-numero).
       const atributo = (valor) => JSON.stringify(valor).replace(/"/g, "&quot;")
       this.gradeContainerTarget.innerHTML = `<div data-controller="grade-por-numero"

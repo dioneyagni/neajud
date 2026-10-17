@@ -1,0 +1,16 @@
+<%# A DTF or tecido pedido's client is the pedido's, not its artes' (Etapa
+    2.6b1 D4, 2.7a): the team picks it while the draft is editable; a cliente
+    final's pedido is always his own. %>
+<% if pedido_editavel?(pedido) && !cliente_final? %>
+  <%= form_with url: (pedido.dtf? ? dtf_pedido_path(pedido) : tecido_pedido_path(pedido)), method: :patch, class: "pedido-cliente-do-pedido", data: { controller: "auto-submit" } do %>
+    <label for="pedido-cliente-do-pedido"><strong>Cliente:</strong></label>
+    <select name="client_uuid" id="pedido-cliente-do-pedido" data-action="change->auto-submit#submit">
+      <option value="">Escolha o cliente…</option>
+      <% visiveis(Client).ativos.order(:name).each do |client| %>
+        <option value="<%= client.uuid %>" <%= "selected" if pedido.client_id == client.id %>><%= client.name %></option>
+      <% end %>
+    </select>
+  <% end %>
+<% else %>
+  <p><strong>Cliente:</strong> <%= pedido.client&.name || "sem cliente" %> <%= selo_excluido(pedido.client) if pedido.client %></p>
+<% end %>

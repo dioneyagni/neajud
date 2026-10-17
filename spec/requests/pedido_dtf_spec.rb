@@ -61,11 +61,11 @@ RSpec.describe "The DTF pedido", type: :request do
   it "blocks confirming without the pedido's client, or with another client's etiqueta outside the catálogo" do
     pedido = create(:pedido, tipo: "dtf")
     adicionar(etiqueta.arquivos.first, { "P" => 1 }, pedido_uuid: pedido.uuid)
-    expect(pedido.bloqueios_confirmacao.map(&:tipo)).to eq(%i[pedido_sem_cliente etiqueta_de_outro_cliente])
+    expect(pedido.bloqueios_confirmacao.map(&:tipo)).to eq(%i[pedido_sem_cliente arte_de_outro_cliente])
     # Regression (dev, 13/10/2026): this pendência has no arte, and the panel's "abrir arte" made the page a 500.
     get resumo_pedido_path(pedido)
     expect(response).to have_http_status(:ok)
-    expect(Nokogiri::HTML(response.body).at_css(".pedido-pendencia--pedido_sem_cliente a")["href"]).to eq("#pedido-cliente-dtf")
+    expect(Nokogiri::HTML(response.body).at_css(".pedido-pendencia--pedido_sem_cliente a")["href"]).to eq("#pedido-cliente-do-pedido")
     patch dtf_pedido_path(pedido), params: { client_uuid: client.uuid }
     expect(pedido.reload.bloqueios_confirmacao).to be_empty
   end
@@ -104,15 +104,16 @@ RSpec.describe "The DTF pedido", type: :request do
     expect([ pedido.reload.fileiras_extras, flash[:alert] ]).to eq([ 0, "#{pedido.rotulo_lixeira} is confirmado; it changes only while editable" ])
   end
 
-  # The type comes from the first item: an empty draft offers both ways in, one modal.
-  it "an empty draft offers the molde and the etiqueta search; a DTF pedido only the search" do
+  # The type comes from the first item: an empty draft offers every way in
+  # (the molde, the etiquetas' and the tecidos' searches — Etapa 2.7a), one modal.
+  it "an empty draft offers the molde and the searches; a DTF pedido only its own" do
     vazio = create(:pedido)
     get resumo_pedido_path(vazio)
     html = Nokogiri::HTML(response.body)
-    expect([ html.css(".add-to-order-dialog").size, html.css("[data-pedido-adicionar-target=molde]").size, html.css(".pedido-adicionar-busca").size ]).to eq([ 1, 1, 1 ])
+    expect([ html.css(".add-to-order-dialog").size, html.css("[data-pedido-adicionar-target=molde]").size, html.css(".pedido-adicionar-busca").map { |b| b["data-tipo"] } ]).to eq([ 1, 1, %w[dtf tecido] ])
     dtf = Pedido.find_by!(uuid: adicionar(etiqueta.arquivos.first, { "P" => 1 })["pedido_uuid"])
     get resumo_pedido_path(dtf)
     html = Nokogiri::HTML(response.body)
-    expect([ html.css("[data-pedido-adicionar-target=molde]").size, html.css(".pedido-adicionar-busca").size ]).to eq([ 0, 1 ])
+    expect([ html.css("[data-pedido-adicionar-target=molde]").size, html.css(".pedido-adicionar-busca").map { |b| b["data-tipo"] } ]).to eq([ 0, %w[dtf] ])
   end
 end

@@ -54,7 +54,7 @@
           </td>
           <td><%= p.client&.name || "—" %></td>
           <%# Etapa 2.6b1: one type per pedido, from its items. %>
-          <td class="pedido-tipo" data-tipo="<%= p.tipo %>"><%= p.dtf? ? "DTF" : "Calçado" %></td>
+          <td class="pedido-tipo" data-tipo="<%= p.tipo %>"><%= Pedido::ROTULOS_DOS_TIPOS.fetch(p.tipo) %></td>
           <td><%= p.itens_count %></td>
           <td>
             <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status, reposicao: p.reposicao?) %></span>

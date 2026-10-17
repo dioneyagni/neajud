@@ -8,6 +8,8 @@
     <h3>Resumo</h3>
     <% if pedido.dtf? %>
       <%= render "pedidos/resumo_dtf", pedido: pedido, linhas: linhas_dtf, valores: valores_dtf %>
+    <% elsif pedido.tecido? %>
+      <%= render "pedidos/resumo_tecido", pedido: pedido %>
     <% else %>
     <dl class="pedido-resumo-lista">
       <dt>Itens</dt><dd data-resumo="itens"><%= itens.size %></dd>
@@ -56,7 +58,7 @@
       <% unless cliente_final? %>
         <%= button_to "Confirmar pedido", confirmar_pedido_path(pedido), method: :post,
               class: "btn btn-primary pedido-confirmar", disabled: bloqueios.any?,
-              data: { turbo_confirm: pedido.dtf? ? "Confirm this pedido? Its quantities on the film are kept as they are now." : "Confirm this pedido? It will be split by client." } %>
+              data: { turbo_confirm: { "dtf" => "Confirm this pedido? Its quantities on the film are kept as they are now.", "tecido" => "Confirm this pedido?" }.fetch(pedido.tipo, "Confirm this pedido? It will be split by client.") } %>
         <% if bloqueios.any? %>
           <p class="pedido-confirmar-aviso">Resolva <%= bloqueios.size == 1 ? "1 pendência" : "#{bloqueios.size} pendências" %> para confirmar</p>
         <% end %>
@@ -101,7 +103,7 @@
                 <%= link_to "abrir molde", molde_path(bloqueio.molde, anchor: "molde-precos"), class: "pedido-pendencias-item pedido-pendencia-molde" %>
               <% elsif bloqueio.tipo == :pedido_sem_cliente %>
                 <%# Etapa 2.6b1: no arte to open — the client is chosen at the top of the page. %>
-                <a href="#pedido-cliente-dtf" class="pedido-pendencias-item">escolher cliente</a>
+                <a href="#pedido-cliente-do-pedido" class="pedido-pendencias-item">escolher cliente</a>
               <% elsif bloqueio.tipo == :sem_preco_dtf && dono? && bloqueio.arquivo.nil? %>
                 <%# Etapa 2.6c: the dono's price per meter or per unit cut. %>
                 <%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-dtf"), class: "pedido-pendencias-item" %>

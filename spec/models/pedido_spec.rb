@@ -152,9 +152,9 @@ RSpec.describe Pedido, type: :model do
   end
 
   it "refuses an unknown type, naming the expected ones" do
-    pedido = build(:pedido, tipo: "tecido")
+    pedido = build(:pedido, tipo: "bordado")
     expect(pedido).not_to be_valid
-    expect(pedido.errors[:tipo].first).to include("tecido is not a pedido type; expected one of calcado, dtf")
+    expect(pedido.errors[:tipo].first).to include("bordado is not a pedido type; expected one of calcado, dtf, tecido")
   end
 
   # Etapa 2.6b1 (decided 13/10/2026): the type comes from the item.
@@ -169,5 +169,14 @@ RSpec.describe Pedido, type: :model do
     expect(Pedido.tipo_para(Arte.new(tipo: "dtf"))).to eq("dtf")
     expect(Pedido.tipo_para(Arte.new(tipo: "calcado"))).to eq("calcado")
     expect(pedido.update(entrega: "dobrada")).to be(false)
+  end
+
+  # Etapa 2.7a (decided 16/10/2026): corridas and cores lisas go into a
+  # tecido pedido, whose client is the pedido's like the DTF's.
+  it "sends a corrida and a cor lisa to a tecido pedido, its client the pedido's" do
+    expect(%w[corrida cor_lisa].map { |tipo| Pedido.tipo_para(Arte.new(tipo: tipo)) }).to eq(%w[tecido tecido])
+    expect(Pedido.tipo_para(nil)).to eq("calcado")
+    expect(%w[calcado dtf tecido].map { |tipo| build(:pedido, tipo: tipo).then { |p| [ p.tecido?, p.cliente_do_pedido? ] } }).to eq([ [ false, false ], [ false, true ], [ true, true ] ])
+    expect(build(:pedido, tipo: "tecido", dono_tecido: "vizinho")).not_to be_valid
   end
 end

@@ -1,0 +1,69 @@
+<%# One arte of a tecido pedido (Etapa 2.7a, decided 16/10/2026): a corrida
+    or cor lisa on a fabric, in linear meters (one decimal), on a width that
+    follows the material's unless typed. The cliente final changes the fabric
+    and the meters on his draft; the width is the team's (how far the RIP
+    repeats the module). Each fabric shows the balance of the pedido's owner
+    (information only), and a width past the paper is a warning. tecidos and
+    saldos come from the pedido page. %>
+<% arquivo = item.arquivo %>
+<% editavel = pedido_editavel?(pedido) %>
+<% aviso = aviso_de_largura(item) %>
+<article class="pedido-item pedido-item-tecido" data-item-uuid="<%= item.uuid %>">
+  <div class="pedido-item-header">
+    <% if arquivo.preview_file.present? && !(arquivo.pending? || arquivo.processing?) %>
+      <img class="pedido-item-thumb" src="<%= preview_arquivo_path(arquivo) %>" alt="">
+    <% else %>
+      <span class="pedido-item-thumb pedido-item-thumb--vazio" aria-hidden="true"></span>
+    <% end %>
+    <div class="pedido-item-titulo">
+      <strong><%= link_to item.arte.titulo.presence || arquivo.filename, arquivo %></strong> <%= selo_excluido(arquivo) %>
+      <div class="pedido-item-sub">
+        <span class="pedido-item-tipo"><%= item.arte.rotulo_do_tipo %></span>
+        <% if item.arte.no_catalogo %><span class="pedido-item-catalogo">catálogo</span><% end %>
+        <% if arquivo.client && do_proprio_cliente?(arquivo) %><span class="pedido-item-client"><%= arquivo.client.name %></span><% end %>
+      </div>
+    </div>
+    <strong class="pedido-item-total pedido-tecido-metros-total"><%= metros(item.metros.to_d) %></strong>
+  </div>
+
+  <% if editavel %>
+    <%= form_with url: tecido_item_pedido_path(pedido), method: :patch, class: "pedido-tecido-form", data: { controller: "auto-submit" } do %>
+      <input type="hidden" name="item_uuid" value="<%= item.uuid %>">
+      <label class="pedido-tecido-campo">Tecido
+        <select name="materia_prima_uuid" class="pedido-tecido-material" data-action="change->auto-submit#submit">
+          <option value="">Escolha o tecido…</option>
+          <% tecidos.each do |material| %>
+            <% saldo = saldo_do_tecido(pedido, material, saldos) %>
+            <option value="<%= material.uuid %>" <%= "selected" if item.materia_prima_id == material.id %>><%= material.nome_completo %><%= " · saldo #{saldo}" if saldo %></option>
+          <% end %>
+        </select>
+      </label>
+      <label class="pedido-tecido-campo">Metros
+        <input type="text" inputmode="decimal" name="metros" class="pedido-tecido-metros" value="<%= number_with_precision(item.metros, precision: 1, separator: ",", strip_insignificant_zeros: true) %>"
+               placeholder="12,5" data-action="change->auto-submit#submit">
+      </label>
+      <% if cliente_final? %>
+        <span class="pedido-tecido-campo">Largura <strong class="pedido-tecido-largura"><%= largura_em_metros(item.largura_efetiva_mm) %></strong></span>
+      <% else %>
+        <label class="pedido-tecido-campo">Largura (mm)
+          <input type="number" name="largura_mm" class="pedido-tecido-largura-mm" min="1" max="9999" step="1" value="<%= item.largura_mm %>"
+                 placeholder="<%= item.materia_prima&.largura_mm %>" data-action="change->auto-submit#submit">
+        </label>
+      <% end %>
+    <% end %>
+  <% else %>
+    <dl class="pedido-tecido-dados">
+      <dt>Tecido</dt><dd class="pedido-tecido-material"><%= item.materia_prima&.nome_completo || "—" %></dd>
+      <dt>Largura</dt><dd class="pedido-tecido-largura"><%= largura_em_metros(item.largura_efetiva_mm) %></dd>
+    </dl>
+  <% end %>
+  <% if aviso %><p class="pedido-tecido-aviso" role="note"><%= aviso %></p><% end %>
+
+  <% if editavel %>
+    <div class="pedido-item-actions">
+      <%= button_to "Remover item", remover_item_pedido_path(pedido, id: item.uuid),
+            method: :delete, class: "btn btn-secondary btn-sm",
+            data: { turbo_confirm: "Remove this item?" } %>
+    </div>
+  <% end %>
+</article>
