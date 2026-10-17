@@ -31,8 +31,9 @@ class PedidoBloqueiosService
   # as "em análise"; the rest (quantity 0, a file or side missing) are his.
   # Etapa 2.6b1: a DTF's own (PedidoBloqueiosDtf) — a size without a file is his.
   # Etapa 2.7a: a tecido's (PedidoBloqueiosTecido) — the material and the
-  # meters are his, the width the team's.
-  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente arte_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf sem_largura].freeze
+  # meters are his, the width the team's; 2.7b: below the minimum is his
+  # (he may raise the meters), the prices the factory's.
+  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente arte_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf sem_largura sem_preco_impressao sem_preco_tecido].freeze
 
   def self.call(pedido)
     new(pedido).call

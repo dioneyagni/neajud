@@ -10,6 +10,8 @@ RSpec.describe "The tecido pedido", type: :request do
   let(:oxford) { criar_tecido(largura: "1.50") }
   let(:cor) { criar_obra_de_tecido("cor_lisa", client: client, no_catalogo: false, materia_prima: oxford) }
   let(:corrida) { criar_obra_de_tecido("corrida", client: client) }
+  # Etapa 2.7b: no price, no confirming (spec/requests/precos_tecido_spec.rb covers them).
+  before { Empresa.atual.update!(preco_impressao_metro_tecido: 15) }
 
   def adicionar(arte, **params)
     post adicionar_item_pedidos_path, params: { arquivo_uuid: arte.arquivos.first.uuid, **params }, as: :json
@@ -57,8 +59,8 @@ RSpec.describe "The tecido pedido", type: :request do
     expect([ item.at_css(".pedido-tecido-metros")["value"], item.at_css(".pedido-tecido-largura-mm")["placeholder"] ]).to eq([ "12,5", "1800" ])
     expect(item.at_css(".pedido-tecido-aviso").text).to eq("Mais larga que o papel (1,6 m): confira se há papel para ela")
     expect(%w[itens metros dono-tecido].map { |c| html.at_css("[data-resumo='#{c}']").text }).to eq([ "1", "12,5 m", "Do cliente" ])
-    # No production stage until 2.7c, no price until 2.7b.
-    expect(html.css(".pedido-ir-producao a, #valores-dtf, .pedido-valores")).to be_empty
+    # No production stage until 2.7c; a DTF's values never.
+    expect(html.css(".pedido-ir-producao a, #valores-dtf")).to be_empty
   end
 
   it "the team sets the fabric owner, an item's fabric, meters and width" do

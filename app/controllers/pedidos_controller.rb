@@ -306,7 +306,8 @@ class PedidosController < ApplicationController
 
   # A DTF or tecido pedido is its client's whatever its artes' owners (Etapa
   # 2.6b1 D4, 2.7a): never split. A DTF's fit and prices are written (2.6c),
-  # so a later version, film or price change never moves what was confirmed.
+  # so a later version, film or price change never moves what was confirmed;
+  # a tecido's prices too (2.7b).
   def confirmar_sem_corte
     Pedido.transaction do
       if @pedido.dtf?
@@ -314,6 +315,8 @@ class PedidosController < ApplicationController
         # Etapa 2.6c: the prices too, read on the fit just written.
         ValoresDoPedidoDtf.gravar!(@pedido.reload)
       end
+      # Etapa 2.7b: each tecido item's starting and charged prices.
+      ValoresDoPedidoTecido.gravar!(@pedido) if @pedido.tecido?
       @pedido.update!(status: "confirmado")
     end
     # Etapa 2.6b2: the files the fit turned, for the RIP.

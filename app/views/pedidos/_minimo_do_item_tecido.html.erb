@@ -1,0 +1,12 @@
+<%# A tecido item below the dono's minimum meters (Etapa 2.7b, decided
+    17/10/2026): a pendência the cliente final sees with the minimum (he may
+    raise the meters, Q5); the team approves it with "aprovar abaixo do
+    mínimo" (Q2). The approval holds while the meters are the approved ones. %>
+<% aprovado = item.minimo_aprovado? %>
+<div class="pedido-tecido-minimo<%= " pedido-tecido-minimo--aprovado" if aprovado %>" role="note">
+  <span class="pedido-tecido-minimo-texto">Abaixo do mínimo de <%= metros(item.metragem_minima) %><% if aprovado %> · aprovado por <%= item.minimo_aprovado_por&.nome || "—" %> em <%= l(item.minimo_aprovado_em.to_date, format: "%d/%m/%Y") %><% end %></span>
+  <% if !aprovado && !cliente_final? && pedido.editavel? && pode_acao?(:aprovar_abaixo_do_minimo) %>
+    <%= button_to "Aprovar abaixo do mínimo", tecido_aprovar_minimo_pedido_path(pedido), params: { item_uuid: item.uuid },
+          class: "btn btn-sm btn-outline pedido-tecido-aprovar-minimo", form_class: "pedido-tecido-aprovar-form" %>
+  <% end %>
+</div>

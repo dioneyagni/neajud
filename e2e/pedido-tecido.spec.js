@@ -90,6 +90,9 @@ runSpec("Pedido de tecido E2E Tests", async ({ page, test }) => {
     });
     ids.tecido = (await buscarJson(`/materiais/search?tipo=tecido&q=${nomes.grupo}`))[0]?.id;
     if (!ids.tecido) throw new Error("The fabric wasn't created");
+    // Etapa 2.7b: no price, no confirming (e2e/precos-tecido.spec.js covers the prices).
+    if (!(await postar("/parametros", { _method: "patch", "empresa[preco_impressao_metro_tecido]": "15" }))) throw new Error("Couldn't set the tecido's print price");
+    if (!(await postar(`/materiais/${ids.tecido}`, { _method: "patch", "materia_prima[preco_metro]": "20" }))) throw new Error("Couldn't price the fabric");
 
     for (const [tipo, nome, cor] of [["corrida", nomes.corrida, "#3a6"], ["cor_lisa", nomes.cor, "#EF4123"]]) {
       await page.goto(`${BASE_URL}/arquivos`);

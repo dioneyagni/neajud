@@ -1,0 +1,46 @@
+<%# A tecido item's charges (Etapa 2.7b, decided 17/10/2026; ValoresDoPedidoTecido):
+    the print per meter and, when the fabric is the empresa's, the fabric per
+    meter. The team edits them on a draft, the starting one beside (Q4); a
+    cliente final with "valores" open sees only what he pays per meter and
+    the subtotal (Q5). %>
+<% equipe = !cliente_final? && pode_acao?(:ver_valores) %>
+<% editavel = equipe && pedido.editavel? %>
+<% if equipe %>
+  <div class="pedido-dtf-tabela-wrap">
+    <table class="pedido-dtf-tabela pedido-tecido-precos pedido-dtf-blocos">
+      <thead><tr><th>Cobrança</th><th>Metros</th><th>Partida</th><th>Preço por metro</th><th>Subtotal</th></tr></thead>
+      <tbody>
+        <% valores.cobrancas.each do |parte| %>
+          <% campo = parte.descricao == "Impressão" ? "preco_impressao_metro" : "preco_tecido_metro" %>
+          <tr class="pedido-tecido-preco-linha" data-parte="<%= parte.descricao %>">
+            <th scope="row"><%= parte.descricao %></th>
+            <td data-rotulo="Metros"><%= metros(parte.quantidade) %></td>
+            <td class="pedido-valores-partida" data-rotulo="Partida"><%= reais(parte.preco_partida) %></td>
+            <td class="pedido-valores-preco" data-rotulo="Preço por metro">
+              <% if editavel %>
+                <%= form_with url: tecido_preco_item_pedido_path(pedido), method: :patch, class: "pedido-preco-form", data: { controller: "auto-submit" } do %>
+                  <input type="hidden" name="item_uuid" value="<%= item.uuid %>">
+                  <input type="text" inputmode="decimal" name="<%= campo %>" class="pedido-tecido-<%= campo.dasherize %>" aria-label="<%= parte.descricao %> por metro"
+                         placeholder="<%= parte.preco_partida && number_with_precision(parte.preco_partida, precision: 2, separator: ",") %>"
+                         value="<%= item.public_send(campo) && number_with_precision(item.public_send(campo), precision: 2, separator: ",") %>"
+                         data-action="change->auto-submit#submit">
+                <% end %>
+              <% else %>
+                <%= parte.preco ? reais(parte.preco) : "sem preço" %>
+              <% end %>
+            </td>
+            <td class="pedido-valores-subtotal pedido-tecido-subtotal" data-rotulo="Subtotal"><%= reais(parte.subtotal) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Item</th><td colspan="3"></td><td class="pedido-tecido-subtotal-item"><%= reais(valores.subtotal) %></td></tr>
+      </tfoot>
+    </table>
+  </div>
+<% else %>
+  <p class="pedido-tecido-preco-cliente">
+    <span class="pedido-tecido-preco-metro"><%= reais(valores.preco_por_metro) %>/m</span> ·
+    <strong class="pedido-tecido-subtotal-item"><%= reais(valores.subtotal) %></strong>
+  </p>
+<% end %>
