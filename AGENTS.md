@@ -1374,9 +1374,45 @@ and the minimum meters with its approval, 2.7c the production):
   than the default paper (`Empresa#largura_papel_efetiva_mm`) is a
   **warning** on the item (`aviso_de_largura`), never a block — the factory
   may have a wider paper.
-- No prices (2.7b) nor stages (`config/etapas_producao.yml` `tecido: []`;
-  the calçado's Corte/Impressão pages redirect) yet.
+- No stages (`config/etapas_producao.yml` `tecido: []`; the calçado's
+  Corte/Impressão pages redirect) yet (2.7c).
 - E2E: `e2e/pedido-tecido.spec.js`.
+
+## The tecido's prices (Etapa 2.7b)
+
+Decided 17/10/2026:
+
+- **Print per meter**, the same for a corrida and a cor lisa at any width:
+  the dono's (`Empresa#preco_impressao_metro_tecido`, Parâmetros "Tecido"),
+  else nothing; a client may have his own agreed
+  (`Client#preco_impressao_metro_tecido`, his page, `PrecosTecidoDoClienteController`,
+  the team's with `ver_valores`). The **fabric** is charged only when the
+  pedido's `dono_tecido` is `empresa`, at its material's
+  `MateriaPrima#preco_metro`.
+- **Per item** (`PrecosDoItemTecido` on `ItemPedido`): the edited price
+  (`itens_pedido.preco_impressao_metro` / `preco_tecido_metro`, the team's,
+  `PrecosDoPedidoTecidoController`) over the starting one, which stays beside
+  to measure the discount; confirming writes both (`*_partida`,
+  `ValoresDoPedidoTecido.gravar!` in `confirmar_sem_corte`). A confirmed item
+  reads what was written. `ValoresDoPedidoTecido` gives each item's charges,
+  the print and fabric summed, the total, the discount and `faltas`.
+- **Minimum meters per item** (`Empresa#metragem_minima_tecido`, the dono's
+  only; blank = none): below it the item is the pendência
+  `:abaixo_do_minimo` — the **client's** (outside `DA_FABRICA`: he sees the
+  minimum and may raise his meters) — until someone with the action
+  `aprovar_abaixo_do_minimo` (team only, `ACOES_DA_EQUIPE`; no função
+  got it by migration) approves it (`MinimoDoTecidoController`,
+  `ItemPedido#aprovar_minimo!`). The approval holds while the meters are the
+  approved ones (`minimo_aprovado_metros`); who and when stay recorded.
+  Charged on the real meters.
+- **Without price, no confirming**: `:sem_preco_impressao` (link to
+  Parâmetros for the dono) and `:sem_preco_tecido` (link to Materiais), the
+  factory's.
+- **What each sees**: the team with `ver_valores` edits each item's prices
+  (`_precos_do_item_tecido`) and sees "Valores do pedido" (`_valores_tecido`)
+  with the discount; a cliente final with "valores" open sees only what he
+  pays per meter and the subtotal, and the panel's total.
+- E2E: `e2e/precos-tecido.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 

@@ -58,6 +58,8 @@
     </dl>
   <% end %>
   <% if aviso %><p class="pedido-tecido-aviso" role="note"><%= aviso %></p><% end %>
+  <% if item.abaixo_do_minimo? %><%= render "pedidos/minimo_do_item_tecido", item: item, pedido: pedido %><% end %>
+  <% if valores %><%= render "pedidos/precos_do_item_tecido", item: item, pedido: pedido, valores: valores %><% end %>
 
   <% if editavel %>
     <div class="pedido-item-actions">

@@ -232,7 +232,13 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     {
       "a client's DTF prices" => [ "clientes", -> { patch precos_dtf_client_path(create(:client)), params: { preco_metro_dtf: "9" } }, -> { Client.where(preco_metro_dtf: 9).exists? } ],
       "an etiqueta's agreed price" => [ "artes", -> { patch arquivo_preco_dtf_path(create(:arquivo, arte: Arte.novo_do_tipo("dtf"))), params: { preco_unidade_combinado: "9" } }, -> { Arquivo.where(preco_unidade_combinado: 9).exists? } ],
-      "a DTF pedido's prices" => [ "pedidos", -> { patch dtf_precos_pedido_path(create(:pedido, tipo: "dtf")), params: { preco_metro: "9" } }, -> { Pedido.where(preco_metro: 9).exists? } ]
+      "a DTF pedido's prices" => [ "pedidos", -> { patch dtf_precos_pedido_path(create(:pedido, tipo: "dtf")), params: { preco_metro: "9" } }, -> { Pedido.where(preco_metro: 9).exists? } ],
+      # Etapa 2.7b: the tecido's — the client's print price, an item's prices.
+      "a client's tecido price" => [ "clientes", -> { patch precos_tecido_client_path(create(:client)), params: { preco_impressao_metro_tecido: "9" } }, -> { Client.where(preco_impressao_metro_tecido: 9).exists? } ],
+      "a tecido item's prices" => [ "pedidos", lambda {
+        pedido = create(:pedido, tipo: "tecido")
+        patch tecido_preco_item_pedido_path(pedido), params: { item_uuid: create(:item_pedido, pedido: pedido, metros: 1).uuid, preco_impressao_metro: "9" }
+      }, -> { ItemPedido.where(preco_impressao_metro: 9).exists? } ]
     }.each do |descricao, (area, requisicao, gravou)|
       it "#{descricao} need ver_valores and #{area}: editar" do
         entrar_com_funcao(niveis: { area => 3 })
@@ -245,6 +251,22 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
         instance_exec(&requisicao)
         expect(instance_exec(&gravou)).to be(true)
       end
+    end
+
+    # Etapa 2.7b: an item below the tecido's minimum waits for this action.
+    it "approving a tecido item below the minimum needs aprovar_abaixo_do_minimo and pedidos: editar" do
+      (Empresa.atual || create(:empresa)).update!(metragem_minima_tecido: 10)
+      pedido = create(:pedido, tipo: "tecido")
+      item = create(:item_pedido, pedido: pedido, metros: 4)
+      entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[ver_valores])
+      post tecido_aprovar_minimo_pedido_path(pedido), params: { item_uuid: item.uuid }
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[aprovar_abaixo_do_minimo])
+      post tecido_aprovar_minimo_pedido_path(pedido), params: { item_uuid: item.uuid }
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "pedidos" => 2 }, acoes: %w[aprovar_abaixo_do_minimo])
+      post tecido_aprovar_minimo_pedido_path(pedido), params: { item_uuid: item.uuid }
+      expect(item.reload.minimo_aprovado?).to be(true)
     end
 
     it "the molde's prices, the pedido's values and the arte's cost per pair show only with ver_valores" do

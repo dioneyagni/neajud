@@ -87,5 +87,22 @@
       <small>The units printed beyond the ordered ones. A client or a pedido may say otherwise.</small>
     </div>
   </fieldset>
+  <%# Etapa 2.7b: the tecido's print per meter (the same for a corrida and a
+      cor lisa, any width; a client may have his own) and the minimum per item. %>
+  <fieldset class="parametros-tecido" id="parametros-tecido">
+    <legend>Tecido (estampa corrida e cor lisa)</legend>
+    <div class="client-field">
+      <label for="empresa_preco_impressao_metro_tecido">Print price per meter (R$)</label>
+      <input type="text" inputmode="decimal" name="empresa[preco_impressao_metro_tecido]" id="empresa_preco_impressao_metro_tecido"
+             value="<%= @empresa.preco_impressao_metro_tecido && number_with_precision(@empresa.preco_impressao_metro_tecido, precision: 2, separator: ",") %>">
+      <small>Any width. The empresa's fabric is charged apart, at its material's price.</small>
+    </div>
+    <div class="client-field">
+      <label for="empresa_metragem_minima_tecido">Minimum meters per item</label>
+      <input type="text" inputmode="decimal" name="empresa[metragem_minima_tecido]" id="empresa_metragem_minima_tecido"
+             value="<%= @empresa.metragem_minima_tecido && number_with_precision(@empresa.metragem_minima_tecido, precision: 1, separator: ",", strip_insignificant_zeros: true) %>">
+      <small>Below it an item waits for someone with "aprovar abaixo do mínimo". Blank = no minimum.</small>
+    </div>
+  </fieldset>
   <%= form.submit "Save", class: "btn btn-primary" %>
 <% end %>

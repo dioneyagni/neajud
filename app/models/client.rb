@@ -10,6 +10,8 @@ class Client < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :responsible, presence: true
+  # Etapa 2.7b: the tecido's print per meter agreed with him; blank = the dono's.
+  validates :preco_impressao_metro_tecido, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   # Etapa 2.8 (3a): this client's exceptions to the empresa's grid.
   validate { TiposParaCliente.erros(visibilidade).each { |erro| errors.add(:visibilidade, erro) } }
 

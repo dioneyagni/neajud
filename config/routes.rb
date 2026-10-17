@@ -113,6 +113,8 @@ Rails.application.routes.draw do
       patch :visibilidade, to: "visibilidade_do_cliente#update"
       # Etapa 2.6c: the DTF prices agreed with this client.
       patch :precos_dtf, to: "precos_dtf_do_cliente#update"
+      # Etapa 2.7b: the tecido's print price agreed with him.
+      patch :precos_tecido, to: "precos_tecido_do_cliente#update"
     end
   end
 
@@ -192,6 +194,9 @@ Rails.application.routes.draw do
       # Etapa 2.7a: a tecido draft's fabric owner and its items.
       patch :tecido, to: "pedidos_tecido#update"
       patch "tecido/item", to: "pedidos_tecido#item", as: :tecido_item
+      # Etapa 2.7b: an item's edited prices and its approval below the minimum.
+      patch "tecido/preco_item", to: "precos_do_pedido_tecido#item", as: :tecido_preco_item
+      post "tecido/aprovar_minimo", to: "minimo_do_tecido#aprovar", as: :tecido_aprovar_minimo
       # Etapa 2.6c: how it is charged and its edited prices.
       patch "dtf/precos", to: "precos_do_pedido_dtf#update", as: :dtf_precos
       patch "dtf/preco_linha", to: "precos_do_pedido_dtf#linha", as: :dtf_preco_linha

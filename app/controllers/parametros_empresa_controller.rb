@@ -15,7 +15,8 @@ class ParametrosEmpresaController < ApplicationController
 
   # Usage: PATCH /parametros (empresa[largura_papel_mm|tolerancia_abaixo_pct|tolerancia_acima_pct|custo_impressao_metro|custo_corte_peca],
   #   Etapa 2.6a: empresa[largura_filme_dtf_mm|margem_filme_dtf_mm|espacamento_dtf_mm|fileiras_extras_dtf],
-  #   Etapa 2.6c: empresa[preco_metro_dtf|preco_corte_dtf|cobranca_dtf|cobrar_excedente_dtf])
+  #   Etapa 2.6c: empresa[preco_metro_dtf|preco_corte_dtf|cobranca_dtf|cobrar_excedente_dtf],
+  #   Etapa 2.7b: empresa[preco_impressao_metro_tecido|metragem_minima_tecido])
   def update
     @empresa = Empresa.atual
     return redirect_to edit_parametros_path, notice: "Production parameters saved." if @empresa.update(parametros)
@@ -30,13 +31,15 @@ class ParametrosEmpresaController < ApplicationController
     dados = params.require(:empresa).permit(:papel_padrao_uuid, :largura_papel_mm, :tolerancia_abaixo_pct, :tolerancia_acima_pct,
                                             :custo_impressao_metro, :custo_corte_peca,
                                             :largura_filme_dtf_mm, :margem_filme_dtf_mm, :espacamento_dtf_mm, :fileiras_extras_dtf,
-                                            :preco_metro_dtf, :preco_corte_dtf, :cobranca_dtf, :cobrar_excedente_dtf)
+                                            :preco_metro_dtf, :preco_corte_dtf, :cobranca_dtf, :cobrar_excedente_dtf,
+                                            :preco_impressao_metro_tecido, :metragem_minima_tecido)
     papel = dados.delete(:papel_padrao_uuid)
     dados[:papel_padrao] = visiveis(MateriaPrima).papeis.find_by(uuid: papel) if papel
     # Etapa 2.4: "4,50" as typed; blank = not set.
     %i[custo_impressao_metro custo_corte_peca].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
     # Etapa 2.6a: "1,5" mm as typed; 2.6c: the DTF's prices too.
-    %i[espacamento_dtf_mm preco_metro_dtf preco_corte_dtf].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
+    # 2.7b: the tecido's price and minimum.
+    %i[espacamento_dtf_mm preco_metro_dtf preco_corte_dtf preco_impressao_metro_tecido metragem_minima_tecido].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
     dados
   end
 end

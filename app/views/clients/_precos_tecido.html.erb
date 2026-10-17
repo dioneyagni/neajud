@@ -1,0 +1,16 @@
+<%# The tecido's print price agreed with this client (Etapa 2.7b): blank
+    follows the dono's (Parâmetros). The minimum meters is the dono's only.
+    The team's, with "ver valores" (clients/show). %>
+<% empresa = Empresa.atual %>
+<div class="stamp-detail-section stamp-detail-section--full" id="precos-tecido">
+  <h3>Preço do tecido</h3>
+  <p class="page-hint">What <%= client.name %> pays per meter printed of a corrida or cor lisa, any width. Blank follows the empresa's<% if dono? %> (<%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-tecido") %>)<% end %>.</p>
+  <%= form_with url: precos_tecido_client_path(client), method: :patch, class: "precos-dtf-form" do %>
+    <label>Print per meter (R$)
+      <input type="text" inputmode="decimal" name="preco_impressao_metro_tecido" id="cliente-preco-impressao-tecido"
+             value="<%= client.preco_impressao_metro_tecido && number_with_precision(client.preco_impressao_metro_tecido, precision: 2, separator: ",") %>"
+             placeholder="<%= empresa&.preco_impressao_metro_tecido && number_with_precision(empresa.preco_impressao_metro_tecido, precision: 2, separator: ",") %>">
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Save tecido price</button>
+  <% end %>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -255,6 +255,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
     t.integer "deleted_by_id"
     t.text "name", null: false
     t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
     t.decimal "preco_metro_dtf", precision: 10, scale: 2
     t.text "responsible", null: false
     t.datetime "restored_at"
@@ -303,9 +304,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
     t.integer "largura_filme_dtf_mm", default: 600, null: false
     t.integer "largura_papel_mm", default: 1600, null: false
     t.integer "margem_filme_dtf_mm", default: 15, null: false
+    t.decimal "metragem_minima_tecido", precision: 8, scale: 1
     t.string "nome", null: false
     t.integer "papel_padrao_id"
     t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
     t.decimal "preco_metro_dtf", precision: 10, scale: 2
     t.integer "tolerancia_abaixo_pct", default: 10, null: false
     t.integer "tolerancia_acima_pct", default: 25, null: false
@@ -406,12 +409,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
     t.integer "largura_mm"
     t.integer "materia_prima_id"
     t.decimal "metros", precision: 8, scale: 1
+    t.datetime "minimo_aprovado_em"
+    t.decimal "minimo_aprovado_metros", precision: 8, scale: 1
+    t.integer "minimo_aprovado_por_id"
     t.integer "pedido_id", null: false
+    t.decimal "preco_impressao_metro", precision: 10, scale: 2
+    t.decimal "preco_impressao_metro_partida", precision: 10, scale: 2
+    t.decimal "preco_tecido_metro", precision: 10, scale: 2
+    t.decimal "preco_tecido_metro_partida", precision: 10, scale: 2
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_itens_pedido_on_arquivo_id"
     t.index ["arte_id"], name: "index_itens_pedido_on_arte_id"
     t.index ["materia_prima_id"], name: "index_itens_pedido_on_materia_prima_id"
+    t.index ["minimo_aprovado_por_id"], name: "index_itens_pedido_on_minimo_aprovado_por_id"
     t.index ["pedido_id"], name: "index_itens_pedido_on_pedido_id"
     t.index ["uuid"], name: "index_itens_pedido_on_uuid", unique: true
   end
@@ -753,6 +764,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
   add_foreign_key "itens_pedido", "artes"
   add_foreign_key "itens_pedido", "materia_primas"
   add_foreign_key "itens_pedido", "pedidos"
+  add_foreign_key "itens_pedido", "users", column: "minimo_aprovado_por_id"
   add_foreign_key "itens_pedido_grade", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "itens_reposicao", "arquivos"
   add_foreign_key "itens_reposicao", "itens_pedido", column: "item_origem_id"

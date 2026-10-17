@@ -10,7 +10,8 @@ module FuncoesHelper
     "baixar_producao" => "Baixar arquivos de produção", "atualizar_producao" => "Dar baixa nas etapas de produção",
     "gerenciar_usuarios" => "Gerenciar usuários",
     "aprovar_arte" => "Enviar e registrar aprovação de arte (função para clientes: aprovar ou pedir alteração)",
-    "ver_valores" => "Ver preços e custos (preço por par, custo e margem)"
+    "ver_valores" => "Ver preços e custos (preço por par, custo e margem)",
+    "aprovar_abaixo_do_minimo" => "Aprovar pedido de tecido abaixo da metragem mínima"
   }.freeze
 
   # [label, value] pairs for an área's level select on the Funções grid.

@@ -66,6 +66,14 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect([ response.status, item.reload.metros ]).to eq([ 404, 2 ])
       patch "/pedidos/#{pedido.uuid}/tecido/item", params: { item_uuid: item.uuid, materia_prima_uuid: material.id }
       expect([ response.status, item.reload.materia_prima ]).to eq([ 404, nil ])
+      # Etapa 2.7b: an item's prices, its approval and a client's price.
+      patch "/pedidos/#{pedido.uuid}/tecido/preco_item", params: { item_uuid: item.id, preco_impressao_metro: "5" }
+      expect([ response.status, item.reload.preco_impressao_metro ]).to eq([ 404, nil ])
+      Empresa.atual.update!(metragem_minima_tecido: 10)
+      post "/pedidos/#{pedido.id}/tecido/aprovar_minimo", params: { item_uuid: item.uuid }
+      expect([ response.status, item.reload.minimo_aprovado_em ]).to eq([ 404, nil ])
+      patch "/clients/#{create(:client).id}/precos_tecido", params: { preco_impressao_metro_tecido: "5" }
+      expect(response).to have_http_status(:not_found)
     end
 
     it "refuses a tamanho drawing by integer id" do
