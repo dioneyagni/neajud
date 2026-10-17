@@ -18,8 +18,8 @@
   <% valores_dtf = ValoresDoPedidoDtf.call(@pedido, linhas: linhas_dtf) if pode_ver_precos? && @pedido.itens_pedido.any? %>
 <% end %>
 
-<% if @pedido.dtf? %>
-  <%= render "cliente_dtf", pedido: @pedido %>
+<% if @pedido.cliente_do_pedido? %>
+  <%= render "cliente_do_pedido", pedido: @pedido %>
 <% elsif @pedido.client %>
   <p><strong>Cliente:</strong> <%= @pedido.client.name %> <%= selo_excluido(@pedido.client) %></p>
 <% elsif @pedido.confirmavel? %>
@@ -69,6 +69,13 @@
         <% @pedido.itens_pedido.includes(:grades, :arte, arquivo: :client).order(:id).each do |item| %>
           <%= render "item_dtf", item: item, pedido: @pedido, linhas: linhas_por_item.fetch(item, []), valores: valores_dtf %>
         <% end %>
+      <% elsif @pedido.tecido? %>
+        <%# Etapa 2.7a: an arte on a fabric per item, in meters. %>
+        <% tecidos = visiveis(MateriaPrima).where(tipo: "tecido").includes(:grupo_material, :cor_material).order(:id).to_a %>
+        <% saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque)) %>
+        <% @pedido.itens_pedido.includes(:arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
+          <%= render "item_tecido", item: item, pedido: @pedido, tecidos: tecidos, saldos: saldos %>
+        <% end %>
       <% else %>
         <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
           <%= render "item", item: item, pedido: @pedido %>
@@ -82,8 +89,9 @@
 
     <%# Etapa 2.4: a reposição is internal, never charged. A cliente final
         sees the price only, by his grid's "valores" (2.8, 3a). %>
-    <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c). %>
-    <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
+    <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c).
+        A tecido's prices come in 2.7b. %>
+    <% if pode_ver_precos? && !@pedido.reposicao? && !@pedido.tecido? && @pedido.itens_pedido.any? %>
       <% if @pedido.dtf? %>
         <%= render "pedidos/valores_dtf", pedido: @pedido, valores: valores_dtf %>
       <% else %>
@@ -100,9 +108,9 @@
       <div class="pedido-adicionar" data-controller="add-to-order pedido-adicionar"
            data-add-to-order-pedido-uuid-value="<%= @pedido.uuid %>"
            data-pedido-adicionar-url-value="<%= artes_para_adicionar_pedidos_path(format: :json) %>">
-        <h3><%= @pedido.dtf? ? "Adicionar etiqueta DTF" : "Adicionar arte" %></h3>
+        <h3><%= { "dtf" => "Adicionar etiqueta DTF", "tecido" => "Adicionar estampa corrida ou cor lisa" }.fetch(@pedido.tipo, "Adicionar arte") %></h3>
         <div class="pedido-adicionar-filtros">
-          <% unless @pedido.dtf? %>
+          <% unless @pedido.cliente_do_pedido? %>
             <% moldes = (@pedido.client ? visiveis(Molde).ativos.where(client: @pedido.client) : visiveis(Molde).ativos).includes(:client).order(:nome) %>
             <select data-pedido-adicionar-target="molde" data-action="change->pedido-adicionar#escolherMolde">
               <option value="">Molde…</option>
@@ -114,7 +122,12 @@
           <% end %>
           <% if @pedido.dtf? || vazio %>
             <input type="search" class="pedido-adicionar-busca" placeholder="Etiqueta DTF: número ou nome (863, Arcoverde…)" aria-label="Buscar etiqueta DTF"
-                   data-pedido-adicionar-target="busca" data-action="input->pedido-adicionar#buscar">
+                   data-pedido-adicionar-target="busca" data-tipo="dtf" data-action="input->pedido-adicionar#buscar">
+          <% end %>
+          <%# Etapa 2.7a: corridas and cores lisas, by number, name or color family. %>
+          <% if @pedido.tecido? || vazio %>
+            <input type="search" class="pedido-adicionar-busca pedido-adicionar-busca-tecido" placeholder="Corrida ou cor lisa: número, nome ou cor (CR-12, Laranja…)" aria-label="Buscar estampa corrida ou cor lisa"
+                   data-pedido-adicionar-target="busca" data-tipo="tecido" data-action="input->pedido-adicionar#buscar">
           <% end %>
         </div>
         <div class="pedido-adicionar-artes" data-pedido-adicionar-target="artes"></div>

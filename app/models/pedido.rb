@@ -12,10 +12,19 @@ class Pedido < ApplicationRecord
   # Etapa 2.8 (5/5): sent, taken back, returned with a note.
   has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
 
-  # One type per pedido (Etapa 1.2, 3/3): calçado, DTF (Etapa 2.6b1); tecido
-  # in 2.7. The type comes from the item (decided 13/10/2026): an empty draft
-  # takes its first item's, and never takes an item of another type.
-  TIPOS = %w[calcado dtf].freeze
+  # One type per pedido (Etapa 1.2, 3/3): calçado, DTF (Etapa 2.6b1), tecido
+  # (Etapa 2.7a: the estampa corrida and the cor lisa, in meters). The type
+  # comes from the item (decided 13/10/2026): an empty draft takes its first
+  # item's, and never takes an item of another type.
+  TIPOS = %w[calcado dtf tecido].freeze
+  ROTULOS_DOS_TIPOS = { "calcado" => "Calçado", "dtf" => "DTF", "tecido" => "Tecido" }.freeze
+  # The artes each type takes, by Arte#tipo; calçado's are the rest.
+  TIPO_DA_ARTE = { "dtf" => "dtf", "corrida" => "tecido", "cor_lisa" => "tecido" }.freeze
+  # Whose fabric a tecido pedido is printed on (Etapa 2.7a, decided
+  # 16/10/2026): once for the whole pedido; only the empresa's is charged (2.7b).
+  DONOS_DO_TECIDO = %w[cliente empresa].freeze
+  # The types whose client is the pedido's (cliente_do_pedido?).
+  DO_CLIENTE_DO_PEDIDO = %w[dtf tecido].freeze
   # A DTF pedido is delivered on the roll or cut (Etapa 2.6b1); the Corte
   # stage only exists for cortada (2.6b2).
   ENTREGAS = %w[rolo cortada].freeze
@@ -40,14 +49,16 @@ class Pedido < ApplicationRecord
   validates :status, presence: true, inclusion: { in: STATUS, message: "%{value} is not a pedido status; expected one of #{STATUS.join(", ")}" }
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
   validates :entrega, inclusion: { in: ENTREGAS, message: "%{value} is not a delivery; expected one of #{ENTREGAS.join(", ")}" }
+  validates :dono_tecido, inclusion: { in: DONOS_DO_TECIDO, message: "%{value} is not whose fabric; expected one of #{DONOS_DO_TECIDO.join(", ")}" }
   validates :fileiras_extras, numericality: { only_integer: true, in: 0..100 }
   # Etapa 2.6b1: a DTF pedido's extra rows start at the dono's default.
   before_save :herdar_fileiras_extras, if: -> { will_save_change_to_tipo? && tipo == "dtf" }
 
-  # The pedido type an arte goes into: an etiqueta DTF's, else calçado's.
-  # Usage: Pedido.tipo_para(arte) # => "dtf"
+  # The pedido type an arte goes into: an etiqueta DTF's, a corrida's or cor
+  # lisa's tecido, else calçado's.
+  # Usage: Pedido.tipo_para(arte) # => "tecido" for a cor lisa
   def self.tipo_para(arte)
-    arte&.tipo == "dtf" ? "dtf" : "calcado"
+    TIPO_DA_ARTE.fetch(arte&.tipo, "calcado")
   end
 
   scope :rascunhos, -> { where(status: "rascunho") }
@@ -57,6 +68,20 @@ class Pedido < ApplicationRecord
   # Usage: pedido.dtf? # => true for a DTF pedido
   def dtf?
     tipo == "dtf"
+  end
+
+  # Usage: pedido.tecido? # => true for a pedido of corridas and cores lisas
+  def tecido?
+    tipo == "tecido"
+  end
+
+  # A work without corte's pedido is its client's, whatever its artes'
+  # owners (Etapa 2.6b1 D4, the tecido's too since 2.7a): the team picks
+  # the client, a catálogo work goes into anyone's, and confirming never
+  # splits it. Calçado takes its artes' client and splits by them.
+  # Usage: pedido.cliente_do_pedido? # => true for DTF and tecido
+  def cliente_do_pedido?
+    DO_CLIENTE_DO_PEDIDO.include?(tipo)
   end
 
   # Takes an item of this type: an empty draft takes any (and becomes its

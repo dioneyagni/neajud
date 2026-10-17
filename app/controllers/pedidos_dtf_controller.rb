@@ -2,22 +2,13 @@
 # the roll or cut, the pedido's default extra rows and each line's own — the
 # cliente final changes these on his draft (D5: he controls what he needs
 # beyond) —, and the pedido's client, the team's (D4: the client is the
-# pedido's, not the etiqueta's).
+# pedido's, not the etiqueta's; AjustesDoPedidoSemCorte).
 class PedidosDtfController < ApplicationController
-  exige :pedidos, :editar
-  before_action :set_pedido
-  before_action :recusar_fora_do_rascunho
+  include AjustesDoPedidoSemCorte
 
   # Usage: PATCH /pedidos/:uuid/dtf, entrega=cortada, fileiras_extras=1, client_uuid=… (the team's)
   def update
-    # The team's only: a cliente final's pedido is always his own.
-    return redirect_to resumo_pedido_path(@pedido), alert: "The pedido's client is the team's to choose" if cliente_final? && params.key?(:client_uuid)
-
-    @pedido.assign_attributes(params.permit(:entrega, :fileiras_extras))
-    @pedido.client = params[:client_uuid].presence && visiveis(Client).ativos.por_uuid!(params[:client_uuid]) if params.key?(:client_uuid)
-    return redirect_to resumo_pedido_path(@pedido), notice: "Pedido updated." if @pedido.save
-
-    redirect_to resumo_pedido_path(@pedido), alert: @pedido.errors.full_messages.to_sentence
+    atualizar_pedido(:entrega, :fileiras_extras)
   end
 
   # One line's own extra rows; blank goes back to the pedido's.
@@ -31,13 +22,5 @@ class PedidosDtfController < ApplicationController
 
   private
 
-  def set_pedido
-    @pedido = visiveis(Pedido).where(tipo: "dtf").por_uuid!(params[:uuid])
-  end
-
-  def recusar_fora_do_rascunho
-    return if @pedido.editavel?(cliente_final: cliente_final?)
-
-    redirect_to resumo_pedido_path(@pedido), alert: "#{@pedido.rotulo_lixeira} is #{@pedido.excluido? ? "in the trash" : @pedido.status}; it changes only while editable"
-  end
+  def tipo_do_pedido = "dtf"
 end

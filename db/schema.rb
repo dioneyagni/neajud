@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_16_200000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
@@ -403,7 +403,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
     t.integer "arquivo_id", null: false
     t.integer "arte_id"
     t.datetime "created_at", null: false
+    t.integer "largura_mm"
     t.integer "materia_prima_id"
+    t.decimal "metros", precision: 8, scale: 1
     t.integer "pedido_id", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
@@ -566,6 +568,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
+    t.string "dono_tecido", default: "cliente", null: false
     t.string "entrega", default: "rolo", null: false
     t.datetime "entregue_em"
     t.integer "entregue_por_id"

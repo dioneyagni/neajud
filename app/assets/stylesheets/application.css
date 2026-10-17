@@ -3735,7 +3735,8 @@ li.aprovacao--cancelada {
   padding: 0 0.3rem;
 }
 
-.pedido-dtf-ajustes {
+.pedido-dtf-ajustes,
+.pedido-tecido-ajustes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
@@ -3748,7 +3749,58 @@ li.aprovacao--cancelada {
   width: 4rem;
 }
 
-.pedido-cliente-dtf {
+/* Etapa 2.7a: a tecido item's fabric, meters and width, side by side,
+   wrapping on a phone. */
+.pedido-tecido-form,
+.pedido-tecido-dados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: flex-end;
+  margin: 0.6rem 0;
+  font-size: 0.86rem;
+}
+
+.pedido-tecido-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pedido-tecido-material {
+  max-width: 100%;
+}
+
+.pedido-tecido-metros,
+.pedido-tecido-largura-mm {
+  width: 6rem;
+}
+
+.pedido-tecido-dados dt {
+  color: var(--text-muted);
+}
+
+.pedido-tecido-dados dd {
+  margin: 0 0.8rem 0 0;
+}
+
+.pedido-tecido-aviso {
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.6rem;
+  background: #fff8e1;
+  border: 1px solid #f0d58a;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #6b5200;
+}
+
+.pedido-item-tipo {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pedido-cliente-do-pedido {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;

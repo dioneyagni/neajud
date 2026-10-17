@@ -189,6 +189,9 @@ Rails.application.routes.draw do
       # Etapa 2.6b1: a DTF draft's delivery, extra rows and client.
       patch :dtf, to: "pedidos_dtf#update"
       patch "dtf/fileiras", to: "pedidos_dtf#fileiras", as: :dtf_fileiras
+      # Etapa 2.7a: a tecido draft's fabric owner and its items.
+      patch :tecido, to: "pedidos_tecido#update"
+      patch "tecido/item", to: "pedidos_tecido#item", as: :tecido_item
       # Etapa 2.6c: how it is charged and its edited prices.
       patch "dtf/precos", to: "precos_do_pedido_dtf#update", as: :dtf_precos
       patch "dtf/preco_linha", to: "precos_do_pedido_dtf#linha", as: :dtf_preco_linha

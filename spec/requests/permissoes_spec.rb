@@ -29,6 +29,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     # Etapa 2.6b1: a DTF draft's delivery, extra rows and client.
     [ "set a DTF pedido's delivery", "pedidos", 2, -> { patch dtf_pedido_path(create(:pedido, tipo: "dtf")), params: { entrega: "cortada" } } ],
     [ "set a DTF line's extra rows", "pedidos", 2, -> { patch dtf_fileiras_pedido_path(create(:pedido, tipo: "dtf")), params: { fileiras_extras: "1" } } ],
+    # Etapa 2.7a: a tecido draft's fabric owner and its items.
+    [ "set whose fabric a tecido pedido is on", "pedidos", 2, -> { patch tecido_pedido_path(create(:pedido, tipo: "tecido")), params: { dono_tecido: "empresa" } } ],
+    [ "set a tecido item's meters", "pedidos", 2, -> { patch tecido_item_pedido_path(create(:pedido, tipo: "tecido")), params: { metros: "1" } } ],
     [ "list clients", "clientes", 1, -> { get clients_path } ],
     [ "register a client", "clientes", 2, -> { post clients_path, params: { client: { name: "Novo", responsible: "X" } } } ],
     [ "trash a client", "clientes", 3, -> { delete client_path(client) } ],

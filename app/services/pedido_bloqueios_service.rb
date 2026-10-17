@@ -18,7 +18,8 @@
 #                 price, so a pedido confirmed without one would never have it).
 # Unchecked parts never block: the pedido goes to production without them.
 # Used by the confirm guard (server), the pending box and the list badge.
-# A DTF pedido's come from PedidoBloqueiosDtf (Etapa 2.6b1).
+# A DTF pedido's come from PedidoBloqueiosDtf (Etapa 2.6b1), a tecido's
+# from PedidoBloqueiosTecido (Etapa 2.7a).
 #
 # Usage: PedidoBloqueiosService.call(pedido).map(&:descricao)
 #   # => ["Língua 33-34 (33×4, 34×2) sem arquivo de produção na arte 001-TNS · 20 · Bluey"]
@@ -29,7 +30,9 @@ class PedidoBloqueiosService
   # What only the factory settles (Etapa 2.8, 5/5): a cliente final sees them
   # as "em análise"; the rest (quantity 0, a file or side missing) are his.
   # Etapa 2.6b1: a DTF's own (PedidoBloqueiosDtf) — a size without a file is his.
-  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente etiqueta_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf].freeze
+  # Etapa 2.7a: a tecido's (PedidoBloqueiosTecido) — the material and the
+  # meters are his, the width the team's.
+  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente arte_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf sem_largura].freeze
 
   def self.call(pedido)
     new(pedido).call
@@ -41,6 +44,7 @@ class PedidoBloqueiosService
 
   def call
     return PedidoBloqueiosDtf.call(@pedido) if @pedido.dtf?
+    return PedidoBloqueiosTecido.call(@pedido) if @pedido.tecido?
 
     arquivos_excluidos + artes_sem_cliente + zerados + pendencias_das_partes + sem_preco
   end

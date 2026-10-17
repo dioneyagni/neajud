@@ -10,7 +10,12 @@ class ItemPedido < ApplicationRecord
   belongs_to :arte
   belongs_to :arquivo
   before_validation { self.arte ||= arquivo&.arte }
+  # A tecido item is an arte on a material (Etapa 2.7a, decided 16/10/2026):
+  # its linear meters, one decimal, on a width — blank follows the material's.
   belongs_to :materia_prima, optional: true
+  validates :metros, numericality: { greater_than_or_equal_to: 0, less_than: 100_000 }, allow_nil: true
+  validate :metros_com_uma_casa
+  validates :largura_mm, numericality: { only_integer: true, greater_than: 0, less_than: 10_000 }, allow_nil: true
   recusa_excluido :pedido, :arquivo
   has_many :grades, class_name: "ItemPedidoGrade", dependent: :destroy
   has_many :item_pedido_pecas, -> { order(:position) }, dependent: :destroy
@@ -61,5 +66,25 @@ class ItemPedido < ApplicationRecord
 
   def quantidade_total
     grades.sum(:quantidade)
+  end
+
+  # The width the tecido is printed on: the one typed on the pedido, else
+  # the material's ("1,60 m" → 1600); nil when neither says.
+  # Usage: item.largura_efetiva_mm # => 1600
+  def largura_efetiva_mm
+    largura_mm || materia_prima&.largura_mm
+  end
+
+  private
+
+  # Checked on what was typed: the column's scale would round 12,55 to 12,6
+  # silently. Not a number is numericality's.
+  def metros_com_uma_casa
+    digitado = metros_before_type_cast
+    return if digitado.nil? || (BigDecimal(digitado.to_s) * 10).frac.zero?
+
+    errors.add(:metros, "#{digitado} has more than one decimal; expected meters like 12,5")
+  rescue ArgumentError
+    nil
   end
 end

@@ -40,6 +40,6 @@ RSpec.describe PedidoBloqueiosDtf do
     create(:item_pedido, :com_quantidade, pedido: pedido, arquivo: catalogo.arquivos.first)
     expect(described_class.call(pedido)).to be_empty
     catalogo.update!(no_catalogo: false)
-    expect(described_class.call(pedido).map(&:tipo)).to eq(%i[etiqueta_de_outro_cliente])
+    expect(described_class.call(pedido).map(&:tipo)).to eq(%i[arte_de_outro_cliente])
   end
 end

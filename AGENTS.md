@@ -309,8 +309,8 @@ Key files:
 
 Decided 05/10/2026, in three parts; done 07/10/2026 (Fase 1 complete):
 
-- `pedidos.tipo` (`Pedido::TIPOS`: calcado, dtf since Etapa 2.6b1; tecido in
-  2.7) — one type per pedido, from its items.
+- `pedidos.tipo` (`Pedido::TIPOS`: calcado, dtf since Etapa 2.6b1, tecido
+  since 2.7a) — one type per pedido, from its items.
 - An item is an **arte** (`itens_pedido.arte_id`); `arquivo_id` is the file it
   was added from, still what the pieces below start from until part 2 reads
   them from the arte. Its grade is by **individual size**
@@ -1167,8 +1167,8 @@ change.
   P/M/G were numbered by hand one by one): `AgrupamentoDoUpload` takes the
   upload's `tipo`, offers existing artes of that kind only, and changing the
   upload's kind asks for the grouping again.
-- **Not in pedidos yet**: the corrida and the cor lisa (`adicionar_item`
-  refuses, the card hides "Pedido") until Etapa 2.7; the DTF since 2.6b1.
+- **In pedidos**: the DTF since 2.6b1, the corrida and the cor lisa since
+  2.7a (a tecido pedido — see "The tecido pedido").
 - E2E: `e2e/tipo-da-arte.spec.js`.
 
 ### The cor lisa, measured (Etapa 2.5b)
@@ -1339,6 +1339,44 @@ Decided 15/10/2026, after the prices (2.6c):
   zips them all (`dtf/arquivos`); both need `baixar_producao`. Specs inject
   `FakeGiroDeArquivo`.
 - E2E: `e2e/producao-dtf.spec.js`.
+
+## The tecido pedido (Etapa 2.7a)
+
+Decided 16/10/2026; 2.7 comes in three PRs (2.7a the pedido, 2.7b the prices
+and the minimum meters with its approval, 2.7c the production):
+
+- **Type from the item**: a corrida or a cor lisa goes into a **tecido**
+  pedido (`Pedido::TIPO_DA_ARTE`, `Pedido#tecido?`). Its client is the
+  pedido's like the DTF's (`Pedido#cliente_do_pedido?`,
+  `DO_CLIENTE_DO_PEDIDO`): the team picks it, a catálogo work goes into
+  anyone's, confirming never splits (`confirmar_sem_corte`). The shared page
+  settings live in `AjustesDoPedidoSemCorte` (`PedidosDtfController`,
+  `PedidosTecidoController`), the shared pendências in
+  `BloqueiosDoClienteDoPedido` (`:pedido_sem_cliente`,
+  `:arte_de_outro_cliente`).
+- **An item is an arte on a material**: `itens_pedido.materia_prima_id` (a
+  `tecido`), `metros` (one decimal — validated on what was typed, the
+  column's scale would round) and `largura_mm` (blank =
+  `MateriaPrima#largura_mm`; `ItemPedido#largura_efetiva_mm`); no grade, no
+  parts. The same arte on two fabrics is two items. Added from the card or
+  the page's search (`BuscaDeObras`: number, name, a cor lisa's family) with
+  its meters; a blank material takes the cor lisa's (`Arte#materia_prima`).
+- **Whose fabric** (`pedidos.dono_tecido`: cliente / empresa), once for the
+  whole pedido (decided in 2.3, 09/10/2026); only the empresa's will be
+  charged (2.7b). Each fabric in the item's select shows that owner's
+  balance (`saldo_do_tecido`, information only; never the empresa's to a
+  cliente final).
+- **The cliente final** changes his draft's fabric, meters and owner; the
+  width is the team's (how far the RIP repeats the module) and so is the
+  client.
+- **Pendências** (`PedidoBloqueiosTecido`): no client, an arte of another
+  client, no fabric, 0 m, no width (`:sem_largura`, the factory's). Wider
+  than the default paper (`Empresa#largura_papel_efetiva_mm`) is a
+  **warning** on the item (`aviso_de_largura`), never a block — the factory
+  may have a wider paper.
+- No prices (2.7b) nor stages (`config/etapas_producao.yml` `tecido: []`;
+  the calçado's Corte/Impressão pages redirect) yet.
+- E2E: `e2e/pedido-tecido.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 

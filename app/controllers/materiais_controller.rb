@@ -57,6 +57,8 @@ class MateriaisController < ApplicationController
         .distinct.pluck(:materia_prima_id)
       materiais = materiais.where(id: client_material_ids)
     end
+    # Etapa 2.7a: a tecido item is printed on a fabric.
+    materiais = materiais.where(tipo: params[:tipo]) if MateriaPrima::TIPOS.include?(params[:tipo])
 
     if params[:q].present?
       q = "%#{params[:q].to_s.gsub(/[%_]/, '\\\\\0')}%"

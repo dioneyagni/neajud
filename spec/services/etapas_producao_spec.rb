@@ -18,7 +18,7 @@ RSpec.describe EtapasProducao do
   end
 
   it "raises on an unknown type or stage" do
-    expect { described_class.do_tipo("tecido") }.to raise_error(described_class::Invalida, /no production stages for pedido type "tecido"/)
+    expect { described_class.do_tipo("bordado") }.to raise_error(described_class::Invalida, /no production stages for pedido type "bordado"/)
     expect { described_class.etapa("calcado", "costura") }.to raise_error(described_class::Invalida, /unknown production stage "costura"/)
   end
 
