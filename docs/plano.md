@@ -412,6 +412,13 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
   - o **cliente final** altera no próprio rascunho o tecido, os metros e o dono do tecido; a largura (até onde o RIP repete o módulo) e o cliente são da equipe;
   - o item nasce com o **material da cor lisa**, quando ela tem um. Pendências: pedido sem cliente, arte de outro cliente, item sem tecido, com 0 m ou sem largura. **Mais larga que o papel** é só um aviso, porque pode haver papel mais largo.
 
+  A **2.7b** (preços e metragem mínima, decidida em 17/10/2026):
+  - **a metragem mínima vale por item** (arte × tecido), não pelo pedido inteiro (Q1);
+  - **abaixo do mínimo, o item é uma pendência** até alguém com a ação "aprovar pedido abaixo do mínimo" aprovar; é cobrado pelos metros reais, e a aprovação cai se os metros mudarem — quem aprovou e quando ficam gravados (Q2);
+  - **o preço da impressão por metro** é do dono (Parâmetros), com um **preço combinado por cliente**; a **metragem mínima é só do dono** — um cliente especial passa pela aprovação (Q3);
+  - **cada item tem dois preços editáveis** pela equipe: a impressão por metro e, quando o tecido é da empresa, o tecido por metro (o do cadastro do material), cada um com o de partida ao lado; a confirmação grava os dois (Q4). Sem preço, não confirma;
+  - **o cliente final**, com "valores" aberto, vê o preço por metro que paga e o subtotal, nunca o de partida nem o desconto; vê a pendência do mínimo como **dele**, com o valor do mínimo, e pode aumentar os metros (Q5).
+
 **Etapa 2.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
 
   Decidido em 10/10/2026, numa série de 5 PRs:

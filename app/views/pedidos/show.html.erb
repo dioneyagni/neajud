@@ -17,6 +17,8 @@
   <% linhas_dtf = EncaixeDoPedidoDtf.call(@pedido) %>
   <% valores_dtf = ValoresDoPedidoDtf.call(@pedido, linhas: linhas_dtf) if pode_ver_precos? && @pedido.itens_pedido.any? %>
 <% end %>
+<%# Etapa 2.7b: a tecido's values, once, for its items, the block and the panel. %>
+<% valores_tecido = ValoresDoPedidoTecido.call(@pedido) if @pedido.tecido? && pode_ver_precos? && @pedido.itens_pedido.any? %>
 
 <% if @pedido.cliente_do_pedido? %>
   <%= render "cliente_do_pedido", pedido: @pedido %>
@@ -74,7 +76,7 @@
         <% tecidos = visiveis(MateriaPrima).where(tipo: "tecido").includes(:grupo_material, :cor_material).order(:id).to_a %>
         <% saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque)) %>
         <% @pedido.itens_pedido.includes(:arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
-          <%= render "item_tecido", item: item, pedido: @pedido, tecidos: tecidos, saldos: saldos %>
+          <%= render "item_tecido", item: item, pedido: @pedido, tecidos: tecidos, saldos: saldos, valores: valores_tecido&.do_item(item) %>
         <% end %>
       <% else %>
         <% @pedido.itens_pedido.includes(:grades, :arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
@@ -89,11 +91,13 @@
 
     <%# Etapa 2.4: a reposição is internal, never charged. A cliente final
         sees the price only, by his grid's "valores" (2.8, 3a). %>
-    <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c).
-        A tecido's prices come in 2.7b. %>
-    <% if pode_ver_precos? && !@pedido.reposicao? && !@pedido.tecido? && @pedido.itens_pedido.any? %>
+    <%# A DTF has no price per pair: it is charged by quantity or meter (Etapa 2.6c);
+        a tecido by meter, print and the empresa's fabric (2.7b). %>
+    <% if pode_ver_precos? && !@pedido.reposicao? && @pedido.itens_pedido.any? %>
       <% if @pedido.dtf? %>
         <%= render "pedidos/valores_dtf", pedido: @pedido, valores: valores_dtf %>
+      <% elsif @pedido.tecido? %>
+        <%= render "pedidos/valores_tecido", pedido: @pedido, valores: valores_tecido %>
       <% else %>
         <%= render "pedidos/valores", pedido: @pedido %>
       <% end %>
@@ -136,7 +140,7 @@
     <% end %>
   </div>
 
-  <%= render "painel", pedido: @pedido, linhas_dtf: linhas_dtf, valores_dtf: valores_dtf %>
+  <%= render "painel", pedido: @pedido, linhas_dtf: linhas_dtf, valores_dtf: valores_dtf, valores_tecido: valores_tecido %>
 </div>
 
 <div class="back-link-wrapper" style="margin-top:1rem;">

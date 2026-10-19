@@ -1,11 +1,15 @@
 <%# A tecido pedido's totals and whose fabric it is (Etapa 2.7a, decided
     16/10/2026): once for the whole pedido — the client's (default) or the
     empresa's, which only the empresa's is charged for (2.7b). The cliente
-    final chooses it too on his draft: he knows whether he brings it. %>
+    final chooses it too on his draft: he knows whether he brings it.
+    The total for who sees prices (2.7b); valores comes from the pedido page. %>
 <% itens = pedido.itens_pedido.to_a %>
 <dl class="pedido-resumo-lista">
   <dt>Artes</dt><dd data-resumo="itens"><%= itens.size %></dd>
   <dt>Metros</dt><dd data-resumo="metros"><%= metros(itens.sum { |i| i.metros.to_d }) %></dd>
+  <% if valores %>
+    <dt>Total</dt><dd data-resumo="total"><%= reais(valores.total) %></dd>
+  <% end %>
   <dt>Tecido</dt><dd data-resumo="dono-tecido"><%= pedido.dono_tecido == "empresa" ? "Da empresa" : "Do cliente" %></dd>
 </dl>
 <% if pedido_editavel?(pedido) %>

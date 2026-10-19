@@ -3795,6 +3795,39 @@ li.aprovacao--cancelada {
   color: #6b5200;
 }
 
+/* Etapa 2.7b: an item below the minimum, and its prices. */
+.pedido-tecido-minimo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.6rem;
+  background: #fff8e1;
+  border: 1px solid #f0d58a;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #6b5200;
+}
+
+.pedido-tecido-minimo--aprovado {
+  background: #eef7ee;
+  border-color: #b9dcb9;
+  color: #2f5e2f;
+}
+
+.pedido-tecido-aprovar-form {
+  margin: 0;
+}
+
+.pedido-tecido-precos input[type="text"] {
+  width: 6rem;
+}
+
+.pedido-tecido-preco-cliente {
+  margin: 0.4rem 0;
+}
+
 .pedido-item-tipo {
   font-size: 0.78rem;
   color: var(--text-muted);

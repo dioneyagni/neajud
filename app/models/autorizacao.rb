@@ -14,7 +14,9 @@ class Autorizacao
   NIVEL_MAXIMO = { "lixeira" => 2 }.freeze
   # atualizar_producao: give a production stage's baixa (Etapa 2.2, 2/3).
   # ver_valores: see and set prices per pair and costs (Etapa 2.4).
-  ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores].freeze
+  # aprovar_abaixo_do_minimo: approve a tecido item below the dono's minimum
+  # meters (Etapa 2.7b, decided 17/10/2026).
+  ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores aprovar_abaixo_do_minimo].freeze
   # Never given to a cliente final (Etapa 2.8, 2/5): the trash and the
   # factory's own actions. Costs and margin are never shown to a client; the
   # price per pair reaches him by the visibility's "Valores" (3/5).
@@ -25,7 +27,7 @@ class Autorizacao
   # (5/5) — never confirming, which is the team's.
   NIVEL_MAXIMO_PARA_CLIENTE = { "pedidos" => 2, "clientes" => 1, "artes" => 2, "catalogo" => 1, "estoque" => 1, "lixeira" => 0 }.freeze
   AREAS_DA_EQUIPE = NIVEL_MAXIMO_PARA_CLIENTE.select { |_, nivel| nivel.zero? }.keys.freeze
-  ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores].freeze
+  ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores aprovar_abaixo_do_minimo].freeze
 
   # Shape check shared by Funcao#niveis/acoes and Vinculo#acessos_extras.
   # Usage: Autorizacao.erros_da_grade({ "pedidos" => 2 }, []) # => []

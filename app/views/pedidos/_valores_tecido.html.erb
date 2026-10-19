@@ -1,0 +1,32 @@
+<%# What a tecido pedido charges (Etapa 2.7b, decided 17/10/2026;
+    ValoresDoPedidoTecido): the print of every item summed and, when the
+    fabric is the empresa's, the fabric; the total, and the discount for the
+    team. Each item's prices sit on the item (edited there). valores comes
+    from the pedido page. %>
+<% equipe = !cliente_final? && pode_acao?(:ver_valores) %>
+<% linhas = [ [ "Impressão", valores.impressao ], [ "Tecido", valores.tecido ] ].select(&:last) %>
+<section class="pedido-valores pedido-valores-tecido" id="valores-tecido">
+  <h3>Valores do pedido</h3>
+  <p class="pedido-valores-cobranca"><%= pedido.dono_tecido == "empresa" ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %></p>
+  <div class="pedido-dtf-tabela-wrap">
+    <table class="pedido-dtf-tabela pedido-valores-tabela pedido-dtf-blocos">
+      <thead><tr><th>Cobrança</th><th>Metros</th><% if equipe %><th>Partida</th><% end %><th>Subtotal</th></tr></thead>
+      <tbody>
+        <% linhas.each do |descricao, soma| %>
+          <tr class="pedido-valores-linha" data-parte="<%= descricao %>">
+            <th scope="row"><%= descricao %></th>
+            <td data-rotulo="Metros"><%= metros(soma.quantidade) %></td>
+            <% if equipe %><td class="pedido-valores-partida" data-rotulo="Partida"><%= reais(soma.subtotal_partida) %></td><% end %>
+            <td class="pedido-valores-subtotal" data-rotulo="Subtotal"><%= reais(soma.subtotal) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Total</th><td colspan="<%= equipe ? 2 : 1 %>"></td><td class="pedido-valores-total"><%= reais(valores.total) %></td></tr>
+        <% if equipe && valores.desconto.nonzero? %>
+          <tr><th scope="row">Desconto</th><td colspan="2"></td><td class="pedido-valores-desconto"><%= reais(valores.desconto) %></td></tr>
+        <% end %>
+      </tfoot>
+    </table>
+  </div>
+</section>
