@@ -622,7 +622,7 @@ R,G,B,alpha,Spot_1 → we use R,G,B only).
 ## System dependencies
 
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
-- `tiffcrop` (`libtiff-tools`) — turns a DTF TIFF 90° for the RIP keeping every channel (Etapa 2.6b2: ImageMagick 6 dropped a spot channel)
+- `tiffcrop` (`libtiff-tools`) — turns a DTF TIFF 90° for the RIP keeping every channel (Etapa 2.6b2: ImageMagick 6 dropped a spot channel); `tiffcp` (same package) compacts a corrida's or cor lisa's TIFF (Etapa 2.7c)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
 - ICC profiles in `config/icc/` — `USWebCoatedSWOP.icc`, `sRGB.icc` (+3 printer profiles + XCMYK 2017.icc unused by code)
 
@@ -1337,7 +1337,8 @@ Decided 15/10/2026, after the prices (2.6c):
   go as they are, `_girar-no-RIP`. A failure is marked and never retried.
   Each line has its link (`dtf/arquivo?linha=`) and "Baixar as artes (.zip)"
   zips them all (`dtf/arquivos`); both need `baixar_producao`. Specs inject
-  `FakeGiroDeArquivo`.
+  `FakeGiroDeArquivo`. Since 2.7c the page and downloads are the
+  `ProducaoSemCorte` concern, shared with the tecido.
 - E2E: `e2e/producao-dtf.spec.js`.
 
 ## The tecido pedido (Etapa 2.7a)
@@ -1374,8 +1375,7 @@ and the minimum meters with its approval, 2.7c the production):
   than the default paper (`Empresa#largura_papel_efetiva_mm`) is a
   **warning** on the item (`aviso_de_largura`), never a block — the factory
   may have a wider paper.
-- No stages (`config/etapas_producao.yml` `tecido: []`; the calçado's
-  Corte/Impressão pages redirect) yet (2.7c).
+- Its production stages came in 2.7c (see "The tecido's production").
 - E2E: `e2e/pedido-tecido.spec.js`.
 
 ## The tecido's prices (Etapa 2.7b)
@@ -1413,6 +1413,41 @@ Decided 17/10/2026:
   with the discount; a cliente final with "valores" open sees only what he
   pays per meter and the subtotal, and the panel's total.
 - E2E: `e2e/precos-tecido.spec.js`.
+
+## The tecido's production (Etapa 2.7c)
+
+Decided 19/10/2026:
+
+- **Stages** (`config/etapas_producao.yml`, `tecido:`): **Impressão** (the
+  paper) and **Calandra** (onto the fabric, locked on the line's
+  Impressão), both in meters, the item's meters expected (`esperado:
+  metros`, the dono's band warns); a baixa per line or for the pedido. No
+  Conferência or reposição yet.
+- **Lines** (`LinhasDeProducao`, `linhas: tecido`): one per item (arte ×
+  fabric), key `<item>/<file>`; an item without fabric, meters or width is
+  left out (a draft's pendência). Baixas, undoing, the progress and the
+  delivery are the calçado's.
+- **Compacted at upload** (Q2, so a pedido finds it ready):
+  `ArquivoCompactadoTecido` keeps a copy beside the version
+  (`<version>/tecido/compactado.<ext>`), queued (`CompactarArquivoTecidoJob`)
+  when a corrida's or cor lisa's version finishes processing or an arte
+  becomes one (callbacks on `ArquivoVersion`, `TipoDaArte`); existing files:
+  `bin/rails producao:compactar_tecido`. `CompactacaoDeArquivo` wraps the
+  tool: **TIFF with `tiffcp -c lzw:2`** (`libtiff-tools`), then
+  `BlocoPhotoshopDoTiff` copies the spots' names back (tiffcp alone dropped
+  them); other formats, a failure or a result not smaller send the
+  original. Specs inject `FakeCompactacaoDeArquivo`. The queue and failure
+  marks are `CopiaDaVersao`'s, shared with the DTF's turned copy.
+- **One page** for both stages (`ProducaoTecidoController#show`,
+  `/pedidos/:uuid/tecido/producao/:etapa`; `caminho_da_etapa` and the
+  calçado's pages send a tecido there): fabric, width and meters per line;
+  on the Impressão, once confirmed, each item's file for the RIP
+  (`ArquivoTecidoParaRip`: `CR-12_FLORAL_12,5m_1400mm.tif`, the meters and
+  the width to repeat the module) and "Baixar as artes (.zip)"; a missing
+  copy is queued and shows "compactando…" (polling `tecido/compactados`).
+  The page and the downloads are `ProducaoSemCorte` (the DTF's controller
+  includes it too); the files need `baixar_producao`.
+- E2E: `e2e/producao-tecido.spec.js`.
 
 ## Official catalog (Etapa 1.1, 3/5)
 

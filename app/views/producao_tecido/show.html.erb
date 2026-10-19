@@ -1,0 +1,75 @@
+<%# A tecido pedido's Impressão or Calandra (Etapa 2.7c, decided 19/10/2026):
+    a line per item (arte × fabric) with its fabric, width, meters and
+    baixa — the Calandra after the line's paper. On the Impressão, each
+    item's file for the RIP: compacted at upload, the meters and the width
+    in its name ("preparando…" while the copy is made), and every one in a
+    .zip. Under 600px each line is a block (CSS .producao-blocos). %>
+<% impressao = @etapa.chave == "impressao" %>
+<%# The files go to the RIP once confirmed: a draft's items still change. %>
+<% baixar = impressao && pode_acao?(:baixar_producao) && @pedido.saiu_do_rascunho? %>
+<% preparando = baixar && @rips.values.any? { |rip| rip.estado == :preparando } %>
+
+<%= link_to "← Pedido ##{@pedido.uuid.first(8)}", resumo_pedido_path(@pedido), class: "back-link" %>
+<%= render "pedidos/etapas_nav", pedido: @pedido, atual: @etapa.chave %>
+
+<div class="corte-cabecalho">
+  <div>
+    <h2><%= @etapa.nome %> <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
+    <p class="corte-sub">
+      <%= @pedido.client&.name || "sem cliente" %> ·
+      tecido <%= @pedido.dono_tecido == "empresa" ? "da empresa" : "do cliente" %> ·
+      <span data-producao-tecido="metros"><%= metros(@linhas.sum(&:esperado)) %></span>
+    </p>
+  </div>
+  <% if baixar && @linhas.any? %>
+    <div class="impressao-acoes"<% if preparando %> data-controller="processamento" data-processamento-url-value="<%= tecido_compactados_pedido_path(@pedido) %>"<% end %>>
+      <% if preparando %><span class="badge producao-preparando">compactando os arquivos…</span><% end %>
+      <%= link_to "Baixar as artes (.zip)", tecido_arquivos_pedido_path(@pedido), class: "btn btn-primary impressao-zip", data: { turbo: false } %>
+    </div>
+  <% end %>
+</div>
+<%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
+
+<% if @linhas.any? %>
+  <table class="clients-table corte-tabela producao-blocos producao-tecido-tabela">
+    <thead>
+      <tr>
+        <th>Arte</th><th>Tecido</th><th>Largura</th><th>Metros</th>
+        <% if baixar %><th class="corte-baixar">Para o RIP</th><% end %>
+        <th class="etapa-situacao"><%= @etapa.nome %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @linhas.each do |linha| %>
+        <% item = linha.item %>
+        <tr class="producao-tecido-linha" data-arte="<%= item.arte.titulo %>">
+          <td class="producao-tecido-arte">
+            <%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %>
+            <%= link_to item.arte.titulo.presence || linha.arquivo.filename, linha.arquivo %>
+          </td>
+          <td class="producao-tecido-material" data-rotulo="Tecido"><%= linha.materia_prima.nome_completo %></td>
+          <td data-rotulo="Largura"><%= metros(item.largura_efetiva_mm / 1000.0) %></td>
+          <td class="corte-total" data-rotulo="Metros"><strong><%= metros(linha.esperado) %></strong></td>
+          <% if baixar %>
+            <td class="corte-baixar" data-rotulo="Para o RIP">
+              <% rip = @rips[linha.chave] %>
+              <% if rip.estado == :preparando %>
+                <span class="producao-preparando" title="<%= rip.nome %>">compactando…</span>
+              <% else %>
+                <%= link_to "Arquivo", tecido_arquivo_pedido_path(@pedido, linha: linha.chave), class: "btn btn-sm btn-outline producao-tecido-arquivo",
+                      title: rip.nome, data: { turbo: false, nome: rip.nome } %>
+              <% end %>
+            </td>
+          <% end %>
+          <td class="etapa-situacao" data-rotulo="<%= @etapa.nome %>">
+            <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[linha.chave] %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="gallery-empty">Nenhum item com tecido e metros neste pedido.</p>
+<% end %>
+
+<%= render "pedidos/historico_baixas", pedido: @pedido, etapa: @etapa %>

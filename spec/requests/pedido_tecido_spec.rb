@@ -59,8 +59,9 @@ RSpec.describe "The tecido pedido", type: :request do
     expect([ item.at_css(".pedido-tecido-metros")["value"], item.at_css(".pedido-tecido-largura-mm")["placeholder"] ]).to eq([ "12,5", "1800" ])
     expect(item.at_css(".pedido-tecido-aviso").text).to eq("Mais larga que o papel (1,6 m): confira se há papel para ela")
     expect(%w[itens metros dono-tecido].map { |c| html.at_css("[data-resumo='#{c}']").text }).to eq([ "1", "12,5 m", "Do cliente" ])
-    # No production stage until 2.7c; a DTF's values never.
-    expect(html.css(".pedido-ir-producao a, #valores-dtf")).to be_empty
+    # Its stages since 2.7c (the paper, then the Calandra); a DTF's values never.
+    expect(html.css(".pedido-ir-producao a").map(&:text)).to eq([ "Impressão →", "Calandra →" ])
+    expect(html.css("#valores-dtf")).to be_empty
   end
 
   it "the team sets the fabric owner, an item's fabric, meters and width" do
@@ -101,14 +102,14 @@ RSpec.describe "The tecido pedido", type: :request do
     expect(pedido.bloqueios_confirmacao.map(&:descricao)).to include("Arte #{outra.titulo} é de Outra, não do cliente do pedido", "#{cor.titulo} sem largura: o material #{sem_largura.nome_completo} não diz a largura; informe-a no item")
   end
 
-  it "confirms without splitting, and has no production pages yet" do
+  it "confirms without splitting; the calçado's production pages lead to its own (Etapa 2.7c)" do
     catalogo = criar_obra_de_tecido("cor_lisa", client: create(:client, name: "Outra"), materia_prima: oxford)
     pedido = Pedido.find_by!(uuid: adicionar(cor, metros: "2")["pedido_uuid"])
     adicionar(catalogo, metros: "3", pedido_uuid: pedido.uuid)
     post confirmar_pedido_path(pedido)
     expect([ pedido.reload.status, pedido.client, Pedido.count ]).to eq([ "confirmado", client, 1 ])
     get impressao_pedido_path(pedido)
-    expect(flash[:alert]).to include("is a tecido pedido: its production stages come in Etapa 2.7c")
+    expect(response).to redirect_to(producao_tecido_pedido_path(pedido, etapa: "impressao"))
   end
 
   it "finds corridas and cores lisas by number, name or color family, the catálogo's too" do

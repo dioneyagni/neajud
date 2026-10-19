@@ -13,8 +13,8 @@ class PedidosController < ApplicationController
   before_action :set_pedido, only: %i[show update destroy remover_item confirmar resumo atualizar_item alternar_peca corte baixar_corte impressao baixar_impressao etapa entregar gerar_reposicao]
   before_action :recusar_pedido_excluido, only: %i[update destroy remover_item confirmar atualizar_item alternar_peca]
   before_action :recusar_pedido_travado, only: %i[update remover_item atualizar_item alternar_peca]
-  # Etapa 2.7a: a tecido pedido has no production pages until 2.7c.
-  before_action :recusar_producao_do_tecido, only: %i[corte baixar_corte impressao baixar_impressao etapa]
+  # Etapa 2.7c: a tecido pedido's stages share one page of their own.
+  before_action :levar_tecido_a_producao, only: %i[corte baixar_corte impressao baixar_impressao etapa]
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
   # past the draft with its stages' progress.
@@ -479,8 +479,10 @@ class PedidosController < ApplicationController
     end
   end
 
-  def recusar_producao_do_tecido
-    redirect_to resumo_pedido_path(@pedido), alert: "#{@pedido.rotulo_lixeira} is a tecido pedido: its production stages come in Etapa 2.7c" if @pedido.tecido?
+  def levar_tecido_a_producao
+    return unless @pedido.tecido?
+
+    redirect_to action_name == "baixar_impressao" ? tecido_arquivos_pedido_path(@pedido) : producao_tecido_pedido_path(@pedido, etapa: "impressao")
   end
 
   def pedido_params

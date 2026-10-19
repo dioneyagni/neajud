@@ -46,6 +46,14 @@ RSpec.describe EtapasProducao do
     end
   end
 
+  # Etapa 2.7c (decided 19/10/2026): the paper printed, then the Calandra
+  # onto the fabric after the line's paper — both the item's meters.
+  it "reads the tecido's Impressão and Calandra" do
+    expect(described_class.do_tipo("tecido").map { |e| [ e.chave, e.medida, e.esperado, e.linhas, e.niveis, e.trava ] }).to eq([
+      [ "impressao", "metragem", "metros", "tecido", %w[linha pedido], [] ], [ "calandra", "metragem", "metros", "tecido", %w[linha pedido], %w[impressao] ]
+    ])
+  end
+
   it "counts a calçado stage's quantity in pieces" do
     expect(described_class.etapa("calcado", "conferencia").unidade_da_medida).to eq("peças")
   end

@@ -21,6 +21,22 @@ runSpec("Pedido de tecido E2E Tests", async ({ page, test }) => {
   const ids = {};
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "pedido-tecido-"));
 
+  // A cor lisa's page once its color is measured (the name comes with it),
+  // polled like waitForQueuedTask: the page's own refresh may be lost.
+  async function esperarMedida(uuid) {
+    const medida = await page.evaluate(async (uuid) => {
+      for (let i = 0; i < 30; i++) {
+        const html = await (await fetch(`/arquivos/${uuid}`)).text();
+        const nome = new DOMParser().parseFromString(html, "text/html").querySelector(".cor-lisa-nome")?.textContent.trim();
+        if (nome && nome !== "medindo…") return true;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      return false;
+    }, uuid);
+    if (!medida) throw new Error("The cor lisa wasn't measured in 30 s");
+    await page.goto(`${BASE_URL}/arquivos/${uuid}`);
+  }
+
   function arquivo(nome, cor) {
     const destino = path.join(pasta, `${nome}.tif`);
     execFileSync("convert", ["-size", "60x60", `xc:${cor}`, destino]);
@@ -102,7 +118,9 @@ runSpec("Pedido de tecido E2E Tests", async ({ page, test }) => {
       if (!(await postar(`/arquivos/${ids[nome]}/update_client`, { _method: "patch", client_uuid: ids.cliente }))) throw new Error(`Couldn't give ${nome} its client`);
     }
     // The cor lisa's fabric, on its page (Etapa 2.5b): the tecido item starts from it.
-    await page.goto(`${BASE_URL}/arquivos/${ids[nomes.cor]}`);
+    // Once measured: the measure's refresh, arriving after the save, wiped
+    // its notice (run 3 of 19/10/2026, MedirCorJob ending 1 s after the PATCH).
+    await esperarMedida(ids[nomes.cor]);
     await page.selectOption("#cor-lisa-material-select", ids.tecido);
     await waitForText(page, "Material of");
 
@@ -147,15 +165,16 @@ runSpec("Pedido de tecido E2E Tests", async ({ page, test }) => {
     await esperarResumo("dono-tecido", "Da empresa");
   });
 
-  await test("Confirming keeps the client; a confirmed pedido is read only, without stages yet", async () => {
+  await test("Confirming keeps the client; a confirmed pedido is read only, with its stages", async () => {
     if ((await page.locator("#pedido-cliente-do-pedido").inputValue()) !== ids.cliente) throw new Error("The pedido didn't take the corrida's client");
     await page.locator(".pedido-confirmar").click();
     await waitForText(page, "Pedido confirmed.");
     await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
     if (await page.locator(".pedido-tecido-form").count()) throw new Error("A confirmed pedido still edits its items");
     if ((await page.locator(".pedido-tecido-largura").first().innerText()).trim() === "—") throw new Error("The confirmed item lost its width");
-    // Etapa 2.7c brings the stages.
-    if (await page.locator(".pedido-ir-producao a").count()) throw new Error("A tecido pedido offers production stages");
+    // Etapa 2.7c: the paper, then the Calandra (e2e/producao-tecido.spec.js covers them).
+    const etapas = await page.locator(".pedido-ir-producao a").allInnerTexts();
+    if (etapas.join() !== "Impressão →,Calandra →") throw new Error(`The tecido pedido's stages: ${etapas.join()}`);
   });
 
   await test("An empty draft finds the cor lisa by its name and adds it in meters", async () => {

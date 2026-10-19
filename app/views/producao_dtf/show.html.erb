@@ -26,7 +26,7 @@
   </div>
   <% if baixar && @linhas.any? %>
     <div class="impressao-acoes"<% if preparando %> data-controller="processamento" data-processamento-url-value="<%= dtf_girados_pedido_path(@pedido) %>"<% end %>>
-      <% if preparando %><span class="badge producao-dtf-preparando">preparando os arquivos girados…</span><% end %>
+      <% if preparando %><span class="badge producao-preparando producao-dtf-preparando">preparando os arquivos girados…</span><% end %>
       <%= link_to "Baixar as artes (.zip)", dtf_arquivos_pedido_path(@pedido), class: "btn btn-primary impressao-zip", data: { turbo: false } %>
     </div>
   <% end %>
@@ -44,7 +44,7 @@
       </div>
       <%= render "pedidos/baixa_referencia", pedido: @pedido, etapa: @etapa, situacoes: @situacoes, item: item %>
     </div>
-    <table class="clients-table corte-tabela producao-dtf-tabela">
+    <table class="clients-table corte-tabela producao-blocos producao-dtf-tabela">
       <thead>
         <tr>
           <th>Arquivo</th><th>Tamanho</th><th>Encaixe</th><th>Impressas</th><th>Filme</th>
@@ -75,7 +75,7 @@
               <td class="corte-baixar" data-rotulo="Para o RIP">
                 <% rip = @rips[linha.chave] %>
                 <% if rip.estado == :preparando %>
-                  <span class="producao-dtf-preparando" title="<%= rip.nome %>">preparando…</span>
+                  <span class="producao-preparando producao-dtf-preparando" title="<%= rip.nome %>">preparando…</span>
                 <% else %>
                   <%= link_to "Arquivo", dtf_arquivo_pedido_path(@pedido, linha: linha.chave), class: "btn btn-sm btn-outline producao-dtf-arquivo",
                         title: rip.nome, data: { turbo: false, nome: rip.nome } %>

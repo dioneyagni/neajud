@@ -419,6 +419,10 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
   - **cada item tem dois preços editáveis** pela equipe: a impressão por metro e, quando o tecido é da empresa, o tecido por metro (o do cadastro do material), cada um com o de partida ao lado; a confirmação grava os dois (Q4). Sem preço, não confirma;
   - **o cliente final**, com "valores" aberto, vê o preço por metro que paga e o subtotal, nunca o de partida nem o desconto; vê a pendência do mínimo como **dele**, com o valor do mínimo, e pode aumentar os metros (Q5).
 
+  A **2.7c** (produção, decidida em 19/10/2026):
+  - **duas etapas** (Q1): **Impressão** (o papel) e **Calandra** (a transferência para o tecido), as duas em metros, com o esperado nos metros do item e a faixa de tolerância do dono; a Calandra de cada linha só depois da Impressão dela. Cada linha é um item (arte × tecido); a baixa é da linha ou do pedido. Sem conferência nem reposição por enquanto;
+  - **o arquivo para o RIP** (Q2) leva os metros e a largura no nome ("CR-12_FLORAL_12,5m_1400mm.tif"), um link por item e o zip de todos, só depois da confirmação. É uma **cópia compactada feita no envio do arquivo**, para o pedido já encontrá-la pronta: o TIFF com LZW (`tiffcp`), com os nomes dos spots copiados de volta; outro formato, uma falha ou uma cópia que não fica menor mandam o original.
+
 **Etapa 2.8 — Cliente final.** Decidida na Etapa 0.5 como etapa própria antes do beta (incluída em 29/09/2026). Vínculo do tipo cliente ligado a um Cliente, vendo só os próprios pedidos, moldes e artes (toda consulta filtrada pelo cliente); envia material e aprova artes no sistema ("aprovada pelo cliente no sistema").
 
   Decidido em 10/10/2026, numa série de 5 PRs:

@@ -88,6 +88,8 @@ module PedidosHelper
   def caminho_da_etapa(pedido, etapa)
     # Etapa 2.6b2: the DTF's stages share one page.
     return producao_dtf_pedido_path(pedido, etapa: etapa.chave) if pedido.dtf?
+    # Etapa 2.7c: so do the tecido's.
+    return producao_tecido_pedido_path(pedido, etapa: etapa.chave) if pedido.tecido?
 
     case etapa.chave
     when "impressao" then impressao_pedido_path(pedido)
