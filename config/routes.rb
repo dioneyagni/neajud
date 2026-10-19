@@ -204,7 +204,11 @@ Rails.application.routes.draw do
       get "dtf/producao/:etapa", to: "producao_dtf#show", as: :producao_dtf
       get "dtf/arquivo", to: "producao_dtf#arquivo", as: :dtf_arquivo
       get "dtf/arquivos", to: "producao_dtf#arquivos", as: :dtf_arquivos
-      get "dtf/girados", to: "producao_dtf#girados", as: :dtf_girados
+      get "dtf/girados", to: "producao_dtf#preparados", as: :dtf_girados
+      get "tecido/producao/:etapa", to: "producao_tecido#show", as: :producao_tecido
+      get "tecido/arquivo", to: "producao_tecido#arquivo", as: :tecido_arquivo
+      get "tecido/arquivos", to: "producao_tecido#arquivos", as: :tecido_arquivos
+      get "tecido/compactados", to: "producao_tecido#preparados", as: :tecido_compactados
       get :resumo
     end
   end

@@ -9,8 +9,8 @@
 class EtapasProducao
   ARQUIVO = Rails.root.join("config", "etapas_producao.yml")
   MEDIDAS = %w[metragem quantidade].freeze
-  ESPERADOS = %w[papel tecido pecas filme].freeze
-  LINHAS = %w[impressao corte dtf].freeze
+  ESPERADOS = %w[papel tecido pecas filme metros].freeze
+  LINHAS = %w[impressao corte dtf tecido].freeze
   NIVEIS = %w[linha referencia pedido].freeze
   # What a stage's `quando` may ask of the pedido (Etapa 2.6b2, decided
   # 15/10/2026: the DTF's Corte only when it is delivered cut).

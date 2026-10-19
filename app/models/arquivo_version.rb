@@ -15,6 +15,9 @@ class ArquivoVersion < ApplicationRecord
   after_update_commit -> { MedirCorJob.perform_later(id) }, if: -> { saved_change_to_status? && status == "processed" && arquivo.arte&.tipo == "cor_lisa" }
   # Etapa 2.6b1: a DTF size's fit on the film follows its measure.
   after_update_commit -> { EncaixeDaEtiqueta.atualizar!(arquivo.reload) }, if: -> { saved_change_to_status? && status == "processed" && arquivo.arte&.tipo == "dtf" }
+  # Etapa 2.7c: a corrida's or cor lisa's file is compacted for the RIP as
+  # soon as it is uploaded, so a pedido finds it ready.
+  after_update_commit -> { ArquivoCompactadoTecido.new(self).preparar! }, if: -> { saved_change_to_status? && status == "processed" && ArquivoCompactadoTecido::TIPOS.include?(arquivo.arte&.tipo) }
 
   validates :version_number, presence: true, uniqueness: { scope: :arquivo_id }
   validates :filename, presence: true

@@ -30,6 +30,7 @@ module TipoDaArte
     before_save :numerar, if: :will_save_change_to_tipo?
     # Etapa 2.5b: an arte that becomes a cor lisa is measured (its name comes with it).
     after_update_commit :medir_cor, if: -> { saved_change_to_tipo? && tipo == "cor_lisa" }
+    after_update_commit -> { ArquivoCompactadoTecido.preparar_da_arte!(self) }, if: -> { saved_change_to_tipo? && ArquivoCompactadoTecido::TIPOS.include?(tipo) }
     belongs_to :materia_prima, optional: true
     atribui_por_uuid :materia_prima
     scope :da_colecao_geral, -> { where(no_catalogo: true) }

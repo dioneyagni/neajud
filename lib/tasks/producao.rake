@@ -22,4 +22,15 @@ namespace :producao do
     EncaixeDaEtiqueta.atualizar_todas!
     puts "#{Arquivo.where.not(encaixe_dtf: nil).count} DTF sizes fitted on the film."
   end
+
+  # Etapa 2.7c: the compacted copy for the RIP of the corridas' and cores
+  # lisas' files uploaded before it (new ones get it when processed). Queued;
+  # safe to repeat — a ready, queued or failed copy is skipped.
+  # Usage: bin/rails producao:compactar_tecido
+  desc "Queue the compacted copy of every corrida's and cor lisa's file"
+  task compactar_tecido: :environment do
+    artes = Arte.where(tipo: ArquivoCompactadoTecido::TIPOS)
+    artes.find_each { |arte| ArquivoCompactadoTecido.preparar_da_arte!(arte) }
+    puts "Queued the compacted copies of #{artes.count} corridas and cores lisas."
+  end
 end

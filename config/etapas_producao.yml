@@ -7,9 +7,11 @@
 #   esperado: where the expected value comes from — papel (the arte's meters
 #            per piece on the paper's width), tecido (the DXF's fit on the
 #            item's material), filme (the DTF line's meters on the film),
-#            pecas (the pieces of the lines; a DTF line's printed units)
+#            pecas (the pieces of the lines; a DTF line's printed units),
+#            metros (a tecido item's meters)
 #   linhas:  whose lines — impressao (arte × part × size × side), corte
-#            (part × DXF size × material) or dtf (etiqueta × size)
+#            (part × DXF size × material), dtf (etiqueta × size) or tecido
+#            (arte × fabric: the item)
 #   niveis:  where a baixa may be given — linha, referencia (the arte), pedido
 #   trava:   stages that must have the line's baixa first (no stamping without
 #            paper printed and pieces cut). A part "não corta" skips corte.
@@ -65,6 +67,20 @@ dtf:
     trava: [impressao]
     quando:
       entrega: cortada
-# Etapa 2.7a: the tecido pedido is ordered and confirmed; its stages come in
-# 2.7c (decided 16/10/2026: prices first, 2.7b, as the DTF's).
-tecido: []
+# Etapa 2.7c (decided 19/10/2026): a line per item (arte × fabric); the
+# paper printed, then the Calandra transfers it onto the fabric — both in
+# meters, the item's meters expected. No Conferência or reposição yet.
+tecido:
+  - chave: impressao
+    nome: Impressão
+    medida: metragem
+    esperado: metros
+    linhas: tecido
+    niveis: [linha, pedido]
+  - chave: calandra
+    nome: Calandra
+    medida: metragem
+    esperado: metros
+    linhas: tecido
+    niveis: [linha, pedido]
+    trava: [impressao]

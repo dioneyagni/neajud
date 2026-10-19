@@ -825,14 +825,15 @@
   color: var(--text-muted);
 }
 
-/* ── A DTF pedido's production (Etapa 2.6b2) ── */
+/* ── A pedido without corte's production: the DTF's (Etapa 2.6b2) and the
+   tecido's (2.7c) ── */
 
-.producao-dtf-preparando {
+.producao-preparando {
   color: #7a4500;
   font-size: 0.85rem;
 }
 
-.badge.producao-dtf-preparando {
+.badge.producao-preparando {
   background: #fff1d6;
 }
 
@@ -840,19 +841,19 @@
   white-space: nowrap;
 }
 
-/* Under 600px each size is a block: the size beside its thumbnail, the fit
-   and the file in two columns, the baixa across. */
+/* Under 600px each line is a block: its thumbnail and figures in two
+   columns, the baixa across. */
 @media (max-width: 600px) {
-  .producao-dtf-tabela thead {
+  .producao-blocos thead {
     display: none;
   }
 
-  .producao-dtf-tabela,
-  .producao-dtf-tabela tbody {
+  .producao-blocos,
+  .producao-blocos tbody {
     display: block;
   }
 
-  .producao-dtf-tabela tr {
+  .producao-blocos tr {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem 0.75rem;
@@ -860,14 +861,14 @@
     border-bottom: 1px solid #e1e4e8;
   }
 
-  .producao-dtf-tabela td {
+  .producao-blocos td {
     display: block;
     padding: 0;
     border: none;
     text-align: left;
   }
 
-  .producao-dtf-tabela td[data-rotulo]::before {
+  .producao-blocos td[data-rotulo]::before {
     content: attr(data-rotulo);
     display: block;
     color: #80868b;
@@ -876,17 +877,31 @@
     text-transform: uppercase;
   }
 
-  .producao-dtf-tabela .impressao-thumb {
+  .producao-blocos .impressao-thumb {
     width: 100%;
     max-width: 96px;
   }
 
-  .producao-dtf-tabela .etapa-situacao {
+  .producao-blocos .etapa-situacao {
     grid-column: 1 / -1;
     min-width: 0;
   }
 
   .producao-dtf-tabela .producao-dtf-encaixe {
     white-space: normal;
+  }
+}
+
+/* A tecido line's arte: its thumbnail beside the title (Etapa 2.7c). */
+.producao-tecido-arte {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+@media (max-width: 600px) {
+  .producao-blocos .producao-tecido-arte {
+    grid-column: 1 / -1;
+    display: flex;
   }
 }

@@ -85,7 +85,7 @@ RSpec.describe "A DTF pedido's production", type: :request do
   it "zips every file, also from the old zip link, once the turned ones are ready" do
     get dtf_arquivos_pedido_path(pedido)
     expect(response).to redirect_to(producao_dtf_pedido_path(pedido, etapa: "impressao"))
-    expect(flash[:alert]).to eq("1 arquivo girado ainda está sendo preparado(s).")
+    expect(flash[:alert]).to eq("O arquivo girado ainda está sendo preparado.")
 
     get producao_dtf_pedido_path(pedido, etapa: "impressao")
     get baixar_impressao_pedido_path(pedido)

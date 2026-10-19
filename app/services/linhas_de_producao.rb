@@ -6,7 +6,9 @@
 #   corte lines: part × DXF size × material, key "<part>/<size>/<material>";
 #   dtf lines (Etapa 2.6b2, D1): etiqueta × size, as on the pedido's table,
 #     key "<item>/<size>/<file>"; expected the film's meters or the units
-#     printed (excess included: it is printed and cut too).
+#     printed (excess included: it is printed and cut too);
+#   tecido lines (Etapa 2.7c): the item (arte × fabric), key
+#     "<item>/<file>"; expected the item's meters (paper and fabric alike).
 # Keys are made of uuids (nothing integer leaves the server). Lines with a
 # pendência (no file, no DXF) are left out: they can't be produced, and a
 # confirmed pedido has none.
@@ -41,6 +43,12 @@ class LinhasDeProducao
     [ encaixe.item.uuid, encaixe.grade.tamanho_nome, encaixe.arquivo.uuid ].join("/")
   end
 
+  # The key of a tecido line (Etapa 2.7c): its item and file.
+  # Usage: LinhasDeProducao.chave_do_tecido(item) # => "<item>/<file>"
+  def self.chave_do_tecido(item)
+    [ item.uuid, item.arquivo.uuid ].join("/")
+  end
+
   def initialize(pedido, etapa, largura_papel_mm)
     @pedido = pedido
     @etapa = etapa
@@ -51,6 +59,7 @@ class LinhasDeProducao
     case @etapa.linhas
     when "corte" then linhas_do_corte
     when "dtf" then linhas_do_dtf
+    when "tecido" then linhas_do_tecido
     else linhas_da_impressao
     end
   end
@@ -87,6 +96,16 @@ class LinhasDeProducao
       Linha.new(chave: self.class.chave_do_dtf(encaixe), referencia: encaixe.item.uuid, item: encaixe.item,
                 arquivo: encaixe.arquivo, pecas: encaixe.impressas, encaixe: encaixe, dispensa: [],
                 esperado: esperado(encaixe.impressas) { encaixe.metros })
+    end
+  end
+
+  # An item without fabric, meters or width is a draft's pendência.
+  def linhas_do_tecido
+    @pedido.itens_pedido.includes(:arte, :materia_prima, arquivo: :approved_version).order(:id)
+           .select { |item| item.materia_prima && item.metros.to_f.positive? && item.largura_efetiva_mm }
+           .map do |item|
+      Linha.new(chave: self.class.chave_do_tecido(item), referencia: item.uuid, item: item, arquivo: item.arquivo,
+                materia_prima: item.materia_prima, dispensa: [], esperado: item.metros.to_f)
     end
   end
 

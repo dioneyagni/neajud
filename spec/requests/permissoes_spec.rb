@@ -96,6 +96,17 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    # Etapa 2.7c: the tecido's files for the RIP, as the DTF's.
+    it "the tecido's files for the RIP need baixar_producao" do
+      tecido = create(:pedido, tipo: "tecido", status: "confirmado")
+      entrar_com_funcao(niveis: { "pedidos" => 3, "artes" => 3 })
+      get tecido_arquivos_pedido_path(tecido)
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[baixar_producao])
+      get tecido_arquivos_pedido_path(tecido)
+      expect(response.headers["Content-Disposition"]).to include("Impressao #{tecido.uuid.first(8)}.zip")
+    end
+
     it "a production baixa needs atualizar_producao" do
       entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[baixar_producao])
       post pedido_baixas_path(pedido), params: { etapa: "corte", nivel: "pedido", medida: "1" }, as: :json

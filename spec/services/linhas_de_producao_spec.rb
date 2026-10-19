@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/producao_tecido"
 
 # Etapa 2.2 (2/3): each stage's lines with stable keys made of uuids.
 RSpec.describe LinhasDeProducao do
@@ -42,5 +43,15 @@ RSpec.describe LinhasDeProducao do
     molde.molde_pecas.find_by(peca: lingua).update!(needs_cut: false)
     linhas = described_class.call(pedido, etapa("estamparia"))
     expect(linhas.map { |l| [ l.peca.nome, l.esperado, l.corte_chave.present? ] }).to eq([ [ "Lateral", 10, true ], [ "Língua", 10, false ] ])
+  end
+
+  # Etapa 2.7c (decided 19/10/2026): a line per item (arte × fabric), its
+  # meters expected on the paper and on the fabric alike.
+  it "keys a tecido pedido's lines by item and file, expecting the item's meters" do
+    tecido = pedido_tecido_confirmado
+    create(:item_pedido, pedido: tecido, arquivo: tecido.itens_pedido.first.arquivo, materia_prima: nil, metros: 2) # a draft's pendência
+    itens = tecido.itens_pedido.order(:id).first(2)
+    linhas = described_class.call(tecido, EtapasProducao.etapa("tecido", "calandra"))
+    expect(linhas.map { |l| [ l.chave, l.referencia, l.esperado, l.materia_prima.present? ] }).to eq(itens.map { |i| [ "#{i.uuid}/#{i.arquivo.uuid}", i.uuid, i.metros.to_f, true ] })
   end
 end

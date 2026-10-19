@@ -74,6 +74,14 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect([ response.status, item.reload.minimo_aprovado_em ]).to eq([ 404, nil ])
       patch "/clients/#{create(:client).id}/precos_tecido", params: { preco_impressao_metro_tecido: "5" }
       expect(response).to have_http_status(:not_found)
+      # Etapa 2.7c: its production page and files for the RIP.
+      %w[tecido/producao/impressao tecido/arquivos tecido/compactados].each do |caminho|
+        get "/pedidos/#{pedido.id}/#{caminho}"
+        expect(response).to have_http_status(:not_found)
+      end
+      pedido.update_columns(status: "confirmado") # a draft's files never go to the RIP
+      get "/pedidos/#{pedido.uuid}/tecido/arquivo", params: { linha: "#{item.id}/#{item.arquivo.id}" }
+      expect(response).to have_http_status(:not_found)
     end
 
     it "refuses a tamanho drawing by integer id" do
