@@ -62,44 +62,9 @@ for file in e2e/*.spec.js; do
   fi
 done
 
-# Logs kept per run, so an intermittent failure can still be investigated
-# after later runs (a single /tmp/neajud_server.log used to be overwritten):
-#   requests.log — this run's slice of log/test.log (the Rails request log;
-#                  in the test env requests are NOT written to stdout)
-#   server.log   — the server process's stdout/stderr (boot, Puma, crashes)
-# A spec marker is appended to both before each spec. Keeps the last
-# E2E_LOG_KEEP runs; log/e2e/latest → newest.
-E2E_LOG_ROOT="log/e2e"
-E2E_LOG_KEEP=10
-RUN_ID="$(date +%Y%m%d-%H%M%S)-$$"
-RUN_LOG_DIR="$E2E_LOG_ROOT/$RUN_ID"
-SERVER_LOG="$RUN_LOG_DIR/server.log"
-REQUESTS_LOG="$RUN_LOG_DIR/requests.log"
-RAILS_TEST_LOG="log/test.log"
-RAILS_TEST_LOG_OFFSET=""
-
-prepare_run_log() {
-  mkdir -p "$RUN_LOG_DIR"
-  : > "$SERVER_LOG"
-  ln -sfn "$RUN_ID" "$E2E_LOG_ROOT/latest"
-  find "$E2E_LOG_ROOT" -mindepth 1 -maxdepth 1 -type d -name '2*' | sort | head -n -"$E2E_LOG_KEEP" | xargs -r rm -rf
-  RAILS_TEST_LOG_OFFSET="$(stat -c %s "$RAILS_TEST_LOG" 2>/dev/null || echo 0)"
-  trap save_requests_log EXIT
-}
-
-# Rails' logger opens log/test.log in append mode, so these lines interleave
-# with request logs instead of overwriting them.
-mark_spec() {
-  local marker="=== [$(date +%T)] spec: $1 ==="
-  echo "$marker" >> "$SERVER_LOG"
-  echo "$marker" >> "$RAILS_TEST_LOG"
-}
-
-# Runs on any exit (success, failure, aborted startup).
-save_requests_log() {
-  [ -n "$RAILS_TEST_LOG_OFFSET" ] || return 0
-  tail -c +"$((RAILS_TEST_LOG_OFFSET + 1))" "$RAILS_TEST_LOG" > "$REQUESTS_LOG" 2>/dev/null || true
-}
+# Logs kept per run (requests.log, server.log, spec markers): bin/e2e-logs.sh.
+# shellcheck source=bin/e2e-logs.sh
+source "$(dirname "$0")/e2e-logs.sh"
 
 # PIDs listening on the E2E port (lsof, falling back to fuser). Always exits
 # 0: a free port is not an error, and `set -e` would abort on grep's exit 1.
