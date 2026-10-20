@@ -7,13 +7,28 @@ Where things are documented — read the first three before proposing changes:
 | `AGENTS.md` (this file) | How to work on the code **as it is today**: style, tests, commands, workflow, gotchas |
 | `docs/plano.md` | Where the product is going: phases, target domain, rules for agents |
 | `docs/contexto-claude-code.md` | Launch order, decisions taken in sessions, topics still to discuss |
+| `docs/dominio/*.md` | The domain, one file per area — read the one you are working on (table below) |
 | `docs/current-state.md` | Audit of the current code: models, routes, UUIDs, deletes, where processing runs, sublimation-specific vs generic |
 | `README.md` | Short overview and quick start |
 
-When this file and `docs/plano.md` disagree, the plan wins for **new** work; the
-"Known gaps vs docs/plano.md" list under Key constraints names what the current
-code still does differently. The two docs/ files are in Portuguese for now
+When this file and `docs/plano.md` disagree, the plan wins for **new** work.
+The docs/ files are in Portuguese for now
 (translating them is an open decision in `docs/plano.md`).
+
+| Working on… | Read |
+|---|---|
+| a calçado pedido: artes in it, grade by number, parts, pendências, price/cost per pair | `docs/dominio/pedido-calcado.md` |
+| production stages, baixas, delivery, reposição | `docs/dominio/producao.md` |
+| stock and materials | `docs/dominio/estoque.md` |
+| previews, ImageMagick, UTIF, spot detection | `docs/dominio/previews.md` |
+| users, the cliente final's access | `docs/dominio/acesso.md` |
+| artes: the envelope, kinds and numbers, cor lisa, approval, referência/nome | `docs/dominio/artes.md` |
+| DTF: etiqueta, pedido, prices, production | `docs/dominio/dtf.md` |
+| tecido (corrida, cor lisa): pedido, prices, production | `docs/dominio/tecido.md` |
+| catalog, moldes, cortes and their sizes | `docs/dominio/catalogo.md` |
+
+A new stage documents itself in its area's file (or a new one listed here),
+not in this file; this file only takes rules that hold for every change.
 
 ## Code style
 
@@ -22,7 +37,6 @@ code still does differently. The two docs/ files are in Portuguese for now
 - One thing per function, one responsibility per module (SRP).
 - Names: specific and unique. Avoid `data`, `handler`, `Manager`.
   Prefer names that return <5 grep hits in the codebase.
-- Types: explicit. No `any`, no `Dict`, no untyped functions.
 - No code duplication. Extract shared logic into a function/module.
 - Early returns over nested ifs. Max 2 levels of indentation.
 - Exception messages must include the offending value and expected shape.
@@ -46,10 +60,11 @@ code still does differently. The two docs/ files are in Portuguese for now
   not inline stubs.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
   self-validating, timely.
-- Test the Rails server, observe any errors in the console and correct them,
-  restart the dev server (:3000) when needed. When there are
-  no errors in the console, test e2e, then e2e --headed and check if
-  everything goes through. Correct what is necessary and test again.
+- Check the feature on the dev server (:3000) — see Workflow step 2 — then
+  run the E2E suite **once** (`bash bin/e2e`; `--headed` to watch a flow
+  while debugging). Three runs in a row were the rule while dev and test
+  shared a port and processing waited on fixed delays (Sep 2026); both are
+  gone, and CI runs the whole suite on every PR.
 - An intermittent failure is never "noise". Before calling it unrelated to
   your change: run the suite N times on your branch and N times on `main`,
   compare failure rates, and check request ordering in the failing run's
@@ -57,40 +72,16 @@ code still does differently. The two docs/ files are in Portuguese for now
   previous POST's `Completed`).
   Fix the root cause or report it; don't retry until green.
 
-### Job & image processing tests
-
-- `spec/jobs/arquivo_processing_job_spec.rb` tests each conversion method
-  (`generate_preview_rgb`, `generate_preview_cmyk`, `generate_preview_utif`,
-  `generate_preview_dxf`, `detect_spots`, `process_image` routing).
-- `generate_preview_dxf` outputs SVG, so its tests check: (1) strict-parsed
-  `<svg>` root, (2) `viewBox` size within 0.5% of the source drawing,
-  (3) rasterized output has opaque pixels (`png_max_alpha`, not
-  `png_has_visible_pixels?` — DXF strokes are often pure black).
-- Each conversion test **must** verify: (1) a valid PNG is produced,
-  (2) dimensions match the source, (3) the PNG contains visible pixels
-  (decompress IDAT and check non-zero alpha + RGB).
-- CMYK spot via UTIF.js is a known limitation — test only file validity,
-  not pixel content.
-- `detect_spots` tests use real files from `spec/fixtures/files/` to verify
-  spot detection accuracy (including `Transparency` filtering).
-
 ### E2E tests
 
-- `e2e/arquivos-previews.spec.js` covers all 4 raster preview strategies: RGB no-spot,
-  RGB spot, CMYK no-spot, CMYK spot.
-- Each preview test **must** verify: (1) status is `processed`,
-  (2) colorspace label matches expected, (3) preview image loads (200 OK,
-  `image/*` content-type), (4) preview has visible pixels (load into canvas,
-  check first 100x100 region for non-zero alpha + RGB).
-- CMYK spot is exempt from pixel validation (UTIF.js limitation).
-- Arquivo card selectors (CSS class is still `.stamp-card`) must match by
-  **filename without extension** using
-  `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
-  flaky clicks on wrong cards when multiple arquivos exist.
-- Run 3 times in succession to verify stability.
 - **Uploads**: always use `uploadFileAndWait(page, pathOrPaths)` or
   `submitUploadAndWait(page, n)` from `e2e/support/upload.js`. They wait for
-  `upload_controller.js` to report `Upload complete (N ok, 0 failed)`.
+  `upload_controller.js` to report `Upload complete (N ok, 0 failed)`, then
+  for **the files that upload created** (`POST /arquivos` answers
+  `{ uuid, arte_uuid }`, kept in the form's `data-upload-enviados`), polling
+  `processamento.json` until final — so a spec may assume a processed file.
+  Waiting for a card by file name was satisfied by an older namesake (CI
+  05/10/2026).
 - **Wait for proof, not time**: never `waitForTimeout` after an action, and
   never `waitForSelector` on something that already existed before the action
   (e.g. `.stamp-card` from the pre-upload gallery). Wait for a signal the
@@ -107,40 +98,29 @@ code still does differently. The two docs/ files are in Portuguese for now
   as expected behavior — "Size Selection: hidden by default…" did exactly
   that until #75.
 
-### Preventing false positives
-
-Tests that only check "does an image load at the URL" miss bugs where
-the image is all-transparent or wrong colorspace. Every image conversion
-test must validate **pixel content**, not just file existence.
-
 ## Dependencies
 
 - Inject dependencies through constructor/parameter, not global/import.
 - Wrap third-party libs behind a thin interface owned by this project.
 
-## Structure
+## Structure and formatting
 
-- Follow the framework's convention (Rails, Django, Next.js, etc.).
-- Prefer small focused modules over god files.
-- Predictable paths: controller/model/view, src/lib/test, etc.
-
-## Formatting
-
-- Use the language default formatter (`cargo fmt`, `gofmt`, `prettier`,
-  `black`, `rubocop -A`). Don't discuss style beyond that.
+- Rails conventions; small focused modules over god files.
+- Ruby: `bin/rubocop` (rubocop-rails-omakase; `-A` fixes). JS, ERB and CSS
+  have no formatter: match the surrounding code.
 
 ## Logging
 
-- Structured JSON when logging for debugging / observability.
-- Plain text only for user-facing CLI output.
-
+- A log line for a failure in a job or service says **what** failed, **which
+  record** (its uuid) and the error, on one line. Structured JSON comes with
+  the hosted plan (Fase 3), when something reads the logs.
 
 ## Commands
 
 ```bash
 bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
-bin/brakeman --exit-on-warn   # security scan
+bin/brakeman --no-pager       # security scan (must stay at 0 warnings)
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
 bash bin/e2e                  # Playwright E2E (headless) on its own port :3001 — the dev server on :3000 keeps running
 bash bin/e2e --headed         # Playwright E2E (visible browser)
@@ -190,14 +170,8 @@ uploaded as the `server-log` artifact on failure.
 always safe to lose. `ArquivoVersion::STORAGE_BASE` picks the directory via
 `Rails.env.test?`.
 
-**Historical note (Sep 2026):** these used to be the same directory. `bin/e2e`'s
-`rm -rf storage/stamps/*` — needed so E2E runs never accumulate test uploads —
-also silently destroyed real development uploads on every run. The `Arquivo`
-rows survived (only the *test* database gets truncated), so the DB kept
-saying `status: processed` while the files backing those previews were
-gone — the bug looked like "previews aren't rendering," not "files got
-deleted." Splitting the directories by environment fixes this by
-construction; it can't recur.
+(They were one directory until Sep 2026: `bin/e2e`'s wipe silently deleted
+real development uploads while their rows still said `processed`.)
 
 ### Development backups
 
@@ -228,21 +202,25 @@ git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-e
 ```
 
 1. **Changes** — make the code changes.
-2. **Server check** — start the Rails server, exercise the feature in the browser, watch `log/development.log` for errors. Fix and re-check until the log is clean.
-3. **Browser console** — open DevTools, interact with the new UI, check for console errors. Fix and re-check.
-4. **Unit tests** — write tests for new public methods, add regression tests for fixed bugs. Run `bin/rspec` and fix the code until it passes.
-5. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
-6. **Final check** — back to the Rails server: test again, re-check `log/development.log` and the browser console. Fix if needed.
-7. **Final adjustments** — address whatever the final check surfaced.
-8. **Commit** — Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`; release notes are generated from them — `docs/plano.md`), subject + body with WHAT + WHY
-9. **Push** — `git push -u origin fix/what-was-done`
-10. **GitHub PR** — open a Pull Request.
-11. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
-12. **Merge** — through the GitHub UI, only if CI is green.
-13. **Cleanup** — delete the remote branch.
+2. **Server check** — on the dev server (:3000; restart it after schema,
+   `config/`, initializer or Gemfile changes), open the new pages with
+   Playwright and watch `log/development.log` and the browser console. The
+   development database and `storage/stamps/` hold real data: **read only** —
+   never create, change or delete records there without the human's
+   agreement (exercise writes in the E2E suite instead).
+3. **Unit tests** — write tests for new public methods, add regression tests for fixed bugs. Run `bin/rspec` and fix the code until it passes.
+4. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
+5. **Final check** — back on the dev server: the pages again, the log and the console.
+6. **Commit** — Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`; release notes are generated from them — `docs/plano.md`), subject + body with WHAT + WHY
+7. **Push** — `git push -u origin fix/what-was-done`
+8. **GitHub PR** — open a Pull Request. To change its body later use
+   `gh api -X PATCH repos/dioneyagni/neajud/pulls/<n> -F body=@file` (`gh pr edit` fails silently here).
+9. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
+10. **Merge** — through the GitHub UI, only if CI is green.
+11. **Cleanup** — delete the remote branch.
 
 **What an agent may do on its own:** create branches, commit, push, and open
-or update PRs (steps 1–10). **Merging (step 12) is always done by a human.**
+or update PRs (steps 1–8). **Merging (step 10) is always done by a human.**
 Never merge, force-push to `main`, or delete branches you didn't create.
 
 ⚠️ **Branch protection is not enabled**: the repo is private (since 26/09/2026) and
@@ -267,7 +245,6 @@ Before every push, run the **Pre-commit** command from the Commands section.
   - Don't create abstractions before a second real use exists. This does not contradict
     "wrap third-party libs behind a thin interface" (Dependencies): wrap a library where
     the app calls it, don't build generic layers for our own code "just in case".
-- Some of these are still violated by existing code — see "Known gaps" under Key constraints.
 
 ### Checklist: new controller action
 
@@ -287,8 +264,6 @@ When adding a new action to `ArquivosController` (or any controller with a `befo
 - **Stimulus controller**: test real interaction (click, input, submit) in E2E
 - **Controller action**: test that it responds and persists the expected state
 - **Modal/dialog**: test open, fill, submit, **close (Cancel)**, and check the post-redirect result. Also check positioning (centered in the viewport) via `getBoundingClientRect()`
-- **Range slider (click-to-edit)**: E2E test must verify: (1) click display → editor appears (hidden class removed), (2) edit value + Enter/blur → display and hidden input updated, (3) editor hidden again after commit
-- **Tipo corte**: E2E tests must cover both positive (section appears on corte files with both radio buttons, default `corte_estampa`) and negative (section absent on arte files)
 - **Minimum coverage**: before merge, `bin/rspec && bash bin/e2e` must pass 100%
 
 ## Architecture
@@ -303,329 +278,9 @@ storage/stamps/:uuid/v<N>/preview/
 (`ArquivoVersion#storage_dir`; `Stamp` was renamed to `Arquivo` in `312d326`,
 but the storage directory and the `.stamp-card` CSS class kept the old name.)
 
-Key files:
-- `app/controllers/arquivos_controller.rb` — upload, preview, versions, DXF organization, CRUD
-- `app/services/file_validator.rb` — format/colorspace detection via `identify -ping`
-- `app/jobs/arquivo_processing_job.rb` — preview generation, spot channel detection, DXF layers
-- `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
-- `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
-
-## Pedido by arte, grade by number (Etapa 1.2, 3/3)
-
-Decided 05/10/2026, in three parts; done 07/10/2026 (Fase 1 complete):
-
-- `pedidos.tipo` (`Pedido::TIPOS`: calcado, dtf since Etapa 2.6b1, tecido
-  since 2.7a) — one type per pedido, from its items.
-- An item is an **arte** (`itens_pedido.arte_id`); `arquivo_id` is the file it
-  was added from, still what the pieces below start from until part 2 reads
-  them from the arte. Its grade is by **individual size**
-  (`Arte#tamanhos_do_pedido`, decided 05/10/2026: the numbers the molde's
-  **organized DXF** serve — saved with the grade type, else deduced from the
-  size names like the Mold Organization form; without an organized corte,
-  the product's whole grade; the molde's stretch doesn't enter; no molde →
-  one `_total`), listed first; "+ 23" / "+ 35" add the product's next numbers
-  (`Arte#grade_completa_do_pedido`, decided 05/10/2026), and
-  `adicionar_item` / `atualizar_item` refuse sizes outside it. In the
-  add-to-order modal the grade is a responsive table
-  (`grade_por_numero_controller.js`: number over quantity, side by side under
-  600px).
-- Part 2: where each number comes from and the pendências — see "Pedido
-  items are made of the arte's parts".
-- Part 3 in three PRs (decided 06/10/2026, layout studied in a Design
-  canvas): **3a** the pedido page — two columns, each item a **matrix**
-  (`_item_matriz`: a column per number of the product's grade, rows "Pares"
-  and one per part with the DXF size ✓ / "sem arquivo"; columns outside the
-  DXF's numbers rendered `hidden`, "+ 28" shows them — `grade_matriz_controller.js`;
-  a CSS grid that flows by column on wide screens, by row under 600px), and a
-  side panel (`_painel`: totals, Confirmar, the pendências with "Enviar
-  arquivo" / "Trazer de outra arte", one per part × DXF size). Saving a grade
-  or (un)checking a part morph-refreshes the page. **3b** the factory's
-  Corte page (`/pedidos/:uuid/corte`, linked from the panel): one line per
-  part × DXF size with its drawing (`/tamanhos/:id/preview`, the PNG made with
-  the size's DXF, path rebuilt from version + position), the pieces and the
-  DXF; "Baixar os DXF (.zip)" (`baixar_corte`, `baixar_producao`) zips every
-  size (`ZipDeArquivos`, the rubyzip wrapper; `DxfDoTamanho` extracts a
-  size's DXF for both downloads). Pieces = pairs × the molde part's
-  `pecas_por_par` (default 2), half right / half left when `espelhada`
-  (needs an even number); parts "não corta" are left out (decided
-  06/10/2026). Both are edited per part on the molde page (they live in
-  `ResolucaoDoItem::Parte#config`). **3c** the printer's Impressão page
-  (`/pedidos/:uuid/impressao`, `ImpressaoPedidoService`): per arte, one line
-  per file to print (part, DXF size, side) in pieces, "não corta" parts
-  included, what is missing as a line; "Baixar as artes (.zip)"
-  (`baixar_impressao`) is written to disk (`ZipDeArquivos.gravar`, stored,
-  in `tmp/zips/`, cleaned after an hour by `ZipsTemporarios`) — artes go up
-  to 1 GB. **Sides** (`arquivos.lado`, `LadoNaArte`: direito / esquerdo):
-  a mirrored part may have a file per side; a file without side serves both
-  until one with a side arrives in that size, then the other side is a
-  pendência `:sem_lado` ("Enviar arquivo DIR"; decided 07/10/2026). Read
-  from the name as its own piece, "DIR" / "ESQ" or spelled out
-  (`NomeDoArquivo`), chosen in the upload's conference or on the arte page
-  (`definir_lado`); in the full name ("…_Lateral_29-30_ESQ") and in "the
-  same arte uploaded again" (the other side is never a repeat).
-- Added from the gallery card or from the pedido page (molde → referência →
-  arte, `pedido_adicionar_controller.js` + `GET /pedidos/artes_para_adicionar`,
-  the same `add-to-order` modal with `pedido_uuid`).
-- Pedidos from before (grade by the corte's size name) went to the trash in
-  the migration, `grade_antiga: true` — read only even restored
-  (`Pedido#editavel?`, `recusar_pedido_excluido`).
-- E2E: `e2e/pedido-por-arte.spec.js`.
-
-## Production stages and expected metragem (Etapa 2.2)
-
-Decided 07/10/2026, in three PRs (docs/plano.md has the full rules): stages
-per pedido type in `config/etapas_producao.yml` (calçado: Impressão ∥ Corte →
-Estamparia → Conferência, every dependency locks), a granular baixa with the
-measure next to each download, warned against an expected value that comes
-from the files themselves. Done (1/3 to 4/4):
-
-- **Arte**: `ArquivoVersion#metros_por_peca(largura_mm)` — the file's
-  rectangle (pixels ÷ DPI) on the paper's width, its width across the roll —
-  a calçado arte **never turns** (`girar:` is for DTF later); plain
-  arithmetic, nothing stored. The paper's width is the dono's parameter
-  (`Empresa#largura_papel_mm`, `/parametros`, with the warning band
-  `tolerancia_abaixo_pct` / `tolerancia_acima_pct`).
-- **DXF**: `bin/encaixe-dxf.js` fits copies of one size's outer contour on a
-  roll (the DXF's **vertical axis runs along the roll**) on a 2 mm grid —
-  about 70% of the fabric, between the pieces' area and their bounding
-  boxes. The turn is the corte's "Giro no encaixe" (`arquivos.giro`,
-  `GiroNoEncaixe`, set on the corte page, decided 08/10/2026): `nenhum`,
-  `180` or `90` (0°/90°/180°/270°), **no default** — whoever uploads the corte
-  marks it (it isn't always the same; some TNS/BT laterals go with the long
-  side along the roll); until then nothing is computed and the card shows
-  "giro não marcado". Changing it redoes the sizes.
-  `--svg out.svg` draws the fit to check it by eye. The length is the
-  average reach of the strips used (a leftover edge no piece reaches is not
-  length). After changing the fit itself: `REFAZER=1 bin/rails
-  producao:metros_por_peca`. `EncaixeDoTamanho` stores the result per width in
-  `tamanhos.metros_por_peca` (`{ "1400" => 0.0183 }`); `MetrosPorPecaJob`
-  computes it after `PreparacaoTamanhosJob` (redoing the size) and when a
-  material of a new width is created (`MateriaPrima#largura_mm` reads "1.25 m",
-  "140 cm"…). Existing sizes: `bin/rails producao:metros_por_peca`. Specs
-  inject `FakeEncaixe`.
-- The Corte page's lines are per **material** too (each roll is its own cut);
-  `Linha#metros_esperados` there and on the Impressão page.
-- **Stages and baixas (2/3)**: `EtapasProducao` reads
-  `config/etapas_producao.yml` and raises on a wrong value (medida,
-  esperado, linhas, niveis, trava). `LinhasDeProducao` gives each stage's
-  lines with **stable keys made of uuids** — Impressão lines (also
-  Estamparia's and Conferência's) `item/part/size/file/side` with the
-  `corte_chave` they wait for (nil for a part "não corta"); Corte lines
-  `part/size/material`. `RegistrarBaixaService` takes a line, a referência
-  (the item's uuid) or the whole pedido — only open lines whose locked
-  stages are done — sums their expected and answers `:aviso` outside the
-  dono's band until `confirmar`, then saves `BaixaProducao` with
-  `fora_da_faixa`. Only a **confirmed** pedido takes baixas; the endpoint is
-  `POST /pedidos/:uuid/baixas` (JSON, action `atualizar_producao`, given by a
-  migration to the existing Admin and Produção funções). Pages: the
-  Impressão and Corte pages, plus `/pedidos/:uuid/etapas/:etapa` for
-  Estamparia and Conferência; `_etapas_nav`, `_etapa_andamento`,
-  `_situacao_baixa`, `_baixa` (Stimulus `baixa`).
-- **The cycle (3/3)**: `Pedido::STATUS` rascunho (→ enviado, a client's
-  draft waiting for the factory, Etapa 2.8 5/5) → confirmado →
-  **em_producao** (`iniciar_producao!` on the first baixa) → **entregue**
-  (`EntregarPedidoService`, `POST /pedidos/:uuid/entregar`, Stimulus
-  `entrega`: never locked — open stages come back as an aviso, "Entregar
-  assim mesmo" delivers; `entregue_em`/`entregue_por`). `Pedido#em_producao?`
-  (confirmado or em_producao) is what takes baixas; a delivered pedido is
-  read only. `DesfazerBaixaService` (`DELETE /pedidos/:uuid/baixas/:uuid`)
-  keeps the baixa struck through in the stage's history
-  (`_historico_baixas`), refuses while a stage locked on it used those lines,
-  and takes the pedido back to confirmado when the last one goes.
-  `AndamentoDoPedido` gives each stage's lines done/total for the panel and
-  the list (filtered by `?status=`).
-- **Reposição (4/4, decided 08-09/10/2026)**: a stage with `reposicao: true`
-  (the Conferência) and fewer pieces than expected always sends them to a
-  sub-pedido. `ContagemDaConferencia`: a short count (one line or a group)
-  answers `:contar` with its lines — the `baixa` controller shows each
-  line's count and **Impressão / Corte** checkboxes (checked; the conferente
-  unchecks what doesn't need redoing) — and is saved with
-  `baixas_producao.contagens`. `AcumularReposicaoService` keeps one **open
-  reposição** per pedido (`Pedido#reposicao_em_aberto`: `reposicao_de`,
-  status rascunho, out of production) and adds each line short as an
-  `ItemReposicao` — file, part, DXF size, side, material, `corta`,
-  `refazer_impressao`/`refazer_corte`, **pieces** (not pairs); the same line
-  again adds pieces. `LiberarReposicaoService` confirms it when the
-  Conferência's last line is done, or by "Gerar reposição" (`POST
-  /pedidos/:uuid/gerar_reposicao`); a later shortage opens another.
-  `baixa.reposicao` points at it. A line not redone skips that stage
-  (`LinhasDeProducao::Linha#dispensa`; no Corte line without
-  `refazer_corte`).
-  `ImpressaoPedidoService`/`ProducaoPedidoService` build a reposição's lines
-  from those items (`pecas_fixas`), so it goes through every stage again
-  with the same pages; its own short Conferência makes another one. The
-  original's delivery warns while a reposição isn't delivered.
-
-## Stock and materials (Etapa 2.3)
-
-Decided 09/10/2026, kept by hand for now: stock in **linear meters**
-(`metros` helper). `MateriaPrima#tipo` is tecido, papel or filme, with
-`preco_metro` (the sale price; a movement's `valor` is the cost, per meter).
-A movement without client is the **empresa's own stock** — the form marks
-it ("Owner: Empresa", `MovimentoEstoque#da_empresa`), so a forgotten client
-never turns into the empresa's by accident. `SaldosDeEstoque` splits each
-material's balance by owner for the Materials page (type and price edited
-there, `PATCH /materiais/:uuid`). The default paper (`Empresa#papel_padrao`,
-a papel) gives `Empresa#largura_papel_efetiva_mm` for the artes' meters per
-piece, else the typed `largura_papel_mm`. Automatic consumption at
-confirmation, the adjustment by the real metragem, "aguardando material"
-and the dublagem come later (docs/plano.md, Etapa 2.3).
-
-## Price and cost per pair (Etapa 2.4, calçado)
-
-Decided 09/10/2026: calçado is charged **per pair**, at the molde's price
-for each number — `FaixaDePreco` (table `faixas_de_preco`): bands of the
-produto's grade, never overlapping, may go past the molde's stretch
-(`Molde#preco_do_par`). Edited on the molde page (`FaixasDePrecoController`,
-`/moldes/:uuid/faixas`; catalogo: editar + action `ver_valores`); removing a
-band is physical on purpose. Confirming writes each number's price into
-`itens_pedido_grade.preco_par` (`Pedido#gravar_precos!`, also copied into the
-pedidos a split makes); a number without price — or an arte without molde —
-is the `:sem_preco` pendência (link "abrir molde"). The molde is read from
-the item's **file** (`item.arquivo.molde`), not `arte.principal`, which skips
-a trashed file.
-
-The cost per pair is always estimated now (`CustoPorPar`, on
-`ResolucaoDoItem`): each checked part's file × its pieces per pair (a side's
-file half) × meters per piece × `Empresa#custo_impressao_metro`, plus pieces
-cut × `custo_corte_peca` (Parâmetros); `incompleto` when a file is missing
-or has no meters. `CustoPorPar.da_arte` builds an unsaved item to show it on
-the arte page before any pedido. `ValoresDoPedido` gives price, cost and
-margin per number and in total. A cost marked "*" lists what it misses per
-part and reason (`CustoPorPar::Custo#faltas`, `faltas_do_custo` helper,
-`pedidos/_faltas_do_custo`). Both blocks render only for
-`pode_acao?(:ver_valores)`; a reposição has no values. E2E:
-`e2e/precos-do-molde.spec.js`; specs that confirm a pedido price their molde
-(`precificarMolde` in `e2e/support/catalogo.js`, `create(:molde, preco: 10)`,
-`create(:item_pedido, :com_preco)`).
-
-## Pedido items are made of the arte's parts
-
-Adding an arte to a pedido stores one `ItemPedidoPeca` per part of its molde
-(e.g. lateral + língua of a tênis), from `MoldeComposicaoService` — the
-molde's own parts (`molde_pecas`), each with a file of **that same arte**
-(Etapa 1.2, 3/3: never another arte of the molde). A part is `incluida`
-(goes to production) or `excluida` (unchecked; the pedido goes without it).
-
-Where each ordered number comes from is `ResolucaoDoItem` (part 2, decided
-05/10/2026 — the pedido always reads the arte): per part × number, the size of
-the part's organized DXF that serves it (`Tamanho#atende_rotulo?`) and the
-arte's production file of that size (`tamanho_id`, else the size read from
-its name) — or the part's **piloto** as a sample (only the piloto's size
-asked, no production file of it) — or a pendência:
-
-| Pendência | Meaning | Settled by |
-|---|---|---|
-| `:sem_corte` | no organized DXF of the part serves the number | organizing / linking the DXF |
-| `:sem_arquivo` | the DXF serves it, the arte has no file of that size | "Enviar arquivo" (into the arte, part + size filled, back to the pedido) or "Trazer de outra arte" (`/arquivos/:uuid?trazer=1`) |
-
-A file added to the arte settles the pendência in every draft that uses it.
-The **parts** themselves follow too (09/10/2026): they were a photo of the
-moment the arte was added, so a draft kept a "Sem peça" row (the file, its
-part unknown then) next to an empty Cabedal. `ItemPedido#recompor_pecas!`
-rebuilds them from `MoldeComposicaoService`, matching rows by peça (an
-unchecked part stays unchecked, its uuid kept); `RecomporRascunhos` runs it
-on the drafts when a file's part, size, molde or arte changes (`Arquivo`
-callbacks) or the molde gains or loses a part (`MoldePeca`). Confirmed
-pedidos keep their parts. Existing drafts: `bin/rails pedidos:recompor_rascunhos`.
-Confirming is blocked by those pendências of checked parts, an item with total
-0, an arte without client (confirming splits the pedido by its artes'
-clients) and the item's file in the trash; a grade at total 0 is refused
-outright. All blockers come from `PedidoBloqueiosService`
-(`Pedido#bloqueios_confirmacao`), which feeds the server guard, the pending
-box on the pedido page and the list badge. `Pedido#pecas_para_produzir`
-(`ProducaoPedidoService`, built on `ResolucaoDoItem`: lines per part × DXF
-size, in pieces, without "não corta" parts) is the **only** place
-production reads from.
-
-A draft created for an arte without client has no client: it adopts one
-(`Pedido#adotar_cliente_das_artes!`, from `Arquivo`'s `after_update_commit` on
-`client_id`) once every arte of it has the same client. An arte without client
-gets its molde's client when the molde is chosen (`Arquivo#herdar_cliente_do_molde`).
-
-The old "Escolher arte" / "Enviar arte" per pending piece
-(`VincularArteService`, `ArteCandidatasService`) was removed in Etapa 1.2
-(3/3, parte 2); the arte page still shows its "Histórico de vínculos".
-
-- E2E coverage: `e2e/pedidos-pecas.spec.js`, `e2e/pedido-por-arte.spec.js`.
-
-## ImageMagick gotchas (multi-frame TIFFs)
-
-Every `identify -format` string **must** end with `\n` or multi-frame files concatenate output:
-
-```ruby
-# WRONG — multi-frame returns "TIFFTIFF"
-`identify -format '%m' file.tif`
-# RIGHT
-`identify -format '%m\\n' file.tif`
-```
-
-Every `convert` / `identify -verbose` input path **must** append `[0]` to process only the first frame, or ImageMagick will create `output-0.png`, `output-1.png` instead of `output.png`:
-
-```ruby
-Shellwords.escape(input) + "[0]"
-```
-
-Always use `2>/dev/null` (not `2>&1`) — ImageMagick stderr is noisy.
-
-## Preview generation
-
-`ArquivoProcessingJob#process_image` selects the strategy based on extension, spots + colorspace (checked in this order):
-
-| Case | Method | Tool |
-|------|--------|------|
-| DXF | `generate_preview_dxf` | `bin/generate-dxf-preview.js` (outputs `preview.svg`, not PNG) |
-| TIFF, spot | `generate_preview_utif` | UTIF.js via `bin/generate-preview.js` |
-| CMYK | `generate_preview_cmyk` | ImageMagick (`-profile USWebCoatedSWOP.icc -profile sRGB.icc`) |
-| RGB (or PSD/EPS spot) | `generate_preview_rgb` | ImageMagick convert (resize + `-define png:color-type=6`) |
-
-PSD/EPS files with spots use ImageMagick (not UTIF.js, which only handles TIFF). PSD/EPS
-CMYK without spots also uses the ICC convert path from the table above.
-
-Spot detection uses `exiftool -s3 -AlphaChannelsNames` (faster and more reliable than `identify -verbose`). Channels named `Transparency` are ignored — only real spot names count. Controlled by `FileCategory.spot_detection_enabled?` per category.
-
-## RGB no-spot preview
-
-Simple ImageMagick resize with `-define png:color-type=6` to force RGBA output:
-
-```ruby
-convert input.tif[0] -resize 1200x1200> -define png:color-type=6 output.png
-```
-
-The `>` after dimensions means "shrink only" — images smaller than 1200px are
-not upscaled. `-define png:color-type=6` forces truecolor+alpha PNG (avoids
-palette optimization that breaks pixel-validity checks).
-
-## CMYK no-spot preview
-
-Uses two explicit ICC profiles — source and destination — which ImageMagick
-interprets as a colorspace conversion:
-
-```ruby
-convert input.tif[0] -profile USWebCoatedSWOP.icc -profile sRGB.icc -define png:color-type=6 output.png
-```
-
-`USWebCoatedSWOP.icc` (557KB, "U.S. Web Coated (SWOP) v2") was extracted from
-the reference test files. The two `-profile` flags (source then destination)
-tell ImageMagick to convert between them, producing correct sRGB output.
-
-The `system()` call uses the array form (`system("convert", arg1, arg2, ...)`)
-to avoid shell injection and keep Brakeman's Command Injection check clean.
-
-## UTIF.js known bugs (RGB spot)
-
-UTIF.js `toRGBA8()` only handles `smpls==3` (RGB) and `smpls==4` (RGBA) for
-RGB photometric interpretation (intp==2). Files with extra channels
-(spots/alpha) have `smpls>=5` and neither branch is entered, returning an
-all-zero buffer (fully transparent image).
-
-The fix is in `bin/generate-preview.js`: after `toRGBA8()`, if `spp > 4`,
-copy the first 3 raw samples as RGB and set alpha=255, ignoring extra
-channels. This affects RGB+spot TIFFs (e.g. 02.tif has 5 samples:
-R,G,B,alpha,Spot_1 → we use R,G,B only).
-
 ## System dependencies
 
+- `imagemagick` — previews, measures, colors
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
 - `tiffcrop` (`libtiff-tools`) — turns a DTF TIFF 90° for the RIP keeping every channel (Etapa 2.6b2: ImageMagick 6 dropped a spot channel); `tiffcp` (same package) compacts a corrida's or cor lisa's TIFF (Etapa 2.7c)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
@@ -750,35 +405,14 @@ Every page requires a signed-in user (Rails 8 authentication generator:
 `Authentication` concern, `Session`, `Current.user`, `bcrypt`). Only
 `SessionsController#new/create` and the first-access setup are public.
 
-- **Model:** `User` (the plan's "pessoa"; name chosen in session) +
-  `Empresa` (**one per instance** — docs/plano.md Etapa 3.1; `Empresa.atual`)
-  + `Vinculo` (user × empresa × **one `Funcao`** + `acessos_extras`). New
-  tables get a `uuid` via the `GeraUuid` concern; `users.cloud_user_uuid`
-  links to the future Neajud Cloud account (Etapa 7.1).
-- **First access:** while there is no user, every page redirects to
-  `/configuracao` (`ConfiguracaoInicialService`: empresa + first user as
-  `dono`). Once a user exists the screen redirects to sign in — it must never
-  reopen (it would let anyone create a second owner).
-- **No password reset by email.** On the Usuários page a manager sets a
-  **provisional password** (`User#definir_senha_provisoria!`, sets
-  `trocar_senha`): until the person picks their own at `/senha/edit`,
-  `Authentication#exigir_troca_de_senha` redirects every page there. Anyone
-  changes their own password from their name in the header. Email recovery
-  comes with the cloud account (Etapa 7.1).
-- **Users are deactivated, never deleted** (`User#desativar!`): sign-in is
-  refused, sessions end, and `find_session_by_cookie` / the cable connection
-  only accept `User.ativos`.
-- **Usuários page** (`/usuarios`, action `gerenciar_usuarios`):
-  `CadastroDeUsuarioService` saves name, email, função and acessos extras;
-  `GestaoDeUsuarios` holds the rules — only a dono manages donos or gives the
-  Dono função, nobody gives more than they have, the empresa always keeps an
-  active dono, nobody deactivates themselves.
 - **Who did it:** controllers pass `**autoria` (`{ changed_by: request.remote_ip,
   user: Current.user }`, `ApplicationController`) to every log and to
   `excluir!`/`restaurar!` (fills `deleted_by_id`/`restored_by_id`). Views show
   `autor_do_log(log)`: the user's name, else the IP of pre-0.5 rows.
 - **Action Cable** rejects connections without a session cookie
   (`ApplicationCable::Connection`).
+- Users, first access, provisional passwords and the Usuários page:
+  `docs/dominio/acesso.md`.
 - **Tests:** request specs sign in as a dono automatically
   (`spec/support/autenticacao.rb`, `@usuario_logado`); tag a group
   `sem_login: true` to test signed-out behavior. E2E specs start signed in
@@ -842,141 +476,9 @@ each empresa is its own instance.
   clients' data, the other's marked "VAZOU"; signed in as a cliente final with
   every level, every GET route — with the other's uuids in the path and the
   query — must never show the mark. New routes are swept automatically.
-- **Client access (2/5, decided 10/10/2026):** a função is the team's or
-  **para clientes** (`funcoes.para_cliente`, fixed at creation; default
-  "Cliente final": every área "ver", no lixeira). A vínculo with `client_id`
-  takes only a função para clientes and the team's never one
-  (`Vinculo#tipo_da_funcao`); neither a função para clientes nor a client's
-  extras may have `Autorizacao::AREAS_DA_EQUIPE` / `ACOES_DA_EQUIPE`
-  (lixeira, baixar/atualizar produção, gerenciar usuários, ver valores) —
-  `Autorizacao.erros_para_cliente`. Created and listed on the client's page
-  ("Acesso ao sistema", `clients/_acesso_ao_sistema`, needs
-  `gerenciar_usuarios`) through `UsuariosController` with
-  `usuario[client_uuid]`; its actions come back to that page. `/usuarios`
-  lists only the team (`User.da_equipe`). A client in the trash closes its
-  people's access (`User.com_acesso`, used by the session cookie and the
-  cable). A cliente final lands on Pedidos (sign-in and password change);
-  the header shows the client's name.
-- **Open/closed by kind (3a, decided 10/10/2026):** `TiposParaCliente` lists
-  six kinds — pedidos, moldes, estoque (open by default); original, cortes,
-  valores (closed). The dono's default grid is `Empresa#visibilidade_cliente`
-  (`/visibilidade`, `VisibilidadePadraoController`); a client's exceptions are
-  `Client#visibilidade` (its page, `clients/_visibilidade`, "gerenciar
-  usuários"). Record kinds are applied **inside `Visibilidade`**
-  (`TIPO_DO_MODELO`; cortes closed leaves only artes), so every `visiveis`
-  query follows them; capabilities go through helpers that are the team's
-  rule for the team: `aberto_ao_cliente?(:x)` (always true for the team),
-  `pode_baixar_original?` (`exige_baixar_original`), `pode_ver_precos?`
-  (price only — cost and margin stay `pode_acao?(:ver_valores)`), and
-  `exige_aberto :cortes` for a page of a kind (404). The artes' previews and
-  versions are never a kind (the client approves them). The sweep also signs
-  in a client with every kind closed and looks for his own records' uuids.
-- **Live updates per client (3b, decided 11/10/2026):** every page
-  subscribes through `AoVivoChannel` with the helpers `canal_dos_cartoes` /
-  `canal_do_registro(record)` — never `turbo_stream_from`, whose names Turbo
-  signs for its own channel, which checks only the signature (a signed name is
-  valid forever, for anyone holding it). `CanaisAoVivo` names the streams by
-  uuid (`cartoes:equipe`, `cartoes:<client uuid>`, `arquivo:<uuid>`,
-  `pedido:<uuid>` — Turbo's default was `gid://…/Arquivo/232`, the integer id
-  in the page), signs them with its own verifier and answers `permitido?` on
-  every subscription: the team's cards for the team, a client's for its people,
-  a page's while `Visibilidade` shows its record. A card goes to the team and
-  to each client whose `Visibilidade` shows the file (`dos_cartoes_de`; a
-  corte reaches the clients of its moldes while their cortes are open);
-  refreshes go through `CanaisAoVivo.recarregar(record)`. Card DOM ids are
-  `arquivo_<uuid>` (`id_do_cartao`). The sweep checks every stream a page
-  subscribes; E2E: `e2e/canais-ao-vivo.spec.js` listens to the client's
-  WebSocket frames.
-- **The client answers in the system (4a, decided 12/10/2026):** for a
-  função para clientes, `aprovar_arte` means answering a request (the default
-  "Cliente final" has it): on the arte's page, while it is `:aguardando`,
-  `RespostaDoClienteController` (`exige_cliente_final`) — **Approve** the
-  version he picks of each file (`AprovarNoSistemaService`, canal `sistema`,
-  "No sistema"; the photo is his choice) or **Ask for changes** with a note
-  (`PedirAlteracaoService` → `AlteracaoArte`). Sending and registering stay
-  the team's (`exige_equipe`), whatever his grid says.
-- **The client uploads his artes (4b, decided 12/10/2026):** a client's
-  função or extras stop at `Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE` — artes
-  up to editar, the rest only ver (`erros_para_cliente`; the grid offers no
-  more; the default "Cliente final" has artes: editar) — so no client
-  registers clients, moldes, the common peças or stock. **Every uuid
-  assignment goes through `Visibilidade`** (`AtribuiPorUuid` reads
-  `Current.user`; nobody signed in = the team's view): another client's
-  molde, client or tamanho is a 404. His uploads are his client's
-  (`arquivo_do_upload`; an empty arte from the grouping can take a file —
-  `artes_que_recebem`), never a DXF. Versions, the version in use, the client
-  and the cortes stay the team's (`exige_equipe`; views use
-  `equipe_edita_arquivo?`). The write sweep
-  (`spec/requests/visibilidade_escrita_spec.rb`) sends every
-  POST/PATCH/PUT/DELETE route as client A with B's uuids and checks nothing
-  of B changed and nothing of A points at B; new routes are swept
-  automatically. E2E: `e2e/cliente-envia.spec.js`.
-- **The client's drafts (5/5, decided 12/10/2026):** a client's grid goes up
-  to pedidos: editar (the default "Cliente final" has it). He builds a draft
-  of his artes and **sends it to the factory** — `Pedido` status `enviado`
-  ("aguardando a fábrica", between rascunho and confirmado;
-  `Pedido::ANTES_DA_CONFIRMACAO`, `confirmavel?`, scope `nao_confirmados`,
-  which `RecomporRascunhos` follows). Pendências never stop sending; on the
-  panel his own (quantity 0, a file or side missing) keep their actions and
-  the factory's (`PedidoBloqueiosService::DA_FABRICA`) show as "em análise".
-  Sent, only the team changes it (`Pedido#editavel?(cliente_final:)`, the
-  `recusar_pedido_travado` guard — which also stopped a confirmed pedido's
-  grade from changing); he may take it back ("Retirar o envio") until it is
-  confirmed. `EnviosPedidoController` (`enviar` / `retirar` for the client,
-  `devolver` with a required note for the team) moves the status through
-  `EnvioDoPedido` and writes an `EventoPedido` (the pedido's "Histórico").
-  Confirming is the team's (`exige_equipe`), from rascunho or enviado. Notices
-  stay in the system: the team's header counts the pedidos `enviado`
-  (`aguardando_fabrica_count`, links to the filter), the client's Pedidos
-  lists the drafts returned with their note on top
-  (`Pedido#devolucao_pendente`). E2E: `e2e/cliente-rascunho.spec.js`.
-
-## Art approval (Etapa 0.5, 4/4)
-
-The client's approval of an arte is a **record, never a gate**: production and
-confirming a pedido never wait for it (docs/plano.md, "Aprovação de arte").
-
-- `AprovacaoArte` (table `aprovacoes_arte`): one approval of **one version**
-  (`arquivo_version`), registered by a user (action `aprovar_arte`) with the
-  channel the client used (`CANAIS`; "outro" needs `canal_detalhe`), the date,
-  notes and an optional attachment. Cortes are never approved. Cancelled by
-  mistake → `cancelar!` (kept in the history, struck through).
-- **The client's own answer (Etapa 2.8, 4a):** two more states, both only
-  after the request in force — `:alteracao_pedida` (an `AlteracaoArte`: the
-  note shows on the arte's page and the badge; the team uses "Send for
-  approval again") and `:aprovada_em_outra_versao` (he approved versions not
-  in use: `_aprovacao_em_outra_versao` lists them with "Usar esta versão";
-  once every one is in use the photo matches and the arte is `:aprovada`).
-  The team's form never offers canal `sistema` (`AprovacaoArte::CANAL_SISTEMA`).
-- **Nothing waits until it is sent** (changed before merge, 28/09/2026):
-  `SolicitacaoAprovacao` = "Enviar para aprovação" for the version in use.
-  `Aprovavel#estado_aprovacao` is `:nao_enviada` (default — no badge, no
-  register button anywhere) → `:aguardando` (sent) → `:aprovada`. Registering
-  an approval is refused unless it is `:aguardando` (service + controller).
-  All of it is per **version in use** (`approved_version`): a new version
-  starts over as not sent (`aprovada_versao_anterior?` tells an older one was
-  approved). Both records share `VersaoDeArte` (version of that arte, artes
-  only) and `Cancelavel` (cancel = kept in the history).
-- ⚠️ **Naming:** `approved_version` / `ArquivoVersion#approved` / the
-  `approve_version` route mean **"the version in use"**, not client approval.
-  The UI says "Usar esta versão" / "Em uso"; keep "Aprovar/Aprovada" for
-  `AprovacaoArte` only.
-- **Per arte since Etapa 1.2 (2/3, part 2)** — see "An arte is an envelope
-  of files": one request and one approval cover all the arte's files.
-- **Attachment** (`AnexoDeAprovacao`): PNG/JPEG/PDF by **first bytes** (no
-  ImageMagick/Ghostscript in the request), ≤ 20 MB, stored at
-  `<STORAGE_BASE>/<arquivo uuid>/aprovacoes/<aprovação uuid>.<ext>` — the path
-  is rebuilt from uuids + a fixed extension, never read from the column;
-  always served as a download (`disposition: "attachment"`).
-- Sent from the arte page ("Client approval" → "Send for approval");
-  registered from there or from a pedido (badge + "Registrar aprovação" on each
-  item, only while waiting — the approval is the arte's); `voltar_para` goes through `url_from`, so it
-  can't redirect to another host.
-- Portuguese plurals the app routes on need an inflection
-  (`config/initializers/inflections.rb`: materiais, funcoes, aprovacoes,
-  solicitacoes) —
-  without it `resources :aprovacoes` generated `new_arquivo_aprovaco_path`.
-
+- What a cliente final may see and do (client access, kinds open/closed,
+  live updates per client, answering, uploading, drafts):
+  `docs/dominio/acesso.md`.
 ## Public identifiers are uuids (Etapa 1.1, 1/5)
 
 The integer id is the internal key only; nothing that leaves the server
@@ -1000,539 +502,6 @@ addressed by tamanho name inside their item — don't need one).
   `where(modelo: Modelo.where(uuid: params[:modelo_uuid]))`.
 - Tests: `spec/requests/uuid_publico_spec.rb` checks pages, JSON endpoints and
   forms; add a row when you add an endpoint.
-
-## Grade type of a corte (Etapa 1.2, 1/3)
-
-A corte has a `tipo_grade` (`GradeDoCorte::TIPOS`: par, impar, pmg, furada)
-and each `Tamanho` keeps its label in `nome` (what the arte's full name and
-the pedido show, e.g. "29-30", "P") plus `numeros`, the individual sizes it
-serves (strings, like `Molde#grade`).
-
-- **Deduction:** while a corte has no type, the Mold Organization form is
-  prefilled by `GradeDoCorte.deduzir` (`grade_proposta` helper). One number
-  per size is the **last** of the pair ("24, 26…" → Par 23-24…; "35, 37…" →
-  Ímpar 34-35…); written ranges stay; "Size N" deduces nothing. The DXF
-  detection takes the numbers from the range in the filename ("35 AO 43").
-- **Saving:** `organize` reads every row first (`TamanhoReplacementService`
-  with `tipo:` → `GradeDoCorte.ler`, which raises `Invalido` naming the value
-  and the expected shape); one bad row refuses the whole save, nothing
-  written. Tamanhos are updated **in place by position** — uuid, preview,
-  extracted DXF and linked artes stay; only rows past the new list go.
-- **Coverage** (`CoberturaDaGrade`) is a **warning, never a block** (decided
-  01/10/2026): missing / repeated numbers of `Molde#grade`, shown on the corte
-  page (linked moldes) and on the molde page's parts.
-- ⚠️ Pedido grades (`itens_pedido_grade.tamanho_nome`) are keyed by the
-  tamanho's name: relabeling an old corte ("24" → "23-24") leaves draft pedidos
-  pointing at the old name. Fine for the sample data; Etapa 1.2 (3/3) rebuilds
-  the pedido on individual sizes.
-- E2E: `e2e/arquivos-tipo-grade.spec.js`.
-
-## An arte is an envelope of files (Etapa 1.2, 2/3)
-
-Decided 02/10/2026: **one arte per molde + referência + nome, one file per
-part × size**. `Arte` (table `artes`) is the envelope; each file stays an
-`Arquivo` with `arte_id` — versions, processing, preview, the automatic size
-search and (until part 2) the client approval stay per file.
-
-- **The arte's fields are the same in every file** (`MembroDeArte::CAMPOS_DA_ARTE`:
-  client, molde, modelo, referência, nome). `after_update_commit` copies a
-  change to the other files (`compartilhar_com_a_arte!`), which then drop a
-  size of the old molde and queue their own search. ⚠️ Anything that writes
-  these fields with `update_columns` must call `compartilhar_com_a_arte!`
-  itself (`ajustar_referencia_e_nome!` does). Part (`peca_id`) and size
-  (`tamanho_id`) stay per file.
-- Every new non-corte `Arquivo` gets an arte of its own (`before_validation
-  on: :create` — before_create ran after the belongs_to autosave, so the arte
-  was never saved). Cortes have none.
-- **Gallery:** `principais_das_artes` keeps one file per arte (its first) —
-  one card, with `resumo_da_arte` ("2 files · Lateral 29-30, 31-32"). Any
-  file's broadcast redraws that card. Batch delete trashes the whole arte.
-- **Page:** `_arte_arquivos` lists `Arte#arquivos_por_parte`, each file with
-  its thumbnail (`miniatura_do_arquivo`, lazy), with `ArteArquivosController`
-  (`acrescentar`, `trazer`, `separar`; artes: editar). `trazer` brings the
-  **marked** artes into this one (decided 05/10/2026: from the P's page mark
-  the M and the G) — preview cards with a text filter (`trazer-artes`
-  Stimulus controller), all checked with `JuntarArtesService.erro` before any
-  moves. `JuntarArtesService` moves every file (trashed too) and refuses
-  moving one to another molde or client; candidates are `artes_para_trazer`.
-  `mesma_arte_em_outro_envelope` suggests, with its preview, an arte with
-  the same molde, referência and nome.
-- ⚠️ Rails 8 draws routes lazily outside eager_load, and a Solid Queue worker
-  is its own process: two jobs rendering the card broadcast at once right
-  after boot raced the drawing — one failed with `undefined method
-  'arquivo_path'` and its file stayed "failed" (development too).
-  `config/initializers/solid_queue.rb` draws them on worker start
-  (`SolidQueue.on_worker_start`). Specs that need a preview assert
-  `data-status="processed"` so a failed processing can't pass unnoticed.
-- **Size from the file name:** `NomeDoArquivo` reads it (`tamanho`: "29-30",
-  "P"; measures dropped from the name) into `tamanho_rotulo` at upload;
-  `TamanhoAutoAssignService` tries it before the outline matcher when exactly
-  one size of the file's part's cortes serves it (`Tamanho#atende_rotulo?`).
-- **Client approval is the arte's** (part 2, decided 02/10/2026): `Aprovavel`
-  is on `Arte`; `Arquivo` delegates `estado_aprovacao` & co. A request or an
-  approval (`VersaoDeArte`) has `arte_id` and photographs `arquivo_version_ids`
-  (the version in use of each active file) on create. Only the latest valid
-  one counts: valid while every photographed file still in the arte keeps that
-  version (and at least one is still there). A new version → "not sent" with
-  "changed after the last approval" (`alterado_depois_da_aprovacao?` names the
-  file); a file added later → still approved, marked "after the approval"
-  (`depois_da_aprovacao?`). Joining artes brings the history along.
-  `arquivo_id`/`arquivo_version_id` stay: the file whose page it came from
-  (the attachment path uses its uuid). The gallery card shows a compact badge
-  (`selo_aprovacao(arte, compacto: true)`).
-- ⚠️ Read the arte's requests/approvals with a query (`validas.first`), not
-  the loaded list: a new Arte starts with its lists loaded (empty), so a
-  request created right after was invisible to it.
-- **Piloto** (part 2b, decided 05/10/2026, `PapelNaArte`): `arquivos.papel`
-  is `producao` (default) or `piloto` — one piloto per part of an arte
-  (validated), the editable heavy master. It is in the approval's photo (a
-  new version of it undoes the approval); production files of its part made
-  before its newest version (v2 on) are `anterior_ao_piloto?` ("before the
-  current piloto", a warning). It is never "the same arte uploaded again" of a
-  production file (`artes_com_mesmo_nome` skips it). `ArteArquivosController`
-  `tornar_piloto` (optional `junto_de`: the other arte joins first — the
-  repeated-arte offer) / `voltar_para_producao`. For 3/3: production uses
-  `producao`; the piloto only covers a sample (an arte asked only in the
-  piloto's size with no production file for it).
-- **Grouping at upload** (part 3, decided 05/10/2026): choosing files makes
-  `upload_controller.js` POST their names and weights to
-  `/arquivos/agrupamento` (`AgrupamentoDoUpload`: key = referência + nome
-  from `NomeDoArquivo`, which also reads the part and drops "NEW"/"Copia";
-  cortes alone). When something groups (`conferir`), the file list becomes the
-  conference (`controllers/conferencia_upload.js`, a plain module): part,
-  size, ★ piloto (suggested: PSD/AI/CDR, or ≥ 3× the median weight of the
-  part), separate, join groups, add to an existing arte (suggested, never
-  chosen). Sending: `POST /artes` makes each group's empty arte, then each
-  file goes to `POST /arquivos` with `arquivo[arte_uuid|peca_uuid|tamanho_rotulo|papel]`
-  (`Arte#novo_arquivo` copies the arte's fields; a DXF never joins an arte).
-- One card per arte: it lists its files (`data-arte-arquivos`) and keeps
-  polling while any of them is queued (`data-arte-em-fila`,
-  `dados_da_arte_no_card`). A spec whose files must group by name writes them
-  outside the repo (an `e2e-` prefix would be read as part of the name) —
-  `e2e/upload-agrupamento.spec.js`.
-- Pedidos still point at a file until Etapa 1.2 (3/3).
-- E2E: `e2e/artes-arquivos.spec.js`.
-
-## Kind of work, numbers and the coleção geral (Etapa 2.5a)
-
-Decided 12/10/2026: an arte says what kind of work it is — `Arte#tipo`
-(`TipoDaArte::TIPOS`: `calcado`, everything until then; `dtf`, `corrida`,
-`cor_lisa`, the works without corte). A file is still an `Arquivo` of
-category `artes`: upload, previews, versions, approval and grouping don't
-change.
-
-- **Chosen in the upload** (the gallery's "Kind of work", each group's in the
-  conference — `upload_controller.js` / `conferencia_upload.js`): `POST
-  /artes` takes `tipo`, a file sent alone takes `arquivo[tipo]`
-  (`Arte.novo_do_tipo`); a DXF is always a corte. Changed on the arte page
-  (`TiposDaArteController#update`, `Arte#trocar_tipo!`) while no pedido uses
-  it and it has no molde — a work without corte takes no molde (validated in
-  `MembroDeArte`), and its page hides molde, referência and the corte's size.
-  Artes of different kinds are never joined (`JuntarArtesService`).
-- **Numbers** (`Sequencia.proximo!`, table `sequencias`, one row per kind): a
-  DTF or a corrida takes the next number when it gets the kind — `codigo`
-  `DTF-863` / `CR-4114`, unique per kind, never reused (a new kind = a new
-  number, a separated file = a new arte and number). Each empresa starts at 1;
-  old hand-made numbers stay in the upload's file name. A DTF or a corrida is
-  **named from its file name** on upload or when it gets the kind
-  (`nomeada_pelo_arquivo?`, decided 14/10/2026: "872-ENCRUZILHADA DO SUL- P -
-  1,6 X 1,7" → "ENCRUZILHADA DO SUL", the pedido shows "DTF-4 · ENCRUZILHADA
-  DO SUL"; existing ones: `bin/rails artes:nomear_sem_corte`); the cor lisa is
-  named by the system. The cor lisa's comes
-  with its color family (2.5b). The full name of a work without corte starts
-  with it: `DTF-863_Arcoverde_P`; the card shows it; the gallery filters by
-  kind (`?tipo=`).
-- **The coleção geral** (`Arte#no_catalogo`, "Entra no catálogo", a work
-  without corte only; a cor lisa is born in it; marking is the team's —
-  `exige_equipe`): every cliente final reads it. `Visibilidade::COLECAO_GERAL`
-  adds it to `escopo(…, colecao_geral: true)`; `visiveis` passes it **only on
-  GET/HEAD** — a write sees the client's own records, so no client changes
-  another's work (an action that must read it in a write asks
-  `visiveis(Model, colecao_geral: true)`). Live cards and pages follow
-  (`CanaisAoVivo`; `Arquivo#redesenhar_cartao!` removes a card from the
-  galleries that stop seeing it). On a work he only reads, a cliente final
-  gets no controls, no client field and no answer to an approval
-  (`do_proprio_cliente?`, used by `pode_editar_arquivo?`). Both sweeps carry a
-  B work in the coleção geral.
-- Outside the catálogo the client is required: for now a warning on its page
-  ("Without client"); the pedido blocks it when DTF and corrida get theirs.
-- **No parts, sides or piloto (2.5c, decided 12/10/2026)**: each file of a
-  work without corte is already the editable one (production compacts a
-  corrida's or cor lisa's file, the DTF gets its own in 2.6); a corrida or a
-  cor lisa, sold by the meter, has no size either — a DTF keeps its.
-  `Arte#usa_pecas?` / `usa_tamanhos?` / `campos_fora_do_tipo` say it;
-  `MembroDeArte` clears those fields on every save (a part read from the
-  file name never sticks), `trocar_tipo!` on the arte's files, and
-  `PapelNaArte` refuses a piloto. The arte page, the card's summary and the
-  upload's conference (the grouping's `tipos` carry `usa_pecas` /
-  `usa_tamanhos`) hide them, with the paper consumption per piece. Their
-  pedidos (2.6, 2.7) have no parts matrix, consumption or cost per pair.
-  In a DTF upload the leading number doesn't separate the sizes (decided
-  13/10/2026, `TipoDaArte::REFERENCIA_NAO_SEPARA`: "872/873/874-ENCRUZILHADA"
-  P/M/G were numbered by hand one by one): `AgrupamentoDoUpload` takes the
-  upload's `tipo`, offers existing artes of that kind only, and changing the
-  upload's kind asks for the grouping again.
-- **In pedidos**: the DTF since 2.6b1, the corrida and the cor lisa since
-  2.7a (a tecido pedido — see "The tecido pedido").
-- E2E: `e2e/tipo-da-arte.spec.js`.
-
-### The cor lisa, measured (Etapa 2.5b)
-
-Decided 12/10/2026 (the calibrator by photo comes after the beta —
-`docs/cor-lisa/`):
-
-- **Measured per version** in CIE Lab: `MedirCorJob` (queued by
-  `ArquivoVersion` when a cor lisa's version finishes processing, and by
-  `TipoDaArte` when an arte becomes one) calls `MedidaDeCor` — ImageMagick:
-  CMYK → sRGB by the previews' ICC profiles, averaged to one pixel; sRGB →
-  Lab in Ruby — into `arquivo_versions.lab_l/lab_a/lab_b/cor_hex`. Injectable
-  (`MedirCorJob.medidor`, `FakeMedidaDeCor` in specs). A file it can't read
-  is logged and left "medindo…".
-- **Named by the system** at the first measure (`Arte#batizar!`): the family
-  from `config/familias_de_cor.yml` (`FamiliasDeCor`, LCh: grays by chroma,
-  then the first band that holds the hue — fixed, the Neajud's, measured on
-  the factory's samples) and the next number of that family
-  (`Sequencia` "cor_lisa:laranja"): **`Laranja 1`** (no "v"). Family and
-  number never change; a new version is a tone adjustment, measured again
-  (the Lab follows the version in use). Unique key: tipo + familia + numero.
-- **Near colors** (`CoresParecidas`, `DeltaE2000` — pure Ruby, checked
-  against Sharma's pairs): on its page the colors within ΔE ≤ 3 —
-  "praticamente igual" (≤ 1) or "parecida" — among those the person sees
-  (`visiveis(Arte)`); the card only says "parecida", never which (it goes
-  live to several clients). A notice, never a block. Limits in the YAML.
-- **Material** optional (`artes.materia_prima_id`, set on its page —
-  `TiposDaArteController#material`), not in the name.
-- **"Cores"** (`/cores`, `CoresController`): the chart (`CartelaDeCores`: a
-  column per 30° of hue, grays first; a row per band of lightness) and the
-  table, by family and material.
-- Restart the dev server after editing `config/familias_de_cor.yml`
-  (`FamiliasDeCor` keeps it in memory).
-- E2E: `e2e/cor-lisa.spec.js` (makes its solid-color files with `convert`).
-
-## The DTF etiqueta (Etapa 2.6a)
-
-Decided 13/10/2026; 2.6 comes in three PRs (2.6a the etiqueta and the
-parameters, 2.6b the DTF pedido and its fit on the film, 2.6c the charging):
-
-- **Sizes by measure**: a work without corte has no corte to order its sizes
-  by, so `Arte#arquivos_por_parte` orders them by the file's area
-  (`ArquivoVersion#medidas_mm`, pixels ÷ DPI, never stored), smaller first,
-  the label breaking ties, unmeasured last — "P, M, G" on the card and the
-  page. The page shows each size's measure (`medida_do_arquivo`, "1,62 ×
-  1,70 cm").
-- **The film is a width, not a material** (Parâmetros, "DTF film"):
-  `Empresa#largura_filme_dtf_mm` (600), `margem_filme_dtf_mm` (15 at each
-  edge, `largura_util_filme_dtf_mm` = 570), `espacamento_dtf_mm` (1,5, both
-  ways) and `fileiras_extras_dtf` (0, a pedido may change it in 2.6b).
-- **The etiqueta's own spacing** (`artes.espacamento_mm`, blank = the
-  default; `Arte#espacamento_efetivo_mm`): set on its page
-  (`TiposDaArteController#espacamento`, `exige_equipe`); the cliente final
-  never sees it.
-- E2E: `e2e/etiqueta-dtf.spec.js` (makes its sizes with `convert` at 300 dpi).
-
-## The DTF pedido (Etapa 2.6b1)
-
-Decided 13/10/2026 (2.6b2 adds the stages and the RIP download, 2.6c the
-prices):
-
-- **Type from the item**: `Pedido.tipo_para(arte)`; `adicionar_item` sends an
-  etiqueta to the client's **DTF** draft (`pedido_de_destino` filters by
-  type), an empty draft takes its first item's type (`aceita_tipo?`), a
-  pedido page refuses an item of another type. A DTF item has no parts.
-- **The fit is stored per size**: `EncaixeDaEtiqueta` writes
-  `arquivos.encaixe_dtf` (copies per row and the row's step, standing and
-  turned) when the version is processed or changes, the arte's spacing or
-  kind changes, or the dono changes the film (callbacks on `ArquivoVersion`,
-  `Arquivo`, `Arte`, `Empresa`). Existing files: `bin/rails
-  producao:encaixe_dtf`. The arte page shows it (`encaixe_do_arquivo`, the
-  way it goes first; the turn and the spacing only for the team).
-- **It turns only when marked** (decided 16/10/2026: picking the orientation
-  with fewer meters turned too many): `artes.girar_dtf`, one mark for the
-  whole etiqueta — "Girar 90° no filme" on its page, the team's
-  (`TiposDaArteController#giro`). `Arte#orientacao_dtf` ("em_pe" /
-  "girada") is the fit the pedido, the unit price and the RIP's file use;
-  changing it redoes the sizes' fit and price. A size that fits only the
-  other way is a pendência (`:nao_cabe_em_pe` "marque Girar",
-  `:nao_cabe_girada` "desmarque"); a confirmed pedido keeps its fit.
-- **The pedido counts rows**: `EncaixeDoPedidoDtf` — each etiqueta × size in
-  its own rows, in its etiqueta's orientation (standing unless marked), the
-  last row completed, the extra rows (`itens_pedido_grade.fileiras_extras`,
-  blank = `pedidos.fileiras_extras`, which starts at the dono's). Confirming
-  writes each line's fit into `itens_pedido_grade.encaixe_dtf`; a confirmed
-  pedido reads that.
-- **The client is the pedido's** (`confirmar_dtf`: never split):
-  `PedidosDtfController` sets the delivery (`pedidos.entrega`, rolo /
-  cortada), the extra rows (the cliente final too, on his draft) and the
-  client (the team's). `adicionar_item` reads the coleção geral
-  (`visiveis(Arquivo, colecao_geral: true)`) so a cliente final orders a
-  catálogo etiqueta into his own draft; the card's "Pedido" and the search
-  (`artes_para_adicionar?tipo=dtf&q=`) never carry a catálogo work's owner.
-- **Pendências**: `PedidoBloqueiosDtf` (pedido without client, an etiqueta
-  outside the catálogo of another client, quantity 0, a size without file,
-  without measure, wider than the film, or fitting only the way not marked).
-- Its production stages came in 2.6b2 (see "The DTF's production").
-- E2E: `e2e/pedido-dtf.spec.js`.
-
-## The DTF's prices (Etapa 2.6c)
-
-Decided 13-14/10/2026, before 2.6b2 (a pedido confirmed without prices would
-need fixing):
-
-- **Dono and client** (`PrecosDoDtf`, on `Empresa` and `Client`):
-  `preco_metro_dtf`, `preco_corte_dtf`, `cobranca_dtf` (quantidade / metro),
-  `cobrar_excedente_dtf`; a client's blank follows the dono's. Parâmetros, and
-  the client's page (`PrecosDtfDoClienteController`, the team's with
-  `ver_valores`).
-- **The etiqueta's unit price per size**: `PrecoDaEtiqueta` calculates
-  `arquivos.preco_unidade_calculado` (price per meter ÷ units per meter,
-  rounded up to the cent; the client's price unless a catálogo work, else the
-  dono's) with the fit (`EncaixeDaEtiqueta`) in the etiqueta's orientation
-  (`Arte#orientacao_dtf`), and again when a price per meter, the file's
-  client or the turn mark changes. `preco_unidade_combinado` is typed over
-  it (`PrecosDaEtiquetaController`) and stops following.
-- **The pedido** (`CobrancaDoPedidoDtf` on `Pedido`, `ValoresDoPedidoDtf`):
-  the charging and the excess cascade dono → cliente → pedido; each line's
-  unit price: edited (`itens_pedido_grade.preco_unidade`) > agreed >
-  calculated with the ordering client's price per meter > calculated; by
-  meter, the whole film; cortada, the cut on every printed unit. The team
-  edits them (`PrecosDoPedidoDtfController`); confirming writes the starting
-  (`*_partida`) and charged prices and the choices. `:sem_preco_dtf` blocks
-  confirming. A cliente final with "valores" open sees only what he pays.
-- **One table per etiqueta** (decided 14/10/2026): each line's starting
-  price, unit price and subtotal sit in the etiqueta's fit table
-  (`_item_dtf`, `_precos_da_linha_dtf`), its footer sums the etiqueta;
-  "Valores do pedido" (`_valores_dtf`) keeps only the etiquetas summed, the
-  film by meter, the cut and the total (`ValoresDoPedidoDtf::Valores#da_linha`,
-  `do_item`, `das_etiquetas`, `do_pedido`); the panel shows the total. The
-  pedido page computes the fit and the values once and passes them down.
-  Under 600px each row is a block (`.pedido-dtf-blocos`, cells labelled by
-  `data-rotulo`).
-- E2E: `e2e/precos-dtf.spec.js`.
-
-## The DTF's production (Etapa 2.6b2)
-
-Decided 15/10/2026, after the prices (2.6c):
-
-- **Stages** (`config/etapas_producao.yml`, `dtf:`): **Impressão** in meters
-  of film (`esperado: filme`, the dono's band warns) and **Corte** in units
-  (`unidade: unidades`, expected the units printed, excess included), locked
-  on the Impressão, only when the pedido is delivered cut — a stage's
-  `quando: { entrega: cortada }`, read by `EtapasProducao.do_tipo(tipo,
-  pedido:)` / `etapa(…, pedido:)` (the panel, the nav, the progress, the
-  delivery and the baixas pass the pedido). No Conferência or reposição yet.
-- **Lines** (`LinhasDeProducao`, `linhas: dtf`): one per etiqueta × size,
-  from `EncaixeDoPedidoDtf` (the fit written at confirmation), key
-  `<item>/<size>/<file>`, referência = the item; `Linha#encaixe` carries the
-  fit. `RegistrarBaixaService`, undoing, the progress and the delivery are
-  the calçado's.
-- **One page** for both stages (`ProducaoDtfController#show`,
-  `/pedidos/:uuid/dtf/producao/:etapa`; `caminho_da_etapa` and the old
-  `impressao` / `corte` / `baixar_impressao` send a DTF there). Under 600px
-  each size is a block (`.producao-dtf-tabela`, `data-rotulo`).
-- **The file for the RIP** (D4, once confirmed — a draft's fit still
-  changes): `ArquivoDtfParaRip` names it with the units printed
-  (`DTF-4_ENCRUZILHADA DO SUL_P_128un_girada.tif`); a size of an etiqueta
-  marked to turn goes turned 90°, a copy beside its version (`ArquivoGiradoDtf`,
-  `<version>/dtf/girada.<ext>`) made by `GirarArquivoDtfJob` on confirming or
-  when the Impressão page finds it missing ("preparando…", polling
-  `dtf/girados`). `GiroDeArquivo` wraps the tools: **TIFF with `tiffcrop -R
-  90`** (`libtiff-tools`) — ImageMagick 6 dropped one of two spot channels,
-  the white — then `BlocoPhotoshopDoTiff` copies back the Photoshop block
-  (tag 34377) holding the spots' names; PNG with ImageMagick; other formats
-  go as they are, `_girar-no-RIP`. A failure is marked and never retried.
-  Each line has its link (`dtf/arquivo?linha=`) and "Baixar as artes (.zip)"
-  zips them all (`dtf/arquivos`); both need `baixar_producao`. Specs inject
-  `FakeGiroDeArquivo`. Since 2.7c the page and downloads are the
-  `ProducaoSemCorte` concern, shared with the tecido.
-- E2E: `e2e/producao-dtf.spec.js`.
-
-## The tecido pedido (Etapa 2.7a)
-
-Decided 16/10/2026; 2.7 comes in three PRs (2.7a the pedido, 2.7b the prices
-and the minimum meters with its approval, 2.7c the production):
-
-- **Type from the item**: a corrida or a cor lisa goes into a **tecido**
-  pedido (`Pedido::TIPO_DA_ARTE`, `Pedido#tecido?`). Its client is the
-  pedido's like the DTF's (`Pedido#cliente_do_pedido?`,
-  `DO_CLIENTE_DO_PEDIDO`): the team picks it, a catálogo work goes into
-  anyone's, confirming never splits (`confirmar_sem_corte`). The shared page
-  settings live in `AjustesDoPedidoSemCorte` (`PedidosDtfController`,
-  `PedidosTecidoController`), the shared pendências in
-  `BloqueiosDoClienteDoPedido` (`:pedido_sem_cliente`,
-  `:arte_de_outro_cliente`).
-- **An item is an arte on a material**: `itens_pedido.materia_prima_id` (a
-  `tecido`), `metros` (one decimal — validated on what was typed, the
-  column's scale would round) and `largura_mm` (blank =
-  `MateriaPrima#largura_mm`; `ItemPedido#largura_efetiva_mm`); no grade, no
-  parts. The same arte on two fabrics is two items. Added from the card or
-  the page's search (`BuscaDeObras`: number, name, a cor lisa's family) with
-  its meters; a blank material takes the cor lisa's (`Arte#materia_prima`).
-- **Whose fabric** (`pedidos.dono_tecido`: cliente / empresa), once for the
-  whole pedido (decided in 2.3, 09/10/2026); only the empresa's will be
-  charged (2.7b). Each fabric in the item's select shows that owner's
-  balance (`saldo_do_tecido`, information only; never the empresa's to a
-  cliente final).
-- **The cliente final** changes his draft's fabric, meters and owner; the
-  width is the team's (how far the RIP repeats the module) and so is the
-  client.
-- **Pendências** (`PedidoBloqueiosTecido`): no client, an arte of another
-  client, no fabric, 0 m, no width (`:sem_largura`, the factory's). Wider
-  than the default paper (`Empresa#largura_papel_efetiva_mm`) is a
-  **warning** on the item (`aviso_de_largura`), never a block — the factory
-  may have a wider paper.
-- Its production stages came in 2.7c (see "The tecido's production").
-- E2E: `e2e/pedido-tecido.spec.js`.
-
-## The tecido's prices (Etapa 2.7b)
-
-Decided 17/10/2026:
-
-- **Print per meter**, the same for a corrida and a cor lisa at any width:
-  the dono's (`Empresa#preco_impressao_metro_tecido`, Parâmetros "Tecido"),
-  else nothing; a client may have his own agreed
-  (`Client#preco_impressao_metro_tecido`, his page, `PrecosTecidoDoClienteController`,
-  the team's with `ver_valores`). The **fabric** is charged only when the
-  pedido's `dono_tecido` is `empresa`, at its material's
-  `MateriaPrima#preco_metro`.
-- **Per item** (`PrecosDoItemTecido` on `ItemPedido`): the edited price
-  (`itens_pedido.preco_impressao_metro` / `preco_tecido_metro`, the team's,
-  `PrecosDoPedidoTecidoController`) over the starting one, which stays beside
-  to measure the discount; confirming writes both (`*_partida`,
-  `ValoresDoPedidoTecido.gravar!` in `confirmar_sem_corte`). A confirmed item
-  reads what was written. `ValoresDoPedidoTecido` gives each item's charges,
-  the print and fabric summed, the total, the discount and `faltas`.
-- **Minimum meters per item** (`Empresa#metragem_minima_tecido`, the dono's
-  only; blank = none): below it the item is the pendência
-  `:abaixo_do_minimo` — the **client's** (outside `DA_FABRICA`: he sees the
-  minimum and may raise his meters) — until someone with the action
-  `aprovar_abaixo_do_minimo` (team only, `ACOES_DA_EQUIPE`; no função
-  got it by migration) approves it (`MinimoDoTecidoController`,
-  `ItemPedido#aprovar_minimo!`). The approval holds while the meters are the
-  approved ones (`minimo_aprovado_metros`); who and when stay recorded.
-  Charged on the real meters.
-- **Without price, no confirming**: `:sem_preco_impressao` (link to
-  Parâmetros for the dono) and `:sem_preco_tecido` (link to Materiais), the
-  factory's.
-- **What each sees**: the team with `ver_valores` edits each item's prices
-  (`_precos_do_item_tecido`) and sees "Valores do pedido" (`_valores_tecido`)
-  with the discount; a cliente final with "valores" open sees only what he
-  pays per meter and the subtotal, and the panel's total.
-- E2E: `e2e/precos-tecido.spec.js`.
-
-## The tecido's production (Etapa 2.7c)
-
-Decided 19/10/2026:
-
-- **Stages** (`config/etapas_producao.yml`, `tecido:`): **Impressão** (the
-  paper) and **Calandra** (onto the fabric, locked on the line's
-  Impressão), both in meters, the item's meters expected (`esperado:
-  metros`, the dono's band warns); a baixa per line or for the pedido. No
-  Conferência or reposição yet.
-- **Lines** (`LinhasDeProducao`, `linhas: tecido`): one per item (arte ×
-  fabric), key `<item>/<file>`; an item without fabric, meters or width is
-  left out (a draft's pendência). Baixas, undoing, the progress and the
-  delivery are the calçado's.
-- **Compacted at upload** (Q2, so a pedido finds it ready):
-  `ArquivoCompactadoTecido` keeps a copy beside the version
-  (`<version>/tecido/compactado.<ext>`), queued (`CompactarArquivoTecidoJob`)
-  when a corrida's or cor lisa's version finishes processing or an arte
-  becomes one (callbacks on `ArquivoVersion`, `TipoDaArte`); existing files:
-  `bin/rails producao:compactar_tecido`. `CompactacaoDeArquivo` wraps the
-  tool: **TIFF with `tiffcp -c lzw:2`** (`libtiff-tools`), then
-  `BlocoPhotoshopDoTiff` copies the spots' names back (tiffcp alone dropped
-  them); other formats, a failure or a result not smaller send the
-  original. Specs inject `FakeCompactacaoDeArquivo`. The queue and failure
-  marks are `CopiaDaVersao`'s, shared with the DTF's turned copy.
-- **One page** for both stages (`ProducaoTecidoController#show`,
-  `/pedidos/:uuid/tecido/producao/:etapa`; `caminho_da_etapa` and the
-  calçado's pages send a tecido there): fabric, width and meters per line;
-  on the Impressão, once confirmed, each item's file for the RIP
-  (`ArquivoTecidoParaRip`: `CR-12_FLORAL_12,5m_1400mm.tif`, the meters and
-  the width to repeat the module) and "Baixar as artes (.zip)"; a missing
-  copy is queued and shows "compactando…" (polling `tecido/compactados`).
-  The page and the downloads are `ProducaoSemCorte` (the DTF's controller
-  includes it too); the files need `baixar_producao`.
-- E2E: `e2e/producao-tecido.spec.js`.
-
-## Official catalog (Etapa 1.1, 3/5)
-
-Produto (with its grade of individual sizes) and Modelo (the category, with
-an abbreviation) are the **official Neajud list**, the same in every
-company: `config/catalogo_oficial.yml`, with fixed uuids.
-
-- **Loading:** `CatalogoOficial.sincronizar!` (`bin/rails catalogo:sincronizar`)
-  runs after every `db:prepare` (so on deploy and `bin/setup`) and in `bin/e2e`
-  after the truncate. Safe to repeat: matched by uuid, updated in place; what
-  left the file goes to the trash (`changed_by: "catalogo_oficial"`), comes
-  back if listed again. A record with the same name but not in the list (a
-  dev sample) is adopted — it takes the official uuid.
-- **Read only for the company:** `/modelos` lists them by produto; no
-  create/edit/destroy routes, and they aren't restorable from `/lixeira`.
-  To add one, edit the YAML in a PR.
-- **Molde:** chooses a stretch of its produto's grade (`tamanho_inicial`,
-  `tamanho_final`, validated; `Molde#grade` lists it) and has its **own parts**
-  (`molde_pecas`, added/removed on the molde page, each "corta / não corta").
-  Categories have no pieces: nothing is copied from them.
-- ⚠️ **A modelo is shared by every client**, so anything that falls back to
-  "cortes of the same modelo" must stay inside the client:
-  `Arquivo.cortes_do_molde` and `MoldMatchService` only take cortes of the
-  molde's / arte's client (an arte picked another client's corte and sizes
-  when the fallback didn't).
-- **A molde's cortes come from the molde, never from "the category":** the
-  arte's Size Selection (`/pecas/for_cascade` and `/tamanhos/for_cascade`,
-  called with `molde_uuid`) lists `Arquivo.cortes_do_molde` like the automatic
-  search and the pedido. Filtering by category + client listed nothing once a
-  molde moved to the official "Tenis" while its cortes kept the old category,
-  and could list another molde's cortes (fixed 01/10/2026).
-- E2E: `e2e/support/catalogo.js` (`modeloOficial`, `adicionarPartes`); specs
-  pick an official modelo instead of registering one — use a different one
-  per spec when cortes could meet in the fallback.
-
-## Molde code (Etapa 1.1, 4/5)
-
-A molde is named `NNN-ABR` + optional suffix ("002-TNS Furado"):
-
-- `numero`: per client, all categories together, **never reused** (the max
-  includes trashed moldes; unique index `client_id, numero`). The client is
-  fixed once created (validation + the edit dialog hides it).
-- The abbreviation is the modelo's, so changing the modelo turns 002-TNS into
-  002-JGG; `sufixo` is free text. `nome` **stores the assembled name**
-  (`Molde#montar_nome`, before validation) for search and sorting — never
-  assign it directly. When the official list changes an abbreviation,
-  `CatalogoOficial` calls `Molde#atualizar_nome!` on that modelo's moldes.
-- A modelo is required on create (the code needs its abbreviation).
-- `variacao_de`: a variation of any molde, **also another client's** (it
-  follows its own client's numbering). Set only on create; it is born with the
-  base's modelo and grade (when not given), its parts (with "corta/não corta")
-  and its corte links (`arquivo_moldes`) — a copy, not inheritance (that is
-  Fase 5). `version`, `base_id`, `published_at` exist for Fase 5, unused.
-- Forms send `molde[sufixo]`, never `molde[nome]`; JSON search results carry
-  `nome`, `codigo` and `sufixo` (E2E specs find their molde by `sufixo`).
-
-## Referência, Nome and the full name (Etapa 1.1, 5/5)
-
-An arte (`category: "artes"`) has a `Referencia` (a grouping inside one molde:
-"19", "Fuel"; unique per molde ignoring case/accents — `TextoComparavel`) and a
-free `nome` ("Bluey Azul"). `NomeDeArte` (concern in `Arquivo`):
-
-- `nome_completo` — computed, never stored: molde code, referência, nome, part,
-  size, empty pieces skipped (`001-TNS_19_Bluey Azul_Lateral_29-30`);
-  `para_arquivo: true` drops accents and path characters. The arte download
-  (`ArquivosController#download`) uses it as the file name.
-- **Filled automatically** when the molde is chosen (`update_molde`) or the arte
-  is linked from a pedido (`VincularArteService`): `ajustar_referencia_e_nome!`
-  drops another molde's referência and reads blanks from the file name
-  (`NomeDoArquivo`: leading number = referência, created in the molde when
-  missing; parts and sizes left out — "19-BLUEY PTO-LINGUA" → 19, "BLUEY PTO").
-  Edited on the arte page (`NomesArteController#update`).
-- **Same arte uploaded twice** = same molde, referência, comparable nome and
-  **size** (`artes_com_mesmo_nome`; per size until Etapa 1.2 groups sizes into
-  one arte): the newer page offers "Make it a new version of that arte" →
-  `JuntarArteRepetidaService` copies its file as the original's new version in
-  use (`Arquivo#nova_versao!`, shared with `upload_version`) and trashes the
-  newer record. Refused when the newer one is already in a pedido.
-- Inflection: `referencia/referencias` (without it Rails looked for a table
-  `referencia`).
 
 ## Logical deletion (Etapa 0.4)
 
@@ -1574,8 +543,8 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
 `RAILS_ENV=development`, it would destroy all development data. The script
 has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 
-⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
-test, but an earlier `export RAILS_ENV=development` in the shell can override it.
+An earlier `export RAILS_ENV=development` in the shell is what would do it:
+`unset RAILS_ENV` before running it.
 
 ⚠️ Never run `bin/rspec` while `bin/e2e` is running: both use the **same test
 database**, and each one's cleanup (RSpec transactions/truncation, `bin/e2e`'s
@@ -1593,10 +562,7 @@ vanishing mid-spec, not real failures. Run them one after the other.
 - `bin/e2e` only ever stops a **leftover test server** on the E2E port
   (checked via `RAILS_ENV=test` in `/proc/<pid>/environ`). Anything else on
   that port — a dev server, another app — is refused with a message, never
-  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`. Zombies
-  (`<defunct>`, exited but not reaped) are ignored: their environ can't be
-  read, and taking one for "a non-test process" failed CI after every spec
-  passed (PR #133). Step 5 also waits for its own server to free the port.
+  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`.
 - Running one spec by hand:
   `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
   `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).
@@ -1613,16 +579,9 @@ vanishing mid-spec, not real failures. Run them one after the other.
   behind it: `tr '\0' '\n' < /proc/$(lsof -t -iTCP:3000 -sTCP:LISTEN)/environ | grep RAILS_ENV`
   (empty = development).
 
-**Historical note (Sep 2026):** both servers used to share port 3000.
-`bin/e2e` stopped the dev server and put the test server in its place for
-the whole run (minutes per run, several runs in a row), so `localhost:3000`
-silently showed test data. No data was lost — only what was being served
-changed. Step 1 was also `pkill -f "puma"` / `pkill -f "rails server"`,
-which matched every process's full command line and killed any shell whose
-command contained those words, including the one that launched `bin/e2e`
-(silent exit 144). The same applies to any `pkill -f`/`pgrep -f` you run
-yourself: never put its pattern in the same command line. Select processes
-by port (`lsof -t -iTCP:<port> -sTCP:LISTEN`) instead.
+Never put a `pkill -f`/`pgrep -f` pattern in the same command line: it matches
+the shell running it (an old `bin/e2e` killed itself this way, exit 144).
+Select processes by port (`lsof -t -iTCP:<port> -sTCP:LISTEN`) instead.
 
 If a run is interrupted (killed shell, Ctrl-C), check for orphans before the
 next run — a leftover `node e2e/*.spec.js` + Chromium keeps hitting the new
@@ -1652,34 +611,12 @@ version's status changes):
   cards carry `data-status` and `data-filename`;
 - the arquivo page and the pedidos using the arte morph-refresh **only when
   processing ends** — never mid-edit.
-- Each goes only to who may see it, over `AoVivoChannel` (see "Visibility",
+- Each goes only to who may see it, over `AoVivoChannel` (see `docs/dominio/acesso.md`,
   3b): subscribe with `canal_dos_cartoes` / `canal_do_registro`, refresh with
   `CanaisAoVivo.recarregar`, never `turbo_stream_from` / `broadcast_refresh`.
 
-**Automatic tamanho search (Etapa 0.6, 1/3):** picking an arte's molde
-(`update_molde`) no longer runs `MoldMatchService` in the request (measured up
-to 37 s on dev data): `Arquivo#buscar_tamanho_em_fila!` sets
-`buscando_tamanho_desde` and enqueues `TamanhoAutoAssignJob`, which always
-clears it and `broadcast_refresh`es the arte page (found or not). Meanwhile
-Size Selection shows "Procurando tamanho…" with the `processamento`
-controller polling `GET /arquivos/:uuid/busca_tamanho.json`; a mark older than
-10 minutes counts as over (a dead job never leaves the page waiting).
-`TamanhoAutoAssignJob.matcher` is injectable (`FakeMoldMatcher` in specs).
-
-**Preparing a corte's tamanhos (Etapa 0.6, 2/3 + 3/3):** `organize` and
-`configure_layers` only save what was chosen and call
-`Arquivo#preparar_tamanhos_em_fila!(redetectar:)` → `PreparacaoTamanhosJob`
-(re-detects via `DxfOrganizationService.call` after a failed organize, else
-`generate_tamanho_previews`). Each size's DXF is extracted once, to
-`Tamanho#dxf_extraido_path` (`<version>/tamanho_previews/<position>.dxf`,
-next to its preview), and production's download serves that file — extracting
-it on the spot only if asked before it is ready or older than the version
-(`tmp/tamanho_extracts/` is no longer used). The corte page shows "Preparando
-os tamanhos…" polling `GET /arquivos/:uuid/preparacao_tamanhos.json`; same
-10-minute expiry (`Arquivo::TAREFA_EM_FILA_EXPIRA`). The organizer is
-injectable (`PreparacaoTamanhosJob.organizador`, `FakeOrganizadorDxf`).
-Previews feed the automatic tamanho search: an arte linked while its corte is
-still preparing falls back to dimensions or to picking the size by hand.
+The automatic size search and preparing a corte's sizes run here too:
+`docs/dominio/catalogo.md`.
 
 Gotchas found while building it:
 
@@ -1699,38 +636,16 @@ Gotchas found while building it:
   `processamento` Stimulus controller, which polls `GET /arquivos/:uuid/processamento`
   every 2s until the state is final (card: swaps itself via turbo-stream; pages:
   reload). The E2E "Without the live connection…" blocks WebSocket to prove it.
-- E2E: `uploadFileAndWait` / `submitUploadAndWait` (`e2e/support/upload.js`)
-  wait for **the files the upload created** — `POST /arquivos` answers JSON
-  `{ uuid, arte_uuid }`, `upload_controller.js` keeps them in the form's
-  `data-upload-enviados` — polling `processamento.json` until final, so specs
-  can keep assuming a processed file. Waiting for a card by file name was
-  satisfied by an older namesake (CI 05/10/2026: a processed `01-no_spot.tif`
-  while the new `01-no_spot.psd` was still processing).
 
 ## db/seeds.rb is empty on purpose
 
-There is no seed data. `GrupoMaterial`, `CorMaterial` and `Client` are all
-managed through the app itself — Materiais page "+ Register new" dialogs
-(`create_grupo`/`create_cor`) and `/clients` — so nothing needs to pre-exist
-before the app can be used. `CorMaterial` names are capped to
-`CorMaterial::COLOR_HEX`'s known set via the "Register New Color" dialog
-(so every color always has a real swatch, never the `#CCCCCC` fallback);
-`GrupoMaterial` and `Client` names are freeform.
-
-Historical note (Sep 2026): db/seeds.rb used to create demo Clients
-("Fagner", "Lipe") plus a fixed list of GrupoMaterial/CorMaterial names.
-E2E specs hardcoded those names — removing the seed meant giving
-`e2e/{clients,moldes,materiais,movimentos,pedidos}.spec.js` their own
-`ensureGrupo`/`ensureCor`/`ensureClient`-style setup instead, so each test
-provisions what it needs through the app's own endpoints rather than
-assuming global fixtures.
+No seed data: materials and clients are created through the app, and each E2E
+spec provisions what it needs through the app's own endpoints
+(`ensureGrupo`/`ensureCor`/`ensureClient`). `CorMaterial` names are capped to
+`CorMaterial::COLOR_HEX` so every color has a real swatch.
 
 ## Key constraints
 
-- Time fields use the `h:mm` mask (e.g. `130` → 1:30, `2430` → 24:30), parsed by
-  `ArquivosController#parse_hmm`.
-
-- Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
 - Every route, JSON and form value uses the `uuid` — see "Public identifiers are uuids"
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
 - CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
@@ -1738,35 +653,22 @@ assuming global fixtures.
   The e2e job runs `bash bin/e2e` — the same entry point as local runs.
 - `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs. A new
   `e2e/*.spec.js` must be added there; the script aborts if any spec file is
-  unlisted (before Sep 2026 CI ran only `arquivos.spec.js` and
-  `moldes.spec.js` ran nowhere; since Etapa 1.1 (2/5) that file is `modelos.spec.js`).
+  unlisted (a spec missing there ran nowhere until Sep 2026).
 - The former `e2e/arquivos.spec.js` is split into `arquivos-*.spec.js` and
   `pages-*.spec.js` (contiguous chunks, original order). They share one test
   DB, truncated once per `bin/e2e` run, and some reuse earlier files' data —
   keep their order in `E2E_SPECS`. Shared harness: `e2e/support/runner.js`
   (`runSpec`), fixture paths: `e2e/support/fixtures.js`.
-- System dependencies: `imagemagick`, `exiftool`, `libtiff-tools` packages required
 
 ## Code names vs docs/plano.md names
 
-The plan renames things; until those stages land, the code keeps its names:
+Where the code's name differs from the plan's:
 
-| docs/plano.md | Code today |
+| docs/plano.md | Code |
 |---|---|
-| Produto | `Produto` (official list, `config/catalogo_oficial.yml`) |
-| Modelo (categoria, e.g. Jogging [JGG]) | `Modelo` (was `Molde` until Etapa 1.1, 2/5) |
-| Molde (the client's form, e.g. 002-TNS Furado) | `Molde` (was `Modelo` until Etapa 1.1, 2/5) — the names swapped in migration `TrocaMoldeModelo` |
-| Referência, Nome (group artes: "20 · Bluey Azul") | `Referencia` (per molde) + `Arquivo#nome` — see "Referência, Nome and the full name"; not catalog, not versioned |
+| Modelo (the official category, e.g. Jogging [JGG]) | `Modelo` |
+| Molde (the client's form, e.g. 002-TNS Furado) | `Molde` — the two names swapped in migration `TrocaMoldeModelo` (Etapa 1.1, 2/5) |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
-| Arte | `Arte` (the envelope) + its `Arquivo`s with `category: "artes"`, one per part × size |
-| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual, with a grade type per corte: Par, Ímpar, P/M/G, Furada) |
-| Etiqueta DTF, Estampa corrida, Cor lisa | don't exist yet (Etapas 2.5–2.7); today uploaded as plain artes (samples only — the beta starts with an empty database) |
-
-## Known gaps vs docs/plano.md
-
-Current code that still differs from the plan — don't copy these patterns into new work:
-
-- **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
-  testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
-  `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).
+| Arte | `Arte` (the envelope) + its `Arquivo`s with `category: "artes"` |
+| Pessoa | `User` |

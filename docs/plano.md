@@ -442,6 +442,8 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
 Cada cliente hospedado roda seu próprio Neajud Server; o servidor local (Fase 8) vem depois e roda o mesmo código. Nada de sistema multiempresa com `company_id` nas tabelas.
 
+**Logs estruturados (decidido em 19/10/2026):** os logs em JSON entram aqui, quando houver onde lê-los; até lá, um log de falha diz o quê, de qual registro (uuid) e o erro, numa linha (AGENTS.md, Logging).
+
 **Etapa 3.1 — Instância por cliente.** Um container por cliente, com SQLite e `storage/` próprios, criado automaticamente na assinatura. Endereço por cliente (ex: `empresa.neajud.com`). Deploy com Kamal.
 
 **Etapa 3.2 — Limites por cliente.** Número máximo de jobs de processamento simultâneos, e memória e CPU limitadas por container, para um cliente não travar os outros.

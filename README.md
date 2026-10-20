@@ -13,6 +13,7 @@ ImageMagick, exiftool e scripts Node (UTIF.js, dxf) para prévias e extração d
 | Documento | Conteúdo |
 |---|---|
 | [AGENTS.md](AGENTS.md) | Como trabalhar no código hoje: estilo, testes, comandos, fluxo de PR, armadilhas conhecidas |
+| [docs/dominio/](docs/dominio/) | O domínio por área (pedido do calçado, produção, estoque, artes, DTF, tecido…), lido conforme o que se mexe |
 | [docs/plano.md](docs/plano.md) | Para onde o produto vai: visão, domínio, fases e regras para o agente |
 | [docs/contexto-claude-code.md](docs/contexto-claude-code.md) | Ordem de lançamento, decisões das sessões e temas em aberto |
 
