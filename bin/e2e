@@ -62,6 +62,31 @@ for file in e2e/*.spec.js; do
   fi
 done
 
+# --alterados / --area <name> (decided 19/10/2026): run only what the change
+# needs, from e2e/areas.yml (bin/e2e-selecao). Local only — CI runs bin/e2e
+# without them, so the whole suite still guards every PR. Other arguments
+# (--headed) go to each spec.
+SPEC_ARGS=()
+SELECAO=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --alterados) SELECAO=(--alterados); shift ;;
+    --area) SELECAO=(--area "$2"); shift 2 ;;
+    *) SPEC_ARGS+=("$1"); shift ;;
+  esac
+done
+if [ ${#SELECAO[@]} -gt 0 ]; then
+  echo "Selecting specs (${SELECAO[*]}):"
+  ESCOLHIDOS="$(bin/e2e-selecao "${SELECAO[@]}" -- "${E2E_SPECS[@]}")" || exit 1
+  if [ -z "$ESCOLHIDOS" ]; then
+    echo "No E2E needed for these changes (docs, RSpec or tooling only)."
+    exit 0
+  fi
+  mapfile -t E2E_SPECS <<<"$ESCOLHIDOS"
+  echo "       Running: ${E2E_SPECS[*]}"
+  echo ""
+fi
+
 # Logs kept per run (requests.log, server.log, spec markers): bin/e2e-logs.sh.
 # shellcheck source=bin/e2e-logs.sh
 source "$(dirname "$0")/e2e-logs.sh"
@@ -192,7 +217,7 @@ EXIT_CODE=0
 FAILED_SPECS=()
 for spec in "${E2E_SPECS[@]}"; do
   mark_spec "$spec"
-  node "e2e/${spec}.spec.js" "$@" || { EXIT_CODE=1; FAILED_SPECS+=("$spec"); }
+  node "e2e/${spec}.spec.js" "${SPEC_ARGS[@]}" || { EXIT_CODE=1; FAILED_SPECS+=("$spec"); }
 done
 if [ "$EXIT_CODE" -ne 0 ]; then
   echo "       Failed specs: ${FAILED_SPECS[*]}"

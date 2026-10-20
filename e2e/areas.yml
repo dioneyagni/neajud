@@ -1,0 +1,167 @@
+# Which E2E specs a change needs (bin/e2e --alterados / --area <name>,
+# decided 19/10/2026). Local only: CI always runs the whole suite, so a
+# missing pattern costs at worst a red CI, never a regression on main.
+#
+# A changed file is matched, in this order, against:
+#   sem_e2e  — no E2E at all (docs, RSpec, tooling);
+#   global   — the whole suite;
+#   areas    — every area whose patterns match (a file may hit several);
+# anything else runs the whole suite too: in doubt, run everything.
+# Patterns are File.fnmatch globs (FNM_PATHNAME | FNM_EXTGLOB): "**/" is any
+# folder, {a,b} alternatives. A changed e2e/<name>.spec.js runs that spec.
+
+# Creates the user every other spec signs in as.
+sempre: [autenticacao]
+
+# The former arquivos.spec.js: later files reuse data the earlier ones
+# uploaded, so any of them runs all of them, in E2E_SPECS order.
+bloco:
+  - arquivos-upload
+  - arquivos-previews
+  - arquivos-versions
+  - arquivos-dxf-organization
+  - arquivos-client-field
+  - arquivos-size-selection
+  - arquivos-molde-unlink
+  - arquivos-dialog-modal
+  - pages-clients-modelos-pecas
+  - pages-moldes-materials
+  - arquivos-gallery
+  - arquivos-auto-detection
+  - arquivos-corte-comparison
+  - arquivos-unique-corte
+  - arquivos-nome-arte
+
+sem_e2e:
+  - "docs/**/*"
+  - "**/*.md"
+  - "spec/**/*"
+  - "test/**/*"
+  - ".github/**/*"
+  - ".kamal/**/*"
+  - "{.gitignore,.gitattributes,.dockerignore,.rubocop.yml,.rspec,Dockerfile}"
+  - "config/{deploy.yml,ci.rb,brakeman.yml,brakeman.ignore,bundler-audit.yml}"
+  - "bin/{brakeman,bundler-audit,check-residues,ci,kamal,rubocop,rspec,dev-backup,dev-restore,docker-entrypoint,thrust,setup,dev,jobs}"
+  - "lib/tasks/{artes,pedidos,producao}.rake"
+  - "**/.keep"
+  - "{log,tmp,storage,script}/**/*"
+
+global:
+  - "{Gemfile,Gemfile.lock,package.json,package-lock.json,config.ru,Rakefile}"
+  - "db/**/*"
+  - "config/{routes.rb,application.rb,environment.rb,boot.rb,puma.rb,database.yml,cable.yml,queue.yml,cache.yml,recurring.yml,importmap.rb,image_policy.xml}"
+  - "config/{initializers,environments,locales,icc}/**/*"
+  - "lib/ban_middleware.rb"
+  - "lib/tasks/catalogo.rake"
+  - "config/catalogo_oficial.yml"
+  - "public/**/*"
+  - "vendor/**/*"
+  - "app/views/{layouts,shared,pwa}/**/*"
+  - "app/assets/stylesheets/{application,pedido}.css"
+  - "app/assets/images/**/*"
+  - "config/credentials.yml.enc"
+  - "e2e/*.{dxf,tif,png}"
+  - "app/javascript/application.js"
+  - "app/javascript/controllers/{index,application}.js"
+  - "app/javascript/controllers/{flash,dialog,combobox,async_form,auto_submit,processamento,edit_toggle,toggle_switch}_controller.js"
+  - "app/controllers/application_controller.rb"
+  - "app/controllers/concerns/{authentication,controle_de_acesso,controle_de_visibilidade,numero_digitado}.rb"
+  - "app/helpers/{application,excluivel,valores}_helper.rb"
+  - "app/models/{application_record,current,arquivo,arquivo_version,arte,pedido,item_pedido,empresa,client,file_category,texto_comparavel,sequencia}.rb"
+  - "app/models/concerns/{gera_uuid,atribui_por_uuid,referencia_ativa,excluivel,membro_de_arte,tipo_da_arte}.rb"
+  - "app/jobs/{application_job,arquivo_processing_job}.rb"
+  - "app/channels/**/*"
+  - "app/models/{canais_ao_vivo,visibilidade,autorizacao}.rb"
+  - "app/helpers/{canais_ao_vivo,visibilidade}_helper.rb"
+  - "e2e/support/**/*"
+  - "e2e/areas.yml"
+  - "bin/{e2e,e2e-logs.sh,e2e-selecao,rails,rake,importmap}"
+
+areas:
+  arquivos:
+    specs: [bloco]
+    arquivos:
+      - "app/controllers/{arquivos,agrupamentos_upload,tamanhos,pecas,nomes_arte}_controller.rb"
+      - "app/views/{arquivos,pecas}/**/*"
+      - "app/helpers/arquivos_helper.rb"
+      - "app/javascript/controllers/{upload,conferencia_upload,batch_select,size_cascade,layer_config,tipo_corte,tipo_grade,giro_corte,range_slider,time_mask,color_picker,grade_editor,client_select,group_select}*.js"
+      - "app/services/{agrupamento_do_upload,arquivo_upload_service,arquivo_batch_destroy_service,file_validator,mold_match_service,dxf_*,tamanho_*,cut_layer_configuration_service,nome_do_arquivo,upload_time_estimator,cobertura_da_grade,grade_do_corte,encaixe_do_tamanho}.rb"
+      - "app/models/{arquivo_*,tamanho,cut_layer,peca,ban}.rb"
+      - "app/models/concerns/{nome_de_arte,giro_no_encaixe,lado_na_arte,papel_na_arte}.rb"
+      - "app/jobs/{abuse_detection,preparacao_tamanhos,tamanho_auto_assign,metros_por_peca}_job.rb"
+      - "bin/{generate-preview.js,generate-dxf-preview.js,detect-tamanhos.js,extract-tamanho-dxf.js,measure-dxf.js,encaixe-dxf.js}"
+  cadastros:
+    specs: [clients, clients-cortes, moldes, modelos]
+    arquivos:
+      - "app/controllers/{clients,moldes,modelos,pecas}_controller.rb"
+      - "app/views/{clients,moldes,modelos,pecas}/**/*"
+      - "app/models/{molde,molde_peca,modelo,produto,referencia}.rb"
+      - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
+      - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
+  estoque:
+    specs: [materiais, movimentos]
+    arquivos:
+      - "app/controllers/{materiais,movimentos,parametros_empresa}_controller.rb"
+      - "app/controllers/concerns/movimento_creatable.rb"
+      - "app/views/{materiais,movimentos,parametros_empresa}/**/*"
+      - "app/models/{materia_prima,movimento_estoque,grupo_material,cor_material}.rb"
+      - "app/services/saldos_de_estoque.rb"
+      - "app/javascript/controllers/movimento_dono_controller.js"
+  artes:
+    specs: [artes-arquivos, upload-agrupamento, tipo-da-arte, aprovacoes, arquivos-tipo-grade, cor-lisa]
+    arquivos:
+      - "app/controllers/{artes,arte_arquivos,tipos_da_arte,aprovacoes,solicitacoes_aprovacao,cores}_controller.rb"
+      - "app/views/{aprovacoes,cores}/**/*"
+      - "app/helpers/aprovacoes_helper.rb"
+      - "app/models/{alteracao_arte,aprovacao_arte,solicitacao_aprovacao,familias_de_cor,medida_de_cor,delta_e2000}.rb"
+      - "app/models/concerns/{aprovavel,cancelavel,versao_de_arte}.rb"
+      - "app/services/{anexo_de_aprovacao,registrar_aprovacao_service,juntar_*,busca_de_obras,cartela_de_cores,cores_parecidas,recompor_rascunhos}.rb"
+      - "app/jobs/medir_cor_job.rb"
+      - "app/javascript/controllers/trazer_artes_controller.js"
+      - "config/familias_de_cor.yml"
+  calcado:
+    specs: [pedidos, pedidos-pecas, pedido-por-arte, precos-do-molde, producao-baixas]
+    arquivos:
+      - "app/controllers/{pedidos,faixas_de_preco}_controller.rb"
+      - "app/views/pedidos/**/*"
+      - "app/helpers/pedidos_helper.rb"
+      - "app/models/{item_pedido_*,faixa_de_preco}.rb"
+      - "app/services/{pedido_bloqueios_service,resolucao_do_item,custo_por_par,valores_do_pedido,impressao_pedido_service,producao_pedido_service,dxf_do_tamanho,zip_de_arquivos,zips_temporarios}.rb"
+      - "app/javascript/controllers/{add_to_order,pedido_adicionar,pedido_counter,item_pecas,grade_matriz,grade_por_numero}_controller.js"
+  producao:
+    specs: [producao-baixas, producao-dtf, producao-tecido]
+    arquivos:
+      - "app/controllers/baixas_producao_controller.rb"
+      - "app/models/{baixa_producao,item_reposicao}.rb"
+      - "app/services/{etapas_producao,linhas_de_producao,registrar_baixa_service,desfazer_baixa_service,entregar_pedido_service,acumular_reposicao_service,liberar_reposicao_service,contagem_da_conferencia,andamento_do_pedido}.rb"
+      - "app/javascript/controllers/{baixa,entrega}_controller.js"
+      - "config/etapas_producao.yml"
+  dtf:
+    specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]
+    arquivos:
+      - "**/*dtf*"
+      - "**/*dtf*/**/*"
+      - "app/services/{encaixe_da_etiqueta,preco_da_etiqueta,giro_de_arquivo,bloco_photoshop_do_tiff,copia_da_versao,bloqueios_do_cliente_do_pedido}.rb"
+      - "app/controllers/precos_da_etiqueta_controller.rb"
+      - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
+  tecido:
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa]
+    arquivos:
+      - "**/*tecido*"
+      - "**/*tecido*/**/*"
+      - "app/services/{compactacao_de_arquivo,bloco_photoshop_do_tiff,copia_da_versao,bloqueios_do_cliente_do_pedido,busca_de_obras}.rb"
+      - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
+  acesso:
+    specs: [usuarios, funcoes, cliente-final, visibilidade-cliente, canais-ao-vivo, aprovacao-do-cliente, cliente-envia, cliente-rascunho]
+    arquivos:
+      - "app/controllers/{usuarios,funcoes,senhas,sessions,configuracao,visibilidade_do_cliente,visibilidade_padrao,envios_pedido,resposta_do_cliente}_controller.rb"
+      - "app/views/{usuarios,funcoes,senhas,sessions,configuracao,visibilidade_padrao}/**/*"
+      - "app/helpers/{funcoes,usuarios}_helper.rb"
+      - "app/models/{user,session,vinculo,funcao,tipos_para_cliente,evento_pedido}.rb"
+      - "app/services/{cadastro_de_usuario_service,gestao_de_usuarios,configuracao_inicial_service,funcoes_grade_service,envio_do_pedido,aprovar_no_sistema_service,pedir_alteracao_service}.rb"
+  lixeira:
+    specs: [lixeira]
+    arquivos:
+      - "app/controllers/lixeira_controller.rb"
+      - "app/views/lixeira/**/*"
+      - "app/models/exclusao_log.rb"
