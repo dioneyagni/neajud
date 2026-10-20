@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# Prints the E2E specs to run for bin/e2e (decided 19/10/2026): one name
+# per line on stdout, the reasons on stderr.
+#
+#   bin/e2e-selecao --alterados -- <E2E_SPECS…>   # files changed since main
+#   bin/e2e-selecao --area tecido -- <E2E_SPECS…>
+#
+# "Changed" = committed on this branch since it left main, plus uncommitted
+# and untracked files. Exit 1 on a wrong area or a spec in no area.
+require_relative "../lib/selecao_do_e2e"
+
+def alterados
+  base = `git merge-base main HEAD 2>/dev/null`.strip
+  base = `git merge-base origin/main HEAD`.strip if base.empty?
+  [ "git diff --name-only #{base}", "git diff --name-only HEAD", "git ls-files --others --exclude-standard" ]
+    .flat_map { |comando| `#{comando}`.split("\n") }.uniq
+end
+
+modo, valor = ARGV[0], ARGV[1]
+ordem = ARGV.drop_while { |a| a != "--" }.drop(1)
+Dir.chdir(File.expand_path("..", __dir__))
+begin
+  selecao = SelecaoDoE2e.new(areas: YAML.load_file("e2e/areas.yml"), ordem: ordem)
+  resultado = modo == "--area" ? selecao.da_area(valor) : selecao.dos_alterados(alterados)
+rescue SelecaoDoE2e::Invalida => e
+  warn "ERROR: #{e.message}"
+  exit 1
+end
+resultado.motivos.each { |m| warn "       #{m}" }
+warn "       → #{resultado.tudo ? "the whole suite" : "#{resultado.specs.size} of #{ordem.size} specs"}"
+puts resultado.specs

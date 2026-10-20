@@ -61,8 +61,8 @@ not in this file; this file only takes rules that hold for every change.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
   self-validating, timely.
 - Check the feature on the dev server (:3000) — see Workflow step 2 — then
-  run the E2E suite **once** (`bash bin/e2e`; `--headed` to watch a flow
-  while debugging). Three runs in a row were the rule while dev and test
+  run the E2E **once**, only what the change needs: `bash bin/e2e --alterados`
+  (or `--area <name>`; `--headed` to watch a flow while debugging). Three runs in a row were the rule while dev and test
   shared a port and processing waited on fixed delays (Sep 2026); both are
   gone, and CI runs the whole suite on every PR.
 - An intermittent failure is never "noise". Before calling it unrelated to
@@ -124,7 +124,20 @@ bin/brakeman --no-pager       # security scan (must stay at 0 warnings)
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
 bash bin/e2e                  # Playwright E2E (headless) on its own port :3001 — the dev server on :3000 keeps running
 bash bin/e2e --headed         # Playwright E2E (visible browser)
+bash bin/e2e --alterados      # only the specs the branch's changes need (e2e/areas.yml)
+bash bin/e2e --area tecido    # one area's specs
 ```
+
+`--alterados` reads the files changed since the branch left `main` (committed,
+uncommitted and new) and matches them against `e2e/areas.yml`
+(`bin/e2e-selecao`, `lib/selecao_do_e2e.rb`): docs and RSpec need no E2E; a
+global file (schema, routes, layout, the central models, `e2e/support/`) or a
+file in no area runs the whole suite; `autenticacao` always runs first, and
+any spec of the `arquivos-*`/`pages-*` block runs the whole block (they reuse
+each other's data). It prints why each area was chosen. **CI always runs the
+whole suite.** A new spec goes into `E2E_SPECS` **and** an area of
+`e2e/areas.yml` (both are checked); a new file that belongs to an area goes
+into its patterns — otherwise it just runs everything.
 
 **Pre-commit** (the one command to run before every push; CI runs the same checks):
 `bin/rspec && bin/rubocop && bin/brakeman --no-pager && bin/check-residues`
@@ -651,8 +664,9 @@ spec provisions what it needs through the app's own endpoints
 - CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
   bundler-audit, importmap audit, `bin/check-residues`, rubocop, rspec, and e2e.
   The e2e job runs `bash bin/e2e` — the same entry point as local runs.
-- `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs. A new
-  `e2e/*.spec.js` must be added there; the script aborts if any spec file is
+- `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs (and its
+  order). A new `e2e/*.spec.js` must be added there and to an area of
+  `e2e/areas.yml`; the script aborts if any spec file is
   unlisted (a spec missing there ran nowhere until Sep 2026).
 - The former `e2e/arquivos.spec.js` is split into `arquivos-*.spec.js` and
   `pages-*.spec.js` (contiguous chunks, original order). They share one test
