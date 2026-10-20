@@ -6,6 +6,7 @@ Este arquivo resume decisões e conversas que não estão (ou não estão comple
 
 - Primeiro analisar o código e discutir; só implementar depois de o plano ser aprovado.
 - Uma etapa do `docs/plano.md` por PR, com testes, seguindo o `AGENTS.md`.
+- **AGENTS.md por domínio (19/10/2026):** o AGENTS.md fica só com as regras de toda mudança; o domínio de cada área vai em `docs/dominio/<área>.md`, lido quando se mexe nela. Cada etapa nova documenta o seu domínio lá, não no AGENTS.md (era 1.772 linhas, ~26 mil tokens em toda sessão).
 - Toda decisão nova discutida em sessão deve ser registrada no `docs/plano.md`.
 
 ## Ordem de lançamento (prioridade)
