@@ -254,3 +254,14 @@ free `nome` ("Bluey Azul"). `NomeDeArte` (concern in `Arquivo`):
   newer record. Refused when the newer one is already in a pedido.
 - Inflection: `referencia/referencias` (without it Rails looked for a table
   `referencia`).
+
+### Tests of the arquivo page
+
+- **Range slider (click-to-edit)**: E2E test must verify: (1) click display → editor appears (hidden class removed), (2) edit value + Enter/blur → display and hidden input updated, (3) editor hidden again after commit
+
+### Arquivo page details
+
+- Time fields use the `h:mm` mask (e.g. `130` → 1:30, `2430` → 24:30), parsed by
+  `ArquivosController#parse_hmm`.
+
+- Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`

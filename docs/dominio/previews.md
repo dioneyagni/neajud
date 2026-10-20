@@ -93,3 +93,24 @@ The fix is in `bin/generate-preview.js`: after `toRGBA8()`, if `spp > 4`,
 copy the first 3 raw samples as RGB and set alpha=255, ignoring extra
 channels. This affects RGB+spot TIFFs (e.g. 02.tif has 5 samples:
 R,G,B,alpha,Spot_1 → we use R,G,B only).
+
+### E2E preview tests
+
+- `e2e/arquivos-previews.spec.js` covers all 4 raster preview strategies: RGB no-spot,
+  RGB spot, CMYK no-spot, CMYK spot.
+- Each preview test **must** verify: (1) status is `processed`,
+  (2) colorspace label matches expected, (3) preview image loads (200 OK,
+  `image/*` content-type), (4) preview has visible pixels (load into canvas,
+  check first 100x100 region for non-zero alpha + RGB).
+- CMYK spot is exempt from pixel validation (UTIF.js limitation).
+- Arquivo card selectors (CSS class is still `.stamp-card`) must match by
+  **filename without extension** using
+  `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
+  flaky clicks on wrong cards when multiple arquivos exist.
+- Run 3 times in succession to verify stability.
+
+### Preventing false positives (image tests)
+
+Tests that only check "does an image load at the URL" miss bugs where
+the image is all-transparent or wrong colorspace. Every image conversion
+test must validate **pixel content**, not just file existence.

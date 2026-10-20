@@ -109,3 +109,7 @@ os tamanhos…" polling `GET /arquivos/:uuid/preparacao_tamanhos.json`; same
 injectable (`PreparacaoTamanhosJob.organizador`, `FakeOrganizadorDxf`).
 Previews feed the automatic tamanho search: an arte linked while its corte is
 still preparing falls back to dimensions or to picking the size by hand.
+
+### Tests of a corte's tipo
+
+- **Tipo corte**: E2E tests must cover both positive (section appears on corte files with both radio buttons, default `corte_estampa`) and negative (section absent on arte files)

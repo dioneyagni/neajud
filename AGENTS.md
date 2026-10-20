@@ -11,9 +11,8 @@ Where things are documented — read the first three before proposing changes:
 | `docs/current-state.md` | Audit of the current code: models, routes, UUIDs, deletes, where processing runs, sublimation-specific vs generic |
 | `README.md` | Short overview and quick start |
 
-When this file and `docs/plano.md` disagree, the plan wins for **new** work; the
-"Known gaps vs docs/plano.md" list under Key constraints names what the current
-code still does differently. The two docs/ files are in Portuguese for now
+When this file and `docs/plano.md` disagree, the plan wins for **new** work.
+The docs/ files are in Portuguese for now
 (translating them is an open decision in `docs/plano.md`).
 
 | Working on… | Read |
@@ -38,7 +37,6 @@ not in this file; this file only takes rules that hold for every change.
 - One thing per function, one responsibility per module (SRP).
 - Names: specific and unique. Avoid `data`, `handler`, `Manager`.
   Prefer names that return <5 grep hits in the codebase.
-- Types: explicit. No `any`, no `Dict`, no untyped functions.
 - No code duplication. Extract shared logic into a function/module.
 - Early returns over nested ifs. Max 2 levels of indentation.
 - Exception messages must include the offending value and expected shape.
@@ -62,10 +60,11 @@ not in this file; this file only takes rules that hold for every change.
   not inline stubs.
 - Tests must be F.I.R.S.T: fast, independent, repeatable,
   self-validating, timely.
-- Test the Rails server, observe any errors in the console and correct them,
-  restart the dev server (:3000) when needed. When there are
-  no errors in the console, test e2e, then e2e --headed and check if
-  everything goes through. Correct what is necessary and test again.
+- Check the feature on the dev server (:3000) — see Workflow step 2 — then
+  run the E2E suite **once** (`bash bin/e2e`; `--headed` to watch a flow
+  while debugging). Three runs in a row were the rule while dev and test
+  shared a port and processing waited on fixed delays (Sep 2026); both are
+  gone, and CI runs the whole suite on every PR.
 - An intermittent failure is never "noise". Before calling it unrelated to
   your change: run the suite N times on your branch and N times on `main`,
   compare failure rates, and check request ordering in the failing run's
@@ -75,21 +74,14 @@ not in this file; this file only takes rules that hold for every change.
 
 ### E2E tests
 
-- `e2e/arquivos-previews.spec.js` covers all 4 raster preview strategies: RGB no-spot,
-  RGB spot, CMYK no-spot, CMYK spot.
-- Each preview test **must** verify: (1) status is `processed`,
-  (2) colorspace label matches expected, (3) preview image loads (200 OK,
-  `image/*` content-type), (4) preview has visible pixels (load into canvas,
-  check first 100x100 region for non-zero alpha + RGB).
-- CMYK spot is exempt from pixel validation (UTIF.js limitation).
-- Arquivo card selectors (CSS class is still `.stamp-card`) must match by
-  **filename without extension** using
-  `page.locator(".stamp-card").filter({ hasText: displayName })` to avoid
-  flaky clicks on wrong cards when multiple arquivos exist.
-- Run 3 times in succession to verify stability.
 - **Uploads**: always use `uploadFileAndWait(page, pathOrPaths)` or
   `submitUploadAndWait(page, n)` from `e2e/support/upload.js`. They wait for
-  `upload_controller.js` to report `Upload complete (N ok, 0 failed)`.
+  `upload_controller.js` to report `Upload complete (N ok, 0 failed)`, then
+  for **the files that upload created** (`POST /arquivos` answers
+  `{ uuid, arte_uuid }`, kept in the form's `data-upload-enviados`), polling
+  `processamento.json` until final — so a spec may assume a processed file.
+  Waiting for a card by file name was satisfied by an older namesake (CI
+  05/10/2026).
 - **Wait for proof, not time**: never `waitForTimeout` after an action, and
   never `waitForSelector` on something that already existed before the action
   (e.g. `.stamp-card` from the pre-upload gallery). Wait for a signal the
@@ -106,40 +98,29 @@ not in this file; this file only takes rules that hold for every change.
   as expected behavior — "Size Selection: hidden by default…" did exactly
   that until #75.
 
-### Preventing false positives
-
-Tests that only check "does an image load at the URL" miss bugs where
-the image is all-transparent or wrong colorspace. Every image conversion
-test must validate **pixel content**, not just file existence.
-
 ## Dependencies
 
 - Inject dependencies through constructor/parameter, not global/import.
 - Wrap third-party libs behind a thin interface owned by this project.
 
-## Structure
+## Structure and formatting
 
-- Follow the framework's convention (Rails, Django, Next.js, etc.).
-- Prefer small focused modules over god files.
-- Predictable paths: controller/model/view, src/lib/test, etc.
-
-## Formatting
-
-- Use the language default formatter (`cargo fmt`, `gofmt`, `prettier`,
-  `black`, `rubocop -A`). Don't discuss style beyond that.
+- Rails conventions; small focused modules over god files.
+- Ruby: `bin/rubocop` (rubocop-rails-omakase; `-A` fixes). JS, ERB and CSS
+  have no formatter: match the surrounding code.
 
 ## Logging
 
-- Structured JSON when logging for debugging / observability.
-- Plain text only for user-facing CLI output.
-
+- A log line for a failure in a job or service says **what** failed, **which
+  record** (its uuid) and the error, on one line. Structured JSON comes with
+  the hosted plan (Fase 3), when something reads the logs.
 
 ## Commands
 
 ```bash
 bin/rspec                     # unit + request tests (RSpec)
 bin/rubocop                   # lint (rubocop-rails-omakase)
-bin/brakeman --exit-on-warn   # security scan
+bin/brakeman --no-pager       # security scan (must stay at 0 warnings)
 bin/check-residues            # guard: debug statements, tmp/debug_*, Debug* records, orphan stamps, e2e/ leftovers
 bash bin/e2e                  # Playwright E2E (headless) on its own port :3001 — the dev server on :3000 keeps running
 bash bin/e2e --headed         # Playwright E2E (visible browser)
@@ -221,21 +202,25 @@ git checkout -b fix/what-was-done   # e.g. fix/per-color-measurements, add/png-e
 ```
 
 1. **Changes** — make the code changes.
-2. **Server check** — start the Rails server, exercise the feature in the browser, watch `log/development.log` for errors. Fix and re-check until the log is clean.
-3. **Browser console** — open DevTools, interact with the new UI, check for console errors. Fix and re-check.
-4. **Unit tests** — write tests for new public methods, add regression tests for fixed bugs. Run `bin/rspec` and fix the code until it passes.
-5. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
-6. **Final check** — back to the Rails server: test again, re-check `log/development.log` and the browser console. Fix if needed.
-7. **Final adjustments** — address whatever the final check surfaced.
-8. **Commit** — Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`; release notes are generated from them — `docs/plano.md`), subject + body with WHAT + WHY
-9. **Push** — `git push -u origin fix/what-was-done`
-10. **GitHub PR** — open a Pull Request.
-11. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
-12. **Merge** — through the GitHub UI, only if CI is green.
-13. **Cleanup** — delete the remote branch.
+2. **Server check** — on the dev server (:3000; restart it after schema,
+   `config/`, initializer or Gemfile changes), open the new pages with
+   Playwright and watch `log/development.log` and the browser console. The
+   development database and `storage/stamps/` hold real data: **read only** —
+   never create, change or delete records there without the human's
+   agreement (exercise writes in the E2E suite instead).
+3. **Unit tests** — write tests for new public methods, add regression tests for fixed bugs. Run `bin/rspec` and fix the code until it passes.
+4. **E2E tests** — write Playwright tests covering every new use case and UI interaction (buttons, fields, drag-and-drop, etc.). Don't break existing tests.
+5. **Final check** — back on the dev server: the pages again, the log and the console.
+6. **Commit** — Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`; release notes are generated from them — `docs/plano.md`), subject + body with WHAT + WHY
+7. **Push** — `git push -u origin fix/what-was-done`
+8. **GitHub PR** — open a Pull Request. To change its body later use
+   `gh api -X PATCH repos/dioneyagni/neajud/pulls/<n> -F body=@file` (`gh pr edit` fails silently here).
+9. **CI** — runs automatically (RSpec + RuboCop + Brakeman + residue check + full E2E via `bin/e2e`).
+10. **Merge** — through the GitHub UI, only if CI is green.
+11. **Cleanup** — delete the remote branch.
 
 **What an agent may do on its own:** create branches, commit, push, and open
-or update PRs (steps 1–10). **Merging (step 12) is always done by a human.**
+or update PRs (steps 1–8). **Merging (step 10) is always done by a human.**
 Never merge, force-push to `main`, or delete branches you didn't create.
 
 ⚠️ **Branch protection is not enabled**: the repo is private (since 26/09/2026) and
@@ -260,7 +245,6 @@ Before every push, run the **Pre-commit** command from the Commands section.
   - Don't create abstractions before a second real use exists. This does not contradict
     "wrap third-party libs behind a thin interface" (Dependencies): wrap a library where
     the app calls it, don't build generic layers for our own code "just in case".
-- Some of these are still violated by existing code — see "Known gaps" under Key constraints.
 
 ### Checklist: new controller action
 
@@ -280,8 +264,6 @@ When adding a new action to `ArquivosController` (or any controller with a `befo
 - **Stimulus controller**: test real interaction (click, input, submit) in E2E
 - **Controller action**: test that it responds and persists the expected state
 - **Modal/dialog**: test open, fill, submit, **close (Cancel)**, and check the post-redirect result. Also check positioning (centered in the viewport) via `getBoundingClientRect()`
-- **Range slider (click-to-edit)**: E2E test must verify: (1) click display → editor appears (hidden class removed), (2) edit value + Enter/blur → display and hidden input updated, (3) editor hidden again after commit
-- **Tipo corte**: E2E tests must cover both positive (section appears on corte files with both radio buttons, default `corte_estampa`) and negative (section absent on arte files)
 - **Minimum coverage**: before merge, `bin/rspec && bash bin/e2e` must pass 100%
 
 ## Architecture
@@ -296,15 +278,9 @@ storage/stamps/:uuid/v<N>/preview/
 (`ArquivoVersion#storage_dir`; `Stamp` was renamed to `Arquivo` in `312d326`,
 but the storage directory and the `.stamp-card` CSS class kept the old name.)
 
-Key files:
-- `app/controllers/arquivos_controller.rb` — upload, preview, versions, DXF organization, CRUD
-- `app/services/file_validator.rb` — format/colorspace detection via `identify -ping`
-- `app/jobs/arquivo_processing_job.rb` — preview generation, spot channel detection, DXF layers
-- `app/models/arquivo.rb` — `SUPPORTED_EXTENSIONS`, lookup by `uuid`
-- `app/models/file_category.rb` — category definitions (extensions, preview, spot_detection)
-
 ## System dependencies
 
+- `imagemagick` — previews, measures, colors
 - `exiftool` — spot channel detection (`sudo apt install exiftool` or `libimage-exiftool-perl`)
 - `tiffcrop` (`libtiff-tools`) — turns a DTF TIFF 90° for the RIP keeping every channel (Etapa 2.6b2: ImageMagick 6 dropped a spot channel); `tiffcp` (same package) compacts a corrida's or cor lisa's TIFF (Etapa 2.7c)
 - UTIF.js + pngjs — Node.js packages for TIFF→PNG with spot channel support
@@ -567,8 +543,8 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
 `RAILS_ENV=development`, it would destroy all development data. The script
 has a guard clause at the top that aborts if `RAILS_ENV != "test"`.
 
-⚠️ Never run `bin/e2e` with `RAILS_ENV=development`. The script already forces
-test, but an earlier `export RAILS_ENV=development` in the shell can override it.
+An earlier `export RAILS_ENV=development` in the shell is what would do it:
+`unset RAILS_ENV` before running it.
 
 ⚠️ Never run `bin/rspec` while `bin/e2e` is running: both use the **same test
 database**, and each one's cleanup (RSpec transactions/truncation, `bin/e2e`'s
@@ -586,10 +562,7 @@ vanishing mid-spec, not real failures. Run them one after the other.
 - `bin/e2e` only ever stops a **leftover test server** on the E2E port
   (checked via `RAILS_ENV=test` in `/proc/<pid>/environ`). Anything else on
   that port — a dev server, another app — is refused with a message, never
-  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`. Zombies
-  (`<defunct>`, exited but not reaped) are ignored: their environ can't be
-  read, and taking one for "a non-test process" failed CI after every spec
-  passed (PR #133). Step 5 also waits for its own server to free the port.
+  killed; pick another port with `E2E_PORT=3002 bash bin/e2e`.
 - Running one spec by hand:
   `bin/rails s -e test -p 3001 -P tmp/pids/e2e-server.pid`, then
   `node e2e/<name>.spec.js` (restart that server after editing JS/CSS).
@@ -663,13 +636,6 @@ Gotchas found while building it:
   `processamento` Stimulus controller, which polls `GET /arquivos/:uuid/processamento`
   every 2s until the state is final (card: swaps itself via turbo-stream; pages:
   reload). The E2E "Without the live connection…" blocks WebSocket to prove it.
-- E2E: `uploadFileAndWait` / `submitUploadAndWait` (`e2e/support/upload.js`)
-  wait for **the files the upload created** — `POST /arquivos` answers JSON
-  `{ uuid, arte_uuid }`, `upload_controller.js` keeps them in the form's
-  `data-upload-enviados` — polling `processamento.json` until final, so specs
-  can keep assuming a processed file. Waiting for a card by file name was
-  satisfied by an older namesake (CI 05/10/2026: a processed `01-no_spot.tif`
-  while the new `01-no_spot.psd` was still processing).
 
 ## db/seeds.rb is empty on purpose
 
@@ -680,10 +646,6 @@ spec provisions what it needs through the app's own endpoints
 
 ## Key constraints
 
-- Time fields use the `h:mm` mask (e.g. `130` → 1:30, `2430` → 24:30), parsed by
-  `ArquivosController#parse_hmm`.
-
-- Form upload needs `html: { enctype: "multipart/form-data", data: { turbo: false } }`
 - Every route, JSON and form value uses the `uuid` — see "Public identifiers are uuids"
 - Supported extensions in `FileValidator::EXTENSION_TO_FORMAT` and `Arquivo::SUPPORTED_EXTENSIONS` (= `FileCategory.extensions`)
 - CI coverage (`.github/workflows/ci.yml`): parallel jobs for brakeman +
@@ -691,35 +653,22 @@ spec provisions what it needs through the app's own endpoints
   The e2e job runs `bash bin/e2e` — the same entry point as local runs.
 - `bin/e2e`'s `E2E_SPECS` array is the single list of E2E specs. A new
   `e2e/*.spec.js` must be added there; the script aborts if any spec file is
-  unlisted (before Sep 2026 CI ran only `arquivos.spec.js` and
-  `moldes.spec.js` ran nowhere; since Etapa 1.1 (2/5) that file is `modelos.spec.js`).
+  unlisted (a spec missing there ran nowhere until Sep 2026).
 - The former `e2e/arquivos.spec.js` is split into `arquivos-*.spec.js` and
   `pages-*.spec.js` (contiguous chunks, original order). They share one test
   DB, truncated once per `bin/e2e` run, and some reuse earlier files' data —
   keep their order in `E2E_SPECS`. Shared harness: `e2e/support/runner.js`
   (`runSpec`), fixture paths: `e2e/support/fixtures.js`.
-- System dependencies: `imagemagick`, `exiftool`, `libtiff-tools` packages required
 
 ## Code names vs docs/plano.md names
 
-The plan renames things; until those stages land, the code keeps its names:
+Where the code's name differs from the plan's:
 
-| docs/plano.md | Code today |
+| docs/plano.md | Code |
 |---|---|
-| Produto | `Produto` (official list, `config/catalogo_oficial.yml`) |
-| Modelo (categoria, e.g. Jogging [JGG]) | `Modelo` (was `Molde` until Etapa 1.1, 2/5) |
-| Molde (the client's form, e.g. 002-TNS Furado) | `Molde` (was `Modelo` until Etapa 1.1, 2/5) — the names swapped in migration `TrocaMoldeModelo` |
-| Referência, Nome (group artes: "20 · Bluey Azul") | `Referencia` (per molde) + `Arquivo#nome` — see `docs/dominio/artes.md`; not catalog, not versioned |
+| Modelo (the official category, e.g. Jogging [JGG]) | `Modelo` |
+| Molde (the client's form, e.g. 002-TNS Furado) | `Molde` — the two names swapped in migration `TrocaMoldeModelo` (Etapa 1.1, 2/5) |
 | Parte | `Peca` |
 | Corte | `Arquivo` with `category: "corte"` (DXF) + its `Tamanho` records |
-| Arte | `Arte` (the envelope) + its `Arquivo`s with `category: "artes"`, one per part × size |
-| Tamanho | `Tamanho` (today a named cut inside a corte, e.g. "30"; Etapa 1.2 makes sizes individual, with a grade type per corte: Par, Ímpar, P/M/G, Furada) |
-| Etiqueta DTF, Estampa corrida, Cor lisa | don't exist yet (Etapas 2.5–2.7); today uploaded as plain artes (samples only — the beta starts with an empty database) |
-
-## Known gaps vs docs/plano.md
-
-Current code that still differs from the plan — don't copy these patterns into new work:
-
-- **Old docs** — the May 2026 docs (product-requirements, domain-models, architecture,
-  testing, …) were removed in Sep 2026: superseded by this file and `docs/plano.md`.
-  `docs/current-state.md` (Etapa 0.2) is the audit of the current code (26/09/2026).
+| Arte | `Arte` (the envelope) + its `Arquivo`s with `category: "artes"` |
+| Pessoa | `User` |
