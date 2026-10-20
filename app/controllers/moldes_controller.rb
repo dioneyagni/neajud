@@ -1,5 +1,5 @@
 class MoldesController < ApplicationController
-  CAMPOS_EDITAVEIS = %i[sufixo modelo_uuid tamanho_inicial tamanho_final].freeze
+  CAMPOS_EDITAVEIS = %i[sufixo modelo_uuid tamanho_inicial tamanho_final dono_tecido].freeze
 
   exige :catalogo, :ver, only: %i[index show search for_client]
   exige :catalogo, :editar, only: %i[create update update_peca_config adicionar_parte remover_parte]

@@ -20,6 +20,7 @@
       <% end %>
     </dl>
     <% end %>
+    <%= render "pedidos/materiais_do_pedido", pedido: pedido unless pedido.reposicao? %>
     <%# Etapa 2.2 (3/3): the stages' progress, and delivering. %>
     <% if pedido.saiu_do_rascunho? %>
       <ul class="pedido-andamento">

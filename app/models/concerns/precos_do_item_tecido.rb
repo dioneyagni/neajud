@@ -29,9 +29,10 @@ module PrecosDoItemTecido
     preco_impressao_metro || preco_impressao_de_partida
   end
 
-  # Only the empresa's fabric is charged (decided in 2.3, 09/10/2026).
+  # Only the empresa's fabric is charged (decided in 2.3, 09/10/2026); whose
+  # it is cascades cliente → pedido since 2.3d1 (DonoDoTecido).
   def cobra_tecido?
-    pedido.dono_tecido == "empresa"
+    DonoDoTecido.do_item(self).empresa?
   end
 
   def preco_tecido_de_partida

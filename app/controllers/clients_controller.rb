@@ -82,7 +82,7 @@ class ClientsController < ApplicationController
   end
 
   def client_params
-    params.require(:client).permit(:name, :responsible)
+    params.require(:client).permit(:name, :responsible, :dono_tecido)
   end
 
   def assign_client_to_arquivo(client)

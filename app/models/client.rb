@@ -2,6 +2,7 @@ class Client < ApplicationRecord
   include GeraUuid
   include Excluivel
   include PrecosDoDtf
+  include EscolheDonoDoTecido
 
   has_many :arquivos, dependent: :nullify
   has_many :moldes, dependent: :destroy

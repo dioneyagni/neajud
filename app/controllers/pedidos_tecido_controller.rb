@@ -1,6 +1,6 @@
-# A tecido draft's own settings (Etapa 2.7a, decided 16/10/2026): whose
-# fabric it is printed on, once for the whole pedido (the client's or the
-# empresa's), and each item's material, meters and width. The cliente final
+# A tecido draft's own settings (Etapa 2.7a, decided 16/10/2026): its client
+# and each item's material, meters and width (whose fabric moved to
+# MateriaisDoPedidoController in 2.3d1, shared by every type). The cliente final
 # changes all of it on his draft but the width — a production setting, how
 # far the RIP repeats the module, the team's — and the client (D4,
 # AjustesDoPedidoSemCorte).
@@ -8,9 +8,9 @@ class PedidosTecidoController < ApplicationController
   include AjustesDoPedidoSemCorte
   include NumeroDigitado
 
-  # Usage: PATCH /pedidos/:uuid/tecido, dono_tecido=empresa, client_uuid=… (the team's)
+  # Usage: PATCH /pedidos/:uuid/tecido, client_uuid=… (the team's)
   def update
-    atualizar_pedido(:dono_tecido)
+    atualizar_pedido
   end
 
   # Usage: PATCH /pedidos/:uuid/tecido/item, item_uuid=…, materia_prima_uuid=…, metros=12,5, largura_mm=1500 (the team's)

@@ -99,8 +99,13 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos]
+    specs: [materiais, movimentos, materiais-do-pedido]
     arquivos:
+      - "app/controllers/materiais_do_pedido_controller.rb"
+      - "app/helpers/materiais_do_pedido_helper.rb"
+      - "app/views/pedidos/_materiais_do_pedido.html.erb"
+      - "app/services/dono_do_tecido.rb"
+      - "app/models/concerns/{escolhe_dono_do_tecido,material_de_impressao_do_pedido}.rb"
       - "app/controllers/{materiais,movimentos,parametros_empresa}_controller.rb"
       - "app/controllers/concerns/movimento_creatable.rb"
       - "app/views/{materiais,movimentos,parametros_empresa}/**/*"
@@ -149,6 +154,7 @@ areas:
     arquivos:
       - "**/*tecido*"
       - "**/*tecido*/**/*"
+      - "app/services/dono_do_tecido.rb"
       - "app/services/{compactacao_de_arquivo,bloco_photoshop_do_tiff,copia_da_versao,bloqueios_do_cliente_do_pedido,busca_de_obras}.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   acesso:

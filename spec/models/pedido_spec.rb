@@ -178,5 +178,40 @@ RSpec.describe Pedido, type: :model do
     expect(Pedido.tipo_para(nil)).to eq("calcado")
     expect(%w[calcado dtf tecido].map { |tipo| build(:pedido, tipo: tipo).then { |p| [ p.tecido?, p.cliente_do_pedido? ] } }).to eq([ [ false, false ], [ false, true ], [ true, true ] ])
     expect(build(:pedido, tipo: "tecido", dono_tecido: "vizinho")).not_to be_valid
+    expect(build(:pedido, tipo: "tecido", dono_tecido: nil)).to be_valid
+  end
+
+  # Etapa 2.3d1: what a pedido prints on — the empresa's default unless it
+  # picks another; a paper of any width, a film only of the default's width.
+  describe "material de impressão" do
+    def material(tipo, largura)
+      MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: tipo), cor_material: CorMaterial.find_or_create_by!(nome: "Branco"),
+                           largura: largura, gramatura: "1g", tipo: tipo)
+    end
+
+    let!(:empresa) { Empresa.atual || create(:empresa) }
+
+    it "follows the default paper, or its own, whose width the artes' meters use" do
+      padrao = material("papel", "1,60 m")
+      empresa.update!(papel_padrao: padrao)
+      pedido = create(:pedido)
+      expect([ pedido.material_de_impressao, pedido.largura_do_papel_mm ]).to eq([ padrao, 1600 ])
+      estreito = material("papel", "1,10 m")
+      pedido.update!(material_impressao: estreito)
+      expect([ pedido.material_de_impressao, pedido.largura_do_papel_mm ]).to eq([ estreito, 1100 ])
+    end
+
+    it "takes a film on a DTF pedido only of the default film's width, and never a paper" do
+      empresa.update!(filme_dtf_padrao: material("filme_dtf", "60 cm"))
+      pedido = create(:pedido, tipo: "dtf")
+      expect(pedido.materiais_de_impressao_possiveis(MateriaPrima.all)).to eq([ empresa.filme_dtf_padrao ])
+      outro = material("filme_dtf", "600 mm")
+      expect(pedido.update(material_impressao: outro)).to be(true)
+      largo = material("filme_dtf", "1,20 m")
+      expect(pedido.update(material_impressao: largo)).to be(false)
+      expect(pedido.errors[:material_impressao].first).to end_with("is 1200 mm wide; expected the default film's 600 mm (the fits are stored for it)")
+      expect(pedido.update(material_impressao: material("papel", "60 cm"))).to be(false)
+      expect(pedido.errors[:material_impressao].first).to end_with("is a papel; a DTF pedido prints on a filme_dtf")
+    end
   end
 end

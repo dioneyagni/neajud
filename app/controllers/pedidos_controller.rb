@@ -121,6 +121,7 @@ class PedidosController < ApplicationController
     return confirmar_sem_corte if @pedido.cliente_do_pedido?
 
     @pedido.gravar_precos!
+    @pedido.gravar_dono_do_tecido!
     items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
 
     if items_by_client.size == 1
@@ -132,12 +133,14 @@ class PedidosController < ApplicationController
     end
 
     items_by_client.each do |client_id, itens|
-      novo = visiveis(Pedido).create!(client_id: client_id, status: "confirmado")
+      novo = visiveis(Pedido).create!(client_id: client_id, status: "confirmado", dono_tecido: @pedido.dono_tecido,
+                                      material_impressao_id: @pedido.material_impressao_id)
       itens.each do |item|
         novo_item = novo.itens_pedido.create!(
           arquivo: item.arquivo,
           arte: item.arte,
-          materia_prima: item.materia_prima
+          materia_prima: item.materia_prima,
+          dono_tecido: item.dono_tecido
         )
         item.grades.each do |g|
           novo_item.grades.create!(tamanho_nome: g.tamanho_nome, quantidade: g.quantidade, preco_par: g.preco_par)
@@ -317,6 +320,7 @@ class PedidosController < ApplicationController
       end
       # Etapa 2.7b: each tecido item's starting and charged prices.
       ValoresDoPedidoTecido.gravar!(@pedido) if @pedido.tecido?
+      @pedido.gravar_dono_do_tecido!
       @pedido.update!(status: "confirmado")
     end
     # Etapa 2.6b2: the files the fit turned, for the RIP.

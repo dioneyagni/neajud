@@ -162,7 +162,8 @@ runSpec("Pedido de tecido E2E Tests", async ({ page, test }) => {
     await item(nomes.cor).locator(".pedido-tecido-aviso").waitFor({ state: "detached", timeout: 10000 });
     if ((await item(nomes.cor).locator(".pedido-tecido-largura-mm").inputValue()) !== "1500") throw new Error("The width wasn't kept");
     await page.selectOption("#pedido-dono-tecido", "empresa");
-    await esperarResumo("dono-tecido", "Da empresa");
+    // Etapa 2.3d1: the panel says where the choice comes from.
+    await esperarResumo("dono-tecido", "Da empresa (escolhido no pedido)");
   });
 
   await test("Confirming keeps the client; a confirmed pedido is read only, with its stages", async () => {

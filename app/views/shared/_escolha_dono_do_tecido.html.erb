@@ -1,0 +1,11 @@
+<%# Whose fabric, on the client's or the molde's page (Etapa 2.3d1, decided
+    19/10/2026): blank inherits the level above — herdado says what. Saved
+    on change. locals: url, campo (the param's name), atual, herdado, id. %>
+<%= form_with url: url, method: :patch, class: "dono-tecido-form", data: { controller: "auto-submit" } do %>
+  <select name="<%= campo %>" id="<%= id %>" aria-label="Whose fabric" data-action="change->auto-submit#submit">
+    <option value="" <%= "selected" unless atual %>><%= herdado %></option>
+    <% DonoDoTecido::ROTULOS.each do |dono, rotulo| %>
+      <option value="<%= dono %>" <%= "selected" if atual == dono %>><%= rotulo %></option>
+    <% end %>
+  </select>
+<% end %>

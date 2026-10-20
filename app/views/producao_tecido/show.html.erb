@@ -17,7 +17,7 @@
     <h2><%= @etapa.nome %> <span class="corte-codigo">#<%= @pedido.uuid.first(8) %></span> <%= selo_excluido(@pedido) %></h2>
     <p class="corte-sub">
       <%= @pedido.client&.name || "sem cliente" %> ·
-      tecido <%= @pedido.dono_tecido == "empresa" ? "da empresa" : "do cliente" %> ·
+      tecido <%= DonoDoTecido.do_pedido(@pedido).empresa? ? "da empresa" : "do cliente" %> ·
       <span data-producao-tecido="metros"><%= metros(@linhas.sum(&:esperado)) %></span>
     </p>
   </div>

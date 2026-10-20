@@ -14,6 +14,7 @@ class Molde < ApplicationRecord
   include GeraUuid
   include Excluivel
   include ReferenciaAtiva
+  include EscolheDonoDoTecido
 
   belongs_to :client
   belongs_to :modelo, optional: true

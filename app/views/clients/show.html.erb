@@ -12,6 +12,16 @@
           <dd><%= @client.responsible %></dd>
           <dt>Arquivos</dt>
           <dd><%= visiveis(Arquivo).where(client: @client).count %></dd>
+          <%# Etapa 2.3d1: whose fabric his pedidos take, unless a molde or the pedido says. %>
+          <dt>Fabric</dt>
+          <dd class="cliente-dono-tecido">
+            <% if pode?(:clientes, :editar) && !cliente_final? %>
+              <%= render "shared/escolha_dono_do_tecido", url: client_path(@client), campo: "client[dono_tecido]", atual: @client.dono_tecido,
+                         herdado: "Padrão: do cliente", id: "cliente-dono-tecido" %>
+            <% else %>
+              <%= DonoDoTecido::ROTULOS.fetch(@client.dono_tecido || DonoDoTecido::PADRAO) %>
+            <% end %>
+          </dd>
         </dl>
       </div>
 

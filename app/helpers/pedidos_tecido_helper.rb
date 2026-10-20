@@ -8,11 +8,12 @@ module PedidosTecidoHelper
   end
 
   # Sublimation prints on the transfer paper: a fabric wider than the
-  # default paper doesn't come out whole on it. A warning (decided 16/10/2026:
-  # the factory may have a wider paper), nil when it fits.
+  # pedido's paper (since 2.3d1 its own, else the default) doesn't come out
+  # whole on it. A warning (decided 16/10/2026: the factory may have a wider
+  # paper), nil when it fits.
   # Usage: aviso_de_largura(item) # => "Mais larga que o papel (1,6 m): confira se há papel para ela"
   def aviso_de_largura(item)
-    papel = Empresa.atual&.largura_papel_efetiva_mm
+    papel = item.pedido.largura_do_papel_mm
     largura = item.largura_efetiva_mm
     return unless papel && largura && largura > papel
 
@@ -24,8 +25,9 @@ module PedidosTecidoHelper
   # his own (Visibilidade). nil when unknown.
   # Usage: saldo_do_tecido(pedido, material, SaldosDeEstoque.call(visiveis(MovimentoEstoque))) # => "30 m"
   def saldo_do_tecido(pedido, material, saldos)
-    return metros(saldos.empresa(material)) if pedido.dono_tecido == "empresa" && !cliente_final?
-    return unless pedido.dono_tecido == "cliente" && pedido.client
+    dono = DonoDoTecido.do_pedido(pedido).dono
+    return metros(saldos.empresa(material)) if dono == "empresa" && !cliente_final?
+    return unless dono == "cliente" && pedido.client
 
     metros(saldos.por_cliente(material)[pedido.client] || 0)
   end

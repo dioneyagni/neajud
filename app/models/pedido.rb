@@ -3,6 +3,8 @@ class Pedido < ApplicationRecord
   include Excluivel
   include ReferenciaAtiva
   include CobrancaDoPedidoDtf
+  include EscolheDonoDoTecido
+  include MaterialDeImpressaoDoPedido
 
   belongs_to :client, optional: true
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :destroy
@@ -20,9 +22,6 @@ class Pedido < ApplicationRecord
   ROTULOS_DOS_TIPOS = { "calcado" => "Calçado", "dtf" => "DTF", "tecido" => "Tecido" }.freeze
   # The artes each type takes, by Arte#tipo; calçado's are the rest.
   TIPO_DA_ARTE = { "dtf" => "dtf", "corrida" => "tecido", "cor_lisa" => "tecido" }.freeze
-  # Whose fabric a tecido pedido is printed on (Etapa 2.7a, decided
-  # 16/10/2026): once for the whole pedido; only the empresa's is charged (2.7b).
-  DONOS_DO_TECIDO = %w[cliente empresa].freeze
   # The types whose client is the pedido's (cliente_do_pedido?).
   DO_CLIENTE_DO_PEDIDO = %w[dtf tecido].freeze
   # A DTF pedido is delivered on the roll or cut (Etapa 2.6b1); the Corte
@@ -49,7 +48,6 @@ class Pedido < ApplicationRecord
   validates :status, presence: true, inclusion: { in: STATUS, message: "%{value} is not a pedido status; expected one of #{STATUS.join(", ")}" }
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a pedido type; expected one of #{TIPOS.join(", ")}" }
   validates :entrega, inclusion: { in: ENTREGAS, message: "%{value} is not a delivery; expected one of #{ENTREGAS.join(", ")}" }
-  validates :dono_tecido, inclusion: { in: DONOS_DO_TECIDO, message: "%{value} is not whose fabric; expected one of #{DONOS_DO_TECIDO.join(", ")}" }
   validates :fileiras_extras, numericality: { only_integer: true, in: 0..100 }
   # Etapa 2.6b1: a DTF pedido's extra rows start at the dono's default.
   before_save :herdar_fileiras_extras, if: -> { will_save_change_to_tipo? && tipo == "dtf" }
@@ -68,6 +66,15 @@ class Pedido < ApplicationRecord
   # Usage: pedido.dtf? # => true for a DTF pedido
   def dtf?
     tipo == "dtf"
+  end
+
+  # Confirming writes whose fabric each item takes (Etapa 2.3d1), so a later
+  # change of the molde's or the client's choice never moves it. A DTF has none.
+  # Usage: pedido.gravar_dono_do_tecido!
+  def gravar_dono_do_tecido!
+    return if dtf?
+
+    itens_pedido.includes(arquivo: [ :molde, :client ]).find_each { |item| item.update!(dono_tecido: DonoDoTecido.do_item(item).dono) }
   end
 
   # Usage: pedido.tecido? # => true for a pedido of corridas and cores lisas
