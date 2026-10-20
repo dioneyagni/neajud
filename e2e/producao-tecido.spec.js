@@ -151,7 +151,7 @@ runSpec("Produção do tecido E2E Tests", async ({ page, test }) => {
     if (progresso !== "Impressão 1/1,Calandra 1/1") throw new Error(`Progress: ${progresso}`);
   });
 
-  await test("On a phone each line is a block, the table no wider than the screen", async () => {
+  await test("On a phone each line is a block, the page and its menu no wider than the screen", async () => {
     // Headed runs have no fixed viewport (null): come back to a desktop one.
     const antes = page.viewportSize() || { width: 1280, height: 720 };
     await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/tecido/producao/impressao`);
@@ -162,9 +162,13 @@ runSpec("Produção do tecido E2E Tests", async ({ page, test }) => {
         rotulo: getComputedStyle(tr.querySelector(".etapa-situacao"), "::before").content,
       }));
       if (bloco.display !== "grid" || bloco.rotulo !== '"Impressão"') throw new Error(`The line on a phone: ${JSON.stringify(bloco)}`);
-      // The table only: the header's menu overflows on every page (not this stage's).
       const direita = await page.locator(".producao-tecido-tabela").evaluate((t) => Math.max(...[...t.querySelectorAll("*")].map((e) => e.getBoundingClientRect().right)));
       if (direita > 390) throw new Error(`The table reaches ${direita}px on a 390px phone`);
+      // The header's menu scrolls in its own row (it made every page 1202 px wide, 19/10/2026).
+      const pagina = await page.evaluate(() => ({ largura: document.documentElement.scrollWidth, menu: getComputedStyle(document.querySelector(".header-nav")).overflowX }));
+      if (pagina.largura > 390 || pagina.menu !== "auto") throw new Error(`The page on a phone: ${JSON.stringify(pagina)}`);
+      await page.locator(".header-nav a", { hasText: "Parâmetros" }).scrollIntoViewIfNeeded();
+      if (!(await page.locator(".header-nav a", { hasText: "Parâmetros" }).isVisible())) throw new Error("The menu's last link can't be reached on a phone");
       if (!(await linha().locator(".baixa-abrir, .baixa-feita").first().isVisible())) throw new Error("The baixa is out of sight on a phone");
     } finally {
       await page.setViewportSize(antes);

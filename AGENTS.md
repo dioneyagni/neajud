@@ -172,6 +172,11 @@ Each `bin/e2e` run keeps its logs in `log/e2e/<YYYYmmdd-HHMMSS>-<pid>/`
   requests are **not** written to the server's stdout.
 - `server.log` — the server process's stdout/stderr (boot, Puma, crashes).
 
+Each run starts on a fresh `log/test.log` (the old one moved to
+`test.log.0`, `bin/e2e-logs.sh`): Rails rotates it at 100 MB, and a slice cut
+at a byte offset of the old file came out empty for days (fixed 19/10/2026);
+a rotation during the run is read across both files.
+
 Before each spec the script appends a `=== [HH:MM:SS] spec: <name> ===` marker
 to both, so a request can be traced to the spec that made it. The folder is
 printed at the end of the run and next to the failed-spec list. In CI it is

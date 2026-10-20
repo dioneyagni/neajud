@@ -2,12 +2,11 @@ source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.3"
-# Pin below json 3.x: it changes JSON.parse's arity in a way activesupport
-# 8.1.3's session decryption calls with (ActiveSupport::JSON.decode ->
-# ActiveSupport::Messages::Metadata#deserialize_from_json), raising
-# "wrong number of arguments" on every request with a session cookie.
-# >= 2.19.9 still fixes GHSA (json < 2.19.9, low-severity).
-gem "json", ">= 2.19.9", "< 3"
+# json 3 works since Rails 8.1.4: activesupport 8.1.3's JSON.decode passed
+# its options positionally, which json 3's JSON.parse refuses ("wrong number
+# of arguments" on every session cookie and JSON column); 8.1.4 passes
+# **options. >= 2.19.9 still fixes GHSA (json < 2.19.9, low-severity).
+gem "json", ">= 2.19.9", "< 4"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
