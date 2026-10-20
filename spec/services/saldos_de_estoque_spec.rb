@@ -23,4 +23,15 @@ RSpec.describe SaldosDeEstoque do
   it "is zero for a material without movements" do
     expect([ described_class.call.empresa(material), described_class.call.por_cliente(material) ]).to eq([ 0.0, {} ])
   end
+
+  # Etapa 2.3d2: a trashed pedido's out stops counting; restored, it counts again.
+  it "leaves out a trashed pedido's stock out" do
+    pedido = create(:pedido, status: "confirmado")
+    movimento("entrada", 10)
+    pedido.movimentos_estoque.create!(materia_prima: material, tipo: "saida", quantidade: 4, da_empresa: true)
+    pedido.excluir!(changed_by: "127.0.0.1")
+    expect(described_class.call.empresa(material)).to eq(10.0)
+    pedido.restaurar!(changed_by: "127.0.0.1")
+    expect(described_class.call.empresa(material)).to eq(6.0)
+  end
 end

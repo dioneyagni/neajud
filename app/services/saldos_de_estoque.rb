@@ -1,6 +1,7 @@
 # Each material's balance in meters, split by owner (Etapa 2.3, decided
 # 09/10/2026): the empresa's own stock (movements without client) and each
-# client's material kept here. One query for the Materials page.
+# client's material kept here. One query for the Materials page. A trashed
+# pedido's outs don't count (Etapa 2.3d2, MovimentoEstoque.que_contam).
 #
 # movimentos: the ones the person may see (Visibilidade, Etapa 2.8) — a
 # cliente final sees only its own balance, never the empresa's or others'.
@@ -14,7 +15,7 @@ class SaldosDeEstoque
   end
 
   def initialize(movimentos = MovimentoEstoque.all)
-    linhas = movimentos.group(:materia_prima_id, :client_id)
+    linhas = movimentos.que_contam.group(:materia_prima_id, :client_id)
                              .pluck(:materia_prima_id, :client_id, Arel.sql("SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE -quantidade END)"))
     @clientes = Client.where(id: linhas.map(&:second).compact.uniq).index_by(&:id)
     @saldos = linhas.each_with_object(Hash.new { |h, k| h[k] = {} }) { |(material, cliente, saldo), mapa| mapa[material][cliente] = saldo.to_f }

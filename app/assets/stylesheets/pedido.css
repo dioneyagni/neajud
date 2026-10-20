@@ -905,3 +905,7 @@
     display: flex;
   }
 }
+
+/* Etapa 2.3d2: a pedido waiting for material — a warning, never a block. */
+.badge-aguardando { background: #fdecea; color: #8a1c13; margin-left: 0.25rem; }
+.pedido-aguardando { margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-left: 3px solid #c0392b; background: #fdf3f2; color: #8a1c13; overflow-wrap: anywhere; }

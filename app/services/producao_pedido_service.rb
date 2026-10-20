@@ -47,19 +47,24 @@ class ProducaoPedidoService
     end
   end
 
-  def self.call(pedido)
-    new(pedido).call
+  # itens: only these items' lines (a reposição: the pieces missing from
+  # them) — the stock out splits the fabric by each item's owner (Etapa 2.3d2).
+  # Usage: ProducaoPedidoService.call(pedido, itens: pedido.itens_pedido.where(dono_tecido: "empresa"))
+  def self.call(pedido, itens: nil)
+    new(pedido, itens).call
   end
 
-  def initialize(pedido)
+  def initialize(pedido, itens = nil)
     @pedido = pedido
+    @itens = itens
   end
 
   def call
     return linhas_da_reposicao if @pedido.reposicao?
 
     linhas = {}
-    @pedido.itens_pedido.includes(:grades, :arte, :arquivo, :materia_prima, item_pedido_pecas: :peca).order(:id).each do |item|
+    itens = @itens ? @pedido.itens_pedido.where(id: @itens) : @pedido.itens_pedido
+    itens.includes(:grades, :arte, :arquivo, :materia_prima, item_pedido_pecas: :peca).order(:id).each do |item|
       ResolucaoDoItem.call(item).select(&:incluida).each do |parte|
         somar(linhas, parte, item.materia_prima) if parte.config[:needs_cut]
       end
@@ -72,7 +77,8 @@ class ProducaoPedidoService
   # A reposição (Etapa 2.2, 4/4): its missing pieces that cut, summed per
   # part × DXF size × material.
   def linhas_da_reposicao
-    faltas = @pedido.itens_reposicao.includes(:peca, :materia_prima, tamanho: :arquivo).select { |f| f.corta && f.refazer_corte }
+    faltas = @itens ? @pedido.itens_reposicao.where(item_origem_id: @itens) : @pedido.itens_reposicao
+    faltas = faltas.includes(:peca, :materia_prima, tamanho: :arquivo).select { |f| f.corta && f.refazer_corte }
     faltas.group_by { |f| [ f.peca, f.tamanho, f.materia_prima ] }.map do |(peca, tamanho, materia), grupo|
       Linha.new(peca: peca, tamanho: tamanho, materia_prima: materia, quantidades: {}, pecas_por_par: 1, espelhada: false, pecas_fixas: grupo.sum(&:pecas))
     end.sort_by { |l| [ l.peca&.nome.to_s, l.tamanho&.position.to_i ] }

@@ -26,7 +26,11 @@
     <tbody>
       <% @materiais.each do |mp| %>
         <tr data-material="<%= mp.uuid %>">
-          <td><%= mp.nome_completo %></td>
+          <td>
+            <%= mp.nome_completo %>
+            <%# Etapa 2.3d2: the pedidos whose out passed what came in. %>
+            <% if (aguardando = aguardando_do_material(mp)) %><small class="material-aguardando" data-aguardando><%= aguardando %></small><% end %>
+          </td>
           <td>
             <% if pode?(:estoque, :editar) %>
               <%= form_with model: mp, url: material_path(mp), method: :patch, class: "material-edicao", id: "material-#{mp.uuid}" do |f| %>
@@ -57,35 +61,7 @@
 
 <%# Movement ledger %>
 <h3>Movement History</h3>
-<table class="clients-table">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Owner</th>
-      <th>Material</th>
-      <th>Type</th>
-      <th>Qty</th>
-      <th>Cost / m</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @movimentos.each do |m| %>
-      <tr>
-        <td><%= l m.created_at, format: :short %></td>
-        <td><%= m.dono %></td>
-        <td><%= m.materia_prima.nome_completo %></td>
-        <td><%= m.tipo == "entrada" ? "In" : "Out" %></td>
-        <td><%= metros(m.quantidade) %></td>
-        <td><%= number_to_currency(m.valor) if m.valor %></td>
-        <td><%= number_to_currency(m.valor_total) if m.valor %></td>
-      </tr>
-    <% end %>
-    <% if @movimentos.empty? %>
-      <tr><td colspan="7" class="gallery-empty">No movements recorded yet.</td></tr>
-    <% end %>
-  </tbody>
-</table>
+<%= render "movimentos/tabela", movimentos: @movimentos %>
 
 <div class="back-link-wrapper">
   <%= link_to "Back to Gallery", root_path, class: "back-link" %>
