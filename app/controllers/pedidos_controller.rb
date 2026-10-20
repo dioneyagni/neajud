@@ -1,5 +1,6 @@
 class PedidosController < ApplicationController
   include NumeroDigitado
+  include ConfirmacaoDoPedido
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
   # Etapa 2.8 (3a): the Corte page is the cortes' (DXF drawings).
@@ -17,7 +18,8 @@ class PedidosController < ApplicationController
   before_action :levar_tecido_a_producao, only: %i[corte baixar_corte impressao baixar_impressao etapa]
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
-  # past the draft with its stages' progress.
+  # past the draft with its stages' progress; Etapa 2.3d2: or by waiting for
+  # material (?aguardando=1).
   def index
     @status = params[:status] if Pedido::STATUS.include?(params[:status])
     @pedidos = visiveis(Pedido).ativos.left_joins(:itens_pedido)
@@ -26,6 +28,9 @@ class PedidosController < ApplicationController
                       .group(:id)
                       .order(created_at: :desc)
     @pedidos = @pedidos.where(status: @status) if @status
+    # Etapa 2.3d2: ?aguardando=1 — the pedidos waiting for material.
+    @aguardando = params[:aguardando] == "1"
+    @pedidos = @pedidos.where(id: (@aguardando_material = AguardandoMaterial.call).pedido_ids) if @aguardando
     # Only drafts (and those sent to the factory) can be confirmed; there are few at a time.
     @bloqueios_por_pedido = @pedidos.select(&:confirmavel?).to_h { |p| [ p.id, p.bloqueios_confirmacao.size ] }
     # Etapa 2.8 (5/5): the client's drafts the factory returned, on top with their note.
@@ -105,54 +110,6 @@ class PedidosController < ApplicationController
   def remover_item
     @pedido.itens_pedido.find_by!(uuid: params[:id]).destroy!
     redirect_to resumo_pedido_path(@pedido), notice: "Item removed."
-  end
-
-  def confirmar
-    unless @pedido.confirmavel?
-      return redirect_to pedidos_path, alert: "Pedido already confirmed."
-    end
-
-    bloqueios = @pedido.bloqueios_confirmacao
-    if bloqueios.any?
-      return redirect_to resumo_pedido_path(@pedido),
-                         alert: "Não é possível confirmar: #{bloqueios.map(&:descricao).join("; ")}."
-    end
-
-    return confirmar_sem_corte if @pedido.cliente_do_pedido?
-
-    @pedido.gravar_precos!
-    @pedido.gravar_dono_do_tecido!
-    items_by_client = @pedido.itens_pedido.includes(:arquivo).group_by { |i| i.arquivo.client_id }
-
-    if items_by_client.size == 1
-      client_id = items_by_client.keys.first
-      @pedido.update!(status: "confirmado", client_id: client_id)
-      session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
-      redirect_to pedidos_path, notice: "Pedido confirmed."
-      return
-    end
-
-    items_by_client.each do |client_id, itens|
-      novo = visiveis(Pedido).create!(client_id: client_id, status: "confirmado", dono_tecido: @pedido.dono_tecido,
-                                      material_impressao_id: @pedido.material_impressao_id)
-      itens.each do |item|
-        novo_item = novo.itens_pedido.create!(
-          arquivo: item.arquivo,
-          arte: item.arte,
-          materia_prima: item.materia_prima,
-          dono_tecido: item.dono_tecido
-        )
-        item.grades.each do |g|
-          novo_item.grades.create!(tamanho_nome: g.tamanho_nome, quantidade: g.quantidade, preco_par: g.preco_par)
-        end
-        novo_item.copiar_pecas_de!(item)
-      end
-    end
-
-    @pedido.update!(status: "cancelado")
-    session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
-
-    redirect_to pedidos_path, notice: "Pedido confirmed! #{items_by_client.size} order(s) created."
   end
 
   def atualizar_item
@@ -306,28 +263,6 @@ class PedidosController < ApplicationController
   end
 
   private
-
-  # A DTF or tecido pedido is its client's whatever its artes' owners (Etapa
-  # 2.6b1 D4, 2.7a): never split. A DTF's fit and prices are written (2.6c),
-  # so a later version, film or price change never moves what was confirmed;
-  # a tecido's prices too (2.7b).
-  def confirmar_sem_corte
-    Pedido.transaction do
-      if @pedido.dtf?
-        EncaixeDoPedidoDtf.gravar!(@pedido)
-        # Etapa 2.6c: the prices too, read on the fit just written.
-        ValoresDoPedidoDtf.gravar!(@pedido.reload)
-      end
-      # Etapa 2.7b: each tecido item's starting and charged prices.
-      ValoresDoPedidoTecido.gravar!(@pedido) if @pedido.tecido?
-      @pedido.gravar_dono_do_tecido!
-      @pedido.update!(status: "confirmado")
-    end
-    # Etapa 2.6b2: the files the fit turned, for the RIP.
-    LinhasDeProducao.call(@pedido, EtapasProducao.etapa("dtf", "impressao")).each { |linha| ArquivoDtfParaRip.new(linha).preparar! } if @pedido.dtf?
-    session.delete(:current_pedido_uuid) if session[:current_pedido_uuid] == @pedido.uuid
-    redirect_to pedidos_path, notice: "Pedido confirmed."
-  end
 
   # Each file under its full name (NomeDeArte, without accents or path
   # characters), numbered when two would collide.

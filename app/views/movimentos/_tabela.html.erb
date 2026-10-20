@@ -1,0 +1,41 @@
+<%# The movement ledger, on the Materials and Movements pages. Etapa 2.3d2:
+    a pedido's stock out links to it, and a trashed pedido's says it no
+    longer counts (MovimentoEstoque.que_contam). %>
+<div class="materiais-tabela-wrap">
+  <table class="clients-table movimentos-tabela">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Owner</th>
+        <th>Material</th>
+        <th>Type</th>
+        <th>Qty</th>
+        <th>Pedido</th>
+        <th>Cost / m</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% movimentos.each do |m| %>
+        <tr data-movimento="<%= m.uuid %>">
+          <td><%= l m.created_at, format: :short %></td>
+          <td><%= m.dono %></td>
+          <td><%= m.materia_prima.nome_completo %></td>
+          <td><%= m.tipo == "entrada" ? "In" : "Out" %></td>
+          <td><%= metros(m.quantidade) %></td>
+          <td data-pedido="<%= m.pedido&.uuid %>">
+            <% if m.pedido %>
+              <%= link_to "##{m.pedido.uuid.first(8)}", resumo_pedido_path(m.pedido) %>
+              <% if m.pedido.excluido? %><small class="movimento-nao-conta">na lixeira: não conta</small><% end %>
+            <% end %>
+          </td>
+          <td><%= number_to_currency(m.valor) if m.valor %></td>
+          <td><%= number_to_currency(m.valor_total) if m.valor %></td>
+        </tr>
+      <% end %>
+      <% if movimentos.empty? %>
+        <tr><td colspan="8" class="gallery-empty">No movements recorded yet.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

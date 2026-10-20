@@ -13,9 +13,8 @@ never turns into the empresa's by accident. `SaldosDeEstoque` splits each
 material's balance by owner for the Materials page (type and price edited
 there, `PATCH /materiais/:uuid`). The default paper (`Empresa#papel_padrao`,
 a papel) gives `Empresa#largura_papel_efetiva_mm` for the artes' meters per
-piece, else the typed `largura_papel_mm`. The consumption at confirmation
-and "aguardando material" (2.3d2), the adjustment by the real metragem
-(2.3e) and the dublagem come later (docs/plano.md, Etapa 2.3).
+piece, else the typed `largura_papel_mm`. The adjustment by the real
+metragem (2.3e) and the dublagem come later (docs/plano.md, Etapa 2.3).
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 
@@ -49,3 +48,37 @@ Decided 19/10/2026:
   copies both from its pedido.
 - E2E: `e2e/materiais-do-pedido.spec.js`.
 
+
+## The stock out at confirmation and "aguardando material" (Etapa 2.3d2)
+
+Decided 19/10/2026 (20/10: nothing backfilled — pedidos confirmed before
+this stage took nothing from the stock, and won't):
+
+- **`SaidaDoPedido`** runs when a pedido is confirmed
+  (`ConfirmacaoDoPedido`, the concern holding `PedidosController#confirmar`;
+  each pedido of a calçado split) and when a reposição is released
+  (`LiberarReposicaoService`). One `saida` movement per material × owner, with
+  `movimento_estoques.pedido_id`, from the production lines' expected meters:
+  calçado — the Corte's fabric, summed per item owner
+  (`ProducaoPedidoService.call(pedido, itens:)`, `DonoDoTecido.do_item`; a
+  reposição's pieces from the item they came from) and the Impressão's paper;
+  tecido — each item's meters of its fabric and of the paper; DTF — the
+  written fit's meters of the film. Paper and film are always the empresa's.
+  A line without material or metragem takes nothing and comes back in the
+  flash ("No stock out: …"); never a block. Only once per pedido.
+- **A trashed pedido's outs don't count** (`MovimentoEstoque.que_contam`,
+  used by `SaldosDeEstoque` and `AguardandoMaterial`); restored, they do. The
+  ledger (`movimentos/_tabela`, on Materials and Movements) links each out to
+  its pedido. Movements are never edited.
+- **`AguardandoMaterial`** — computed per request, never stored: per material
+  × owner, the outs in creation order (by hand too), the entries covering the
+  oldest first; a pedido whose out passes them waits for the difference. A
+  delivered pedido counts but doesn't show. Shown on the pedidos list (badge,
+  filter `?aguardando=1`), the pedido's panel (`pedidos/_aguardando_material`)
+  and under each material on Materials (`AguardandoMaterialHelper`).
+- **Visibility:** it reads every movement (the paper is the empresa's even on
+  a client's pedido); the helper filters what a cliente final sees — that his
+  pedido waits ("Aguardando: material"), and the meters of his own fabric
+  only.
+- Tests: `spec/services/{saida_do_pedido,aguardando_material}_spec.rb`,
+  `spec/requests/saida_do_estoque_spec.rb`, E2E `e2e/saida-do-estoque.spec.js`.

@@ -13,6 +13,8 @@ class Pedido < ApplicationRecord
   has_many :baixas_producao, class_name: "BaixaProducao", dependent: :destroy
   # Etapa 2.8 (5/5): sent, taken back, returned with a note.
   has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
+  # Etapa 2.3d2: what it took from the stock when confirmed (SaidaDoPedido).
+  has_many :movimentos_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 
   # One type per pedido (Etapa 1.2, 3/3): calçado, DTF (Etapa 2.6b1), tecido
   # (Etapa 2.7a: the estampa corrida and the cor lisa, in meters). The type

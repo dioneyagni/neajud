@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_19_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_090000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -557,9 +557,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_180000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "pedido_id"
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
+    t.index ["pedido_id"], name: "index_movimento_estoques_on_pedido_id"
     t.index ["uuid"], name: "index_movimento_estoques_on_uuid", unique: true
   end
 
@@ -791,6 +793,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_180000) do
   add_foreign_key "moldes", "moldes", column: "variacao_de_id"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
+  add_foreign_key "movimento_estoques", "pedidos"
   add_foreign_key "pedidos", "clients"
   add_foreign_key "pedidos", "materia_primas", column: "material_impressao_id"
   add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"

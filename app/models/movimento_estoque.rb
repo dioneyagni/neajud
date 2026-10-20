@@ -6,6 +6,8 @@ class MovimentoEstoque < ApplicationRecord
 
   belongs_to :materia_prima
   belongs_to :client, optional: true
+  # Etapa 2.3d2: a pedido's stock out (SaidaDoPedido); nil for one by hand.
+  belongs_to :pedido, optional: true
   atribui_por_uuid :client
   recusa_excluido :client
 
@@ -20,6 +22,9 @@ class MovimentoEstoque < ApplicationRecord
   scope :entradas, -> { where(tipo: "entrada") }
   scope :saidas, -> { where(tipo: "saida") }
   scope :recentes, -> { order(created_at: :desc) }
+  # What the balances count (Etapa 2.3d2): a trashed pedido's outs don't —
+  # restoring it brings them back.
+  scope :que_contam, -> { where(pedido_id: nil).or(where(pedido_id: Pedido.where(deleted_at: nil).select(:id))) }
 
   # Usage: movimento.dono # => "Empresa" or the client's name
   def dono

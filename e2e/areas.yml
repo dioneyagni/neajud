@@ -65,7 +65,7 @@ global:
   - "app/javascript/controllers/{index,application}.js"
   - "app/javascript/controllers/{flash,dialog,combobox,async_form,auto_submit,processamento,edit_toggle,toggle_switch}_controller.js"
   - "app/controllers/application_controller.rb"
-  - "app/controllers/concerns/{authentication,controle_de_acesso,controle_de_visibilidade,numero_digitado}.rb"
+  - "app/controllers/concerns/{authentication,controle_de_acesso,controle_de_visibilidade,numero_digitado,confirmacao_do_pedido}.rb"
   - "app/helpers/{application,excluivel,valores}_helper.rb"
   - "app/models/{application_record,current,arquivo,arquivo_version,arte,pedido,item_pedido,empresa,client,file_category,texto_comparavel,sequencia}.rb"
   - "app/models/concerns/{gera_uuid,atribui_por_uuid,referencia_ativa,excluivel,membro_de_arte,tipo_da_arte}.rb"
@@ -99,8 +99,11 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque]
     arquivos:
+      - "app/services/{saida_do_pedido,aguardando_material}.rb"
+      - "app/helpers/aguardando_material_helper.rb"
+      - "app/views/pedidos/_aguardando_material.html.erb"
       - "app/controllers/materiais_do_pedido_controller.rb"
       - "app/helpers/materiais_do_pedido_helper.rb"
       - "app/views/pedidos/_materiais_do_pedido.html.erb"

@@ -9,35 +9,7 @@
   <% end %>
 </div>
 
-<table class="clients-table">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Owner</th>
-      <th>Material</th>
-      <th>Type</th>
-      <th>Qty</th>
-      <th>Cost / m</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @movimentos.each do |m| %>
-      <tr>
-        <td><%= l m.created_at, format: :short %></td>
-        <td><%= m.dono %></td>
-        <td><%= m.materia_prima.nome_completo %></td>
-        <td><%= m.tipo == "entrada" ? "In" : "Out" %></td>
-        <td><%= metros(m.quantidade) %></td>
-        <td><%= number_to_currency(m.valor) if m.valor %></td>
-        <td><%= number_to_currency(m.valor_total) if m.valor %></td>
-      </tr>
-    <% end %>
-    <% if @movimentos.empty? %>
-      <tr><td colspan="7" class="gallery-empty">No movements recorded yet.</td></tr>
-    <% end %>
-  </tbody>
-</table>
+<%= render "movimentos/tabela", movimentos: @movimentos %>
 
 <div class="back-link-wrapper">
   <%= link_to "Back to Materials Inventory", materiais_path, class: "back-link" %>

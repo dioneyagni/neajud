@@ -11,10 +11,12 @@
 
 <%# Etapa 2.2 (3/3): by status. %>
 <nav class="pedidos-filtro" aria-label="Filtrar por status">
-  <%= link_to "Todos", pedidos_path, "aria-current": (@status.nil? ? "page" : nil) %>
+  <%= link_to "Todos", pedidos_path, "aria-current": (@status.nil? && !@aguardando ? "page" : nil) %>
   <% %w[rascunho enviado confirmado em_producao entregue].each do |status| %>
     <%= link_to rotulo_do_status(status).capitalize, pedidos_path(status: status), "aria-current": (@status == status ? "page" : nil), data: { status: status } %>
   <% end %>
+  <%# Etapa 2.3d2: the pedidos whose out passed what came in. %>
+  <%= link_to "Aguardando material", pedidos_path(aguardando: 1), "aria-current": (@aguardando ? "page" : nil), data: { status: "aguardando" } %>
 </nav>
 
 <%# Etapa 2.8 (5/5): the drafts the factory returned, on top with its note. %>
@@ -58,6 +60,7 @@
           <td><%= p.itens_count %></td>
           <td>
             <span class="badge badge-<%= p.status %>"><%= rotulo_do_status(p.status, reposicao: p.reposicao?) %></span>
+            <% if aguardando_material.pedido_ids.include?(p.id) %><span class="badge badge-aguardando" data-aguardando>aguardando material</span><% end %>
             <% if p.saiu_do_rascunho? && p.status != "entregue" %>
               <div class="pedido-andamento-compacto"><%= AndamentoDoPedido.call(p).map { |a| "#{a.etapa.nome} #{a.feitas}/#{a.total}" }.join(" · ") %></div>
             <% end %>
