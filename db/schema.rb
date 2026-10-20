@@ -10,19 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_19_180000) do
   create_table "alteracoes_arte", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "arte_id", null: false
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
     t.json "arquivo_version_ids", default: [], null: false
-    t.integer "arte_id", null: false
+    t.integer "user_id", null: false
+    t.text "recado", null: false
     t.datetime "cancelada_em"
     t.integer "cancelada_por_id"
     t.datetime "created_at", null: false
-    t.text "recado", null: false
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_alteracoes_arte_on_arquivo_id"
     t.index ["arquivo_version_id"], name: "index_alteracoes_arte_on_arquivo_version_id"
     t.index ["arte_id"], name: "index_alteracoes_arte_on_arte_id"
@@ -31,23 +31,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "aprovacoes_arte", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "arquivo_id", null: false
+    t.integer "arquivo_version_id", null: false
+    t.integer "user_id", null: false
+    t.string "canal", null: false
+    t.string "canal_detalhe"
+    t.text "observacao"
+    t.date "aprovado_em", null: false
     t.string "anexo_arquivo"
     t.string "anexo_nome"
     t.string "anexo_tipo"
-    t.date "aprovado_em", null: false
-    t.integer "arquivo_id", null: false
-    t.integer "arquivo_version_id", null: false
-    t.json "arquivo_version_ids", default: [], null: false
-    t.integer "arte_id", null: false
-    t.string "canal", null: false
-    t.string "canal_detalhe"
     t.datetime "cancelada_em"
     t.integer "cancelada_por_id"
     t.datetime "created_at", null: false
-    t.text "observacao"
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.string "uuid", null: false
+    t.integer "arte_id", null: false
+    t.json "arquivo_version_ids", default: [], null: false
     t.index ["arquivo_id"], name: "index_aprovacoes_arte_on_arquivo_id"
     t.index ["arquivo_version_id"], name: "index_aprovacoes_arte_on_arquivo_version_id"
     t.index ["arte_id"], name: "index_aprovacoes_arte_on_arte_id"
@@ -59,22 +59,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
     t.integer "arquivo_version_id", null: false
     t.string "colorspace"
     t.string "colorspace_error"
-    t.datetime "created_at", null: false
-    t.float "dpi"
-    t.boolean "has_spots", default: false
-    t.integer "height_px"
     t.string "icc_profile"
-    t.json "metadata"
-    t.datetime "updated_at", null: false
+    t.boolean "has_spots", default: false
     t.integer "width_px"
+    t.integer "height_px"
+    t.float "dpi"
+    t.json "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["arquivo_version_id"], name: "idx_stamp_image_metadata_on_version", unique: true
     t.index ["arquivo_version_id"], name: "index_arquivo_image_metadata_on_arquivo_version_id"
   end
 
   create_table "arquivo_moldes", force: :cascade do |t|
     t.integer "arquivo_id", null: false
-    t.datetime "created_at", null: false
     t.integer "molde_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["arquivo_id", "molde_id"], name: "index_arquivo_moldes_on_arquivo_id_and_molde_id", unique: true
     t.index ["arquivo_id"], name: "index_arquivo_moldes_on_arquivo_id"
@@ -82,38 +82,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "arquivo_time_logs", force: :cascade do |t|
+    t.string "uuid", null: false
     t.integer "arquivo_id", null: false
+    t.integer "previous_seconds", null: false
+    t.integer "new_seconds", null: false
     t.string "changed_by"
     t.datetime "created_at", null: false
-    t.integer "new_seconds", null: false
-    t.integer "previous_seconds", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
-    t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_arquivo_time_logs_on_arquivo_id"
     t.index ["user_id"], name: "index_arquivo_time_logs_on_user_id"
     t.index ["uuid"], name: "index_arquivo_time_logs_on_uuid", unique: true
   end
 
   create_table "arquivo_versions", force: :cascade do |t|
-    t.boolean "approved", default: false, null: false
     t.integer "arquivo_id", null: false
-    t.string "category"
-    t.text "category_notes"
-    t.string "cor_hex"
-    t.datetime "created_at", null: false
-    t.string "extension", null: false
+    t.integer "version_number", null: false
+    t.string "uuid", null: false
     t.string "filename", null: false
-    t.float "lab_a"
-    t.float "lab_b"
-    t.float "lab_l"
+    t.string "extension", null: false
     t.string "mime_type", null: false
     t.string "original_file", null: false
     t.string "preview_file"
     t.string "status", default: "pending", null: false
+    t.boolean "approved", default: false, null: false
+    t.string "category"
+    t.text "category_notes"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
-    t.integer "version_number", null: false
+    t.float "lab_l"
+    t.float "lab_a"
+    t.float "lab_b"
+    t.string "cor_hex"
     t.index ["arquivo_id", "version_number"], name: "index_arquivo_versions_on_arquivo_id_and_version_number", unique: true
     t.index ["arquivo_id"], name: "index_arquivo_versions_on_arquivo_id"
     t.index ["uuid"], name: "index_arquivo_versions_on_uuid", unique: true
@@ -121,14 +121,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
 
   create_table "arquivo_vinculo_logs", force: :cascade do |t|
     t.integer "arquivo_id", null: false
-    t.string "changed_by"
-    t.datetime "created_at", null: false
     t.integer "from_molde_id"
     t.string "from_molde_nome"
-    t.integer "peca_id"
-    t.integer "pedido_id"
     t.integer "to_molde_id"
     t.string "to_molde_nome", null: false
+    t.integer "peca_id"
+    t.integer "pedido_id"
+    t.string "changed_by"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "uuid", null: false
@@ -142,45 +142,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "arquivos", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "filename", null: false
+    t.string "extension", null: false
+    t.string "mime_type", null: false
+    t.integer "estimated_seconds", default: 0
     t.integer "annotated_seconds"
-    t.integer "approved_version_id"
-    t.integer "arte_id"
     t.string "batch_id"
-    t.datetime "buscando_tamanho_desde"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.string "category"
     t.text "category_notes"
+    t.integer "approved_version_id"
+    t.string "modelo_nome", default: "Novo Modelo"
+    t.string "peca_nome", default: "Nova Peça"
+    t.boolean "organized", default: false, null: false
+    t.string "organize_error"
     t.integer "client_id"
-    t.datetime "created_at", null: false
+    t.integer "modelo_id"
+    t.integer "peca_id"
+    t.integer "molde_id"
+    t.integer "tamanho_id"
+    t.string "tipo_corte"
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.json "encaixe_dtf"
-    t.integer "estimated_seconds", default: 0
-    t.string "extension", null: false
-    t.string "filename", null: false
-    t.string "giro"
-    t.string "lado"
-    t.string "mime_type", null: false
-    t.integer "modelo_id"
-    t.string "modelo_nome", default: "Novo Modelo"
-    t.integer "molde_id"
-    t.string "nome"
-    t.string "organize_error"
-    t.boolean "organized", default: false, null: false
-    t.string "papel", default: "producao", null: false
-    t.integer "peca_id"
-    t.string "peca_nome", default: "Nova Peça"
-    t.decimal "preco_unidade_calculado", precision: 10, scale: 2
-    t.decimal "preco_unidade_combinado", precision: 10, scale: 2
-    t.datetime "preparando_tamanhos_desde"
-    t.integer "referencia_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.integer "tamanho_id"
-    t.string "tamanho_rotulo"
-    t.string "tipo_corte"
+    t.datetime "buscando_tamanho_desde"
+    t.datetime "preparando_tamanhos_desde"
+    t.integer "referencia_id"
+    t.string "nome"
     t.string "tipo_grade"
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.integer "arte_id"
+    t.string "tamanho_rotulo"
+    t.string "papel", default: "producao", null: false
+    t.string "lado"
+    t.string "giro"
+    t.json "encaixe_dtf"
+    t.decimal "preco_unidade_calculado", precision: 10, scale: 2
+    t.decimal "preco_unidade_combinado", precision: 10, scale: 2
     t.index ["approved_version_id"], name: "index_arquivos_on_approved_version_id"
     t.index ["arte_id"], name: "index_arquivos_on_arte_id"
     t.index ["client_id"], name: "index_arquivos_on_client_id"
@@ -195,16 +195,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "artes", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.decimal "espacamento_mm", precision: 5, scale: 2
-    t.string "familia", default: "", null: false
-    t.boolean "girar_dtf", default: false, null: false
-    t.integer "materia_prima_id"
-    t.boolean "no_catalogo", default: false, null: false
-    t.integer "numero"
-    t.string "tipo", default: "calcado", null: false
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "tipo", default: "calcado", null: false
+    t.integer "numero"
+    t.boolean "no_catalogo", default: false, null: false
+    t.string "familia", default: "", null: false
+    t.integer "materia_prima_id"
+    t.decimal "espacamento_mm", precision: 5, scale: 2
+    t.boolean "girar_dtf", default: false, null: false
     t.index ["materia_prima_id"], name: "index_artes_on_materia_prima_id"
     t.index ["no_catalogo"], name: "index_artes_on_no_catalogo"
     t.index ["tipo", "familia", "numero"], name: "index_artes_on_tipo_and_familia_and_numero", unique: true
@@ -212,22 +212,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "baixas_producao", force: :cascade do |t|
-    t.string "changed_by"
-    t.json "contagens", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "desfeita_em"
-    t.integer "desfeita_por_id"
-    t.decimal "esperado", precision: 12, scale: 4
+    t.string "uuid", null: false
+    t.integer "pedido_id", null: false
     t.string "etapa", null: false
-    t.boolean "fora_da_faixa", default: false, null: false
+    t.string "nivel", null: false
     t.json "linhas", default: [], null: false
     t.decimal "medida", precision: 12, scale: 4, null: false
-    t.string "nivel", null: false
-    t.integer "pedido_id", null: false
-    t.integer "reposicao_id"
-    t.datetime "updated_at", null: false
+    t.decimal "esperado", precision: 12, scale: 4
+    t.boolean "fora_da_faixa", default: false, null: false
     t.integer "user_id"
-    t.string "uuid", null: false
+    t.string "changed_by"
+    t.datetime "desfeita_em"
+    t.integer "desfeita_por_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.json "contagens", default: {}, null: false
+    t.integer "reposicao_id"
     t.index ["desfeita_por_id"], name: "index_baixas_producao_on_desfeita_por_id"
     t.index ["pedido_id", "etapa"], name: "index_baixas_producao_on_pedido_id_and_etapa"
     t.index ["pedido_id"], name: "index_baixas_producao_on_pedido_id"
@@ -237,39 +237,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "bans", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "expires_at"
+    t.string "uuid", null: false
     t.string "ip_address", null: false
     t.string "reason"
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.index ["ip_address"], name: "index_bans_on_ip_address"
     t.index ["uuid"], name: "index_bans_on_uuid", unique: true
   end
 
   create_table "clients", force: :cascade do |t|
-    t.string "cobranca_dtf"
-    t.boolean "cobrar_excedente_dtf"
+    t.text "name", null: false
+    t.text "responsible", null: false
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.text "name", null: false
-    t.decimal "preco_corte_dtf", precision: 10, scale: 4
-    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
-    t.decimal "preco_metro_dtf", precision: 10, scale: 2
-    t.text "responsible", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.json "visibilidade", default: {}, null: false
+    t.decimal "preco_metro_dtf", precision: 10, scale: 2
+    t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.string "cobranca_dtf"
+    t.boolean "cobrar_excedente_dtf"
+    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
+    t.string "dono_tecido"
     t.index ["deleted_at"], name: "index_clients_on_deleted_at"
     t.index ["uuid"], name: "index_clients_on_uuid", unique: true
   end
 
   create_table "cor_materiais", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.string "nome", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["nome"], name: "index_cor_materiais_on_nome", unique: true
@@ -277,68 +278,70 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "cut_layers", force: :cascade do |t|
-    t.string "annotation", default: "cut"
-    t.decimal "area_mm2", precision: 10, scale: 2
     t.integer "arquivo_version_id", null: false
-    t.string "color", null: false
-    t.datetime "created_at", null: false
-    t.decimal "height_mm", precision: 10, scale: 2
     t.string "layer_name", null: false
-    t.decimal "perimeter_mm", precision: 10, scale: 2
+    t.string "color", null: false
+    t.string "annotation", default: "cut"
     t.integer "position"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.decimal "width_mm", precision: 10, scale: 2
+    t.decimal "height_mm", precision: 10, scale: 2
+    t.decimal "perimeter_mm", precision: 10, scale: 2
+    t.decimal "area_mm2", precision: 10, scale: 2
+    t.string "uuid", null: false
     t.index ["arquivo_version_id"], name: "index_cut_layers_on_arquivo_version_id"
     t.index ["uuid"], name: "index_cut_layers_on_uuid", unique: true
   end
 
   create_table "empresas", force: :cascade do |t|
-    t.string "cobranca_dtf", default: "quantidade", null: false
-    t.boolean "cobrar_excedente_dtf", default: true, null: false
-    t.datetime "created_at", null: false
-    t.decimal "custo_corte_peca", precision: 10, scale: 4
-    t.decimal "custo_impressao_metro", precision: 10, scale: 2
-    t.decimal "espacamento_dtf_mm", precision: 5, scale: 2, default: "1.5", null: false
-    t.integer "fileiras_extras_dtf", default: 0, null: false
-    t.integer "largura_filme_dtf_mm", default: 600, null: false
-    t.integer "largura_papel_mm", default: 1600, null: false
-    t.integer "margem_filme_dtf_mm", default: 15, null: false
-    t.decimal "metragem_minima_tecido", precision: 8, scale: 1
+    t.string "uuid", null: false
     t.string "nome", null: false
-    t.integer "papel_padrao_id"
-    t.decimal "preco_corte_dtf", precision: 10, scale: 4
-    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
-    t.decimal "preco_metro_dtf", precision: 10, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "largura_papel_mm", default: 1600, null: false
     t.integer "tolerancia_abaixo_pct", default: 10, null: false
     t.integer "tolerancia_acima_pct", default: 25, null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.integer "papel_padrao_id"
+    t.decimal "custo_impressao_metro", precision: 10, scale: 2
+    t.decimal "custo_corte_peca", precision: 10, scale: 4
     t.json "visibilidade_cliente", default: {}, null: false
+    t.integer "largura_filme_dtf_mm", default: 600, null: false
+    t.integer "margem_filme_dtf_mm", default: 15, null: false
+    t.decimal "espacamento_dtf_mm", precision: 5, scale: 2, default: "1.5", null: false
+    t.integer "fileiras_extras_dtf", default: 0, null: false
+    t.decimal "preco_metro_dtf", precision: 10, scale: 2
+    t.decimal "preco_corte_dtf", precision: 10, scale: 4
+    t.string "cobranca_dtf", default: "quantidade", null: false
+    t.boolean "cobrar_excedente_dtf", default: true, null: false
+    t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
+    t.decimal "metragem_minima_tecido", precision: 8, scale: 1
+    t.integer "filme_dtf_padrao_id"
+    t.index ["filme_dtf_padrao_id"], name: "index_empresas_on_filme_dtf_padrao_id"
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
   end
 
   create_table "eventos_pedido", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "pedido_id", null: false
-    t.text "recado"
-    t.string "tipo", null: false
-    t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
     t.string "uuid", null: false
+    t.integer "pedido_id", null: false
+    t.integer "user_id", null: false
+    t.string "tipo", null: false
+    t.text "recado"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["pedido_id"], name: "index_eventos_pedido_on_pedido_id"
     t.index ["user_id"], name: "index_eventos_pedido_on_user_id"
     t.index ["uuid"], name: "index_eventos_pedido_on_uuid", unique: true
   end
 
   create_table "exclusao_logs", force: :cascade do |t|
+    t.string "registro_type", null: false
+    t.integer "registro_id", null: false
     t.string "acao", null: false
+    t.string "registro_rotulo", null: false
     t.string "changed_by"
     t.datetime "created_at", null: false
-    t.integer "registro_id", null: false
-    t.string "registro_rotulo", null: false
-    t.string "registro_type", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "uuid", null: false
@@ -348,38 +351,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "faixas_de_preco", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.integer "molde_id", null: false
-    t.decimal "preco_par", precision: 10, scale: 2, null: false
-    t.string "tamanho_final", null: false
     t.string "tamanho_inicial", null: false
-    t.datetime "updated_at", null: false
+    t.string "tamanho_final", null: false
+    t.decimal "preco_par", precision: 10, scale: 2, null: false
     t.string "uuid", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["molde_id"], name: "index_faixas_de_preco_on_molde_id"
     t.index ["uuid"], name: "index_faixas_de_preco_on_uuid", unique: true
   end
 
   create_table "funcoes", force: :cascade do |t|
-    t.json "acoes", default: [], null: false
-    t.datetime "created_at", null: false
-    t.datetime "deleted_at"
-    t.integer "deleted_by_id"
+    t.string "uuid", null: false
+    t.string "nome", null: false
     t.boolean "dono", default: false, null: false
     t.json "niveis", default: {}, null: false
-    t.string "nome", null: false
-    t.boolean "para_cliente", default: false, null: false
+    t.json "acoes", default: [], null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.boolean "para_cliente", default: false, null: false
     t.index ["deleted_at"], name: "index_funcoes_on_deleted_at"
     t.index ["nome"], name: "index_funcoes_on_nome", unique: true
     t.index ["uuid"], name: "index_funcoes_on_uuid", unique: true
   end
 
   create_table "grupo_materiais", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.string "nome", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
@@ -387,12 +390,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "item_pedido_pecas", force: :cascade do |t|
-    t.integer "arquivo_id"
-    t.datetime "created_at", null: false
-    t.boolean "incluida", default: true, null: false
     t.integer "item_pedido_id", null: false
+    t.integer "arquivo_id"
     t.integer "peca_id"
+    t.boolean "incluida", default: true, null: false
     t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["arquivo_id"], name: "index_item_pedido_pecas_on_arquivo_id"
@@ -403,22 +406,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "itens_pedido", force: :cascade do |t|
-    t.integer "arquivo_id", null: false
-    t.integer "arte_id"
-    t.datetime "created_at", null: false
-    t.integer "largura_mm"
-    t.integer "materia_prima_id"
-    t.decimal "metros", precision: 8, scale: 1
-    t.datetime "minimo_aprovado_em"
-    t.decimal "minimo_aprovado_metros", precision: 8, scale: 1
-    t.integer "minimo_aprovado_por_id"
+    t.string "uuid", null: false
     t.integer "pedido_id", null: false
+    t.integer "arquivo_id", null: false
+    t.integer "materia_prima_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "arte_id"
+    t.decimal "metros", precision: 8, scale: 1
+    t.integer "largura_mm"
     t.decimal "preco_impressao_metro", precision: 10, scale: 2
     t.decimal "preco_impressao_metro_partida", precision: 10, scale: 2
     t.decimal "preco_tecido_metro", precision: 10, scale: 2
     t.decimal "preco_tecido_metro_partida", precision: 10, scale: 2
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.integer "minimo_aprovado_por_id"
+    t.datetime "minimo_aprovado_em"
+    t.decimal "minimo_aprovado_metros", precision: 8, scale: 1
+    t.string "dono_tecido"
     t.index ["arquivo_id"], name: "index_itens_pedido_on_arquivo_id"
     t.index ["arte_id"], name: "index_itens_pedido_on_arte_id"
     t.index ["materia_prima_id"], name: "index_itens_pedido_on_materia_prima_id"
@@ -428,35 +432,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "itens_pedido_grade", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.json "encaixe_dtf"
-    t.integer "fileiras_extras"
     t.integer "item_pedido_id", null: false
+    t.string "tamanho_nome", null: false
+    t.integer "quantidade", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.decimal "preco_par", precision: 10, scale: 2
+    t.integer "fileiras_extras"
+    t.json "encaixe_dtf"
     t.decimal "preco_unidade", precision: 10, scale: 2
     t.decimal "preco_unidade_partida", precision: 10, scale: 2
-    t.integer "quantidade", default: 0, null: false
-    t.string "tamanho_nome", null: false
-    t.datetime "updated_at", null: false
     t.index ["item_pedido_id", "tamanho_nome"], name: "idx_grade_on_item_and_tamanho", unique: true
     t.index ["item_pedido_id"], name: "index_itens_pedido_grade_on_item_pedido_id"
   end
 
   create_table "itens_reposicao", force: :cascade do |t|
-    t.integer "arquivo_id", null: false
-    t.boolean "corta", default: true, null: false
-    t.datetime "created_at", null: false
-    t.integer "item_origem_id", null: false
-    t.string "lado"
-    t.integer "materia_prima_id"
-    t.integer "peca_id"
-    t.integer "pecas", null: false
-    t.integer "pedido_id", null: false
-    t.boolean "refazer_corte", default: true, null: false
-    t.boolean "refazer_impressao", default: true, null: false
-    t.integer "tamanho_id"
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "pedido_id", null: false
+    t.integer "item_origem_id", null: false
+    t.integer "arquivo_id", null: false
+    t.integer "peca_id"
+    t.integer "tamanho_id"
+    t.integer "materia_prima_id"
+    t.string "lado"
+    t.boolean "corta", default: true, null: false
+    t.boolean "refazer_impressao", default: true, null: false
+    t.boolean "refazer_corte", default: true, null: false
+    t.integer "pecas", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["arquivo_id"], name: "index_itens_reposicao_on_arquivo_id"
     t.index ["item_origem_id"], name: "index_itens_reposicao_on_item_origem_id"
     t.index ["materia_prima_id"], name: "index_itens_reposicao_on_materia_prima_id"
@@ -467,15 +471,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "materia_primas", force: :cascade do |t|
-    t.integer "cor_material_id", null: false
-    t.datetime "created_at", null: false
-    t.string "gramatura", null: false
     t.integer "grupo_material_id", null: false
+    t.integer "cor_material_id", null: false
     t.string "largura", null: false
-    t.decimal "preco_metro", precision: 10, scale: 2
-    t.string "tipo", default: "tecido", null: false
+    t.string "gramatura", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.string "tipo", default: "tecido", null: false
+    t.decimal "preco_metro", precision: 10, scale: 2
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
     t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura"], name: "idx_materia_primas_composite", unique: true
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
@@ -483,16 +487,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "modelos", force: :cascade do |t|
-    t.string "abreviacao"
+    t.string "nome", null: false
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.string "nome", null: false
-    t.integer "produto_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "produto_id"
+    t.string "abreviacao"
     t.index ["abreviacao"], name: "index_modelos_on_abreviacao", unique: true
     t.index ["deleted_at"], name: "index_modelos_on_deleted_at"
     t.index ["nome"], name: "index_modelos_on_nome", unique: true
@@ -501,14 +505,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "molde_pecas", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.boolean "espelhada", default: false, null: false
     t.integer "molde_id", null: false
-    t.boolean "needs_cut", default: true, null: false
     t.integer "peca_id", null: false
-    t.integer "pecas_por_par", default: 2, null: false
+    t.boolean "needs_cut", default: true, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.integer "pecas_por_par", default: 2, null: false
+    t.boolean "espelhada", default: false, null: false
     t.index ["molde_id", "peca_id"], name: "index_molde_pecas_on_molde_id_and_peca_id", unique: true
     t.index ["molde_id"], name: "index_molde_pecas_on_molde_id"
     t.index ["peca_id"], name: "index_molde_pecas_on_peca_id"
@@ -516,24 +520,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "moldes", force: :cascade do |t|
-    t.integer "base_id"
+    t.string "nome", null: false
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "modelo_id"
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.integer "modelo_id"
-    t.string "nome", null: false
-    t.integer "numero", null: false
-    t.datetime "published_at"
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.string "sufixo"
-    t.string "tamanho_final"
-    t.string "tamanho_inicial"
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.string "tamanho_inicial"
+    t.string "tamanho_final"
+    t.integer "numero", null: false
+    t.string "sufixo"
     t.integer "variacao_de_id"
     t.integer "version", default: 1, null: false
+    t.integer "base_id"
+    t.datetime "published_at"
+    t.string "dono_tecido"
     t.index ["base_id"], name: "index_moldes_on_base_id"
     t.index ["client_id", "numero"], name: "index_moldes_on_client_id_and_numero", unique: true
     t.index ["client_id"], name: "index_moldes_on_client_id"
@@ -544,14 +549,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "movimento_estoques", force: :cascade do |t|
-    t.integer "client_id"
-    t.datetime "created_at", null: false
     t.integer "materia_prima_id", null: false
-    t.decimal "quantidade", default: "0.0", null: false
+    t.integer "client_id"
     t.string "tipo", null: false
+    t.decimal "quantidade", default: "0.0", null: false
+    t.decimal "valor", precision: 10, scale: 2
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
-    t.decimal "valor", precision: 10, scale: 2
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
@@ -559,13 +564,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "pecas", force: :cascade do |t|
+    t.string "nome", null: false
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.string "nome", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["deleted_at"], name: "index_pecas_on_deleted_at"
     t.index ["nome"], name: "index_pecas_on_nome", unique: true
@@ -573,91 +578,93 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "pedidos", force: :cascade do |t|
+    t.string "uuid", null: false
     t.integer "client_id"
-    t.string "cobranca_dtf"
-    t.boolean "cobrar_excedente"
+    t.string "status", default: "rascunho", null: false
+    t.text "observacoes"
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.string "dono_tecido", default: "cliente", null: false
-    t.string "entrega", default: "rolo", null: false
-    t.datetime "entregue_em"
-    t.integer "entregue_por_id"
-    t.integer "fileiras_extras", default: 0, null: false
-    t.boolean "grade_antiga", default: false, null: false
-    t.text "observacoes"
-    t.decimal "preco_corte", precision: 10, scale: 4
-    t.decimal "preco_corte_partida", precision: 10, scale: 4
-    t.decimal "preco_metro", precision: 10, scale: 2
-    t.decimal "preco_metro_partida", precision: 10, scale: 2
-    t.integer "reposicao_de_id"
     t.datetime "restored_at"
     t.integer "restored_by_id"
-    t.string "status", default: "rascunho", null: false
     t.string "tipo", default: "calcado", null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
+    t.boolean "grade_antiga", default: false, null: false
+    t.datetime "entregue_em"
+    t.integer "entregue_por_id"
+    t.integer "reposicao_de_id"
+    t.string "entrega", default: "rolo", null: false
+    t.integer "fileiras_extras", default: 0, null: false
+    t.string "cobranca_dtf"
+    t.boolean "cobrar_excedente"
+    t.decimal "preco_metro", precision: 10, scale: 2
+    t.decimal "preco_metro_partida", precision: 10, scale: 2
+    t.decimal "preco_corte", precision: 10, scale: 4
+    t.decimal "preco_corte_partida", precision: 10, scale: 4
+    t.string "dono_tecido"
+    t.integer "material_impressao_id"
     t.index ["client_id"], name: "index_pedidos_on_client_id"
     t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
     t.index ["entregue_por_id"], name: "index_pedidos_on_entregue_por_id"
+    t.index ["material_impressao_id"], name: "index_pedidos_on_material_impressao_id"
     t.index ["reposicao_de_id"], name: "index_pedidos_on_reposicao_de_id"
     t.index ["status"], name: "index_pedidos_on_status"
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end
 
   create_table "produtos", force: :cascade do |t|
-    t.datetime "created_at", null: false
+    t.string "uuid", null: false
+    t.string "nome", null: false
+    t.json "grade", default: [], null: false
     t.datetime "deleted_at"
     t.integer "deleted_by_id"
-    t.json "grade", default: [], null: false
-    t.string "nome", null: false
     t.datetime "restored_at"
     t.integer "restored_by_id"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.index ["deleted_at"], name: "index_produtos_on_deleted_at"
     t.index ["nome"], name: "index_produtos_on_nome", unique: true
     t.index ["uuid"], name: "index_produtos_on_uuid", unique: true
   end
 
   create_table "referencias", force: :cascade do |t|
-    t.datetime "created_at", null: false
+    t.string "uuid", null: false
     t.integer "molde_id", null: false
     t.string "nome", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.index ["molde_id"], name: "index_referencias_on_molde_id"
     t.index ["uuid"], name: "index_referencias_on_uuid", unique: true
   end
 
   create_table "sequencias", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.string "nome", null: false
     t.integer "ultimo", default: 0, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["nome"], name: "index_sequencias_on_nome", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "ip_address"
-    t.datetime "updated_at", null: false
-    t.string "user_agent"
     t.integer "user_id", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
   create_table "solicitacoes_aprovacao", force: :cascade do |t|
+    t.string "uuid", null: false
     t.integer "arquivo_id", null: false
     t.integer "arquivo_version_id", null: false
-    t.json "arquivo_version_ids", default: [], null: false
-    t.integer "arte_id", null: false
+    t.integer "user_id", null: false
     t.datetime "cancelada_em"
     t.integer "cancelada_por_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.string "uuid", null: false
+    t.integer "arte_id", null: false
+    t.json "arquivo_version_ids", default: [], null: false
     t.index ["arquivo_id"], name: "index_solicitacoes_aprovacao_on_arquivo_id"
     t.index ["arquivo_version_id"], name: "index_solicitacoes_aprovacao_on_arquivo_version_id"
     t.index ["arte_id"], name: "index_solicitacoes_aprovacao_on_arte_id"
@@ -666,50 +673,50 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   end
 
   create_table "tamanhos", force: :cascade do |t|
-    t.decimal "area_mm2", precision: 10, scale: 2
     t.integer "arquivo_id", null: false
-    t.datetime "created_at", null: false
-    t.decimal "height_mm", precision: 10, scale: 2
-    t.decimal "inner_lines_mm"
-    t.json "metros_por_peca", default: {}, null: false
     t.string "nome", null: false
-    t.json "numeros", default: [], null: false
-    t.decimal "perimeter_mm"
     t.integer "position"
-    t.string "preview_file"
-    t.decimal "total_line_mm"
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.decimal "width_mm", precision: 10, scale: 2
+    t.decimal "height_mm", precision: 10, scale: 2
+    t.decimal "area_mm2", precision: 10, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "perimeter_mm"
+    t.decimal "inner_lines_mm"
+    t.decimal "total_line_mm"
+    t.string "preview_file"
+    t.string "uuid", null: false
+    t.json "numeros", default: [], null: false
+    t.json "metros_por_peca", default: {}, null: false
     t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
     t.index ["uuid"], name: "index_tamanhos_on_uuid", unique: true
   end
 
   create_table "users", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "nome", null: false
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
     t.string "cloud_user_uuid"
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "trocar_senha", default: false, null: false
     t.datetime "desativado_em"
     t.integer "desativado_por_id"
-    t.string "email_address", null: false
-    t.string "nome", null: false
-    t.string "password_digest", null: false
-    t.boolean "trocar_senha", default: false, null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", null: false
     t.index ["cloud_user_uuid"], name: "index_users_on_cloud_user_uuid", unique: true
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["uuid"], name: "index_users_on_uuid", unique: true
   end
 
   create_table "vinculos", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "user_id", null: false
+    t.integer "empresa_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "funcao_id"
     t.json "acessos_extras", default: {}, null: false
     t.integer "client_id"
-    t.datetime "created_at", null: false
-    t.integer "empresa_id", null: false
-    t.integer "funcao_id"
-    t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.string "uuid", null: false
     t.index ["client_id"], name: "index_vinculos_on_client_id"
     t.index ["empresa_id"], name: "index_vinculos_on_empresa_id"
     t.index ["funcao_id"], name: "index_vinculos_on_funcao_id"
@@ -752,6 +759,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   add_foreign_key "baixas_producao", "users"
   add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
   add_foreign_key "cut_layers", "arquivo_versions"
+  add_foreign_key "empresas", "materia_primas", column: "filme_dtf_padrao_id"
   add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"
   add_foreign_key "eventos_pedido", "pedidos"
   add_foreign_key "eventos_pedido", "users"
@@ -784,6 +792,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_100000) do
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "pedidos", "clients"
+  add_foreign_key "pedidos", "materia_primas", column: "material_impressao_id"
   add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"
   add_foreign_key "pedidos", "users", column: "entregue_por_id"
   add_foreign_key "referencias", "moldes"

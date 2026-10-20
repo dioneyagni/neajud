@@ -7,7 +7,7 @@
 <% linhas = [ [ "Impressão", valores.impressao ], [ "Tecido", valores.tecido ] ].select(&:last) %>
 <section class="pedido-valores pedido-valores-tecido" id="valores-tecido">
   <h3>Valores do pedido</h3>
-  <p class="pedido-valores-cobranca"><%= pedido.dono_tecido == "empresa" ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %></p>
+  <p class="pedido-valores-cobranca"><%= DonoDoTecido.do_pedido(pedido).empresa? ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %></p>
   <div class="pedido-dtf-tabela-wrap">
     <table class="pedido-dtf-tabela pedido-valores-tabela pedido-dtf-blocos">
       <thead><tr><th>Cobrança</th><th>Metros</th><% if equipe %><th>Partida</th><% end %><th>Subtotal</th></tr></thead>

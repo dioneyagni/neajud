@@ -25,7 +25,8 @@ and the minimum meters with its approval, 2.7c the production):
   its meters; a blank material takes the cor lisa's (`Arte#materia_prima`).
 - **Whose fabric** (`pedidos.dono_tecido`: cliente / empresa), once for the
   whole pedido (decided in 2.3, 09/10/2026); only the empresa's will be
-  charged (2.7b). Each fabric in the item's select shows that owner's
+  charged (2.7b). Since 2.3d1 it cascades from the client (blank = inherit,
+  `DonoDoTecido`; `docs/dominio/estoque.md`). Each fabric in the item's select shows that owner's
   balance (`saldo_do_tecido`, information only; never the empresa's to a
   cliente final).
 - **The cliente final** changes his draft's fabric, meters and owner; the

@@ -26,7 +26,8 @@ RSpec.describe "The tecido pedido", type: :request do
   it "a corrida and a cor lisa go into their client's tecido draft, in meters, without parts" do
     pedido = Pedido.find_by!(uuid: adicionar(cor, metros: "12,5")["pedido_uuid"])
     expect(adicionar(corrida, metros: "3", materia_prima_uuid: oxford.uuid)["pedido_uuid"]).to eq(pedido.uuid)
-    expect([ pedido.tipo, pedido.client, pedido.dono_tecido ]).to eq([ "tecido", client, "cliente" ])
+    # Whose fabric: blank, inherits the client's (Etapa 2.3d1), "cliente" by default.
+    expect([ pedido.tipo, pedido.client, pedido.dono_tecido, DonoDoTecido.do_pedido(pedido).dono ]).to eq([ "tecido", client, nil, "cliente" ])
     # A blank material takes the cor lisa's.
     expect(pedido.itens_pedido.order(:id).map { |i| [ i.metros, i.materia_prima, i.item_pedido_pecas.size, i.grades.size ] }).to eq([ [ 12.5, oxford, 0, 0 ], [ 3, oxford, 0, 0 ] ])
   end
@@ -58,7 +59,7 @@ RSpec.describe "The tecido pedido", type: :request do
     expect(item.at_css(".pedido-tecido-material option[selected]").text).to eq("#{largo.nome_completo} · saldo 30 m")
     expect([ item.at_css(".pedido-tecido-metros")["value"], item.at_css(".pedido-tecido-largura-mm")["placeholder"] ]).to eq([ "12,5", "1800" ])
     expect(item.at_css(".pedido-tecido-aviso").text).to eq("Mais larga que o papel (1,6 m): confira se há papel para ela")
-    expect(%w[itens metros dono-tecido].map { |c| html.at_css("[data-resumo='#{c}']").text }).to eq([ "1", "12,5 m", "Do cliente" ])
+    expect(%w[itens metros dono-tecido].map { |c| html.at_css("[data-resumo='#{c}']").text }).to eq([ "1", "12,5 m", "Do cliente (padrão)" ])
     # Its stages since 2.7c (the paper, then the Calandra); a DTF's values never.
     expect(html.css(".pedido-ir-producao a").map(&:text)).to eq([ "Impressão →", "Calandra →" ])
     expect(html.css("#valores-dtf")).to be_empty
@@ -67,13 +68,13 @@ RSpec.describe "The tecido pedido", type: :request do
   it "the team sets the fabric owner, an item's fabric, meters and width" do
     pedido = Pedido.find_by!(uuid: adicionar(corrida, metros: "1")["pedido_uuid"])
     item = pedido.itens_pedido.first
-    patch tecido_pedido_path(pedido), params: { dono_tecido: "empresa" }
+    patch materiais_pedido_path(pedido), params: { dono_tecido: "empresa" }
     patch tecido_item_pedido_path(pedido), params: { item_uuid: item.uuid, materia_prima_uuid: oxford.uuid, metros: "7,5", largura_mm: "1400" }
     expect([ pedido.reload.dono_tecido, item.reload.materia_prima, item.metros, item.largura_efetiva_mm ]).to eq([ "empresa", oxford, 7.5, 1400 ])
     patch tecido_item_pedido_path(pedido), params: { item_uuid: item.uuid, largura_mm: "" }
     expect(item.reload.largura_efetiva_mm).to eq(1500)
-    patch tecido_pedido_path(pedido), params: { dono_tecido: "vizinho" }
-    expect(flash[:alert]).to include("vizinho is not whose fabric; expected one of cliente, empresa")
+    patch materiais_pedido_path(pedido), params: { dono_tecido: "vizinho" }
+    expect(flash[:alert]).to include("vizinho is not whose fabric; expected one of cliente, empresa or blank (inherits)")
   end
 
   # Decided 16/10/2026: the width is the team's — how far the RIP repeats the module.
@@ -82,7 +83,7 @@ RSpec.describe "The tecido pedido", type: :request do
     item = pedido.itens_pedido.first
     entrar_como_cliente_final(client)
     patch tecido_item_pedido_path(pedido), params: { item_uuid: item.uuid, metros: "4" }
-    patch tecido_pedido_path(pedido), params: { dono_tecido: "empresa" }
+    patch materiais_pedido_path(pedido), params: { dono_tecido: "empresa" }
     patch tecido_item_pedido_path(pedido), params: { item_uuid: item.uuid, metros: "9", largura_mm: "900" }
     expect(flash[:alert]).to eq("The width is the team's to set")
     patch tecido_pedido_path(pedido), params: { client_uuid: create(:client).uuid }

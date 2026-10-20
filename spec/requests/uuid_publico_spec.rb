@@ -84,6 +84,16 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    # Etapa 2.3d1: a draft's fabric owner and paper, by uuid only.
+    it "refuses a pedido and its paper by integer id" do
+      pedido = create(:pedido)
+      papel = MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Papel"), cor_material: CorMaterial.create!(nome: "Branco"), largura: "1.60", gramatura: "1g", tipo: "papel")
+      patch "/pedidos/#{pedido.id}/materiais", params: { dono_tecido: "empresa" }
+      expect([ response.status, pedido.reload.dono_tecido ]).to eq([ 404, nil ])
+      patch "/pedidos/#{pedido.uuid}/materiais", params: { material_impressao_uuid: papel.id }
+      expect([ response.status, pedido.reload.material_impressao ]).to eq([ 404, nil ])
+    end
+
     it "refuses a tamanho drawing by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/preview"

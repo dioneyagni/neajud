@@ -1,0 +1,39 @@
+<%# Where the pedido's materials come from (Etapa 2.3d1, decided 19/10/2026):
+    whose fabric — a cascade cliente → molde → pedido, blank inherits; a DTF
+    has no fabric — and the paper or film it prints on, the empresa's default
+    unless chosen. Both change while the draft is editable: the fabric's
+    owner by whoever edits it (the cliente final knows whether he brings it),
+    the paper or film by the team. %>
+<% editavel = pedido_editavel?(pedido) %>
+<dl class="pedido-resumo-lista pedido-materiais">
+  <% unless pedido.dtf? %>
+    <dt>Tecido</dt><dd data-resumo="dono-tecido"><%= dono_do_tecido_do_pedido(pedido) %></dd>
+  <% end %>
+  <dt><%= pedido.dtf? ? "Filme" : "Papel" %></dt><dd data-resumo="material-impressao"><%= material_de_impressao_do_pedido(pedido) %></dd>
+</dl>
+<% if editavel %>
+  <%= form_with url: materiais_pedido_path(pedido), method: :patch, class: "pedido-materiais-ajustes", data: { controller: "auto-submit" } do %>
+    <% unless pedido.dtf? %>
+      <label>Tecido
+        <select name="dono_tecido" id="pedido-dono-tecido" data-action="change->auto-submit#submit">
+          <option value="" <%= "selected" unless pedido.dono_tecido %>><%= rotulo_do_dono_herdado(pedido) %></option>
+          <% DonoDoTecido::ROTULOS.each do |dono, rotulo| %>
+            <option value="<%= dono %>" <%= "selected" if pedido.dono_tecido == dono %>><%= rotulo %></option>
+          <% end %>
+        </select>
+      </label>
+    <% end %>
+    <% unless cliente_final? %>
+      <% padrao = pedido.dtf? ? Empresa.atual&.filme_dtf_padrao : Empresa.atual&.papel_padrao %>
+      <label><%= pedido.dtf? ? "Filme" : "Papel" %>
+        <select name="material_impressao_uuid" id="pedido-material-impressao" data-action="change->auto-submit#submit">
+          <option value="" <%= "selected" unless pedido.material_impressao %>>Padrão da empresa<%= ": #{padrao.nome_completo}" if padrao %></option>
+          <% pedido.materiais_de_impressao_possiveis(visiveis(MateriaPrima)).sort_by(&:nome_completo).each do |material| %>
+            <option value="<%= material.uuid %>" <%= "selected" if pedido.material_impressao == material %>><%= material.nome_completo %> (<%= material.largura_mm %> mm)</option>
+          <% end %>
+        </select>
+      </label>
+      <% if pedido.dtf? %><small>Só filmes da largura do padrão: o encaixe de cada tamanho é calculado nela.</small><% end %>
+    <% end %>
+  <% end %>
+<% end %>

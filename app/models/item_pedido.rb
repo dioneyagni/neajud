@@ -2,6 +2,7 @@ class ItemPedido < ApplicationRecord
   include GeraUuid
   include ReferenciaAtiva
   include PrecosDoItemTecido
+  include EscolheDonoDoTecido
 
   self.table_name = "itens_pedido"
 

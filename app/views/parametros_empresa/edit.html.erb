@@ -41,11 +41,23 @@
     <input type="text" inputmode="decimal" name="empresa[custo_corte_peca]" id="empresa_custo_corte_peca"
            value="<%= @empresa.custo_corte_peca && number_with_precision(@empresa.custo_corte_peca, precision: 4, separator: ",", strip_insignificant_zeros: true) %>">
   </div>
-  <%# Etapa 2.6a (decided 13/10/2026): the DTF film is just a width, no material. %>
+  <%# Etapa 2.6a (decided 13/10/2026): the DTF film was just a width; since
+      2.3d1 it is a material too, whose width replaces the typed one. %>
+  <% filmes = visiveis(MateriaPrima).filmes_dtf.includes(:grupo_material, :cor_material).order(:largura) %>
   <fieldset class="parametros-dtf" id="parametros-dtf">
     <legend>DTF film</legend>
     <div class="client-field">
-      <%= form.label :largura_filme_dtf_mm, "Film width (mm)" %>
+      <label for="empresa_filme_dtf_padrao_uuid">Default film</label>
+      <select name="empresa[filme_dtf_padrao_uuid]" id="empresa_filme_dtf_padrao_uuid">
+        <option value="">None — use the width below</option>
+        <% filmes.each do |filme| %>
+          <option value="<%= filme.uuid %>" <%= "selected" if @empresa.filme_dtf_padrao == filme %>><%= filme.nome_completo %> (<%= filme.largura_mm %> mm)</option>
+        <% end %>
+      </select>
+      <small><%= filmes.any? ? "Its width fits the etiquetas; a pedido may print on another film of the same width." : "No DTF film registered yet: set a material's type to Filme DTF on the Materials page." %></small>
+    </div>
+    <div class="client-field">
+      <%= form.label :largura_filme_dtf_mm, "Film width without a default film (mm)" %>
       <%= form.number_field :largura_filme_dtf_mm, min: 1, step: 1, required: true %>
     </div>
     <div class="client-field">

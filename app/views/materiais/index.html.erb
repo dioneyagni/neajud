@@ -30,13 +30,13 @@
           <td>
             <% if pode?(:estoque, :editar) %>
               <%= form_with model: mp, url: material_path(mp), method: :patch, class: "material-edicao", id: "material-#{mp.uuid}" do |f| %>
-                <%= f.select :tipo, MateriaPrima::TIPOS.map { |t| [ t.capitalize, t ] }, {}, id: "material-#{mp.uuid}-tipo", "aria-label": "Type of #{mp.nome_completo}" %>
+                <%= f.select :tipo, MateriaPrima::ROTULOS_DOS_TIPOS.map { |t, rotulo| [ rotulo, t ] }, {}, id: "material-#{mp.uuid}-tipo", "aria-label": "Type of #{mp.nome_completo}" %>
                 <%= f.text_field :preco_metro, value: (number_with_precision(mp.preco_metro, precision: 2, separator: ",") if mp.preco_metro),
                       placeholder: "R$ / m", inputmode: "decimal", id: "material-#{mp.uuid}-preco", "aria-label": "Sale price per meter of #{mp.nome_completo}" %>
                 <%= f.submit "Save", class: "btn btn-sm btn-secondary" %>
               <% end %>
             <% else %>
-              <%= mp.tipo.capitalize %><%= " · #{number_to_currency(mp.preco_metro)}/m" if mp.preco_metro %>
+              <%= MateriaPrima::ROTULOS_DOS_TIPOS[mp.tipo] %><%= " · #{number_to_currency(mp.preco_metro)}/m" if mp.preco_metro %>
             <% end %>
           </td>
           <td class="num" data-saldo="empresa"><%= metros(@saldos.empresa(mp)) %></td>

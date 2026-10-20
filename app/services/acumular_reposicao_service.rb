@@ -19,7 +19,8 @@ class AcumularReposicaoService
   def call
     Pedido.transaction do
       reposicao = @pedido.reposicao_em_aberto ||
-                  Pedido.create!(status: "rascunho", client: @pedido.client, tipo: @pedido.tipo, reposicao_de: @pedido)
+                  Pedido.create!(status: "rascunho", client: @pedido.client, tipo: @pedido.tipo, reposicao_de: @pedido,
+                                 dono_tecido: @pedido.dono_tecido, material_impressao_id: @pedido.material_impressao_id)
       @faltas.each { |falta| acumular(reposicao, falta) }
       reposicao
     end

@@ -7,6 +7,8 @@ class Empresa < ApplicationRecord
   has_many :vinculos, dependent: :destroy
   # Etapa 2.3: the paper whose width gives an arte's meters per piece.
   belongs_to :papel_padrao, class_name: "MateriaPrima", optional: true
+  # Etapa 2.3d1: the DTF film as a material, whose width replaces the typed one.
+  belongs_to :filme_dtf_padrao, class_name: "MateriaPrima", optional: true
 
   validates :nome, presence: true
   # Etapa 2.2 (1/3): the paper's width and the baixa's warning band.
@@ -24,8 +26,9 @@ class Empresa < ApplicationRecord
   validates :espacamento_dtf_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }
   validate :margens_cabem_no_filme
   # Etapa 2.6b1: every DTF size's fit follows the film.
-  after_update_commit -> { EncaixeDaEtiqueta.atualizar_todas! }, if: -> { (saved_changes.keys & %w[largura_filme_dtf_mm margem_filme_dtf_mm espacamento_dtf_mm]).any? }
+  after_update_commit -> { EncaixeDaEtiqueta.atualizar_todas! }, if: -> { (saved_changes.keys & %w[largura_filme_dtf_mm filme_dtf_padrao_id margem_filme_dtf_mm espacamento_dtf_mm]).any? }
   validate :papel_padrao_e_papel
+  validate :filme_dtf_padrao_e_filme
   validate :visibilidade_cliente_valida
   validate :unica_por_instancia, on: :create
 
@@ -41,10 +44,17 @@ class Empresa < ApplicationRecord
     papel_padrao&.largura_mm || largura_papel_mm
   end
 
+  # The DTF film's width: the default film's, else the typed one while no
+  # film is registered (Etapa 2.3d1, like the paper).
+  # Usage: Empresa.atual.largura_filme_dtf_efetiva_mm # => 600
+  def largura_filme_dtf_efetiva_mm
+    filme_dtf_padrao&.largura_mm || largura_filme_dtf_mm
+  end
+
   # The DTF film's width the etiquetas may take: the margin left at each edge
   # (Etapa 2.6a). Usage: Empresa.atual.largura_util_filme_dtf_mm # => 570
   def largura_util_filme_dtf_mm
-    largura_filme_dtf_mm - (2 * margem_filme_dtf_mm)
+    largura_filme_dtf_efetiva_mm - (2 * margem_filme_dtf_mm)
   end
 
   # Every etiqueta: the dono's price per meter is the one of those without a
@@ -66,11 +76,17 @@ class Empresa < ApplicationRecord
     errors.add(:papel_padrao, "#{papel_padrao.nome_completo} is a #{papel_padrao.tipo}; expected a material of type papel")
   end
 
+  def filme_dtf_padrao_e_filme
+    return if filme_dtf_padrao.nil? || filme_dtf_padrao.tipo == "filme_dtf"
+
+    errors.add(:filme_dtf_padrao, "#{filme_dtf_padrao.nome_completo} is a #{filme_dtf_padrao.tipo}; expected a material of type filme_dtf")
+  end
+
   def margens_cabem_no_filme
     return unless largura_filme_dtf_mm.is_a?(Integer) && margem_filme_dtf_mm.is_a?(Integer)
     return if largura_util_filme_dtf_mm.positive?
 
-    errors.add(:margem_filme_dtf_mm, "#{margem_filme_dtf_mm} mm at each edge leaves nothing of the #{largura_filme_dtf_mm} mm film; expected less than half its width")
+    errors.add(:margem_filme_dtf_mm, "#{margem_filme_dtf_mm} mm at each edge leaves nothing of the #{largura_filme_dtf_efetiva_mm} mm film; expected less than half its width")
   end
 
   # Etapa 2.8 (3a): the default grid of what a cliente final sees.

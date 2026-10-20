@@ -3761,7 +3761,7 @@ li.aprovacao--cancelada {
 }
 
 .pedido-dtf-ajustes,
-.pedido-tecido-ajustes {
+.pedido-materiais-ajustes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
@@ -3772,6 +3772,21 @@ li.aprovacao--cancelada {
 
 .pedido-dtf-ajustes input[type="number"] {
   width: 4rem;
+}
+
+/* Etapa 2.3d1: the fabric's owner and the paper / film; a material's long
+   name must not push the panel wider on a phone. */
+.pedido-materiais-ajustes label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pedido-materiais-ajustes select,
+.dono-tecido-form select {
+  max-width: 100%;
 }
 
 /* Etapa 2.7a: a tecido item's fabric, meters and width, side by side,

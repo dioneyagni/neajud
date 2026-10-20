@@ -27,6 +27,17 @@
           <dd><%= @molde.modelo&.nome || "—" %></dd>
           <dt>Sizes</dt>
           <dd class="molde-grade"><%= @molde.grade.any? ? "#{@molde.grade.first}–#{@molde.grade.last}" : "—" %></dd>
+          <%# Etapa 2.3d1: whose fabric this molde's pedidos take; blank follows the client. %>
+          <% do_cliente = DonoDoTecido::ROTULOS.fetch(@molde.client.dono_tecido || DonoDoTecido::PADRAO) %>
+          <dt>Fabric</dt>
+          <dd class="molde-dono-tecido">
+            <% if pode?(:catalogo, :editar) && !cliente_final? %>
+              <%= render "shared/escolha_dono_do_tecido", url: molde_path(@molde), campo: "molde[dono_tecido]", atual: @molde.dono_tecido,
+                         herdado: "Herdar do cliente: #{do_cliente.downcase}", id: "molde-dono-tecido" %>
+            <% else %>
+              <%= @molde.dono_tecido ? DonoDoTecido::ROTULOS.fetch(@molde.dono_tecido) : "#{do_cliente} (do cliente)" %>
+            <% end %>
+          </dd>
         </dl>
       </div>
 

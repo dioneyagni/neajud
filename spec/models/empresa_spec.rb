@@ -35,6 +35,20 @@ RSpec.describe Empresa do
     expect(empresa.errors[:papel_padrao].first).to include("is a tecido; expected a material of type papel")
   end
 
+  # Etapa 2.3d1: the DTF film is a material too; its width replaces the
+  # typed one and redoes every etiqueta's fit.
+  it "fits the etiquetas on the default film's width, else the typed one, and takes only a filme_dtf as default" do
+    empresa = Empresa.atual || create(:empresa)
+    expect([ empresa.largura_filme_dtf_efetiva_mm, empresa.largura_util_filme_dtf_mm ]).to eq([ 600, 570 ])
+    filme = MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Filme DTF"), cor_material: CorMaterial.create!(nome: "Branco"), largura: "58 cm", gramatura: "75mic", tipo: "filme_dtf")
+    expect(EncaixeDaEtiqueta).to receive(:atualizar_todas!)
+    empresa.update!(filme_dtf_padrao: filme)
+    expect([ empresa.largura_filme_dtf_efetiva_mm, empresa.largura_util_filme_dtf_mm ]).to eq([ 580, 550 ])
+    filme.update!(tipo: "filme")
+    expect(empresa.reload).not_to be_valid
+    expect(empresa.errors[:filme_dtf_padrao].first).to include("is a filme; expected a material of type filme_dtf")
+  end
+
   # Etapa 2.4: the cost per pair needs both costs.
   it "knows when the costs per meter printed and per piece cut are set, refusing negative ones" do
     empresa = Empresa.new(nome: "Neajud")
