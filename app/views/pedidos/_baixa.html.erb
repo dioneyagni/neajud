@@ -1,19 +1,36 @@
 <%# A production stage's baixa button (Etapa 2.2, 2/3): opens the measure
     field (metragem or pieces) next to the line, the arte or the pedido.
-    locals: pedido, etapa (EtapasProducao::Etapa), nivel, alvo, rotulo, esperado %>
+    Etapa 2.3e: lines of several materials ask one measure each.
+    locals: pedido, etapa (EtapasProducao::Etapa), nivel, alvo, rotulo, esperado,
+            materiais (optional: material => expected meters, when several) %>
 <% unidade = etapa.unidade_da_medida %>
+<% materiais = local_assigns[:materiais] || {} %>
 <% campo = "baixa-#{etapa.chave}-#{nivel}-#{alvo.to_s.parameterize.presence || "pedido"}" %>
 <div class="baixa" data-controller="baixa"
      data-baixa-url-value="<%= pedido_baixas_path(pedido) %>" data-baixa-etapa-value="<%= etapa.chave %>"
      data-baixa-nivel-value="<%= nivel %>" data-baixa-alvo-value="<%= alvo %>">
   <button type="button" class="btn btn-sm btn-secondary baixa-abrir" data-baixa-target="abrir" data-action="baixa#abrir"><%= rotulo %></button>
   <div class="baixa-editor" data-baixa-target="editor" hidden>
-    <label for="<%= campo %>"><%= etapa.metragem? ? "Metragem usada" : etapa.unidade_da_medida.capitalize %></label>
-    <input type="text" inputmode="decimal" id="<%= campo %>" class="baixa-medida" data-baixa-target="medida"
-           data-action="input->baixa#editou keydown.enter->baixa#salvar" placeholder="<%= esperado ? number_with_precision(esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") : "" %>">
-    <span class="baixa-unidade"><%= unidade %></span>
-    <% if esperado %>
-      <span class="baixa-esperado">esperado ~<%= number_with_precision(esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= unidade %></span>
+    <% if materiais.size > 1 %>
+      <div class="baixa-materiais">
+        <% materiais.each_with_index do |(material, metros), i| %>
+          <div class="baixa-material" data-material="<%= material.uuid %>">
+            <label for="<%= campo %>-<%= i %>"><%= material.nome_completo %></label>
+            <input type="text" inputmode="decimal" id="<%= campo %>-<%= i %>" class="baixa-medida" data-baixa-target="porMaterial" data-material="<%= material.uuid %>"
+                   data-action="input->baixa#editou keydown.enter->baixa#salvar" placeholder="<%= number_with_precision(metros, precision: 2, separator: ",") %>">
+            <span class="baixa-unidade">m</span>
+            <span class="baixa-esperado">esperado ~<%= number_with_precision(metros, precision: 2, separator: ",") %> m</span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <label for="<%= campo %>"><%= etapa.metragem? ? "Metragem usada" : etapa.unidade_da_medida.capitalize %></label>
+      <input type="text" inputmode="decimal" id="<%= campo %>" class="baixa-medida" data-baixa-target="medida"
+             data-action="input->baixa#editou keydown.enter->baixa#salvar" placeholder="<%= esperado ? number_with_precision(esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") : "" %>">
+      <span class="baixa-unidade"><%= unidade %></span>
+      <% if esperado %>
+        <span class="baixa-esperado">esperado ~<%= number_with_precision(esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= unidade %></span>
+      <% end %>
     <% end %>
     <button type="button" class="btn btn-sm btn-primary baixa-salvar" data-action="baixa#salvar">Salvar</button>
     <button type="button" class="btn btn-sm btn-secondary" data-action="baixa#cancelar">Cancelar</button>

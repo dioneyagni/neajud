@@ -13,6 +13,10 @@
 #   and the stages to redo); the pieces short go to the pedido's open
 #   reposição (AcumularReposicaoService), released when the Conferência ends
 #   (LiberarReposicaoService) — decided 09/10/2026.
+# - The stock (Etapa 2.3e, decided 20/10/2026): a stage that takes material
+#   (EtapasProducao `material`) adjusts it by the real (AjusteDaBaixa). Lines
+#   of several materials ask one measure each (`medidas`, material uuid =>
+#   meters; `medida` is their sum), each checked against its own expected.
 #
 # Usage: RegistrarBaixaService.call(pedido, etapa: "corte", nivel: "pedido", medida: "12,4", confirmar: false, user: u, changed_by: ip)
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
@@ -24,7 +28,7 @@ class RegistrarBaixaService
     new(pedido, **dados).call
   end
 
-  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, user: nil, changed_by: nil)
+  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil)
     @pedido = pedido
     @etapa = EtapasProducao.etapa(pedido.tipo, etapa, pedido: pedido)
     @nivel = nivel.to_s
@@ -33,17 +37,19 @@ class RegistrarBaixaService
     @confirmar = confirmar
     @contagens = contagens
     @refazer = refazer
+    @medidas = (medidas || {}).to_h.transform_keys(&:to_s).transform_values { |valor| valor.to_s.tr(",", ".").strip }
+    @medida = format("%.4f", @medidas.values.sum(&:to_d)) if @medida.blank? && @medidas.any?
     @autoria = { user: user, changed_by: changed_by }
   end
 
   def call
-    erro = erro_de_entrada || contagem&.erro
+    erro = erro_de_entrada || erro_das_medidas || contagem&.erro
     return Resultado.new(estado: :erro, mensagem: erro) if erro
     return pedir_contagem if contagem&.contar?
 
     esperado = linhas.sum { |l| l.esperado.to_f }
     faltas = contagem ? contagem.faltas : []
-    return aviso(esperado) if faltas.empty? && fora_da_faixa?(esperado) && !@confirmar
+    return aviso(esperado) if faltas.empty? && fora?(esperado) && !@confirmar
 
     Resultado.new(estado: :ok, baixa: registrar(esperado, faltas), esperado: esperado)
   end
@@ -73,9 +79,12 @@ class RegistrarBaixaService
 
   def registrar(esperado, faltas)
     medida = contagem ? contagem.medida : @medida.to_d
-    baixa = @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: medida,
-                                            esperado: (esperado if esperado.positive?), contagens: contagem&.por_linha || {},
-                                            fora_da_faixa: faltas.empty? && fora_da_faixa?(esperado), **@autoria)
+    baixa = BaixaProducao.transaction do
+      @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: medida,
+                                      esperado: (esperado if esperado.positive?), contagens: contagem&.por_linha || {},
+                                      medidas: medidas_por_material, fora_da_faixa: faltas.empty? && fora?(esperado), **@autoria)
+                    .tap { |nova| AjusteDaBaixa.call(nova, linhas) }
+    end
     baixa.update!(reposicao: AcumularReposicaoService.call(@pedido, faltas)) if faltas.any?
     @pedido.iniciar_producao!
     liberar_reposicao_ao_terminar
@@ -111,6 +120,30 @@ class RegistrarBaixaService
     return "Measure #{@medida.inspect} is not a number of #{@etapa.metragem? ? "meters" : "pieces"}." unless @medida.match?(/\A\d+(\.\d+)?\z/)
 
     erro_das_linhas
+  end
+
+  # Several materials: each one's measure, a number (Etapa 2.3e).
+  def erro_das_medidas
+    return nil unless varios_materiais?
+
+    sem = por_material.keys.reject { |material| @medidas[material.uuid].to_s.match?(/\A\d+(\.\d+)?\z/) }
+    return "Missing the measure of #{sem.map(&:nome_completo).join(", ")}: this baixa covers several materials, one measure (meters) each." if sem.any?
+
+    @medida = format("%.4f", medidas_por_material.values.sum(&:to_d))
+    nil
+  end
+
+  # The expected meters of each material the lines take (Etapa 2.3e).
+  def por_material
+    @por_material ||= MateriaisDasLinhas.por_material(@pedido, @etapa, linhas)
+  end
+
+  def varios_materiais?
+    por_material.size > 1
+  end
+
+  def medidas_por_material
+    varios_materiais? ? por_material.keys.to_h { |material| [ material.uuid, @medidas[material.uuid] ] } : {}
   end
 
   def erro_das_linhas
@@ -165,18 +198,37 @@ class RegistrarBaixaService
     @feitas[etapa] ||= @pedido.baixas_producao.vigentes.da_etapa(etapa).feitas
   end
 
-  def fora_da_faixa?(esperado)
+  # Outside the dono's band: the whole measure, or any material's own.
+  def fora?(esperado)
+    varios_materiais? ? materiais_fora.any? : fora_da_faixa?(esperado, @medida.to_d)
+  end
+
+  def materiais_fora
+    por_material.select { |material, esperado| fora_da_faixa?(esperado, @medidas[material.uuid].to_d) }
+  end
+
+  def fora_da_faixa?(esperado, medida)
     return false unless esperado.positive?
 
     # Without an empresa yet, its defaults (-10% / +25%).
     empresa = Empresa.atual || Empresa.new
-    medida = @medida.to_d
     medida < esperado * (100 - empresa.tolerancia_abaixo_pct) / 100.0 || medida > esperado * (100 + empresa.tolerancia_acima_pct) / 100.0
   end
 
   def aviso(esperado)
+    return aviso_por_material if varios_materiais?
+
     unidade = " #{@etapa.unidade_da_medida}"
     Resultado.new(estado: :aviso, esperado: esperado,
-                  mensagem: "Esperado ~#{format("%.2f", esperado).tr(".", ",").delete_suffix(",00")}#{unidade}, você informou #{@medida.tr(".", ",")}#{unidade}. Confira e corrija, ou confirme assim mesmo.")
+                  mensagem: "Esperado ~#{metros_br(esperado)}#{unidade}, você informou #{@medida.tr(".", ",")}#{unidade}. Confira e corrija, ou confirme assim mesmo.")
+  end
+
+  def aviso_por_material
+    textos = materiais_fora.map { |material, esperado| "#{material.nome_completo}: esperado ~#{metros_br(esperado)} m, você informou #{@medidas[material.uuid].tr(".", ",")} m" }
+    Resultado.new(estado: :aviso, esperado: por_material.values.sum, mensagem: "#{textos.join("; ")}. Confira e corrija, ou confirme assim mesmo.")
+  end
+
+  def metros_br(valor)
+    format("%.2f", valor).tr(".", ",").delete_suffix(",00")
   end
 end

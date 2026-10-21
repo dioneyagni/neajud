@@ -19,18 +19,23 @@
 #            sub-pedido of the missing ones (Etapa 2.2, 4/4)
 #   quando:  the stage exists only for pedidos with these values (Etapa
 #            2.6b2: the DTF's Corte only when delivered cut)
+#   material: what its metragem takes from the stock, adjusted by the baixa
+#            (Etapa 2.3e) — impressao (the pedido's paper or DTF film) or
+#            linha (each line's fabric); none: the stock is not touched
 calcado:
   - chave: impressao
     nome: Impressão
     medida: metragem
     esperado: papel
     linhas: impressao
+    material: impressao
     niveis: [linha, referencia, pedido]
   - chave: corte
     nome: Corte
     medida: metragem
     esperado: tecido
     linhas: corte
+    material: linha
     niveis: [linha, pedido]
   - chave: estamparia
     nome: Estamparia
@@ -56,6 +61,7 @@ dtf:
     medida: metragem
     esperado: filme
     linhas: dtf
+    material: impressao
     niveis: [linha, referencia, pedido]
   - chave: corte
     nome: Corte
@@ -76,11 +82,13 @@ tecido:
     medida: metragem
     esperado: metros
     linhas: tecido
+    material: impressao
     niveis: [linha, pedido]
   - chave: calandra
     nome: Calandra
     medida: metragem
     esperado: metros
     linhas: tecido
+    material: linha
     niveis: [linha, pedido]
     trava: [impressao]

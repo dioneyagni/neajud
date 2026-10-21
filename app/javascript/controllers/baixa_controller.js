@@ -10,14 +10,20 @@ import { Turbo } from "@hotwired/turbo-rails"
 // asks for each line's count, with Impressão and Corte checked to redo — the
 // conferente fixes the short ones, unchecks what doesn't need redoing and
 // confirms; the missing pieces go to the pedido's open reposição.
+// Stock (Etapa 2.3e; decided 20/10/2026): lines of several materials show one
+// field per material, sent as medidas[<material uuid>]; the server sums them.
 export default class extends Controller {
-  static targets = ["abrir", "editor", "medida", "mensagem", "confirmar", "contagem"]
+  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem"]
   static values = { url: String, etapa: String, nivel: String, alvo: String }
 
   abrir() {
     this.abrirTarget.hidden = true
     this.editorTarget.hidden = false
-    this.medidaTarget.focus()
+    this.campoPrincipal().focus()
+  }
+
+  campoPrincipal() {
+    return this.hasMedidaTarget ? this.medidaTarget : this.porMaterialTargets[0]
   }
 
   cancelar() {
@@ -43,9 +49,11 @@ export default class extends Controller {
   enviar(confirmar) {
     const body = new FormData()
     const contagens = this.contagemTarget.querySelectorAll("input[data-chave]")
-    const medida = contagens.length ? [...contagens].reduce((soma, input) => soma + (parseInt(input.value, 10) || 0), 0) : this.medidaTarget.value
+    const medida = contagens.length ? [...contagens].reduce((soma, input) => soma + (parseInt(input.value, 10) || 0), 0)
+      : (this.hasMedidaTarget ? this.medidaTarget.value : "")
     Object.entries({ etapa: this.etapaValue, nivel: this.nivelValue, alvo: this.alvoValue, medida, confirmar: confirmar ? "1" : "0" })
       .forEach(([campo, valor]) => body.append(campo, valor))
+    this.porMaterialTargets.forEach(input => body.append(`medidas[${input.dataset.material}]`, input.value))
     contagens.forEach(input => {
       body.append(`contagens[${input.dataset.chave}]`, input.value)
       const refazer = [...this.contagemTarget.querySelectorAll(`input[data-refazer][data-linha="${CSS.escape(input.dataset.chave)}"]:checked`)].map(c => c.value)
@@ -78,7 +86,7 @@ export default class extends Controller {
     linhaEl.className = "baixa-contagem-linha"
     const rotulo = document.createElement("label")
     const campo = document.createElement("input")
-    Object.assign(campo, { type: "number", min: 0, step: 1, value: linha.contada, id: `${this.medidaTarget.id}-contagem-${i}` })
+    Object.assign(campo, { type: "number", min: 0, step: 1, value: linha.contada, id: `${this.campoPrincipal().id}-contagem-${i}` })
     campo.dataset.chave = linha.chave
     campo.className = "baixa-medida"
     rotulo.htmlFor = campo.id

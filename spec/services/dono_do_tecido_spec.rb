@@ -54,4 +54,10 @@ RSpec.describe DonoDoTecido do
     molde.update!(dono_tecido: "")
     expect(molde.reload.dono_tecido).to be_nil
   end
+
+  it "groups a pedido's items by the owner of their fabric" do
+    outro = create(:molde, client: client, dono_tecido: "empresa")
+    da_empresa = create(:item_pedido, pedido: pedido, arquivo: create(:arquivo, client: client)).tap { |i| i.arquivo.update_columns(molde_id: outro.id) }
+    expect(described_class.itens_por_dono(pedido.tap { item })).to eq("cliente" => [ item.id ], "empresa" => [ da_empresa.id ])
+  end
 end

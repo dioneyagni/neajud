@@ -3,7 +3,7 @@
 # ok (the page reloads and shows the flash), aviso (outside the dono's band:
 # correct or confirm) or error. Undoing one (3/3) goes back to the page.
 #
-# Usage: POST /pedidos/:pedido_uuid/baixas (etapa, nivel, alvo, medida, confirmar)
+# Usage: POST /pedidos/:pedido_uuid/baixas (etapa, nivel, alvo, medida, confirmar; medidas[<material uuid>] — Etapa 2.3e)
 #        DELETE /pedidos/:pedido_uuid/baixas/:uuid
 class BaixasProducaoController < ApplicationController
   exige_acao :atualizar_producao
@@ -12,7 +12,8 @@ class BaixasProducaoController < ApplicationController
   def create
     resultado = RegistrarBaixaService.call(@pedido, etapa: params[:etapa], nivel: params[:nivel], alvo: params[:alvo],
                                                     medida: params[:medida], confirmar: params[:confirmar] == "1",
-                                                    contagens: params[:contagens]&.to_unsafe_h, refazer: params[:refazer]&.to_unsafe_h, **autoria)
+                                                    contagens: params[:contagens]&.to_unsafe_h, refazer: params[:refazer]&.to_unsafe_h,
+                                                    medidas: params[:medidas]&.to_unsafe_h, **autoria)
     responder(resultado)
   rescue EtapasProducao::Invalida => e
     render json: { ok: false, error: e.message }, status: :unprocessable_content

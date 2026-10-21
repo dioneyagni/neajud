@@ -8,6 +8,8 @@ class MovimentoEstoque < ApplicationRecord
   belongs_to :client, optional: true
   # Etapa 2.3d2: a pedido's stock out (SaidaDoPedido); nil for one by hand.
   belongs_to :pedido, optional: true
+  # Etapa 2.3e: the baixa whose real metragem this adjusts (AjusteDaBaixa).
+  belongs_to :baixa_producao, optional: true
   atribui_por_uuid :client
   recusa_excluido :client
 
@@ -23,8 +25,22 @@ class MovimentoEstoque < ApplicationRecord
   scope :saidas, -> { where(tipo: "saida") }
   scope :recentes, -> { order(created_at: :desc) }
   # What the balances count (Etapa 2.3d2): a trashed pedido's outs don't —
-  # restoring it brings them back.
-  scope :que_contam, -> { where(pedido_id: nil).or(where(pedido_id: Pedido.where(deleted_at: nil).select(:id))) }
+  # restoring it brings them back. Etapa 2.3e: neither does an undone baixa's
+  # adjustment (redone, the new baixa makes its own).
+  scope :que_contam, lambda {
+    where(pedido_id: nil).or(where(pedido_id: Pedido.where(deleted_at: nil).select(:id)))
+                         .merge(where(baixa_producao_id: nil).or(where(baixa_producao_id: BaixaProducao.vigentes.select(:id))))
+  }
+  # A pedido's out at confirmation, not an adjustment (Etapa 2.3e).
+  scope :da_confirmacao, -> { saidas.where.not(pedido_id: nil).where(baixa_producao_id: nil) }
+
+  # Why this movement no longer counts, or nil (Etapa 2.3e; shown in the ledger).
+  # Usage: movimento.motivo_de_nao_contar # => "baixa desfeita"
+  def motivo_de_nao_contar
+    return "na lixeira" if pedido&.excluido?
+
+    "baixa desfeita" if baixa_producao&.desfeita_em
+  end
 
   # Usage: movimento.dono # => "Empresa" or the client's name
   def dono

@@ -9,6 +9,7 @@
 # Usage: DonoDoTecido.do_item(item)       # => #<Origem dono="empresa", nivel=:molde>
 #        DonoDoTecido.do_pedido(pedido)   # the pedido's, without the moldes
 #        DonoDoTecido.herdado(pedido)     # what a blank pedido inherits, for its select
+#        DonoDoTecido.itens_por_dono(pedido) # => { "cliente" => [12], "empresa" => [14] }
 class DonoDoTecido
   DONOS = %w[cliente empresa].freeze
   PADRAO = "cliente"
@@ -46,6 +47,15 @@ class DonoDoTecido
 
     origens = itens.map { |item| do_item(item, do_pedido: false) }
     origens.map(&:dono).uniq.one? ? origens.first : nil
+  end
+
+  # A pedido's item ids by the owner of their fabric — a reposição's are the
+  # items its pieces came from (Etapa 2.3d2; the stock out and, 2.3e, the
+  # Corte's adjustment split by it).
+  # Usage: DonoDoTecido.itens_por_dono(pedido) # => { "cliente" => [12, 13], "empresa" => [14] }
+  def self.itens_por_dono(pedido)
+    itens = pedido.reposicao? ? ItemPedido.where(id: pedido.itens_reposicao.select(:item_origem_id)) : pedido.itens_pedido
+    itens.includes(:pedido, arquivo: %i[molde client]).group_by { |item| do_item(item).dono }.transform_values { |grupo| grupo.map(&:id) }
   end
 
   def self.cliente_do_item(item)
