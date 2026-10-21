@@ -78,23 +78,28 @@ runSpec("Pedidos de tecido", async ({ page, test }) => {
     await test("The list counts by status, filters by its card and searches by client", async () => {
       await page.goto(`${BASE_URL}/pedidos`);
       await page.locator(".pedidos-tecido-link").click();
-      await page.waitForURL("**/pedidos/tecido");
+      await page.locator(".tecido-cartao").first().waitFor();
       const confirmados = await contagem("confirmado");
       if (confirmados < 1) throw new Error("The confirmed card should count the pedido");
       if ((await linha().locator("[data-metros]").innerText()) !== "26 m") throw new Error(`The meters read ${await linha().locator("[data-metros]").innerText()}`);
       await page.locator('.tecido-cartao[data-status="confirmado"]').click();
-      await page.waitForURL("**/pedidos/tecido?status=confirmado");
+      // Proof of the new page, not the URL: Turbo changes the URL before it
+      // renders, and CI counted the old rows (21/10/2026).
+      await page.locator('.tecido-cartao[data-status="confirmado"][aria-current="page"]').waitFor();
       if ((await page.locator("tr[data-pedido]").count()) !== confirmados || !(await linha().count())) throw new Error("The card should filter its status");
       await page.locator('.tecido-cartao[data-status="confirmado"]').click();
-      await page.waitForURL((url) => !url.search.includes("status="));
+      await page.locator('.tecido-cartao[aria-current="page"]').waitFor({ state: "detached" });
       await page.fill("#tecido-busca-q", nomes.cliente);
-      await Promise.all([page.waitForURL("**/pedidos/tecido?**q=**"), page.locator(".tecido-busca button[type=submit]").click()]);
+      await page.locator(".tecido-busca button[type=submit]").click();
+      // The server echoes the term into the field only on the searched page.
+      await page.locator(`#tecido-busca-q[value="${nomes.cliente}"]`).waitFor();
       if ((await page.locator("tr[data-pedido]").count()) !== 1 || !(await linha().count())) throw new Error("The search should find the client's pedido only");
     });
 
     await test("Repetir: Dobro on one item, 0 on the other, makes a draft with the prices charged", async () => {
       await page.goto(`${BASE_URL}/pedidos/tecido?q=${encodeURIComponent(nomes.cliente)}`);
-      await Promise.all([page.waitForURL(`**/pedidos/${ids.pedido}/repetir`), linha().locator(".tecido-repetir").click()]);
+      await linha().locator(".tecido-repetir").click();
+      await page.locator(".tecido-repetir-item").first().waitFor();
       const campos = page.locator("[data-repetir-metros-target=campo]");
       if ((await campos.count()) !== 2) throw new Error("One field per item");
       await page.locator(".tecido-repetir-item").first().locator("button", { hasText: "Dobro" }).click();
