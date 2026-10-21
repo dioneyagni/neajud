@@ -57,4 +57,17 @@ RSpec.describe EtapasProducao do
   it "counts a calçado stage's quantity in pieces" do
     expect(described_class.etapa("calcado", "conferencia").unidade_da_medida).to eq("peças")
   end
+
+  # Etapa 2.3e: what each metragem stage takes from the stock, adjusted by its baixa.
+  it "says which stages adjust the stock, and of what" do
+    materiais = %w[calcado dtf tecido].to_h { |tipo| [ tipo, described_class.do_tipo(tipo).to_h { |e| [ e.chave, e.material ] } ] }
+    expect(materiais).to eq("calcado" => { "impressao" => "impressao", "corte" => "linha", "estamparia" => nil, "conferencia" => nil },
+                            "dtf" => { "impressao" => "impressao", "corte" => nil }, "tecido" => { "impressao" => "impressao", "calandra" => "linha" })
+    expect(described_class.etapa("calcado", "corte").ajusta_estoque?).to be(true)
+    errado = { "calcado" => [ { "chave" => "estamparia", "nome" => "E", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "impressao", "niveis" => %w[linha], "material" => "papel" },
+                              { "chave" => "conferencia", "nome" => "C", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "impressao", "niveis" => %w[linha], "material" => "linha" } ] }
+    expect { described_class.send(:ler, errado) }.to raise_error(described_class::Invalida, 'calcado/estamparia: material "papel" is not one of impressao, linha')
+    errado["calcado"].shift
+    expect { described_class.send(:ler, errado) }.to raise_error(described_class::Invalida, "calcado/conferencia: material needs medida metragem (the stock is kept in meters)")
+  end
 end

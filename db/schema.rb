@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_210000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -228,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_090000) do
     t.datetime "updated_at", null: false
     t.json "contagens", default: {}, null: false
     t.integer "reposicao_id"
+    t.json "medidas", default: {}, null: false
     t.index ["desfeita_por_id"], name: "index_baixas_producao_on_desfeita_por_id"
     t.index ["pedido_id", "etapa"], name: "index_baixas_producao_on_pedido_id_and_etapa"
     t.index ["pedido_id"], name: "index_baixas_producao_on_pedido_id"
@@ -558,6 +559,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_090000) do
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.integer "pedido_id"
+    t.integer "baixa_producao_id"
+    t.index ["baixa_producao_id"], name: "index_movimento_estoques_on_baixa_producao_id"
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
@@ -791,6 +794,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_090000) do
   add_foreign_key "moldes", "modelos"
   add_foreign_key "moldes", "moldes", column: "base_id"
   add_foreign_key "moldes", "moldes", column: "variacao_de_id"
+  add_foreign_key "movimento_estoques", "baixas_producao", column: "baixa_producao_id"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "movimento_estoques", "pedidos"

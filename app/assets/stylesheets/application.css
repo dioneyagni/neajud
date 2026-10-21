@@ -4042,3 +4042,4 @@ li.aprovacao--cancelada {
 /* Etapa 2.3d2: under a material, the pedidos waiting for it. */
 .material-aguardando { display: block; color: #8a1c13; }
 .movimento-nao-conta { display: block; color: var(--text-muted); }
+.movimento-etapa { color: var(--text-muted); }

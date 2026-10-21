@@ -17,6 +17,8 @@ class BaixaProducao < ApplicationRecord
   belongs_to :desfeita_por, class_name: "User", optional: true
   # Etapa 2.2 (4/4): the reposição a Conferência with pieces missing made.
   belongs_to :reposicao, class_name: "Pedido", optional: true
+  # Etapa 2.3e: its stock adjustments (real − expected), counting while it stands.
+  has_many :ajustes_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 
   validates :etapa, presence: true
   validates :nivel, inclusion: { in: NIVEIS, message: "%{value} is not a level; expected #{NIVEIS.join(", ")}" }
@@ -29,6 +31,14 @@ class BaixaProducao < ApplicationRecord
   # The line keys these baixas covered.
   def self.feitas
     pluck(:linhas).flatten.to_set
+  end
+
+  # The real meters of one material (Etapa 2.3e): its own measure when the
+  # baixa covered several, else the whole measure.
+  # Usage: baixa.medida_de(oxford) # => 10.4
+  def medida_de(material)
+    valor = medidas[material.uuid]
+    valor.nil? ? medida : valor.to_d
   end
 
   private

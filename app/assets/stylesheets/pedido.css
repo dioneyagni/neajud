@@ -549,6 +549,21 @@
   color: #1a4b9c;
 }
 
+/* Etapa 2.3e: one measure per material, each on its own row. */
+.baixa-materiais {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.baixa-material {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .baixa-mensagem {
   flex-basis: 100%;
   margin: 0;
@@ -755,6 +770,16 @@
   margin: 0;
   font-size: 0.85rem;
   color: #5b2a86;
+}
+
+/* Etapa 2.3e: each material's out, adjustments and real so far. */
+.pedido-consumo dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.historico-baixa-estoque {
+  margin-left: 0.35rem;
+  color: #1a4b9c;
 }
 
 .pedido-devolvido,

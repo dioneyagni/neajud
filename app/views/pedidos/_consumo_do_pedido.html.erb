@@ -1,0 +1,16 @@
+<%# Etapa 2.3e (decided 20/10/2026): each material the pedido took from the
+    stock — the out at confirmation, the baixas' standing adjustments and so
+    the real so far. A cliente final sees his own fabric only
+    (AjusteDoEstoqueHelper). %>
+<% consumo = consumo_do_pedido(pedido) %>
+<% if consumo.any? %>
+  <dl class="pedido-resumo-lista pedido-consumo" data-resumo="consumo">
+    <% consumo.each do |linha| %>
+      <dt><%= linha.materia_prima.nome_completo %> <small>(<%= linha.client&.name || "Empresa" %>)</small></dt>
+      <dd data-consumo="<%= linha.materia_prima.uuid %>">
+        saída <%= metros(linha.saida) %>
+        <% if linha.ajustes.nonzero? %> · ajustes <%= ajuste_em_metros(linha.ajustes) %> · real até agora <%= metros(linha.real) %><% end %>
+      </dd>
+    <% end %>
+  </dl>
+<% end %>

@@ -65,6 +65,9 @@ from the files themselves. Done (1/3 to 4/4):
   and takes the pedido back to confirmado when the last one goes.
   `AndamentoDoPedido` gives each stage's lines done/total for the panel and
   the list (filtered by `?status=`).
+- **Stock (Etapa 2.3e)**: a stage with `material:` adjusts the stock by its
+  baixa's real metragem, one measure per material when the lines take
+  several — `docs/dominio/estoque.md`.
 - **Reposição (4/4, decided 08-09/10/2026)**: a stage with `reposicao: true`
   (the Conferência) and fewer pieces than expected always sends them to a
   sub-pedido. `ContagemDaConferencia`: a short count (one line or a group)

@@ -51,16 +51,9 @@ class SaidaDoPedido
   def do_tecido_do_corte
     return if @pedido.dtf?
 
-    itens_por_dono.each do |dono, itens|
+    DonoDoTecido.itens_por_dono(@pedido).each do |dono, itens|
       ProducaoPedidoService.call(@pedido, itens: itens).select(&:tamanho).each { |linha| tecido_da_linha(linha, dono) }
     end
-  end
-
-  # The items whose owner says where the fabric comes from — a reposição's
-  # are the items its pieces came from.
-  def itens_por_dono
-    itens = @pedido.reposicao? ? ItemPedido.where(id: @pedido.itens_reposicao.select(:item_origem_id)) : @pedido.itens_pedido
-    itens.includes(:pedido, arquivo: %i[molde client]).group_by { |item| DonoDoTecido.do_item(item).dono }.transform_values { |grupo| grupo.map(&:id) }
   end
 
   def tecido_da_linha(linha, dono)

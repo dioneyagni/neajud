@@ -1,5 +1,6 @@
 <%# Every baixa of a stage, the undone ones struck through, with who and
-    when (Etapa 2.2, 3/3). locals: pedido, etapa %>
+    when (Etapa 2.2, 3/3), and what each did to the stock (Etapa 2.3e).
+    locals: pedido, etapa %>
 <% baixas = pedido.baixas_producao.da_etapa(etapa.chave).includes(:user, :desfeita_por).order(:created_at) %>
 <% if baixas.any? %>
   <details class="historico-baixas">
@@ -13,6 +14,8 @@
             <%= number_with_precision(baixa.medida, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= etapa.unidade_da_medida %>
             <% if baixa.esperado %>(esperado <%= number_with_precision(baixa.esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %>)<% end %>
             <% if baixa.fora_da_faixa %><span class="baixa-fora">fora da faixa</span><% end %>
+            <%# Etapa 2.3e: what the baixa did to the stock. %>
+            <% if (ajuste = ajuste_da_baixa(baixa, etapa)) %><span class="historico-baixa-estoque" data-estoque><%= ajuste %></span><% end %>
           </span>
           <% if baixa.desfeita_em %>
             <span class="historico-baixa-desfeita">desfeita por <%= baixa.desfeita_por&.nome || "—" %> em <%= l baixa.desfeita_em, format: "%d/%m %H:%M" %></span>

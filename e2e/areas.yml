@@ -99,8 +99,11 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque]
     arquivos:
+      - "app/services/{materiais_das_linhas,ajuste_da_baixa}.rb"
+      - "app/helpers/ajuste_do_estoque_helper.rb"
+      - "app/views/pedidos/_consumo_do_pedido.html.erb"
       - "app/services/{saida_do_pedido,aguardando_material}.rb"
       - "app/helpers/aguardando_material_helper.rb"
       - "app/views/pedidos/_aguardando_material.html.erb"
@@ -137,7 +140,7 @@ areas:
       - "app/services/{pedido_bloqueios_service,resolucao_do_item,custo_por_par,valores_do_pedido,impressao_pedido_service,producao_pedido_service,dxf_do_tamanho,zip_de_arquivos,zips_temporarios}.rb"
       - "app/javascript/controllers/{add_to_order,pedido_adicionar,pedido_counter,item_pecas,grade_matriz,grade_por_numero}_controller.js"
   producao:
-    specs: [producao-baixas, producao-dtf, producao-tecido]
+    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque]
     arquivos:
       - "app/controllers/baixas_producao_controller.rb"
       - "app/models/{baixa_producao,item_reposicao}.rb"
@@ -153,7 +156,7 @@ areas:
       - "app/controllers/precos_da_etiqueta_controller.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   tecido:
-    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa]
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque]
     arquivos:
       - "**/*tecido*"
       - "**/*tecido*/**/*"

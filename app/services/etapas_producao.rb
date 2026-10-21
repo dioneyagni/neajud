@@ -12,16 +12,24 @@ class EtapasProducao
   ESPERADOS = %w[papel tecido pecas filme metros].freeze
   LINHAS = %w[impressao corte dtf tecido].freeze
   NIVEIS = %w[linha referencia pedido].freeze
+  # What a metragem stage takes from the stock (Etapa 2.3e): the pedido's
+  # paper or film, or each line's fabric.
+  MATERIAIS = %w[impressao linha].freeze
   # What a stage's `quando` may ask of the pedido (Etapa 2.6b2, decided
   # 15/10/2026: the DTF's Corte only when it is delivered cut).
   QUANDO = { "entrega" => Pedido::ENTREGAS }.freeze
 
-  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, :quando, :unidade, keyword_init: true) do
+  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, :quando, :unidade, :material, keyword_init: true) do
     def metragem?
       medida == "metragem"
     end
 
     # What its measure is counted in: "m", else the YAML's unidade ("peças").
+    # Does its baixa adjust the stock (Etapa 2.3e)?
+    def ajusta_estoque?
+      material.present?
+    end
+
     def unidade_da_medida
       metragem? ? "m" : (unidade || "peças")
     end
@@ -67,6 +75,7 @@ class EtapasProducao
       (Array(etapa.niveis) - NIVEIS).map { |nivel| "nivel #{nivel.inspect} is not one of #{NIVEIS.join(", ")}" } +
       (etapa.trava - chaves).map { |outra| "trava #{outra.inspect} is not a stage of this type" } +
       (etapa.reposicao && etapa.medida != "quantidade" ? [ "reposicao needs medida quantidade (it counts missing pieces)" ] : []) +
+      erros_do_material(etapa) +
       erros_do_quando(etapa.quando)
   end
 
@@ -80,5 +89,11 @@ class EtapasProducao
       "quando #{campo} #{valor.inspect} is not one of #{QUANDO[campo].join(", ")}" unless QUANDO[campo].include?(valor)
     end
   end
-  private_class_method :ler, :etapa_de, :erros_da, :erros_do_quando
+  def self.erros_do_material(etapa)
+    return [] if etapa.material.nil?
+    return [ "material #{etapa.material.inspect} is not one of #{MATERIAIS.join(", ")}" ] unless MATERIAIS.include?(etapa.material)
+
+    etapa.metragem? ? [] : [ "material needs medida metragem (the stock is kept in meters)" ]
+  end
+  private_class_method :ler, :etapa_de, :erros_da, :erros_do_quando, :erros_do_material
 end

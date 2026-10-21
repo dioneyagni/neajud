@@ -96,4 +96,22 @@ RSpec.describe RegistrarBaixaService do
   it "raises on a stage the pedido type doesn't have, naming it" do
     expect { baixa("costura", medida: "1") }.to raise_error(EtapasProducao::Invalida, /unknown production stage "costura"/)
   end
+
+  # Etapa 2.3e: one Corte line may join items of different owners (here the
+  # same arte twice, one on the empresa's fabric); the difference splits by
+  # each one's expected, rebuilt per owner.
+  it "adjusts the Corte's fabric by the real, split between the owners of one line" do
+    pedido.update!(client: molde.client, status: "rascunho")
+    outro = create(:item_pedido, pedido: pedido, arquivo: item.arquivo, materia_prima: material, dono_tecido: "empresa").tap do |i|
+      i.compor_pecas!(MoldeComposicaoService.call(item.arquivo))
+      i.grades.create!(tamanho_nome: "30", quantidade: 15)
+    end
+    pedido.update!(status: "confirmado")
+    SaidaDoPedido.call(pedido)
+    expect(pedido.movimentos_estoque.map { |m| [ m.client, m.quantidade.to_f ] }).to contain_exactly([ molde.client, 0.3 ], [ nil, 0.9 ])
+    baixa("corte", medida: "1,6", confirmar: true)
+    expect(MovimentoEstoque.where.not(baixa_producao_id: nil).map { |m| [ m.client, m.tipo, m.quantidade.to_f ] })
+      .to contain_exactly([ molde.client, "saida", 0.1 ], [ nil, "saida", 0.3 ])
+    expect(outro.reload.dono_tecido).to eq("empresa")
+  end
 end

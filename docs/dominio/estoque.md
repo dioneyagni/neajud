@@ -13,8 +13,8 @@ never turns into the empresa's by accident. `SaldosDeEstoque` splits each
 material's balance by owner for the Materials page (type and price edited
 there, `PATCH /materiais/:uuid`). The default paper (`Empresa#papel_padrao`,
 a papel) gives `Empresa#largura_papel_efetiva_mm` for the artes' meters per
-piece, else the typed `largura_papel_mm`. The adjustment by the real
-metragem (2.3e) and the dublagem come later (docs/plano.md, Etapa 2.3).
+piece, else the typed `largura_papel_mm`. The dublagem and the sale of
+fabric come later (docs/plano.md, Etapa 2.3).
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 
@@ -82,3 +82,39 @@ this stage took nothing from the stock, and won't):
   only.
 - Tests: `spec/services/{saida_do_pedido,aguardando_material}_spec.rb`,
   `spec/requests/saida_do_estoque_spec.rb`, E2E `e2e/saida-do-estoque.spec.js`.
+
+## The stock adjusted by the real (Etapa 2.3e)
+
+Decided 20/10/2026:
+
+- **Which stages take material**: `material:` in `config/etapas_producao.yml`
+  (`EtapasProducao::Etapa#ajusta_estoque?`) — `impressao` (the pedido's
+  paper or DTF film: Impressão of calçado, tecido and DTF) or `linha` (each
+  line's fabric: the calçado's Corte, the tecido's Calandra). Stages counted
+  in pieces don't touch the stock.
+- **`MateriaisDasLinhas`**: the expected meters per material × owner of a
+  baixa's lines. A Corte line may join items of different owners, so the
+  Corte's lines are rebuilt per owner (`DonoDoTecido.itens_por_dono`, shared
+  with `SaidaDoPedido`); a Calandra line's item says its owner.
+- **One measure per material**: a whole-stage baixa whose open lines take
+  several materials shows one field each (`pedidos/_baixa`, `materiais:`;
+  Stimulus `baixa` sends `medidas[<material uuid>]`). `RegistrarBaixaService`
+  refuses a missing one, checks the dono's band per material and keeps them
+  in `baixas_producao.medidas` (`BaixaProducao#medida_de`); `medida` is the sum.
+- **`AjusteDaBaixa`**, in the baixa's transaction: per material, real −
+  expected, split between owners by their expected (by pieces when none; the
+  rounding on the last). More: a `saida`; less: an `entrada`; the same:
+  nothing. The movement has `pedido_id` and `baixa_producao_id`. **Only a
+  material × owner the pedido took at confirmation** (`MovimentoEstoque.da_confirmacao`):
+  pedidos confirmed before 2.3d2 are never adjusted.
+- **Undoing the baixa** stops its adjustment counting (`que_contam` leaves
+  out undone baixas' movements; redone, the new baixa makes its own) — the
+  balances and "aguardando material" follow by themselves.
+- **Shown** (`AjusteDoEstoqueHelper`): the ledger names the stage ("#8f3a1b2c
+  · Calandra") and "baixa desfeita: não conta" (`MovimentoEstoque#motivo_de_nao_contar`);
+  the stage's baixa history "estoque: +1,2 m Oxford… (MKS)" or "sem saída do
+  estoque"; the pedido's panel each material's out, adjustments and real so
+  far (`pedidos/_consumo_do_pedido`) — a cliente final his own fabric only.
+- Tests: `spec/services/{ajuste_da_baixa,registrar_baixa_service}_spec.rb`,
+  `spec/requests/ajuste_do_estoque_spec.rb`, E2E `e2e/ajuste-do-estoque.spec.js`
+  (the calçado's Corte is covered by RSpec only: it needs a DXF's fit).

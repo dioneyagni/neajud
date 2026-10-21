@@ -1,6 +1,7 @@
 <%# The movement ledger, on the Materials and Movements pages. Etapa 2.3d2:
     a pedido's stock out links to it, and a trashed pedido's says it no
-    longer counts (MovimentoEstoque.que_contam). %>
+    longer counts (MovimentoEstoque.que_contam). Etapa 2.3e: a baixa's
+    adjustment names its stage, and stops counting once the baixa is undone. %>
 <div class="materiais-tabela-wrap">
   <table class="clients-table movimentos-tabela">
     <thead>
@@ -26,7 +27,8 @@
           <td data-pedido="<%= m.pedido&.uuid %>">
             <% if m.pedido %>
               <%= link_to "##{m.pedido.uuid.first(8)}", resumo_pedido_path(m.pedido) %>
-              <% if m.pedido.excluido? %><small class="movimento-nao-conta">na lixeira: não conta</small><% end %>
+              <% if m.baixa_producao %><span class="movimento-etapa">· <%= EtapasProducao.etapa(m.pedido.tipo, m.baixa_producao.etapa).nome %></span><% end %>
+              <% if (motivo = m.motivo_de_nao_contar) %><small class="movimento-nao-conta"><%= motivo %>: não conta</small><% end %>
             <% end %>
           </td>
           <td><%= number_to_currency(m.valor) if m.valor %></td>

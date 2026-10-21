@@ -1,10 +1,12 @@
-<%# A production stage's progress and its whole-pedido baixa (Etapa 2.2, 2/3).
+<%# A production stage's progress and its whole-pedido baixa (Etapa 2.2, 2/3);
+    one measure per material when its open lines take several (Etapa 2.3e).
     locals: pedido, etapa, situacoes (key => RegistrarBaixaService::Situacao) %>
 <% abertas = situacoes.values.select { |s| s.estado == :aberta } %>
 <div class="etapa-andamento" data-etapa="<%= etapa.chave %>">
   <strong><%= etapa.nome %>:</strong> <span class="etapa-andamento-texto"><%= andamento_da_etapa(situacoes) %></span>
   <% if abertas.any? && pode_dar_baixa?(pedido) && etapa.niveis.include?("pedido") %>
     <%= render "pedidos/baixa", pedido: pedido, etapa: etapa, nivel: "pedido", alvo: nil,
-          rotulo: "Baixa do pedido (#{abertas.size} #{abertas.one? ? "linha aberta" : "linhas abertas"})", esperado: abertas.sum { |s| s.linha.esperado.to_f }.then { |e| e.positive? ? e : nil } %>
+          rotulo: "Baixa do pedido (#{abertas.size} #{abertas.one? ? "linha aberta" : "linhas abertas"})", esperado: abertas.sum { |s| s.linha.esperado.to_f }.then { |e| e.positive? ? e : nil },
+          materiais: materiais_da_baixa(pedido, etapa, abertas) %>
   <% end %>
 </div>
