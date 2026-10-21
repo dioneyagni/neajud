@@ -220,7 +220,7 @@ A nuvem é lançada primeiro; o servidor local sai depois, junto com o launcher 
 | 6 | Estampas e Artes | Depois do beta |
 | 7 | Nuvem: contas, cobrança e suporte | Quando houver mais clientes |
 | 8 | Servidor local e launcher | Lançados juntos, depois da nuvem |
-| 9 | Compartilhamento entre empresas | Depende do catálogo versionado e da nuvem |
+| 9 | Rede de produção (compartilhamento entre empresas) | Depende do catálogo versionado e da nuvem |
 
 Regra de prioridade: fazer agora tudo que é caro mudar depois que houver dados de clientes reais; adiar o que pode ser acrescentado sem migração.
 
@@ -525,7 +525,7 @@ A Estampa é o material de origem do cliente; a Arte (hoje `Arquivo`) é o arqui
 
 A Neajud Cloud é um app Rails separado (`neajud-cloud`). Sem ela, o servidor continua funcionando; perde apenas os recursos de nuvem. É também onde fica a área de super-admin do Neajud: preços dos planos e o catálogo oficial (produtos, modelos com abreviação e grade), que até lá vem junto com o sistema.
 
-**Etapa 7.1 — Identidades.** Todos os usuários têm conta na nuvem. Na nuvem, o login acontece na Neajud Cloud e a pessoa é enviada à instância da empresa já autenticada; o admin convida por e-mail e o funcionário cria a própria senha. Isso substitui o login local de cada instância (Etapa 0.5), mantendo pessoa, vínculo e perfis.
+**Etapa 7.1 — Identidades.** Todos os usuários têm conta na nuvem. Na nuvem, o login acontece na Neajud Cloud e a pessoa é enviada à instância da empresa já autenticada; o admin convida por e-mail e o funcionário cria a própria senha. Isso substitui o login local de cada instância (Etapa 0.5), mantendo pessoa, vínculo e perfis. Na rede de produção (Fase 9), a mesma conta troca de empresa pelo cabeçalho, e quem é convidado por outra empresa entra com a conta de parceiro gratuita (Etapa 9.2).
 
 Quando o servidor local chegar (Fase 8), vale também a parte offline: o servidor mantém cópia sincronizada de usuários, perfis e hashes de senha, e autentica offline contra ela.
 
@@ -631,11 +631,45 @@ Lançados juntos, depois da nuvem. O cliente grava uma ISO num pendrive, instala
 
 **Etapa 8.14 — Launcher Tauri.** App nativo com login, lista de servidores, descoberta via mDNS e atualizador próprio assinado (repositório `neajud-launcher`).
 
-## Fase 9 — Compartilhamento entre empresas
+## Fase 9 — Rede de produção (compartilhamento entre empresas)
 
-Uma empresa compartilha com outra qualquer ponto da hierarquia, como uma árvore com caixas de seleção. Quem recebe baixa e usa em produção apenas o que ficou marcado.
+Revista em 20/10/2026 (antes: só compartilhamento de catálogo). O Neajud se espalha pela cadeia de produção: as partes de um mesmo produto são feitas em empresas diferentes, e cada pessoa resolve o que é interno e o que é terceirizado sem sentir que mudou de aplicativo.
 
-**Etapa 9.1 — Catálogo compartilhado.** Moldes públicos ou compartilhados são publicados na nuvem; os servidores guardam os retratos das versões que usam, para trabalhar offline. Rascunhos criados offline são publicados quando houver conexão.
+**Federação, não banco único.** Cada empresa continua com a sua instância e o seu banco. Atravessa só o que foi compartilhado e o andamento das ordens; preços, estoque e os outros clientes de cada empresa nunca saem dela. Nenhuma instância consulta o banco de outra. Um banco único com todas as empresas foi descartado: um fornecedor atende marcas concorrentes, o servidor local continua possível e cada empresa sai com os seus dados (backup e restauração).
+
+**Caso de referência:**
+
+- A **INPU** (marca) terceiriza na **Novac** (estamparia localizada, usuária do Neajud) e no **Harley** (alta frequência). Há modelos da INPU sem estampa e com frequência: esses só o Harley vê. Se o Harley muda a frequência de uma parte, a Novac pode precisar mudar o desenho.
+- A **MKS** (marca) tem modelos com costura programada feitos na **Bordec**; alguns vão só para a Bordec, sem estampa da Novac.
+- Hoje a peça volta para a marca entre uma etapa e outra (INPU → Novac → INPU → Harley → INPU). Com o Neajud, passa direto de um fornecedor para o outro (INPU → Novac → Harley → INPU).
+
+**Etapa 9.1 — Uma pessoa, todas as empresas.** Sobre as identidades da Etapa 7.1: um seletor de empresa no cabeçalho (todas rodam o mesmo Neajud, a tela é a mesma) e a **minha mesa**, com as pendências de todas as empresas da pessoa, cada uma com o selo da origem e abrindo no lugar certo. É a caixa de tarefas calculada de `docs/contexto-claude-code.md` ("Pendências viram tarefas"), atravessando empresas.
+
+**Etapa 9.2 — Conta de parceiro.** Gratuita, para quem é convidado para a rede. Uma conta só, com um **papel por item**: **marca** (o molde é dela) ou **fornecedor** (recebeu para produzir). Serve para **receber e acompanhar**; trabalhar dentro do Neajud é assinar. Quem paga é quem tira mais proveito (quem convida), e cada convite pode virar um cliente.
+
+| | Marca gratuita | Fornecedor gratuito | Precisa assinar |
+| --- | --- | --- | --- |
+| Usuários | Uma pessoa, a convidada | Uma pessoa, a convidada | Criar usuários, funções |
+| Moldes | Ver todos os seus; subir o DXF **cru** do seu molde (Etapa 9.3) | Ver e baixar os recebidos | Cadastrar e organizar moldes |
+| Arquivos | Anexos do modelo, de qualquer tipo, até um teto | — | Subir versões próprias, ajustar arquivo |
+| Versões | — | Recebe o alerta e baixa; quem compartilhou vê "baixou a v4 em 20/10" | Adotar / "não me afeta", versão em uso |
+| Roteiro | Define (Etapa 9.10) | — | Define, onde organizou o molde |
+| Pedidos | Manda pedidos aos seus fornecedores; confirma o recebimento final | Recebe e vê as ordens; não informa nada (nem status simples) | Baixa por etapas, registrar envio e recebimento |
+| Repassar | Compartilha os seus moldes | Não repassa | Ter os próprios fornecedores (Etapa 9.5) |
+| O resto | — | — | Clientes próprios, preços, estoque, materiais, relatórios, servidor local |
+
+- O **teto de espaço** da marca gratuita é por marca; o valor se decide com o custo real da nuvem (Fase 3). Acima dele, só assinando.
+- **Vídeo e áudio** entram como anexos do modelo: só guardados e tocados no navegador, sem processamento (hoje não são tipos aceitos pelo `FileValidator`).
+
+**Etapa 9.3 — O molde é da marca.** Os moldes vêm da marca, e ela é a dona, mesmo quando outra empresa cadastra: "Slide A · da INPU · cadastrado pela Novac". Cada um é dono do seu trabalho: o molde é da INPU, a arte é da Novac, a frequência é do Harley. Se a INPU deixa de trabalhar com a Novac, o molde continua da INPU e as artes continuam da Novac.
+
+- **Quem cadastra:** a marca (gratuita ou não) ou um fornecedor que assina, em nome dela. Quem tem o DXF cadastra; o Slide B, só com frequência, pode nascer no Harley.
+- **Cru e organizado:** a marca gratuita sobe o DXF como o recebeu (**cru**); o fornecedor que assina **organiza** (partes, tamanhos, grade) ao receber. A marca vê no painel o estado de cada molde.
+- **Anexos do modelo:** o material de referência que hoje vai pelo WhatsApp (CDR, PSD, fotos, vídeos, áudios) acompanha o molde para os fornecedores consultarem; não são a arte de produção.
+- **Painel da marca:** os seus moldes, quem os cadastrou, com quem estão compartilhados, e os pedidos. A marca compartilha ela mesma (a INPU manda o Slide B direto ao Harley).
+- No servidor de quem cadastra, a marca é um `Client` ligado à empresa dela na nuvem; os moldes desse cliente são os que aparecem no painel da marca.
+
+**Etapa 9.4 — Catálogo compartilhado.** Moldes públicos ou compartilhados são publicados na nuvem; os servidores guardam os retratos das versões que usam, para trabalhar offline. Rascunhos criados offline são publicados quando houver conexão.
 
 **Níveis de partida:**
 
@@ -649,9 +683,9 @@ Uma empresa compartilha com outra qualquer ponto da hierarquia, como uma árvore
 
 Referências e nomes agrupam artes; quando artes são marcadas para compartilhar, vão com a sua referência e nome.
 
-**Etapa 9.2 — Compartilhamento como objeto próprio.** Registra quem compartilhou, com qual empresa, o ponto de partida, as exclusões, as artes marcadas, a permissão (baixar e produzir), a política de versões e a política de itens futuros. Nunca altera a visibilidade dos itens de origem. Só se compartilha o que a própria empresa criou.
+**Etapa 9.5 — Compartilhamento como objeto próprio.** Registra quem compartilhou, com qual empresa, o ponto de partida, as exclusões, as artes marcadas, a permissão (baixar e produzir) e a política de itens futuros. Nunca altera a visibilidade dos itens de origem. Compartilha quem criou o item, a marca dona do molde (mesmo cadastrado por outro) e quem o cadastrou em nome dela. **Repassar** o que recebeu (o Harley manda parte do serviço para a "Frequência Sul") exige assinar: quem recebe vira fornecedor de quem repassou, e o repasse fica dentro da etapa dele, sem mudar o roteiro da marca.
 
-**Etapa 9.3 — Árvore de seleção.**
+**Etapa 9.6 — Árvore de seleção.**
 
 - Ao escolher o ponto de partida, estrutura e cortes abaixo dele vêm marcados; qualquer item pode ser desmarcado.
 - Artes são itens da árvore, sob o corte a que pertencem, e começam desmarcadas. Marcar uma arte ligada à estampa de um cliente mostra um aviso com o nome do cliente.
@@ -659,13 +693,33 @@ Referências e nomes agrupam artes; quando artes são marcadas para compartilhar
 - Antes de confirmar, uma pré-visualização mostra o total que será enviado (ex: 2 moldes, 6 partes, 66 cortes, 12 artes).
 - Quem recebe vê o caminho até o item como contexto (Tênis › Tenis › 002-TNS › Lateral), mas não os itens vizinhos.
 
-**Etapa 9.4 — Entrega pela nuvem.** A origem publica o item; o servidor de quem recebe baixa uma cópia para produzir offline. Na biblioteca, aparece como "recebido de Empresa X", somente leitura, ligado à parte do catálogo pelo UUID. Nenhuma instância consulta o banco de outra.
+**Etapa 9.7 — Entrega pela nuvem.** A origem publica o item; o servidor de quem recebe baixa uma cópia para produzir offline. Na biblioteca, aparece como "recebido de Empresa X", ligado à parte do catálogo pelo UUID. Quem assina pode subir versões próprias dele (Etapa 9.8); no gratuito, é somente leitura.
 
-**Etapa 9.5 — Versões.** Quem compartilha escolhe, por compartilhamento: presa à versão enviada, ou acompanhando novas versões. No segundo caso, quem recebe ganha um alerta e adota, como no catálogo.
+**Etapa 9.8 — Versões entre empresas.** Substitui a escolha "presa à versão / acompanhando" (antiga 9.5).
 
-**Etapa 9.6 — Revogação e rastreio.** Revogar bloqueia novos downloads e atualizações e marca o item como revogado no destino. Cópias já baixadas não podem ser apagadas remotamente, e a interface diz isso antes de compartilhar. Todo download fica registrado.
+- Qualquer participante que assina sobe uma versão nova de um item, recebido ou criado por ele (o Harley ajusta o DXF da Lateral para a máquina de frequência). Nada é sobrescrito: a versão entra no histórico com o autor ("v4 · Harley · 20/10"), e **cada empresa tem a sua versão em uso**.
+- O alerta "arquivo modificado" vai **só para quem compartilhou** com o autor da mudança (o Harley muda, a Novac é avisada; se a INPU tivesse compartilhado direto com o Harley, seria a INPU).
+- Quem recebe o alerta decide: **adotar** (o que depende do arquivo fica marcado "anterior à versão em uso", como o "anterior ao piloto atual" de hoje) ou **não me afeta**, com quem decidiu e quando.
+- **Cascata:** adotando, a versão de quem adotou mudou, e quem recebeu dele ganha o alerta (a Novac adota a v4 do Harley → a Bordec, que recebeu da Novac, decide também). Com "não me afeta", a corrente para ali.
+- **Sem aviso de divergência** entre fornecedores em versões diferentes (decidido: é ruído; "não me afeta" pode ser verdade).
+- O caso da frequência é este mesmo fluxo, sem declarar dependências: o Harley sobe a frequência nova, a Novac é avisada e decide se redesenha. **Por agora a frequência é um anexo** (PDF, CDR ou foto) que a Novac baixa e abre. **Evolução:** a frequência sobreposta ao desenho da Novac na página da arte (v3 × v4): PDF primeiro (tem escala), depois a foto com alinhamento manual (arrastar, girar, escalar, transparência), depois por pontos, e por fim com os marcadores do calibrador de cor (`docs/cor-lisa/calibrador-de-cor.md`). CDR depende da ferramenta de conversão (Decisões em aberto).
 
-**Regra de isolamento:** quem recebe nunca vê estampa, cliente de origem, nem itens que não foram marcados.
+**Etapa 9.9 — Revogação e rastreio.** Revogar bloqueia novos downloads e atualizações e marca o item como revogado no destino. Cópias já baixadas não podem ser apagadas remotamente, e a interface diz isso antes de compartilhar. Todo download fica registrado, e quem compartilhou vê quem baixou cada versão. A marca vê no painel **por onde o molde passou** (INPU → Novac → Harley → Frequência Sul), só como rastreio, sem controle.
+
+**Etapa 9.10 — Roteiro.** Quem faz cada etapa de uma parte, e em que ordem (Lateral do Slide A: estampa → Novac, depois frequência → Harley). É a sequência física: o segundo fornecedor espera o primeiro entregar.
+
+- **Granular, herdando de cima:** marca → molde → variação (a herança da Fase 5) → parte → pedido → parte no pedido. Cada nível mostra de onde veio o valor ("herdado da INPU") e muda só ali; mudar um nível vale para os de baixo que não mudaram. Ex: a INPU diz "estampa → Novac, frequência → Harley"; o Slide B muda para "só frequência → Harley"; a Palmilha do Slide A, "sem estampa".
+- **Fornecedor e ordem herdam separados:** um molde mantém a ordem da marca e troca só quem faz uma etapa.
+- **Quem define:** a marca, em qualquer nível (definir roteiro é configuração, vale no gratuito); o fornecedor que organizou o molde, no molde, na variação e na parte; quem manda o pedido, no pedido. **Em conflito, a última mudança vale**, e o outro recebe o alerta "roteiro alterado por …".
+
+**Etapa 9.11 — Pedido na rede.**
+
+- **A marca manda o pedido** aos seus fornecedores, de graça: a ordem nasce na marca e se divide pelo roteiro, uma ordem por fornecedor, cada uma no Neajud dele como pedido normal. A marca acompanha no painel.
+- **Quando a marca pede por fora** (WhatsApp, o caso mais comum no começo), o fornecedor que assina lança no Neajud dele e o pedido **entra na rede** como pedido da marca, registrado "lançado pela Novac em nome da INPU".
+- **A marca contrata cada fornecedor.** A Novac só **encaminha** a ordem ao Harley: não há preço entre os dois, e cada um acerta o seu com a marca sem o outro ver.
+- **Passagens:** quem assina registra o envio ("enviado para o Harley, 500 pares") e as etapas; a marca gratuita confirma o **recebimento final** ("recebido, 500 pares"). O meio com um fornecedor gratuito aparece como "em andamento no Harley"; informar o andamento é motivo para ele assinar.
+
+**Regra de isolamento:** quem recebe nunca vê a estampa, os outros clientes nem os preços de quem compartilhou, nem itens que não foram marcados.
 
 ## Fora do escopo agora
 
@@ -675,16 +729,16 @@ Estes itens não devem ser implementados nas fases acima, mas o desenho não pod
 | --- | --- | --- |
 | Nó de backup | Segundo PC (na empresa ou na casa do dono) como réplica com histórico, via WireGuard; promoção a principal com controle de mandato para evitar dois principais | Fase 8 |
 | Backup na nuvem | Snapshots restic criptografados no próprio servidor, enviados a armazenamento S3 (ex: Backblaze B2), cobrados por volume | Fase 8 |
-| Propostas de versão | Outra empresa propõe nova versão de uma parte; o autor aceita como oficial ou ela vira variante | Fase 5 |
+| Propostas de versão | Outra empresa propõe nova versão de uma parte; o autor aceita como oficial ou ela vira variante (entre empresas da rede, já resolvido de outro jeito: cada uma sobe a sua e quem compartilhou adota, Etapa 9.8) | Fase 5 |
 | Classificação de mudança | Versões marcadas como compatíveis (alerta simples) ou incompatíveis (revisão obrigatória) | Fase 5 |
-| Pedidos entre empresas | A marca encomenda na rede e cada fornecedor vê só a sua parte | Fases 5 e 9 |
 | Script de instalação | Instalação em Linux ou TrueNAS já existentes, sem a ISO | Fase 8 |
 | Aviso de cor parecida | Ao subir uma cor lisa quase igual a uma existente, avisar ("parece a Amarelo v36") antes de criar outra versão | Etapa 2.7 |
 | Offline no navegador | Descartado: o servidor local cobre esse caso | — |
 
 ## Decisões em aberto
 
-- [ ] Moldes sem cliente (base da própria empresa) para compartilhar entre empresas na Fase 9, já que hoje todo molde pertence a um cliente.
+- [ ] Moldes sem cliente (base da própria empresa) para compartilhar entre empresas na Fase 9, já que hoje todo molde pertence a um cliente. (Na rede, o molde de uma marca já é do `Client` ligado a ela, Etapa 9.3; falta o molde que é da própria empresa.)
+- [ ] Na nuvem, uma instância por empresa (Etapa 3.1, um container cada) ou um processo só com um SQLite por empresa (mesmo isolamento e formato de backup, menos memória; jobs, cabo e cache com a empresa no contexto, migrações em todos os bancos, todas atualizam juntas). Discutido em 20/10/2026, sem decisão.
 - [ ] Ligação entre o Nome da arte (ex: "Bluey Azul") e a Estampa da Fase 6: o nome pode virar o vínculo com a estampa de origem.
 - [ ] Idioma deste documento no repositório: o AGENTS.md é só em inglês; este documento já está em `docs/` em português (26/09/2026) — traduzir?
 - [ ] Valor da mensalidade, duração do teste grátis e gateway de cobrança (Pix e boleto recorrentes).
