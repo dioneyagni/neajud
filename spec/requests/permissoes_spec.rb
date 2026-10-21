@@ -34,6 +34,10 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     # Etapa 2.3d1: any draft's fabric owner and paper / film.
     [ "set whose fabric a pedido is on", "pedidos", 2, -> { patch materiais_pedido_path(create(:pedido)), params: { dono_tecido: "empresa" } } ],
     [ "set a tecido item's meters", "pedidos", 2, -> { patch tecido_item_pedido_path(create(:pedido, tipo: "tecido")), params: { metros: "1" } } ],
+    # 20/10/2026: the tecido pedidos' list and repeating one.
+    [ "list the tecido pedidos", "pedidos", 1, -> { get pedidos_tecido_path } ],
+    [ "open a tecido pedido's repeat screen", "pedidos", 2, -> { get repetir_pedido_path(create(:pedido, tipo: "tecido", status: "entregue")) } ],
+    [ "repeat a tecido pedido", "pedidos", 2, -> { post repetir_pedido_path(create(:pedido, tipo: "tecido", status: "entregue")) } ],
     [ "list clients", "clientes", 1, -> { get clients_path } ],
     [ "register a client", "clientes", 2, -> { post clients_path, params: { client: { name: "Novo", responsible: "X" } } } ],
     [ "trash a client", "clientes", 3, -> { delete client_path(client) } ],

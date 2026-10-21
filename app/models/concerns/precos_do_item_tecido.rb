@@ -22,6 +22,12 @@ module PrecosDoItemTecido
   def preco_impressao_de_partida
     return preco_impressao_metro_partida if precos_gravados?
 
+    preco_impressao_de_hoje
+  end
+
+  # What the print costs today: the client's agreed, else the dono's — a
+  # draft's starting price, and what a repeated pedido is compared against.
+  def preco_impressao_de_hoje
     pedido.client&.preco_impressao_metro_tecido || Empresa.atual&.preco_impressao_metro_tecido
   end
 
@@ -38,6 +44,11 @@ module PrecosDoItemTecido
   def preco_tecido_de_partida
     return preco_tecido_metro_partida if precos_gravados?
 
+    preco_tecido_de_hoje
+  end
+
+  # The fabric's price today (nil when the client's fabric isn't charged).
+  def preco_tecido_de_hoje
     cobra_tecido? ? materia_prima&.preco_metro : nil
   end
 
@@ -54,6 +65,16 @@ module PrecosDoItemTecido
   def abaixo_do_minimo?
     minimo = metragem_minima
     minimo.present? && metros.to_d.positive? && metros.to_d < minimo
+  end
+
+  # The prices charged below today's (decided 20/10/2026: a repeated pedido
+  # brings the prices it was charged): warned on a draft and on the repeat
+  # screen, never blocked — the team keeps the discount or corrects it.
+  # Usage: item.precos_abaixo_do_valor # => { "Impressão" => [15.0, 18.5] } (charged, today's)
+  def precos_abaixo_do_valor
+    { "Impressão" => [ preco_impressao_efetivo, preco_impressao_de_hoje ],
+      "Tecido" => (cobra_tecido? ? [ preco_tecido_efetivo, preco_tecido_de_hoje ] : nil) }
+      .compact.select { |_, (preco, hoje)| preco && hoje && preco < hoje }
   end
 
   # Approved for the meters it has now.
