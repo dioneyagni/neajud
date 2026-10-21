@@ -1,0 +1,14 @@
+<%# A tecido item's arte at a glance (20/10/2026): a cor lisa's measured
+    color, else the file's preview, else an empty square — with its number.
+    locals: arte, arquivo %>
+<% medida = arte&.tipo == "cor_lisa" && arte.cor_medida %>
+<span class="tecido-amostra">
+  <% if medida %>
+    <span class="tecido-amostra-cor" style="background: <%= medida.cor_hex %>" aria-hidden="true"></span>
+  <% elsif arquivo&.preview_file.present? && !(arquivo.pending? || arquivo.processing?) %>
+    <img class="tecido-amostra-cor" src="<%= preview_arquivo_path(arquivo) %>" alt="">
+  <% else %>
+    <span class="tecido-amostra-cor tecido-amostra-cor--vazia" aria-hidden="true"></span>
+  <% end %>
+  <span class="tecido-amostra-codigo"><%= arte&.codigo || arte&.titulo.presence || arquivo&.filename %></span>
+</span>

@@ -31,4 +31,14 @@ module PedidosTecidoHelper
 
     metros(saldos.por_cliente(material)[pedido.client] || 0)
   end
+
+  # The warning of a price below today's (20/10/2026), for the team that sees
+  # prices — never a cliente final; nil when none is.
+  # Usage: aviso_de_preco_abaixo(item) # => "Impressão R$ 15,00/m — abaixo do valor de hoje (R$ 18,50/m)"
+  def aviso_de_preco_abaixo(item)
+    abaixo = item.precos_abaixo_do_valor
+    return if abaixo.empty? || cliente_final? || !pode_acao?(:ver_valores)
+
+    abaixo.map { |cobranca, (preco, hoje)| "#{cobranca} #{reais(preco)}/m — abaixo do valor de hoje (#{reais(hoje)}/m)" }.join("; ")
+  end
 end

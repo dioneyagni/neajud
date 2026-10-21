@@ -156,8 +156,10 @@ areas:
       - "app/controllers/precos_da_etiqueta_controller.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   tecido:
-    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque]
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido]
     arquivos:
+      - "app/javascript/controllers/repetir_metros_controller.js"
+      - "app/views/pedidos/_amostra_da_arte.html.erb"
       - "**/*tecido*"
       - "**/*tecido*/**/*"
       - "app/services/dono_do_tecido.rb"

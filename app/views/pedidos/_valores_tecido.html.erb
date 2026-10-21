@@ -7,6 +7,11 @@
 <% linhas = [ [ "Impressão", valores.impressao ], [ "Tecido", valores.tecido ] ].select(&:last) %>
 <section class="pedido-valores pedido-valores-tecido" id="valores-tecido">
   <h3>Valores do pedido</h3>
+  <%# 20/10/2026: a repeated draft may bring prices below today's. %>
+  <% abaixo = equipe && Pedido::ANTES_DA_CONFIRMACAO.include?(pedido.status) ? pedido.itens_pedido.count { |item| item.precos_abaixo_do_valor.any? } : 0 %>
+  <% if abaixo.positive? %>
+    <p class="tecido-preco-abaixo" data-precos-abaixo role="status"><%= abaixo == 1 ? "1 item com preço abaixo do valor de hoje" : "#{abaixo} itens com preço abaixo do valor de hoje" %>: confira antes de confirmar.</p>
+  <% end %>
   <p class="pedido-valores-cobranca"><%= DonoDoTecido.do_pedido(pedido).empresa? ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %></p>
   <div class="pedido-dtf-tabela-wrap">
     <table class="pedido-dtf-tabela pedido-valores-tabela pedido-dtf-blocos">

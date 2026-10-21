@@ -1,0 +1,87 @@
+<%# The tecido pedidos' list (decided 20/10/2026), the layout of the cor lisa
+    canvas's "Sistema · pedidos" on our statuses: cards that count and
+    filter, a search, the table with each pedido's arte, fabrics, meters,
+    value (who sees prices) and "Repetir". ListaPedidosTecidoController. %>
+<% precos = pode_ver_precos? %>
+<% repetir = pode?(:pedidos, :editar) %>
+<div class="tecido-lista">
+  <div class="tecido-lista-cabecalho">
+    <div>
+      <h2>Pedidos de tecido</h2>
+      <p class="tecido-lista-sub">Estampa corrida e cor lisa, em metros</p>
+    </div>
+    <%= link_to "Todos os pedidos", pedidos_path, class: "btn btn-secondary" %>
+  </div>
+
+  <nav class="tecido-cartoes" aria-label="Filtrar por status">
+    <% (ListaPedidosTecidoController::STATUS_DA_LISTA + [ "aguardando" ]).each do |status| %>
+      <% ativo = @status == status %>
+      <% destino = ativo ? pedidos_tecido_path(q: @busca.presence) : pedidos_tecido_path(status == "aguardando" ? { aguardando: 1, q: @busca.presence } : { status: status, q: @busca.presence }) %>
+      <%= link_to destino, class: "tecido-cartao tecido-cartao--#{status}", data: { status: status }, "aria-current": (ativo ? "page" : nil) do %>
+        <span class="tecido-cartao-ponto" aria-hidden="true"></span>
+        <span class="tecido-cartao-rotulo"><%= status == "aguardando" ? "Aguardando material" : rotulo_do_status(status).capitalize %></span>
+        <span class="tecido-cartao-contagem"><%= @contagens[status].to_i %></span>
+      <% end %>
+    <% end %>
+  </nav>
+
+  <%= form_with url: pedidos_tecido_path, method: :get, class: "tecido-busca", role: "search" do %>
+    <% if @status == "aguardando" %><input type="hidden" name="aguardando" value="1"><% elsif @status %><input type="hidden" name="status" value="<%= @status %>"><% end %>
+    <label for="tecido-busca-q" class="visually-hidden">Buscar pedido</label>
+    <input type="search" id="tecido-busca-q" name="q" value="<%= @busca %>" placeholder="Buscar por pedido, cliente, arte ou cor">
+    <button type="submit" class="btn btn-secondary">Buscar</button>
+    <% if @status || @busca.present? %><%= link_to "Limpar", pedidos_tecido_path, class: "tecido-busca-limpar" %><% end %>
+  <% end %>
+
+  <div class="tecido-tabela-wrap">
+    <table class="tecido-tabela">
+      <thead>
+        <tr>
+          <th>Pedido</th><th>Cliente</th><th>Arte</th><th>Tecido</th><th class="tecido-num">Metros</th>
+          <% if precos %><th class="tecido-num">Valor</th><% end %>
+          <th>Status</th><th><span class="visually-hidden">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @pedidos.each do |pedido| %>
+          <% itens = pedido.itens_pedido.sort_by(&:id) %>
+          <tr data-pedido="<%= pedido.uuid %>">
+            <td class="tecido-pedido">
+              <%= link_to "##{pedido.uuid.first(8)}", resumo_pedido_path(pedido) %>
+              <small><%= l pedido.created_at, format: "%d/%m/%Y" %></small>
+            </td>
+            <td><%= pedido.client&.name || "—" %></td>
+            <td>
+              <% if (primeiro = itens.first) %>
+                <%= render "pedidos/amostra_da_arte", arte: primeiro.arte, arquivo: primeiro.arquivo %>
+                <% if itens.size > 1 %><small class="tecido-mais">+<%= itens.size - 1 %></small><% end %>
+              <% else %>
+                <span class="tecido-vazio">sem itens</span>
+              <% end %>
+            </td>
+            <td><%= itens.filter_map { |item| item.materia_prima&.nome_completo }.uniq.join(", ").presence || "—" %></td>
+            <td class="tecido-num" data-metros><%= metros(itens.sum { |item| item.metros.to_d }) %></td>
+            <% if precos %><td class="tecido-num" data-valor><%= reais(ValoresDoPedidoTecido.call(pedido).total) if itens.any? %></td><% end %>
+            <td>
+              <div class="tecido-status">
+                <span class="badge badge-<%= pedido.status %>"><%= rotulo_do_status(pedido.status) %></span>
+                <% if @aguardando_ids.include?(pedido.id) %><span class="badge badge-aguardando" data-aguardando>aguardando material</span><% end %>
+              </div>
+            </td>
+            <td class="tecido-acoes">
+              <% if repetir && RepetirPedidoTecido.erro(pedido).nil? %>
+                <%= link_to repetir_pedido_path(pedido), class: "btn btn-sm btn-outline tecido-repetir" do %>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"></path><path d="M20 4v5h-5"></path><path d="M20 12a8 8 0 0 1-14 5.3L4 15"></path><path d="M4 20v-5h5"></path></svg>
+                  Repetir
+                <% end %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+        <% if @pedidos.empty? %>
+          <tr><td colspan="<%= precos ? 8 : 7 %>" class="gallery-empty">Nenhum pedido de tecido<%= " com esse filtro" if @status || @busca.present? %>.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

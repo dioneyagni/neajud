@@ -161,6 +161,8 @@ Rails.application.routes.draw do
   # Etapa 2.5b: every cor lisa — the chart and the table.
   resources :cores, only: :index
 
+  # The tecido pedidos' own list (20/10/2026); before resources so "tecido" isn't a uuid.
+  get "pedidos/tecido", to: "lista_pedidos_tecido#index", as: :pedidos_tecido
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
     collection do
       post :adicionar_item
@@ -199,6 +201,9 @@ Rails.application.routes.draw do
       # Etapa 2.7b: an item's edited prices and its approval below the minimum.
       patch "tecido/preco_item", to: "precos_do_pedido_tecido#item", as: :tecido_preco_item
       post "tecido/aprovar_minimo", to: "minimo_do_tecido#aprovar", as: :tecido_aprovar_minimo
+      # Repeating a tecido pedido as a new draft (20/10/2026).
+      get :repetir, to: "repeticoes_pedido_tecido#new"
+      post :repetir, to: "repeticoes_pedido_tecido#create"
       # Etapa 2.6c: how it is charged and its edited prices.
       patch "dtf/precos", to: "precos_do_pedido_dtf#update", as: :dtf_precos
       patch "dtf/preco_linha", to: "precos_do_pedido_dtf#linha", as: :dtf_preco_linha
