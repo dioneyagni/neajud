@@ -1,0 +1,296 @@
+/* The tecido pedidos' list and "Repetir pedido" (20/10/2026): the layout of
+   the cor lisa canvas — cards per status, the search, a table that scrolls
+   inside its box on a phone, and the repeat screen's item cards. */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tecido-lista,
+.tecido-repetir-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tecido-lista-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.tecido-lista-cabecalho h2 {
+  margin: 0;
+}
+
+.tecido-lista-sub {
+  margin: 0.25rem 0 0;
+  color: #5f5e5a;
+}
+
+.tecido-cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.tecido-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+  color: #141414;
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.tecido-cartao[aria-current="page"] {
+  border: 2px solid #141414;
+}
+
+.tecido-cartao-ponto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8a8780;
+}
+
+.tecido-cartao--rascunho .tecido-cartao-ponto { background: #6b737d; }
+.tecido-cartao--enviado .tecido-cartao-ponto { background: #7a55b0; }
+.tecido-cartao--confirmado .tecido-cartao-ponto { background: #3c7dc4; }
+.tecido-cartao--em_producao .tecido-cartao-ponto { background: #d9a21b; }
+.tecido-cartao--entregue .tecido-cartao-ponto { background: #3e9a62; }
+.tecido-cartao--aguardando .tecido-cartao-ponto { background: #5b2a86; }
+
+.tecido-cartao-rotulo {
+  font-size: 0.85rem;
+}
+
+.tecido-cartao-contagem {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tecido-busca {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tecido-busca input[type="search"] {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.tecido-tabela-wrap {
+  /* Positioned, so the hidden "Ações" label (absolute) stays inside the
+     scrolling box instead of widening the page on a phone. */
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.tecido-tabela {
+  width: 100%;
+  min-width: 56rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tecido-tabela th {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #e2dfd6;
+  color: #5f5e5a;
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.tecido-tabela td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #efede7;
+  vertical-align: middle;
+}
+
+.tecido-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tecido-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tecido-pedido a {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tecido-pedido small {
+  display: block;
+  color: #5f5e5a;
+}
+
+.tecido-amostra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tecido-amostra-cor {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #efede7;
+}
+
+.tecido-amostra-cor--vazia {
+  border: 1px dashed #bfbcb2;
+}
+
+.tecido-amostra-codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.tecido-mais,
+.tecido-vazio {
+  color: #5f5e5a;
+}
+
+.tecido-acoes {
+  text-align: right;
+}
+
+.tecido-repetir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+/* "Repetir pedido": one card per item, its meters this time. */
+.tecido-repetir-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tecido-atalhos > span {
+  align-self: center;
+}
+
+.tecido-repetir-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.tecido-repetir-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.tecido-repetir-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.4rem 1rem;
+  font-size: 0.9rem;
+}
+
+.tecido-repetir-dados small {
+  display: block;
+  color: #5f5e5a;
+  font-size: 0.75rem;
+}
+
+.tecido-repetir-metros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tecido-repetir-metros input {
+  width: 7rem;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1.1rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tecido-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tecido-atalhos button {
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 20px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tecido-atalhos button[aria-pressed="true"] {
+  border-color: #141414;
+  background: #141414;
+  color: #f7f5f0;
+}
+
+.tecido-preco-abaixo {
+  margin: 0;
+  color: #7a4500;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.tecido-repetir-lixeira {
+  margin: 0;
+  color: #7a1f1f;
+  font-size: 0.85rem;
+}
+
+.tecido-repetir-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}

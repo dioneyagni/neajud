@@ -2,7 +2,7 @@
     the print per meter and, when the fabric is the empresa's, the fabric per
     meter. The team edits them on a draft, the starting one beside (Q4); a
     cliente final with "valores" open sees only what he pays per meter and
-    the subtotal (Q5). %>
+    the subtotal (Q5). A draft's price below today's is warned (20/10/2026). %>
 <% equipe = !cliente_final? && pode_acao?(:ver_valores) %>
 <% editavel = equipe && pedido.editavel? %>
 <% if equipe %>
@@ -38,6 +38,9 @@
       </tfoot>
     </table>
   </div>
+  <% if Pedido::ANTES_DA_CONFIRMACAO.include?(pedido.status) && (abaixo = aviso_de_preco_abaixo(item)) %>
+    <p class="tecido-preco-abaixo" data-preco-abaixo role="status"><%= abaixo %></p>
+  <% end %>
 <% else %>
   <p class="pedido-tecido-preco-cliente">
     <span class="pedido-tecido-preco-metro"><%= reais(valores.preco_por_metro) %>/m</span> ·

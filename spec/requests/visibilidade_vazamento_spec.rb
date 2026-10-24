@@ -76,7 +76,7 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     rotas_get.product([ b[:arte], b[:corte], b[:dtf], b[:colecao] ]).filter_map do |caminho, arquivo|
       url = preencher(caminho, b, arquivo)
       get url, params: consulta
-      vistas = marcas.select { |_, marca| response.body.include?(marca) && !eco?(marca, consulta) }.keys + canais_proibidos
+      vistas = marcas.select { |_, marca| sem_eco_da_busca(response.body).include?(marca) && !eco?(marca, consulta) }.keys + canais_proibidos
       "#{url} (#{response.status}): #{vistas.join(", ")}" if vistas.any?
     end.uniq
   end
@@ -104,6 +104,14 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
     return false if marca == MARCA
 
     response.status >= 400 || consulta.except(:q).values.include?(marca)
+  end
+
+  # A search page keeps what was typed (the tecido list, 20/10/2026): its
+  # field's value="VAZOU" and its links' q=VAZOU are the request's own q, not
+  # a record. Only those exact echoes go — "Cliente VAZOU" or a file
+  # "arte-VAZOU" still show as leaks.
+  def sem_eco_da_busca(corpo)
+    corpo.gsub(%(value="#{MARCA}"), "").gsub(/q=#{MARCA}(?=[&"])/, "")
   end
 
   # What each closed kind hides (Etapa 2.8, 3a): its records' uuids — every

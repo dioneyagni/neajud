@@ -4,6 +4,8 @@
   <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
     <%= @pedidos.size %> pedidos
   </span>
+  <%# 20/10/2026: the tecido pedidos have their own list. %>
+  <%= link_to "Pedidos de tecido", pedidos_tecido_path, class: "btn btn-secondary pedidos-tecido-link" %>
   <% if pode?(:pedidos, :editar) %>
     <%= button_to "+ Novo Pedido", pedidos_path, method: :post, class: "btn btn-primary", style: "margin-left:auto;" %>
   <% end %>

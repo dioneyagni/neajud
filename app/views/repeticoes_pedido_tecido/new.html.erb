@@ -1,0 +1,62 @@
+<%# "Repetir pedido" (decided 20/10/2026), the layout of the cor lisa
+    canvas's screen: one card per item — its arte, fabric, width and the
+    meters of last time — with "metros desta vez" and Igual / Metade / Dobro
+    (per item and for all, Stimulus repetir-metros); 0 leaves it out. A price
+    below today's is warned to the team (it comes to the draft as it was). %>
+<div class="tecido-repetir-pagina" data-controller="repetir-metros">
+  <%= link_to "← Pedido ##{@origem.uuid.first(8)}", resumo_pedido_path(@origem), class: "back-link" %>
+  <div>
+    <h2>Repetir pedido</h2>
+    <p class="tecido-lista-sub">a partir do #<%= @origem.uuid.first(8) %> · <%= @origem.client&.name || "sem cliente" %> · <%= rotulo_do_status(@origem.status) %></p>
+  </div>
+
+  <% if @erro %>
+    <p class="tecido-repetir-lixeira" data-repetir-erro role="alert"><%= @erro %></p>
+  <% else %>
+    <%= form_with url: repetir_pedido_path(@origem), method: :post, class: "tecido-repetir-form" do %>
+      <div class="tecido-atalhos" aria-label="Metros de todos os itens">
+        <span>Todos:</span>
+        <% [ [ "Igual", 1 ], [ "Metade", 0.5 ], [ "Dobro", 2 ] ].each do |rotulo, fator| %>
+          <button type="button" data-action="repetir-metros#todos" data-repetir-metros-fator-param="<%= fator %>"><%= rotulo %></button>
+        <% end %>
+      </div>
+
+      <div class="tecido-repetir-itens">
+        <% @itens.each do |item| %>
+          <% campo = "repetir-metros-#{item.uuid}" %>
+          <article class="tecido-repetir-item" data-item-uuid="<%= item.uuid %>">
+            <%= render "pedidos/amostra_da_arte", arte: item.arte, arquivo: item.arquivo %>
+            <div class="tecido-repetir-dados">
+              <div><small>Arte</small><%= item.arte&.titulo.presence || item.arquivo.filename %></div>
+              <div><small>Tecido</small><%= item.materia_prima&.nome_completo || "—" %></div>
+              <div><small>Largura</small><%= largura_em_metros(item.largura_efetiva_mm) %></div>
+              <div><small>Pedido anterior</small><span data-anterior><%= metros(item.metros.to_d) %></span></div>
+            </div>
+            <% if item.arquivo.excluido? %>
+              <p class="tecido-repetir-lixeira">A arte está na lixeira: fica de fora.</p>
+            <% else %>
+              <div class="tecido-repetir-metros">
+                <label for="<%= campo %>">Metros desta vez</label>
+                <input type="text" inputmode="decimal" id="<%= campo %>" name="metros[<%= item.uuid %>]" data-repetir-metros-target="campo"
+                       data-anterior="<%= item.metros.to_d %>" value="<%= number_with_precision(item.metros, precision: 1, separator: ",", strip_insignificant_zeros: true) %>"
+                       data-action="input->repetir-metros#digitou">
+                <span>m</span>
+                <div class="tecido-atalhos">
+                  <% [ [ "Igual", 1 ], [ "Metade", 0.5 ], [ "Dobro", 2 ] ].each do |rotulo, fator| %>
+                    <button type="button" data-action="repetir-metros#item" data-repetir-metros-fator-param="<%= fator %>" aria-pressed="<%= fator == 1 %>"><%= rotulo %></button>
+                  <% end %>
+                </div>
+              </div>
+              <% if (abaixo = aviso_de_preco_abaixo(item)) %><p class="tecido-preco-abaixo" data-preco-abaixo><%= abaixo %></p><% end %>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+
+      <div class="tecido-repetir-acoes">
+        <button type="submit" class="btn btn-primary tecido-repetir-criar">Criar rascunho</button>
+        <small class="tecido-lista-sub">Os preços vêm do pedido anterior; 0 m deixa o item de fora.</small>
+      </div>
+    <% end %>
+  <% end %>
+</div>

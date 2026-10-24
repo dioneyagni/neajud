@@ -74,6 +74,10 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect([ response.status, item.reload.minimo_aprovado_em ]).to eq([ 404, nil ])
       patch "/clients/#{create(:client).id}/precos_tecido", params: { preco_impressao_metro_tecido: "5" }
       expect(response).to have_http_status(:not_found)
+      # 20/10/2026: repeating it.
+      get "/pedidos/#{pedido.id}/repetir"
+      expect(response).to have_http_status(:not_found)
+      expect { post "/pedidos/#{pedido.id}/repetir" }.not_to change(Pedido, :count)
       # Etapa 2.7c: its production page and files for the RIP.
       %w[tecido/producao/impressao tecido/arquivos tecido/compactados].each do |caminho|
         get "/pedidos/#{pedido.id}/#{caminho}"

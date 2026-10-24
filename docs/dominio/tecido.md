@@ -110,3 +110,40 @@ Decided 19/10/2026:
   The page and the downloads are `ProducaoSemCorte` (the DTF's controller
   includes it too); the files need `baixar_producao`.
 - E2E: `e2e/producao-tecido.spec.js`.
+
+## The tecido pedidos' list and "Repetir pedido"
+
+Decided 20/10/2026, adapting the layout of the cor lisa canvas ("Cartões de
+calibração" › Pedidos: the list, "lançar pedido em metros", "repetir
+pedido") to the tecido pedido as it is — no selling mechanism (payment, NF,
+printer, color rounds): selling in several steps is its own later analysis
+(docs/plano.md, Etapa 2.3).
+
+- **`/pedidos/tecido`** (`ListaPedidosTecidoController`, linked from
+  `/pedidos`): cards per status that count and filter (`?status=`, our
+  statuses, and "aguardando material", `?aguardando=1`; clicking the active
+  one clears it), a search (`?q=`: the start of the pedido's number, the
+  client's name, a file name, a cor lisa's family or a work's number) and a
+  table — pedido and date, client, the first item's arte
+  (`pedidos/_amostra_da_arte`: a cor lisa's measured color, else the
+  preview) "+N", fabrics, meters, value (`pode_ver_precos?`), status,
+  "Repetir". Reposições stay out. Everything through `visiveis(Pedido)`.
+- **"Repetir pedido"** (`GET/POST /pedidos/:uuid/repetir`,
+  `RepeticoesPedidoTecidoController`, `pedidos: editar`; the cliente final
+  his own): a confirmed, in-production or delivered tecido pedido, not in the
+  trash nor a reposição (`RepetirPedidoTecido.erro`). One card per item with
+  the meters of last time and "metros desta vez" (Stimulus `repetir-metros`:
+  Igual / Metade / Dobro, per item and for all; 0 leaves it out).
+  `RepetirPedidoTecido` makes a **new draft** of the same client with the
+  same artes, fabrics, widths, owner and paper, and **the prices charged** as
+  each item's edited price; an arte in the trash is left out and named.
+- **A price below today's** (`PrecosDoItemTecido#precos_abaixo_do_valor`:
+  the charged print vs the client's agreed or the dono's, the fabric vs the
+  material's) is warned to the team with `ver_valores` — on the draft's item
+  prices, in "Valores do pedido" and on the repeat screen — never blocking.
+- The visibility sweep discounts only a search page's exact echo of its own
+  `q` (`value="VAZOU"`, `q=VAZOU`).
+- Tests: `spec/services/repetir_pedido_tecido_spec.rb`,
+  `spec/requests/lista_e_repeticao_tecido_spec.rb`, E2E
+  `e2e/pedidos-tecido.spec.js`.
+
