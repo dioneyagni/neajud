@@ -89,6 +89,12 @@ runSpec("Pedidos de tecido", async ({ page, test }) => {
       if ((await page.locator("tr[data-pedido]").count()) !== confirmados || !(await linha().count())) throw new Error("The card should filter its status");
       await page.locator('.tecido-cartao[data-status="confirmado"]').click();
       await page.locator('.tecido-cartao[aria-current="page"]').waitFor({ state: "detached" });
+      if (new URL(page.url()).search.includes("status=")) throw new Error("Clicking the active card again should clear its filter");
+      // The search starts from a page loaded whole: after a Turbo visit the
+      // list may render twice (its cached preview, then the page), and in CI
+      // the term typed into the first went out empty (runs 39532635201,
+      // 39663239674: GET ?q= with nothing).
+      await page.goto(`${BASE_URL}/pedidos/tecido`);
       await page.fill("#tecido-busca-q", nomes.cliente);
       await page.locator(".tecido-busca button[type=submit]").click();
       // The server echoes the term into the field only on the searched page.
