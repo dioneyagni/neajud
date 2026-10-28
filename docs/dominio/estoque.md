@@ -53,6 +53,10 @@ family, after the PIM pattern of families with required attributes:
   TPU are groups of it, in micras. The cola waits for Dublagem 5/5 (the stock
   only knows meters).
 - E2E: `e2e/grupos-de-material.spec.js`.
+- The development database gets these groups (Oxford, Microfibra, Cetim,
+  Telinha, TNT, Helanca, Lona, EVA, Espuma, the three filmes and Papel) and a
+  few materials each, with no stock and no price, from `bin/rails dev:semear`
+  (`db/seeds/desenvolvimento.rb`, 28/10/2026); it only adds what is missing.
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 

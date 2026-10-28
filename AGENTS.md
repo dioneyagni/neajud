@@ -657,6 +657,12 @@ spec provisions what it needs through the app's own endpoints
 (`ensureGrupo`/`ensureCor`/`ensureClient`). `CorMaterial` names are capped to
 `CorMaterial::COLOR_HEX` so every color has a real swatch.
 
+The development database has its own starting groups and materials
+(decided 28/10/2026): `bin/rails dev:semear` takes a `bin/dev-backup`, then
+**only adds** what is missing from `db/seeds/desenvolvimento.rb`
+(`SemeadorDeDesenvolvimento`) — an existing group, color or material is never
+changed. It refuses any other environment, and `db:seed` never runs it.
+
 ## Key constraints
 
 - Every route, JSON and form value uses the `uuid` — see "Public identifiers are uuids"
