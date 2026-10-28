@@ -460,6 +460,8 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
   A **1/5** (materiais como famílias, 27/10/2026): o grupo ganhou os papéis, o estampável com a ressalva e os atributos pedidos (página **Grupos**, a partir de Materiais); o lançamento de estoque mostra os campos que o grupo pede e recusa um material novo sem um obrigatório, dizendo qual e em que grupo; o nome do material junta densidade, espessura e micras quando existem ("Espuma TC4 3 mm"). Os grupos que já existiam ficaram superfície, estampáveis e com a gramatura obrigatória, como antes. Um obrigatório novo **não recusa** os materiais que já existem: eles ganham o aviso "falta …" na página de Materiais. O pedido de tecido só oferece o que estampa (o item que já tinha um material de grupo que deixou de estampar continua com ele) e mostra a ressalva como aviso, sem bloquear. O tipo "Filme (dublagem)" passou a se chamar "Ligante (dublagem)"; a **cola** fica de fora até a 5/5, quando os ligantes saem do estoque e se decide a medida dela (hoje o estoque só conhece metros).
 
+  **Seed de desenvolvimento** (decidido em 28/10/2026, antes da 2/5, porque a rede cita grupos que o banco dev não tinha): `bin/rails dev:semear` cria os grupos da rede e o Papel, com alguns materiais cada, sem saldo nem preço; faz um backup antes, **só acrescenta** (o que existe não muda) e só roda em desenvolvimento. O `db/seeds.rb` continua vazio: nenhuma instância nasce com eles.
+
 ## Fase 3 — Operação na nuvem (plano hospedado)
 
 Cada cliente hospedado roda seu próprio Neajud Server; o servidor local (Fase 8) vem depois e roda o mesmo código. Nada de sistema multiempresa com `company_id` nas tabelas.
