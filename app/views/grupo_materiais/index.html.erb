@@ -1,0 +1,13 @@
+<div class="grupos-pagina">
+  <div>
+    <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › Grupos</p>
+    <h2>Grupos de material</h2>
+  </div>
+  <div class="grupos-layout">
+    <%= render "lista", grupos: @grupos, atual: nil %>
+    <p class="grupos-vazio">
+      Cada grupo é uma família: diz se vai na face (superfície), se dubla outro (base), se pode ser estampado e o que os materiais dele pedem.
+      <% if pode?(:estoque, :editar) %>Escolha um grupo para editar.<% end %>
+    </p>
+  </div>
+</div>

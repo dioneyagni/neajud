@@ -15,10 +15,12 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       "molde" => [ :molde, ->(r) { "/moldes/#{r}" } ],
       "pedido's Corte page" => [ :pedido, ->(r) { "/pedidos/#{r}/corte" } ],
       "pedido's Impressão page" => [ :pedido, ->(r) { "/pedidos/#{r}/impressao" } ],
-      "pedido's Estamparia page" => [ :pedido, ->(r) { "/pedidos/#{r}/etapas/estamparia" } ]
+      "pedido's Estamparia page" => [ :pedido, ->(r) { "/pedidos/#{r}/etapas/estamparia" } ],
+      # Dublagem 1/5.
+      "material group (edit)" => [ -> { GrupoMaterial.create!(nome: "Espuma") }, ->(r) { "/grupos-de-material/#{r}/edit" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
-        registro = create(factory)
+        registro = factory.respond_to?(:call) ? factory.call : create(factory)
         get caminho.call(registro.uuid)
         expect(response).to have_http_status(:ok)
         get caminho.call(registro.id)

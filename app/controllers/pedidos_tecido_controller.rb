@@ -18,7 +18,7 @@ class PedidosTecidoController < ApplicationController
     item = @pedido.itens_pedido.por_uuid!(params[:item_uuid])
     return redirect_to resumo_pedido_path(@pedido), alert: "The width is the team's to set" if cliente_final? && params.key?(:largura_mm)
 
-    item.assign_attributes(campos_do_item)
+    item.assign_attributes(campos_do_item(item))
     return redirect_to resumo_pedido_path(@pedido), notice: "#{item.arte.titulo}: updated." if item.save
 
     redirect_to resumo_pedido_path(@pedido), alert: "#{item.arte.titulo}: #{item.errors.full_messages.to_sentence}"
@@ -30,15 +30,21 @@ class PedidosTecidoController < ApplicationController
 
   # Only the fields sent: a blank material unlinks it, blank meters leave
   # the item at 0 m (a pendência), a blank width follows the material's.
-  def campos_do_item
+  def campos_do_item(item)
     campos = {}
     campos[:metros] = decimal_digitado(params[:metros]) if params.key?(:metros)
     campos[:largura_mm] = params[:largura_mm].presence if params.key?(:largura_mm)
-    campos[:materia_prima] = params[:materia_prima_uuid].presence && tecidos.por_uuid!(params[:materia_prima_uuid]) if params.key?(:materia_prima_uuid)
+    campos[:materia_prima] = material_do_item(item) if params.key?(:materia_prima_uuid)
     campos
   end
 
-  def tecidos
-    visiveis(MateriaPrima).where(tipo: "tecido")
+  # Dublagem 1/5: what prints; the item's own material stays allowed even if
+  # its group stopped printing, since the form sends it back with the meters.
+  def material_do_item(item)
+    uuid = params[:materia_prima_uuid].presence
+    return nil unless uuid
+    return item.materia_prima if item.materia_prima&.uuid == uuid
+
+    visiveis(MateriaPrima).estampaveis.por_uuid!(uuid)
   end
 end

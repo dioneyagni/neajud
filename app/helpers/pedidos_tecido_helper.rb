@@ -20,6 +20,16 @@ module PedidosTecidoHelper
     "Mais larga que o papel (#{largura_em_metros(papel)}): confira se há papel para ela"
   end
 
+  # A fabric whose group prints with ressalvas (Dublagem 1/5): its text as a
+  # warning, never a block; nil otherwise.
+  # Usage: aviso_de_ressalva(item) # => "TNT estampa com ressalvas: a cor fica mais clara"
+  def aviso_de_ressalva(item)
+    grupo = item.materia_prima&.grupo_material
+    return unless grupo&.com_ressalvas?
+
+    "#{grupo.nome} estampa com ressalvas: #{grupo.ressalva}"
+  end
+
   # The fabric's balance of the pedido's owner: the client's own material
   # here, or the empresa's — never shown to a cliente final, who sees only
   # his own (Visibilidade). nil when unknown.

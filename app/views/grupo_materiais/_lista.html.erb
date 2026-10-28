@@ -1,0 +1,20 @@
+<%# The groups with their roles and printing (Dublagem 1/5); the current one
+    marked. grupos and atual come from the page. %>
+<nav class="grupos-lista" aria-label="Grupos">
+  <% grupos.each do |grupo| %>
+    <% conteudo = capture do %>
+      <strong><%= grupo.nome %></strong>
+      <span class="grupos-selos">
+        <% if grupo.superficie %><span class="grupo-selo grupo-selo--superficie">Superfície</span><% end %>
+        <% if grupo.base %><span class="grupo-selo grupo-selo--base">Base</span><% end %>
+        <span class="grupo-selo grupo-selo--<%= grupo.estampavel %>"><%= GrupoMaterial::ROTULOS_DO_ESTAMPAVEL[grupo.estampavel] %></span>
+      </span>
+    <% end %>
+    <% if pode?(:estoque, :editar) %>
+      <%= link_to conteudo, edit_grupo_material_path(grupo), class: "grupos-item", data: { grupo: grupo.nome }, "aria-current": ("page" if grupo == atual) %>
+    <% else %>
+      <div class="grupos-item" data-grupo="<%= grupo.nome %>"><%= conteudo %></div>
+    <% end %>
+  <% end %>
+  <% if grupos.empty? %><p class="gallery-empty">Nenhum grupo ainda: crie no lançamento de estoque.</p><% end %>
+</nav>

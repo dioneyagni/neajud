@@ -5,7 +5,7 @@ Stock in meters, owners, the default paper (Etapa 2.3). Moved out of `AGENTS.md`
 ## Stock and materials (Etapa 2.3)
 
 Decided 09/10/2026, kept by hand for now: stock in **linear meters**
-(`metros` helper). `MateriaPrima#tipo` is tecido, papel or filme, with
+(`metros` helper). `MateriaPrima#tipo` is tecido, papel or filme (the dublagem's ligante), with
 `preco_metro` (the sale price; a movement's `valor` is the cost, per meter).
 A movement without client is the **empresa's own stock** — the form marks
 it ("Owner: Empresa", `MovimentoEstoque#da_empresa`), so a forgotten client
@@ -15,6 +15,44 @@ there, `PATCH /materiais/:uuid`). The default paper (`Empresa#papel_padrao`,
 a papel) gives `Empresa#largura_papel_efetiva_mm` for the artes' meters per
 piece, else the typed `largura_papel_mm`. The dublagem and the sale of
 fabric come later (docs/plano.md, Etapa 2.3).
+
+## The groups as families (Dublagem 1/5)
+
+Decided 27/10/2026 (docs/plano.md, Etapa 2.9): `GrupoMaterial` acts as a
+family, after the PIM pattern of families with required attributes:
+
+- **Roles:** `superficie` (goes on the face) and `base` (dubs another), both
+  allowed (TNT). **Printing:** `estampavel` sim / ressalvas / nao, the
+  ressalva's text required with "ressalvas" (`ressalva`).
+- **Attributes asked:** `atributos`, `{ name => required? }` from the fixed
+  list `GrupoMaterial::ATRIBUTOS` (gramatura, densidade, espessura_mm, micras,
+  fornecedor; largura always). New and pre-1/5 groups ask a required gramatura,
+  as before. Set on the group's page (`GrupoMateriaisController`,
+  `/grupos-de-material`, estoque: ver / editar), linked from Materiais as
+  "Grupos"; groups are still created in the stock entry's "+ Register new".
+- **The material** (`MateriaPrima`) has `densidade`, `espessura_mm`, `micras`
+  and `fornecedor`; all of them and the gramatura are in the duplicate rule
+  (Espuma 3 mm and 5 mm are two materials). A group that doesn't weigh its
+  materials leaves `gramatura` as "" (the column is not null). A required
+  attribute is checked **on create only**: a requirement added later marks the
+  materials already there (`atributos_faltando`, "falta …" on Materiais) and
+  never refuses their edits. `nome_completo` adds densidade, espessura and
+  micras after the group and the fornecedor at the end, only when present, so
+  the pre-1/5 names didn't change.
+- **The stock entry** (`MovimentoCreatable#atributos_do_material`) takes only
+  what the group asks — a field it doesn't ask is dropped, so the same
+  material is found again — and the form shows the group's fields
+  (`/materiais/grupos` sends `atributos`; `atributos-do-grupo` Stimulus
+  controller, the required ones marked with `*`).
+- **The tecido pedido prints only on what prints:** `MateriaPrima.estampaveis`
+  (tecido of a group that isn't "nao") in the item's select, the controllers
+  that set it and the card modal's search (`/materiais/search?estampavel=1`);
+  an item keeps its own material if its group stopped printing. A group with
+  ressalvas shows its text on the item (`aviso_de_ressalva`), never a block.
+- The type `filme` is labeled "Ligante (dublagem)"; filme, filme PU and filme
+  TPU are groups of it, in micras. The cola waits for Dublagem 5/5 (the stock
+  only knows meters).
+- E2E: `e2e/grupos-de-material.spec.js`.
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 

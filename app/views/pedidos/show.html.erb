@@ -73,9 +73,10 @@
         <% end %>
       <% elsif @pedido.tecido? %>
         <%# Etapa 2.7a: an arte on a fabric per item, in meters. %>
-        <% tecidos = visiveis(MateriaPrima).where(tipo: "tecido").includes(:grupo_material, :cor_material).order(:id).to_a %>
+        <%# Dublagem 1/5: only what prints (a group "não estampa" never shows). %>
+        <% tecidos = visiveis(MateriaPrima).estampaveis.includes(:grupo_material, :cor_material).order(:id).to_a %>
         <% saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque)) %>
-        <% @pedido.itens_pedido.includes(:arte, :materia_prima, arquivo: :client).order(:id).each do |item| %>
+        <% @pedido.itens_pedido.includes(:arte, materia_prima: :grupo_material, arquivo: :client).order(:id).each do |item| %>
           <%= render "item_tecido", item: item, pedido: @pedido, tecidos: tecidos, saldos: saldos, valores: valores_tecido&.do_item(item) %>
         <% end %>
       <% else %>

@@ -1,0 +1,182 @@
+/* The material groups as families (Dublagem 1/5, 27/10/2026): the list with
+   each group's selos beside its form, in the dublagem canvas's layout; one
+   column on a phone. Also the "falta …" mark on the Materiais page. */
+
+.grupos-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.grupos-pagina h2 {
+  margin: 0.25rem 0 0;
+}
+
+.grupos-trilha {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5f5e5a;
+}
+
+.grupos-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.grupos-lista {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.75rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.grupos-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  color: #141414;
+  text-decoration: none;
+}
+
+.grupos-item:hover {
+  text-decoration: none;
+  background: #f7f5f0;
+}
+
+.grupos-item[aria-current="page"] {
+  background: #f1efe8;
+}
+
+.grupos-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.grupo-selo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 0.55rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 11px;
+  font-size: 0.75rem;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.grupo-selo--superficie { background: #e6eef8; border-color: #b9cde6; color: #1d3f66; }
+.grupo-selo--base { background: #efe9f6; border-color: #cdbfe0; color: #4a2d73; }
+.grupo-selo--ressalvas { background: #fbf1e0; border-color: #ecd3a6; color: #7a4500; }
+.grupo-selo--nao { background: #f1f0ec; color: #5f5e5a; }
+
+.grupos-vazio,
+.grupo-form {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+
+.grupos-vazio {
+  margin: 0;
+  color: #5f5e5a;
+}
+
+.grupo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.grupo-form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0 0 1rem;
+  border: 0;
+  border-bottom: 1px solid #efede7;
+}
+
+.grupo-form legend {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.grupo-form label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+}
+
+.grupo-form small,
+.grupo-nota {
+  color: #5f5e5a;
+  font-size: 0.8rem;
+}
+
+.grupo-ressalva {
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.grupo-ressalva input {
+  flex: 1 1 260px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 0.6rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.grupo-atributos {
+  width: 100%;
+  max-width: 480px;
+  border-collapse: collapse;
+}
+
+.grupo-atributos th,
+.grupo-atributos td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #efede7;
+  text-align: left;
+}
+
+.grupo-atributos th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5f5e5a;
+}
+
+.grupo-nota {
+  width: 100%;
+  margin: 0;
+}
+
+.grupo-acoes {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.material-faltando {
+  display: block;
+  color: #7a4500;
+}

@@ -38,4 +38,12 @@ RSpec.describe PedidosTecidoHelper, type: :helper do
     expect(helper.saldo_do_tecido(pedido, tecido, SaldosDeEstoque.call)).to be_nil
     expect(helper.saldo_do_tecido(build(:pedido, tipo: "tecido"), tecido, SaldosDeEstoque.call)).to be_nil
   end
+
+  # Dublagem 1/5: a group that prints with ressalvas warns, never blocks.
+  it "warns of a fabric whose group prints with ressalvas" do
+    item = build(:item_pedido, materia_prima: tecido)
+    expect(helper.aviso_de_ressalva(item)).to be_nil
+    tecido.grupo_material.update!(estampavel: "ressalvas", ressalva: "a cor fica mais clara")
+    expect(helper.aviso_de_ressalva(item)).to eq("Oxford estampa com ressalvas: a cor fica mais clara")
+  end
 end

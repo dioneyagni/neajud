@@ -156,6 +156,9 @@ Rails.application.routes.draw do
     end
   end
 
+  # Dublagem 1/5: each group as a family — roles, printing, attributes asked.
+  resources :grupo_materiais, path: "grupos-de-material", only: %i[index edit update]
+
   resources :movimentos, only: %i[index new create]
 
   # Etapa 2.5b: every cor lisa — the chart and the table.
