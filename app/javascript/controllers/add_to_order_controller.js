@@ -75,7 +75,8 @@ export default class extends Controller {
     let registerUrl = "/materiais/new"
     // Any fabric: whose it is (the client's or the empresa's) is the pedido's.
     if (this._tecido()) {
-      searchUrl += "?tipo=tecido"
+      // Dublagem 1/5: only a material whose group prints.
+      searchUrl += "?tipo=tecido&estampavel=1"
     } else if (this.arteClientUuidValue) {
       const qs = `client_uuid=${encodeURIComponent(this.arteClientUuidValue)}`
       searchUrl += `?${qs}`

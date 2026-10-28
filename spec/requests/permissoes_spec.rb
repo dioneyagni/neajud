@@ -64,6 +64,10 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list materials", "estoque", 1, -> { get materiais_path } ],
     [ "open the new movement form", "estoque", 2, -> { get new_movimento_path } ],
     [ "set a material's type and price", "estoque", 2, -> { patch material_path(MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "1g")), params: { materia_prima: { preco_metro: "1" } } } ],
+    # Dublagem 1/5: the groups as families.
+    [ "list the material groups", "estoque", 1, -> { get grupo_materiais_path } ],
+    [ "open a material group's form", "estoque", 2, -> { get edit_grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")) } ],
+    [ "set a material group's roles and attributes", "estoque", 2, -> { patch grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")), params: { grupo_material: { base: "1" } } } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],
     [ "restore from the trash", "lixeira", 2, -> { post restaurar_lixeira_path(tipo: "pecas", id: peca.tap { |p| p.excluir!(changed_by: "x") }.uuid) } ]
   ].freeze

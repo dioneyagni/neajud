@@ -1,0 +1,52 @@
+<%# One group as a family (Dublagem 1/5, decided 27/10/2026): its roles, whether
+    it prints (with the ressalva's warning text) and which attributes its
+    materials ask for — largura always; a required one is refused when
+    missing on a new material, and marks the ones already there. %>
+<div class="grupos-pagina">
+  <div>
+    <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › <%= link_to "Grupos", grupo_materiais_path %></p>
+    <h2><%= @grupo.nome %></h2>
+  </div>
+  <div class="grupos-layout">
+    <%= render "lista", grupos: @grupos, atual: @grupo %>
+
+    <%= form_with model: @grupo, url: grupo_material_path(@grupo), method: :patch, class: "grupo-form" do |f| %>
+      <fieldset>
+        <legend>Papéis</legend>
+        <label><%= f.check_box :superficie %> Superfície <small>vai na face</small></label>
+        <label><%= f.check_box :base %> Base <small>dubla outro material</small></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pode ser estampado?</legend>
+        <% GrupoMaterial::ESTAMPAVEL.each do |opcao| %>
+          <label><%= f.radio_button :estampavel, opcao %> <%= { "sim" => "Sim", "ressalvas" => "Com ressalvas", "nao" => "Não" }[opcao] %></label>
+        <% end %>
+        <label class="grupo-ressalva">Ressalva <small>o aviso que o pedido de tecido mostra</small>
+          <%= f.text_field :ressalva, placeholder: "ex.: a cor fica mais clara; teste antes" %>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>O que os materiais do grupo pedem</legend>
+        <table class="grupo-atributos">
+          <thead><tr><th>Atributo</th><th>Pede</th><th>Obrigatório</th></tr></thead>
+          <tbody>
+            <tr><td>Largura</td><td><input type="checkbox" checked disabled aria-label="Largura: pede sempre"></td><td><input type="checkbox" checked disabled aria-label="Largura: sempre obrigatória"></td></tr>
+            <% GrupoMaterial::ATRIBUTOS.each do |atributo| %>
+              <% rotulo = GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[atributo] %>
+              <tr data-atributo="<%= atributo %>">
+                <td><%= rotulo %></td>
+                <td><input type="checkbox" name="pede[]" value="<%= atributo %>" <%= "checked" if @grupo.pede?(atributo) %> aria-label="<%= rotulo %>: pede"></td>
+                <td><input type="checkbox" name="obrigatorios[]" value="<%= atributo %>" <%= "checked" if @grupo.exige?(atributo) %> aria-label="<%= rotulo %>: obrigatório"></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <p class="grupo-nota">Marcar "obrigatório" também pede. Um obrigatório novo não recusa os materiais que já existem: eles ganham o aviso "falta …" na página de Materiais.</p>
+      </fieldset>
+
+      <div class="grupo-acoes"><%= f.submit "Salvar grupo", class: "btn btn-primary" %></div>
+    <% end %>
+  </div>
+</div>

@@ -23,7 +23,7 @@ export default class extends Controller {
       .then(r => r.json())
       .then(items => {
         this.resultsTarget.innerHTML = items.map(item =>
-          `<div class="combobox-option" data-id="${item.id}" data-name="${item.nome}" data-action="click->group-select#select">
+          `<div class="combobox-option" data-id="${item.id}" data-name="${item.nome}" data-atributos='${JSON.stringify(item.atributos)}' data-action="click->group-select#select">
             <strong>${this._highlight(item.nome, q)}</strong>
           </div>`
         ).join("") + `
@@ -38,7 +38,10 @@ export default class extends Controller {
     const opt = e.currentTarget
     this.inputTarget.value = opt.dataset.name
     this.hiddenTarget.value = opt.dataset.id
+    // Dublagem 1/5: atributos-do-grupo shows the fields this group asks for.
+    this.hiddenTarget.dataset.atributos = opt.dataset.atributos
     this.resultsTarget.classList.remove("combobox-results--open")
+    this.dispatch("escolhido")
   }
 
   openNew() {

@@ -99,7 +99,7 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material]
     arquivos:
       - "app/services/{materiais_das_linhas,ajuste_da_baixa}.rb"
       - "app/helpers/ajuste_do_estoque_helper.rb"
@@ -118,6 +118,10 @@ areas:
       - "app/models/{materia_prima,movimento_estoque,grupo_material,cor_material}.rb"
       - "app/services/saldos_de_estoque.rb"
       - "app/javascript/controllers/movimento_dono_controller.js"
+      - "app/controllers/grupo_materiais_controller.rb"
+      - "app/views/grupo_materiais/**/*"
+      - "app/assets/stylesheets/grupos_material.css"
+      - "app/javascript/controllers/{atributos_do_grupo,group_select}_controller.js"
   artes:
     specs: [artes-arquivos, upload-agrupamento, tipo-da-arte, aprovacoes, arquivos-tipo-grade, cor-lisa]
     arquivos:

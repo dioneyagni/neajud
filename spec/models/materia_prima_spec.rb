@@ -10,7 +10,63 @@ RSpec.describe MateriaPrima, type: :model do
 
   describe "validations" do
     it { should validate_presence_of(:largura) }
-    it { should validate_presence_of(:gramatura) }
+
+    # Dublagem 1/5: required by its group (a new group asks it, as before).
+    it "requires the gramatura its group requires" do
+      mp.gramatura = nil
+      expect(mp).not_to be_valid
+      expect(mp.errors.full_messages).to include("Gramatura é obrigatório no grupo Oxford")
+    end
+  end
+
+  # Dublagem 1/5 (decided 27/10/2026): the group says what its materials ask.
+  describe "the group's attributes" do
+    let(:espuma) do
+      GrupoMaterial.create!(nome: "Espuma", superficie: false, base: true, estampavel: "nao").tap do |g|
+        g.update!(atributos: { "densidade" => true, "espessura_mm" => true, "fornecedor" => false })
+      end
+    end
+
+    def nova_espuma(**atributos)
+      described_class.new(grupo_material: espuma, cor_material: cor, largura: "1,40 m", **atributos)
+    end
+
+    it "refuses a new material without a required one, naming it and its group" do
+      material = nova_espuma(espessura_mm: 3)
+      expect(material).not_to be_valid
+      expect(material.errors.full_messages).to eq([ "Densidade é obrigatório no grupo Espuma" ])
+    end
+
+    it "names it with its densidade and espessura, without a gramatura it isn't asked" do
+      material = nova_espuma(densidade: " TC4 ", espessura_mm: 3, fornecedor: "Espumas Sul")
+      material.save!
+      expect([ material.nome_completo, material.gramatura ]).to eq([ "Espuma TC4 3 mm-Azul-1,40 m-Espumas Sul", "" ])
+      expect(nova_espuma(densidade: "TC4", espessura_mm: 3.5).nome_completo).to eq("Espuma TC4 3,5 mm-Azul-1,40 m")
+      expect(described_class.new(grupo_material: grupo, cor_material: cor, largura: "1", gramatura: "1g", micras: 35).nome_completo).to eq("Oxford 35 µm-Azul-1-1g")
+    end
+
+    it "tells two thicknesses apart, never the same one twice" do
+      nova_espuma(densidade: "TC4", espessura_mm: 3).save!
+      expect(nova_espuma(densidade: "TC4", espessura_mm: 5)).to be_valid
+      expect(nova_espuma(densidade: "TC4", espessura_mm: 3)).not_to be_valid
+    end
+
+    it "marks, never refuses, a material registered before its group required more" do
+      material = nova_espuma(densidade: "TC4", espessura_mm: 3).tap(&:save!)
+      espuma.update!(atributos: espuma.atributos.merge("fornecedor" => true))
+      expect(material.reload.atributos_faltando).to eq([ "fornecedor" ])
+      expect(material.update(preco_metro: 18)).to be(true)
+    end
+  end
+
+  describe ".estampaveis" do
+    it "is the tecidos whose group prints" do
+      mp.save!
+      nao = GrupoMaterial.create!(nome: "Espuma", estampavel: "nao")
+      espuma = described_class.create!(grupo_material: nao, cor_material: cor, largura: "1", gramatura: "1g")
+      papel = described_class.create!(grupo_material: grupo, cor_material: cor, largura: "2", gramatura: "1g", tipo: "papel")
+      expect(described_class.estampaveis.where(id: [ mp.id, espuma.id, papel.id ])).to eq([ mp ])
+    end
   end
 
   describe "associations" do

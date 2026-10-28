@@ -34,7 +34,8 @@ class MateriaisController < ApplicationController
 
   def grupos
     grupos = params[:q].present? ? visiveis(GrupoMaterial).search(params[:q]) : visiveis(GrupoMaterial).order(:nome)
-    render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome } }
+    # Dublagem 1/5: the stock entry shows the fields the group asks for.
+    render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome, atributos: g.atributos } }
   end
 
   def create_grupo
@@ -59,6 +60,8 @@ class MateriaisController < ApplicationController
     end
     # Etapa 2.7a: a tecido item is printed on a fabric.
     materiais = materiais.where(tipo: params[:tipo]) if MateriaPrima::TIPOS.include?(params[:tipo])
+    # Dublagem 1/5: a corrida or cor lisa's item, only what prints.
+    materiais = materiais.estampaveis if params[:estampavel].present?
 
     if params[:q].present?
       q = "%#{params[:q].to_s.gsub(/[%_]/, '\\\\\0')}%"

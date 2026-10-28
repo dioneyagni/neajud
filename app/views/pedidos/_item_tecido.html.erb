@@ -8,6 +8,9 @@
 <% arquivo = item.arquivo %>
 <% editavel = pedido_editavel?(pedido) %>
 <% aviso = aviso_de_largura(item) %>
+<% ressalva = aviso_de_ressalva(item) %>
+<%# Dublagem 1/5: the item's own material stays listed even if its group stopped printing. %>
+<% tecidos = tecidos + [ item.materia_prima ] if item.materia_prima && !tecidos.include?(item.materia_prima) %>
 <article class="pedido-item pedido-item-tecido" data-item-uuid="<%= item.uuid %>">
   <div class="pedido-item-header">
     <% if arquivo.preview_file.present? && !(arquivo.pending? || arquivo.processing?) %>
@@ -58,6 +61,7 @@
     </dl>
   <% end %>
   <% if aviso %><p class="pedido-tecido-aviso" role="note"><%= aviso %></p><% end %>
+  <% if ressalva %><p class="pedido-tecido-aviso pedido-tecido-ressalva" role="note"><%= ressalva %></p><% end %>
   <% if item.abaixo_do_minimo? %><%= render "pedidos/minimo_do_item_tecido", item: item, pedido: pedido %><% end %>
   <% if valores %><%= render "pedidos/precos_do_item_tecido", item: item, pedido: pedido, valores: valores %><% end %>
 

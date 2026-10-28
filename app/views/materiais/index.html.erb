@@ -4,8 +4,9 @@
   <span class="field-display" style="font-size:0.9rem; color:var(--text-muted);">
     <%= @materiais.count %> registered materials
   </span>
+  <%= link_to "Grupos", grupo_materiais_path, class: "btn btn-secondary materiais-grupos-link", style: "margin-left:auto; margin-right:0.5rem;" %>
   <% if pode?(:estoque, :editar) %>
-    <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary", style: "margin-left:auto;" %>
+    <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary" %>
   <% end %>
 </div>
 
@@ -30,6 +31,8 @@
             <%= mp.nome_completo %>
             <%# Etapa 2.3d2: the pedidos whose out passed what came in. %>
             <% if (aguardando = aguardando_do_material(mp)) %><small class="material-aguardando" data-aguardando><%= aguardando %></small><% end %>
+            <%# Dublagem 1/5: a requirement its group gained after it was registered. %>
+            <% if (faltando = mp.atributos_faltando).any? %><small class="material-faltando" data-faltando><%= "falta #{faltando.map { |a| GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[a].downcase }.to_sentence}" %></small><% end %>
           </td>
           <td>
             <% if pode?(:estoque, :editar) %>

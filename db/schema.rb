@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -386,6 +386,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_210000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
+    t.boolean "superficie", default: true, null: false
+    t.boolean "base", default: false, null: false
+    t.string "estampavel", default: "sim", null: false
+    t.text "ressalva"
+    t.json "atributos", default: {"gramatura" => true}, null: false
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
     t.index ["uuid"], name: "index_grupo_materiais_on_uuid", unique: true
   end
@@ -481,8 +486,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_210000) do
     t.string "uuid", null: false
     t.string "tipo", default: "tecido", null: false
     t.decimal "preco_metro", precision: 10, scale: 2
+    t.string "densidade"
+    t.decimal "espessura_mm", precision: 6, scale: 2
+    t.integer "micras"
+    t.string "fornecedor"
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
-    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura"], name: "idx_materia_primas_composite", unique: true
+    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura", "densidade", "espessura_mm", "micras", "fornecedor"], name: "idx_materia_primas_composite", unique: true
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
     t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end

@@ -4,7 +4,9 @@
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<div data-controller="client-select group-select movimento-dono" data-client-select-search-url-value="<%= search_clients_path %>">
+<%# Dublagem 1/5: the fields after the width are the chosen group's (atributos-do-grupo). %>
+<div data-controller="client-select group-select movimento-dono atributos-do-grupo" data-client-select-search-url-value="<%= search_clients_path %>"
+     data-action="group-select:escolhido->atributos-do-grupo#mostrar">
   <div class="stamp-detail-section" style="margin-bottom: 1rem;">
     <%= form_with model: @movimento, url: form_url, html: { novalidate: true }, class: "client-form", style: "display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;" do |f| %>
       <%# Etapa 2.3: the empresa's own stock, or a client's material kept here. %>
@@ -55,7 +57,8 @@
                  data-action="focus->group-select#search input->group-select#search blur->group-select#blur">
           <div class="combobox-results" data-group-select-target="results"></div>
         </div>
-        <input type="hidden" name="movimento_estoque[grupo_material_uuid]" data-group-select-target="hidden" value="<%= @selected_grupo_uuid %>">
+        <input type="hidden" name="movimento_estoque[grupo_material_uuid]" data-group-select-target="hidden" data-atributos-do-grupo-target="grupo"
+               data-atributos="<%= @selected_grupo_atributos&.to_json %>" value="<%= @selected_grupo_uuid %>">
       </div>
 
       <div class="client-field" data-controller="color-picker">
@@ -110,8 +113,8 @@
         </div>
       </div>
 
-      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value="g">
-        <%= f.label :gramatura, "Weight" %>
+      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value="g" data-atributos-do-grupo-target="campo" data-atributo="gramatura">
+        <%= f.label :gramatura do %>Weight <span class="atributo-obrigatorio" title="obrigatório">*</span><% end %>
         <div class="range-slider-wrapper">
           <input type="range"
                  min="20" max="300" step="10" value="<%= @gramatura_val || '100' %>"
@@ -122,6 +125,15 @@
           <input type="text" class="range-slider-editor range-slider-editor--hidden" data-range-slider-target="editor" data-action="blur->range-slider#commit keydown->range-slider#commit">
         </div>
       </div>
+
+      <% { "densidade" => [ "ex.: TC4, D28", "text" ], "espessura_mm" => [ "ex.: 3", "decimal" ],
+           "micras" => [ "ex.: 35", "numeric" ], "fornecedor" => [ "opcional", "text" ] }.each do |atributo, (exemplo, modo)| %>
+        <div class="client-field" data-atributos-do-grupo-target="campo" data-atributo="<%= atributo %>" hidden>
+          <label for="movimento_estoque_<%= atributo %>"><%= GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[atributo] %> <span class="atributo-obrigatorio" title="obrigatório" hidden>*</span></label>
+          <input type="text" name="movimento_estoque[<%= atributo %>]" id="movimento_estoque_<%= atributo %>" value="<%= @atributos_val&.dig(atributo) %>"
+                 placeholder="<%= exemplo %>" inputmode="<%= modo %>" disabled>
+        </div>
+      <% end %>
 
       <div class="client-field">
         <%= f.label :quantidade, "Quantity (meters)" %>
