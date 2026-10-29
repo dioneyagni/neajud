@@ -16,6 +16,15 @@ a papel) gives `Empresa#largura_papel_efetiva_mm` for the artes' meters per
 piece, else the typed `largura_papel_mm`. The dublagem and the sale of
 fabric come later (docs/plano.md, Etapa 2.3).
 
+**The insumos say the stage that uses them up** (decided 28/10/2026): papel
+"Papel (impressão)", filme_dtf "Filme DTF (impressão)", **kraft** "Kraft
+(calandra)" and **plastico_succao** "Plástico de sucção (corte)". A fabric is
+only chosen among `MateriaPrima.tecidos`: the calçado item's material (the
+`?tipo=tecido` search and `PedidosController#material_do_item`), the cor
+lisa's (`TipoDaArte#material_e_tecido`; one set before keeps showing) and the
+tecido item's (`estampaveis`). Taking kraft and plástico out of the stock at
+the Calandra and Corte baixas is a later decision.
+
 ## The groups as families (Dublagem 1/5)
 
 Decided 27/10/2026 (docs/plano.md, Etapa 2.9): `GrupoMaterial` acts as a

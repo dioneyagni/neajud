@@ -33,6 +33,21 @@ RSpec.describe "Cores lisas", type: :request do
     expect(laranja.arte.reload).to have_attributes(materia_prima: material, codigo: "Laranja 1")
   end
 
+  # 28/10/2026: the cor lisa prints on a fabric, never on an insumo.
+  it "refuses an insumo as the material, and leaves it out of the list" do
+    laranja = cor("#EF4123")
+    kraft = MateriaPrima.create!(grupo_material: material.grupo_material, cor_material: material.cor_material, largura: "1.60 m", gramatura: "80g", tipo: "kraft")
+
+    patch material_arquivo_tipo_da_arte_path(laranja), params: { materia_prima_uuid: kraft.uuid }
+    expect(flash[:alert]).to include("is a kraft; a cor lisa's material is a tecido")
+    expect(laranja.arte.reload.materia_prima).to be_nil
+
+    get arquivo_path(laranja)
+    opcoes = Nokogiri::HTML(response.body).css("#cor-lisa-material-select option").map(&:text)
+    expect(opcoes).to include(material.nome_completo)
+    expect(opcoes).not_to include(kraft.nome_completo)
+  end
+
   it "lists every color in the chart and the table, by family and material" do
     cor("#EF4123").arte.update!(materia_prima: material)
     cor("#0071BB")

@@ -462,6 +462,8 @@ O que o chão de fábrica precisa desde o primeiro cliente, antes das saídas de
 
   **Seed de desenvolvimento** (decidido em 28/10/2026, antes da 2/5, porque a rede cita grupos que o banco dev não tinha): `bin/rails dev:semear` cria os grupos da rede e o Papel, com alguns materiais cada, sem saldo nem preço; faz um backup antes, **só acrescenta** (o que existe não muda) e só roda em desenvolvimento. O `db/seeds.rb` continua vazio: nenhuma instância nasce com eles.
 
+  **Insumos** (decidido em 28/10/2026, antes da 2/5): o tipo do material diz a etapa que o gasta — Papel (impressão), Filme DTF (impressão), **Kraft (calandra)** e **Plástico de sucção (corte)**; nenhum insumo aparece onde se escolhe um tecido (o item do calçado, a cor lisa, o item de tecido, e depois a construção). O seed cria os dois grupos novos com um material cada. Descontar o kraft e o plástico nas baixas da Calandra e do Corte fica para uma decisão própria.
+
 ## Fase 3 — Operação na nuvem (plano hospedado)
 
 Cada cliente hospedado roda seu próprio Neajud Server; o servidor local (Fase 8) vem depois e roda o mesmo código. Nada de sistema multiempresa com `company_id` nas tabelas.

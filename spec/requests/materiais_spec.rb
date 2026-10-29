@@ -249,7 +249,7 @@ RSpec.describe "Materiais", type: :request do
       patch material_path(material), params: { materia_prima: { tipo: "papel", preco_metro: "12,50" } }
       expect([ material.reload.tipo, material.preco_metro.to_f, flash[:notice] ]).to eq([ "papel", 12.5, "Oxford-Azul-1.40-100g saved." ])
       patch material_path(material), params: { materia_prima: { tipo: "couro" } }
-      expect(flash[:alert]).to eq("Oxford-Azul-1.40-100g: Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf")
+      expect(flash[:alert]).to eq("Oxford-Azul-1.40-100g: Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf, kraft, plastico_succao")
     end
   end
 end

@@ -20,6 +20,8 @@ RSpec.describe SemeadorDeDesenvolvimento do
       .to contain_exactly("Espuma TC4 3 mm-Branco-1.40 m", "Espuma TC4 5 mm-Branco-1.40 m")
     expect(MateriaPrima.find_by!(micras: 35).tipo).to eq("filme")
     expect(MateriaPrima.joins(:grupo_material).find_by!(grupo_materiais: { nome: "Papel" }).tipo).to eq("papel")
+    expect(MateriaPrima.joins(:grupo_material).where(grupo_materiais: { nome: [ "Kraft", "Plástico de sucção" ] }).pluck(:tipo))
+      .to contain_exactly("kraft", "plastico_succao")
     expect(MovimentoEstoque.count).to eq(0)
   end
 
