@@ -321,10 +321,11 @@ class PedidosController < ApplicationController
 
   # A DTF is printed on the film, never on a material (Etapa 2.6b1); a
   # tecido on a fabric that prints (Dublagem 1/5) — the one chosen, else the
-  # cor lisa's (Etapa 2.7a).
+  # cor lisa's (Etapa 2.7a); a calçado's parts are cut from a fabric, never
+  # an insumo (28/10/2026).
   def material_do_item(arquivo, tipo)
     return nil if tipo == "dtf"
-    return (tipo == "tecido" ? visiveis(MateriaPrima).estampaveis : visiveis(MateriaPrima)).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
+    return (tipo == "tecido" ? visiveis(MateriaPrima).estampaveis : visiveis(MateriaPrima).tecidos).por_uuid!(params[:materia_prima_uuid]) if params[:materia_prima_uuid].present?
 
     arquivo.arte.materia_prima if tipo == "tecido"
   end

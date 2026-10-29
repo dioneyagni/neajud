@@ -33,6 +33,7 @@ module TipoDaArte
     after_update_commit -> { ArquivoCompactadoTecido.preparar_da_arte!(self) }, if: -> { saved_change_to_tipo? && ArquivoCompactadoTecido::TIPOS.include?(tipo) }
     belongs_to :materia_prima, optional: true
     atribui_por_uuid :materia_prima
+    validate :material_e_tecido, if: :materia_prima_id_changed?
     scope :da_colecao_geral, -> { where(no_catalogo: true) }
   end
 
@@ -130,6 +131,14 @@ module TipoDaArte
   end
 
   private
+
+  # A cor lisa's material is the fabric it prints on, never an insumo or a
+  # ligante (28/10/2026).
+  def material_e_tecido
+    return if materia_prima.nil? || materia_prima.tipo == "tecido"
+
+    errors.add(:materia_prima, "#{materia_prima.nome_completo} is a #{materia_prima.tipo}; a cor lisa's material is a tecido")
+  end
 
   # The cor lisa's number comes with its family, at the first measure (batizar!).
   def numerar

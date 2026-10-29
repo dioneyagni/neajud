@@ -7,8 +7,12 @@
 # fornecedor — and which are required; a requirement added later doesn't
 # refuse the materials already there, it marks them (atributos_faltando).
 class MateriaPrima < ApplicationRecord
-  TIPOS = %w[tecido papel filme filme_dtf].freeze
-  ROTULOS_DOS_TIPOS = { "tecido" => "Tecido", "papel" => "Papel", "filme" => "Ligante (dublagem)", "filme_dtf" => "Filme DTF" }.freeze
+  # The insumos say the stage that uses them up (decided 28/10/2026): the
+  # papel and the filme DTF at Impressão, the kraft at Calandra, the plástico
+  # de sucção on the cutting table. None is offered where a fabric is chosen.
+  TIPOS = %w[tecido papel filme filme_dtf kraft plastico_succao].freeze
+  ROTULOS_DOS_TIPOS = { "tecido" => "Tecido", "papel" => "Papel (impressão)", "filme" => "Ligante (dublagem)", "filme_dtf" => "Filme DTF (impressão)",
+                        "kraft" => "Kraft (calandra)", "plastico_succao" => "Plástico de sucção (corte)" }.freeze
 
   include GeraUuid
   belongs_to :grupo_material
@@ -30,11 +34,13 @@ class MateriaPrima < ApplicationRecord
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a material type; expected one of #{TIPOS.join(", ")}" }
   validates :preco_metro, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
+  # What a fabric is chosen from: never a ligante or an insumo.
+  scope :tecidos, -> { where(tipo: "tecido") }
   scope :papeis, -> { where(tipo: "papel") }
   scope :filmes_dtf, -> { where(tipo: "filme_dtf") }
   # What a tecido pedido prints on: a tecido whose group prints (sim or with
   # ressalvas), never one that doesn't (Dublagem 1/5).
-  scope :estampaveis, -> { where(tipo: "tecido").where(grupo_material: GrupoMaterial.estampaveis) }
+  scope :estampaveis, -> { tecidos.where(grupo_material: GrupoMaterial.estampaveis) }
 
   # Etapa 2.2 (1/3): a new roll width gets every size's meters per piece.
   after_create_commit :calcular_metros_por_peca

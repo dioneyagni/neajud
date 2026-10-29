@@ -170,6 +170,17 @@ RSpec.describe "Pedidos", type: :request do
       expect(item.materia_prima_id).to eq(materia_prima.id)
     end
 
+    # 28/10/2026: a calçado's parts are cut from a fabric, never an insumo.
+    it "refuses an insumo as the material" do
+      kraft = MateriaPrima.create!(grupo_material: materia_prima.grupo_material, cor_material: materia_prima.cor_material, largura: "1.60 m", gramatura: "80g", tipo: "kraft")
+
+      post adicionar_item_pedidos_path, params: { arquivo_uuid: arquivo.uuid, materia_prima_uuid: kraft.uuid, grade: { "_total" => "1" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body["error"]).to include("MateriaPrima")
+      expect(ItemPedido.count).to eq(0)
+    end
+
     # Etapa 1.2 (3/3): by individual size, in the molde's stretch of the grade.
     it "includes grade quantities by individual size, and the arte of the file" do
       arte = create(:arquivo, molde: create(:molde, tamanho_inicial: "29", tamanho_final: "31"))

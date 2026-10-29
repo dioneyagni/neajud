@@ -69,6 +69,23 @@ RSpec.describe MateriaPrima, type: :model do
     end
   end
 
+  # 28/10/2026: the insumos say the stage that uses them up; a fabric is
+  # never chosen among them.
+  describe "the insumos" do
+    it "takes kraft and plástico de sucção, labeled with their stage" do
+      expect(described_class::ROTULOS_DOS_TIPOS.values_at("kraft", "plastico_succao", "papel"))
+        .to eq([ "Kraft (calandra)", "Plástico de sucção (corte)", "Papel (impressão)" ])
+      mp.tipo = "plastico_succao"
+      expect(mp).to be_valid
+    end
+
+    it "leaves them out of .tecidos and .estampaveis" do
+      mp.save!
+      kraft = described_class.create!(grupo_material: grupo, cor_material: cor, largura: "1.60", gramatura: "80g", tipo: "kraft")
+      expect([ described_class.tecidos, described_class.estampaveis ].map { |escopo| escopo.where(id: [ mp.id, kraft.id ]) }).to eq([ [ mp ], [ mp ] ])
+    end
+  end
+
   describe "associations" do
     it { should belong_to(:grupo_material) }
     it { should belong_to(:cor_material) }
@@ -123,6 +140,6 @@ RSpec.describe MateriaPrima, type: :model do
     mp.tipo = "couro"
     mp.preco_metro = -1
     expect(mp).not_to be_valid
-    expect(mp.errors.full_messages).to contain_exactly("Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf", "Preco metro must be greater than or equal to 0")
+    expect(mp.errors.full_messages).to contain_exactly("Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf, kraft, plastico_succao", "Preco metro must be greater than or equal to 0")
   end
 end

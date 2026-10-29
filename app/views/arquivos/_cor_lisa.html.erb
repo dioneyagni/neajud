@@ -23,7 +23,8 @@
       <%= form_with url: material_arquivo_tipo_da_arte_path(arquivo), method: :patch, class: "cor-lisa-material-form", data: { controller: "auto-submit" } do %>
         <select name="materia_prima_uuid" id="cor-lisa-material-select" aria-label="Material" data-action="change->auto-submit#submit">
           <option value="">—</option>
-          <% visiveis(MateriaPrima).order(:id).each do |material| %>
+          <%# Only fabrics (28/10/2026); one set before keeps showing. %>
+          <% visiveis(MateriaPrima).tecidos.or(visiveis(MateriaPrima).where(id: arte.materia_prima_id)).order(:id).each do |material| %>
             <option value="<%= material.uuid %>" <%= "selected" if arte.materia_prima_id == material.id %>><%= material.nome_completo %></option>
           <% end %>
         </select>

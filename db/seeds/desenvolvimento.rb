@@ -4,8 +4,8 @@
 # `bin/rails dev:semear`; never by db:seed, so no instance starts with them.
 #
 # Groups follow the roles of Dublagem 1/5: a superfície goes on the face, a
-# base dubs another; the ligantes (filme, in micras) and the papel are
-# neither. Materials are created with no stock and no price: entries and
+# base dubs another; the ligantes (filme, in micras) and the insumos
+# (papel, kraft, plástico de sucção; 28/10/2026) are neither. Materials are created with no stock and no price: entries and
 # prices stay the people's.
 module DadosDeDesenvolvimento
   GRUPOS = [
@@ -21,7 +21,9 @@ module DadosDeDesenvolvimento
     { nome: "Filme", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
     { nome: "Filme PU", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
     { nome: "Filme TPU", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
-    { nome: "Papel", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[gramatura] }
+    { nome: "Papel", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[gramatura] },
+    { nome: "Kraft", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[gramatura] },
+    { nome: "Plástico de sucção", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] }
   ].freeze
 
   MATERIAIS = [
@@ -40,6 +42,8 @@ module DadosDeDesenvolvimento
     { grupo: "Filme", cor: "Branco", largura: "1.40 m", micras: 35, tipo: "filme" },
     { grupo: "Filme PU", cor: "Branco", largura: "1.40 m", micras: 100, tipo: "filme" },
     { grupo: "Filme TPU", cor: "Branco", largura: "1.40 m", micras: 100, tipo: "filme" },
-    { grupo: "Papel", cor: "Branco", largura: "1.60 m", gramatura: "90g", tipo: "papel" }
+    { grupo: "Papel", cor: "Branco", largura: "1.60 m", gramatura: "90g", tipo: "papel" },
+    { grupo: "Kraft", cor: "Bege", largura: "1.60 m", gramatura: "80g", tipo: "kraft" },
+    { grupo: "Plástico de sucção", cor: "Branco", largura: "1.80 m", micras: 50, tipo: "plastico_succao" }
   ].freeze
 end

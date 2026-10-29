@@ -77,10 +77,14 @@ export default class extends Controller {
     if (this._tecido()) {
       // Dublagem 1/5: only a material whose group prints.
       searchUrl += "?tipo=tecido&estampavel=1"
-    } else if (this.arteClientUuidValue) {
-      const qs = `client_uuid=${encodeURIComponent(this.arteClientUuidValue)}`
-      searchUrl += `?${qs}`
-      registerUrl += `?${qs}`
+    } else {
+      // A calçado's parts are cut from a fabric, never an insumo (28/10/2026).
+      searchUrl += "?tipo=tecido"
+      if (this.arteClientUuidValue) {
+        const qs = `client_uuid=${encodeURIComponent(this.arteClientUuidValue)}`
+        searchUrl += `&${qs}`
+        registerUrl += `?${qs}`
+      }
     }
     materialField.dataset.comboboxSearchUrlValue = searchUrl
     materialField.dataset.comboboxRegisterUrlValue = registerUrl
