@@ -66,6 +66,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "set a material's type and price", "estoque", 2, -> { patch material_path(MateriaPrima.create!(grupo_material: GrupoMaterial.find_or_create_by!(nome: "Oxford"), cor_material: CorMaterial.find_or_create_by!(nome: "Azul"), largura: "1.40", gramatura: "1g")), params: { materia_prima: { preco_metro: "1" } } } ],
     # Dublagem 1/5: the groups as families.
     [ "list the material groups", "estoque", 1, -> { get grupo_materiais_path } ],
+    # Dublagem 2/5: the network, read only.
+    [ "see the dublagem network", "estoque", 1, -> { get rede_de_dublagens_path } ],
     [ "open a material group's form", "estoque", 2, -> { get edit_grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")) } ],
     [ "set a material group's roles and attributes", "estoque", 2, -> { patch grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")), params: { grupo_material: { base: "1" } } } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],

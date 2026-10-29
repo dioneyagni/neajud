@@ -1,0 +1,38 @@
+<%# The dublagem network (Dublagem 2/5): one table per group, a row per
+    ligação; a situação's column shows its ligantes only where it changes
+    them ("—" keeps the usual ones). %>
+<div class="grupos-pagina rede-pagina">
+  <div>
+    <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › <%= link_to "Grupos", grupo_materiais_path %> › Rede de dublagens</p>
+    <h2>Rede de dublagens</h2>
+  </div>
+
+  <% ligacoes = @avisos.keys %>
+  <p class="rede-contagem">
+    <span data-contagem="ligacoes"><%= pluralize(ligacoes.size, "ligação", plural: "ligações") %></span> ·
+    <span data-contagem="a-confirmar"><%= ligacoes.count(&:a_confirmar?) %> a confirmar</span> ·
+    <span data-contagem="com-aviso"><%= @avisos.values.count(&:any?) %> com aviso</span>
+  </p>
+
+  <% @ligacoes_por_grupo.each do |grupo, ligacoes_do_grupo| %>
+    <section class="rede-grupo" data-grupo="<%= grupo %>">
+      <h3><%= grupo %></h3>
+      <div class="rede-tabela-rolagem">
+        <table class="rede-tabela">
+          <thead>
+            <tr>
+              <th>Com</th><th>Ligantes</th>
+              <% @situacoes.each_value do |rotulo| %><th><%= rotulo %></th><% end %>
+              <th>Estampa</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% ligacoes_do_grupo.each do |ligacao| %>
+              <%= render "ligacao", ligacao: ligacao, avisos: @avisos[ligacao] %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+</div>

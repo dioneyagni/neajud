@@ -3,6 +3,9 @@
     <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › Grupos</p>
     <h2>Grupos de material</h2>
   </div>
+  <% unless cliente_final? %>
+    <p><%= link_to "Rede de dublagens", rede_de_dublagens_path, class: "rede-link" %> <small>quais grupos dublam com quais, e com que ligante</small></p>
+  <% end %>
   <div class="grupos-layout">
     <%= render "lista", grupos: @grupos, atual: nil %>
     <p class="grupos-vazio">

@@ -67,6 +67,29 @@ family, after the PIM pattern of families with required attributes:
   few materials each, with no stock and no price, from `bin/rails dev:semear`
   (`db/seeds/desenvolvimento.rb`, 28/10/2026); it only adds what is missing.
 
+## The dublagem network (Dublagem 2/5)
+
+Decided 29/10/2026 (plano Etapa 2.9, D2/D3/D8). `config/dublagens.yml` says
+which groups dub with which: one ligação per pair of `GrupoMaterial` names,
+**in any order** (Oxford–Lona is also Lona under Oxford), with its usual
+ligantes (a group, with `micras: [25, 35]`, `{ min: 35 }` or any), `dubla:
+antes | depois` da estampa, an optional `lado` (only when the rule changes
+with the upper layer's side) and `situacoes`, whose ligantes **replace** the
+usual ones in that situação (a subset restricts, others change; a situação
+not listed keeps the usual ones). The situações' names are fixed at the top.
+`a_confirmar` marks what was guessed when it was written.
+
+- `RedeDeDublagens` reads it once and raises on a wrong value, naming the
+  ligação and what was expected. A group **not registered is a warning**,
+  never an error (`avisos`: not registered, neither superfície nor base, no
+  base in the pair), so the test database and a new instance still boot.
+- `ligacao(a, b, lado:)`, `ligantes_na(situacao)` and `ligacoes_de(grupo)`
+  are what the construção (3/5) will use.
+- The page **Rede de dublagens** (`/rede-de-dublagens`, linked from Grupos)
+  is read only, estoque: ver and **the team's only** (`exige_equipe`): the
+  ligante is the factory's. A panel to edit it comes after real use.
+- E2E: `e2e/rede-de-dublagens.spec.js`.
+
 ## Where a pedido's materials come from (Etapa 2.3d1)
 
 Decided 19/10/2026:

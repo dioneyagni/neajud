@@ -1,0 +1,79 @@
+# The dublagem network (Dublagem 2/5, decided 27-29/10/2026; plano Etapa
+# 2.9, D2/D3/D8): which groups dub with which, with what ligante, and before
+# or after the estampa. Read by RedeDeDublagens, checked when read: a wrong
+# value raises naming it and what was expected. A panel to edit it comes
+# after real use; until then this file is the rule.
+#
+#   situacoes:   the fixed names a construção's situação takes (D6)
+#   ligacoes:    one per pair of groups (by GrupoMaterial name)
+#     par:       two groups, in any order (Oxford over Lona = Lona under
+#                Oxford); a group not registered is a warning on the page,
+#                never an error, and its ligação doesn't hold until it is
+#     lado:      trama | avesso — the upper layer's side, only when the rule
+#                changes with it; absent, any side
+#     ligantes:  the usual ones — a group (Filme, Filme PU, Cola…), with
+#                micras: [25, 35] (any of these) or { min: 35 }; no micras,
+#                any material of the group
+#     dubla:     antes | depois da estampa (D8): before, the dublado may go
+#                to the stock and gather pedidos; after, it is the pedido's
+#     situacoes: the ligantes in a situação, in place of the usual ones (to
+#                restrict, list some of them; to change, list others); a
+#                situação not listed keeps the usual ones
+#     a_confirmar: the fields guessed when the network was written
+#                (ligantes, dubla, situacoes, lado), marked on the page
+#
+# Oxford–Cetim holds for the Cetim on either side (the rule doesn't change
+# with it), so it has no lado.
+situacoes:
+  vai_frequencia: Vai frequência
+  tecido_molha: Tecido molha
+
+ligacoes:
+  - par: [Oxford, Oxford]
+    ligantes: [{ grupo: Filme, micras: [25, 35] }]
+    dubla: antes
+    situacoes:
+      vai_frequencia: [{ grupo: Filme, micras: [35] }]
+      tecido_molha: [{ grupo: Filme PU }]
+    a_confirmar: [dubla, situacoes]
+
+  - par: [Oxford, Microfibra]
+    ligantes: [{ grupo: Filme, micras: [25, 35] }]
+    dubla: antes
+    situacoes:
+      vai_frequencia: [{ grupo: Filme, micras: [35] }]
+      tecido_molha: [{ grupo: Filme PU }]
+    a_confirmar: [dubla, situacoes]
+
+  - par: [Oxford, Cetim]
+    ligantes: [{ grupo: Filme, micras: [25, 35] }]
+    dubla: antes
+    situacoes:
+      vai_frequencia: [{ grupo: Filme, micras: [35] }]
+      tecido_molha: [{ grupo: Filme PU }]
+    a_confirmar: [dubla, situacoes]
+
+  - par: [Oxford, Lona]
+    ligantes: [{ grupo: Filme, micras: { min: 35 } }]
+    dubla: antes
+    situacoes:
+      tecido_molha: [{ grupo: Filme PU }]
+    a_confirmar: [dubla, situacoes]
+
+  - par: [Oxford, EVA]
+    ligantes: [{ grupo: Filme, micras: [25] }]
+    dubla: antes
+    situacoes:
+      tecido_molha: [{ grupo: Filme PU }]
+    a_confirmar: [dubla, situacoes]
+
+  # The espuma goes on cola, with filme exceptions not told yet.
+  - par: [Oxford, Espuma]
+    ligantes: [{ grupo: Cola }]
+    dubla: depois
+    a_confirmar: [ligantes, dubla]
+
+  - par: [Espuma, Helanca]
+    ligantes: [{ grupo: Cola }]
+    dubla: depois
+    a_confirmar: [ligantes, dubla]
