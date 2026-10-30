@@ -11,6 +11,7 @@ export default class extends Controller {
 
   connect() {
     this.selected = false
+    this.ultimaBusca = 0
   }
 
   search() {
@@ -21,9 +22,14 @@ export default class extends Controller {
     // appending "?q=" made "client_id=3?q=…" and the typed text was lost.
     const url = new URL(this.searchUrlValue, window.location.origin)
     url.searchParams.set("q", q)
+    // Focus searches "" and typing searches the text: when the "" answer came
+    // last it replaced the typed results (CI #177, 29/10/2026). Only the
+    // latest search fills the list.
+    const busca = ++this.ultimaBusca
     fetch(url)
       .then(r => r.json())
       .then(items => {
+        if (busca !== this.ultimaBusca) return
         const extraFieldNames = this.extraFieldsValue ? this.extraFieldsValue.split(",") : []
         this.results.innerHTML = items.map(item => {
           const displayName = item[this.displayFieldValue] || item.nome || item.name || ""
