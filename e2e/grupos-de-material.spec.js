@@ -132,7 +132,16 @@ runSpec("Grupos de material E2E Tests", async ({ page, test }) => {
 
     await cartao.locator(".btn-add-to-order").click();
     const modal = page.locator("dialog.add-to-order-dialog[open]");
-    await modal.locator(".add-to-order-material .combobox-input").fill(String(U));
+    // The focus's empty search answers after the typed one, as in CI #177:
+    // the list must keep the typed results.
+    const vazia = (url) => url.pathname === "/materiais/search" && url.searchParams.get("q") === "";
+    await page.route(vazia, async (rota) => { await new Promise((r) => setTimeout(r, 800)); await rota.continue(); });
+    const [respostaVazia] = await Promise.all([
+      page.waitForResponse((r) => vazia(new URL(r.url()))),
+      modal.locator(".add-to-order-material .combobox-input").fill(String(U)),
+    ]);
+    await respostaVazia.finished();
+    await page.unroute(vazia);
     await modal.locator(".add-to-order-material .combobox-option[data-id]").first().waitFor();
     const oferecidos = await modal.locator(".add-to-order-material .combobox-option[data-id]").evaluateAll((os) => os.map((o) => o.dataset.name));
     // Telinha and Espuma don't print (their groups say "não"): never offered.
