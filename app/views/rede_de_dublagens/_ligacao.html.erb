@@ -1,0 +1,20 @@
+<%# One ligação's row; avisos from RedeDeDublagens.avisos. %>
+<tr class="rede-ligacao" data-par="<%= ligacao.par.join("–") %>">
+  <td>
+    <strong><%= ligacao.par.last %></strong>
+    <% if ligacao.lado %><small>lado <%= ligacao.lado %></small><% end %>
+  </td>
+  <td><%= ligacao.ligantes.map(&:descricao).to_sentence(two_words_connector: " ou ", last_word_connector: " ou ") %></td>
+  <% @situacoes.each_key do |situacao| %>
+    <td data-situacao="<%= situacao %>">
+      <%= ligacao.situacoes.key?(situacao) ? ligacao.situacoes[situacao].map(&:descricao).join(" ou ") : "—" %>
+    </td>
+  <% end %>
+  <td><span class="rede-chip rede-chip--<%= ligacao.dubla %>">dubla <%= ligacao.dubla %></span></td>
+  <td class="rede-marcas">
+    <% if ligacao.a_confirmar? %>
+      <span class="rede-chip rede-chip--confirmar">a confirmar: <%= RedeDeDublagens::ROTULOS_A_CONFIRMAR.values_at(*ligacao.a_confirmar).join(", ") %></span>
+    <% end %>
+    <% avisos.each do |aviso| %><span class="rede-aviso"><%= aviso %></span><% end %>
+  </td>
+</tr>

@@ -1,0 +1,79 @@
+/* The dublagem network (Dublagem 2/5, 29/10/2026): a white card per group,
+   the before/after chips of the dublagem canvas; the table scrolls on its
+   own on a phone. */
+
+.rede-contagem {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5f5e5a;
+}
+
+.rede-grupo {
+  padding: 1rem 1.25rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.rede-grupo h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.rede-tabela-rolagem {
+  overflow-x: auto;
+}
+
+.rede-tabela {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.rede-tabela th,
+.rede-tabela td {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #efede7;
+  text-align: left;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.rede-tabela th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5f5e5a;
+}
+
+.rede-tabela small {
+  display: block;
+  color: #5f5e5a;
+}
+
+.rede-marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.rede-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 0.6rem;
+  border: 1px solid #d3d0c6;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.rede-chip--antes { background: #e6eef8; border-color: #b9cde6; color: #1d3f66; }
+.rede-chip--depois { background: #fbf1e0; border-color: #ecd3a6; color: #7a4500; }
+.rede-chip--confirmar { border-style: dashed; color: #5f5e5a; }
+
+.rede-aviso {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9a3412;
+}

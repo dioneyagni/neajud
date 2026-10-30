@@ -99,7 +99,7 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens]
     arquivos:
       - "app/services/{materiais_das_linhas,ajuste_da_baixa}.rb"
       - "app/helpers/ajuste_do_estoque_helper.rb"
@@ -122,6 +122,11 @@ areas:
       - "app/views/grupo_materiais/**/*"
       - "app/assets/stylesheets/grupos_material.css"
       - "app/javascript/controllers/{atributos_do_grupo,group_select}_controller.js"
+      - "app/controllers/rede_de_dublagens_controller.rb"
+      - "app/views/rede_de_dublagens/**/*"
+      - "app/services/rede_de_dublagens.rb"
+      - "app/assets/stylesheets/rede_de_dublagens.css"
+      - "config/dublagens.yml"
   artes:
     specs: [artes-arquivos, upload-agrupamento, tipo-da-arte, aprovacoes, arquivos-tipo-grade, cor-lisa]
     arquivos:
