@@ -1,0 +1,68 @@
+<%# One layer and, from the second on, the ligação that joins it to the one
+    above: the ligantes the network allows in the situação, dubla antes or
+    depois, what is still "a confirmar". A material chosen before the layer
+    above changed stays listed, so the save says what is wrong with it. %>
+<% campo = "construcao[camadas][#{indice}]" %>
+<% material = camada.materia_prima %>
+<% opcoes = camada.superficie? ? @opcoes.superficies : @opcoes.bases_sob(acima) %>
+<% opcoes |= [ material ] if material %>
+<li class="construcao-item" data-posicao="<%= camada.posicao %>">
+  <% if acima %>
+    <div class="construcao-ligacao" data-ligacao>
+      <% ligacao = @opcoes.ligacao(acima, material) if acima.materia_prima && material %>
+      <% if ligacao %>
+        <% ligantes = @opcoes.ligantes(ligacao, @construcao.situacao) | [ camada.ligante ].compact %>
+        <% regra = ligacao.ligantes_na(@construcao.situacao).map(&:descricao).to_sentence(two_words_connector: " ou ", last_word_connector: " ou ") %>
+        <span>ligação</span>
+        <% if ligantes.any? %>
+          <select name="<%= campo %>[ligante_uuid]" class="construcao-campo construcao-ligante" aria-label="Ligante da ligação <%= indice %>" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+            <option value="">— <%= regra %></option>
+            <% ligantes.each do |ligante| %>
+              <option value="<%= ligante.uuid %>" <%= "selected" if ligante == camada.ligante %>><%= ligante.nome_completo %></option>
+            <% end %>
+          </select>
+        <% else %>
+          <span class="construcao-ligante-pendente" data-ligante-pendente><%= regra %> — a escolher na 5/5</span>
+        <% end %>
+        <span class="rede-chip rede-chip--<%= ligacao.dubla %>">dubla <%= ligacao.dubla %> da estampa</span>
+        <% if ligacao.a_confirmar? %><span class="rede-chip rede-chip--confirmar">a confirmar</span><% end %>
+      <% elsif acima.materia_prima && material %>
+        <span class="rede-aviso">não dublam — a rede não tem essa ligação</span>
+      <% else %>
+        <span>ligação: escolha a camada de cima e esta</span>
+      <% end %>
+    </div>
+  <% end %>
+  <div class="construcao-camada construcao-camada--<%= camada.superficie? ? "superficie" : "base" %>">
+    <div>
+      <label class="construcao-rotulo" for="camada-<%= indice %>-material"><%= camada.posicao %> · <%= camada.superficie? ? "Superfície" : "Base" %></label>
+      <select name="<%= campo %>[materia_prima_uuid]" id="camada-<%= indice %>-material" class="construcao-campo" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+        <option value=""><%= camada.superficie? || acima&.materia_prima ? "— escolha" : "— escolha a camada de cima" %></option>
+        <% opcoes.each do |opcao| %>
+          <option value="<%= opcao.uuid %>" <%= "selected" if opcao == material %>><%= opcao.nome_completo %></option>
+        <% end %>
+      </select>
+    </div>
+    <% if camada.superficie? %>
+      <div>
+        <label class="construcao-rotulo" for="camada-<%= indice %>-lado">Lado</label>
+        <select name="<%= campo %>[lado]" id="camada-<%= indice %>-lado" class="construcao-campo" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+          <% RedeDeDublagens::LADOS.each do |lado| %>
+            <option value="<%= lado %>" <%= "selected" if camada.lado == lado %>><%= lado.capitalize %></option>
+          <% end %>
+        </select>
+      </div>
+    <% end %>
+    <div>
+      <label class="construcao-rotulo" for="camada-<%= indice %>-dono">Dono</label>
+      <select name="<%= campo %>[do_cliente]" id="camada-<%= indice %>-dono" class="construcao-campo" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+        <option value="0">Empresa</option>
+        <option value="1" <%= "selected" if camada.do_cliente %>>Cliente</option>
+      </select>
+    </div>
+    <% if !em_uso && !camada.superficie? && total > 2 %>
+      <button type="button" class="btn btn-secondary btn-sm construcao-remover" data-action="construcao#montar" data-acao="remover-<%= camada.posicao %>"
+              aria-label="Remover a camada <%= camada.posicao %>">Remover</button>
+    <% end %>
+  </div>
+</li>

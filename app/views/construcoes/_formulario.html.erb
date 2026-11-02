@@ -1,0 +1,7 @@
+<%# Any change asks montar for the form again (construcao_controller.js).
+    Only a saved construção sends its uuid: a refused create already has
+    one, and montar would look for a row that isn't there (404). %>
+<%= form_with model: @construcao, url: (@construcao.persisted? ? construcao_path(@construcao) : construcoes_path), class: "construcao-form",
+      data: { controller: "construcao", construcao_url_value: montar_construcoes_path, construcao_uuid_value: (@construcao.uuid if @construcao.persisted?).to_s } do %>
+  <%= render "montagem" %>
+<% end %>

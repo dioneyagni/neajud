@@ -72,7 +72,9 @@ module MovimentoCreatable
   # invalid, with its errors.
   def find_or_create_materia_prima
     atributos = atributos_do_material
-    mp = visiveis(MateriaPrima).find_by(atributos)
+    # A dublado shares its superfície's group and color: an entry by group,
+    # color and width is never one (Dublagem 3/5).
+    mp = visiveis(MateriaPrima).where.not(tipo: "dublado").find_by(atributos)
     return mp if mp
 
     visiveis(MateriaPrima).new(atributos).tap(&:save)

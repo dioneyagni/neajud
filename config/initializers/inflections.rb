@@ -6,6 +6,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "referencia", "referencias"
   # Etapa 2.5a: "-ia" took the "data" rule (plural "sequencia").
   inflect.irregular "sequencia", "sequencias"
+  # Dublagem 3/5.
+  inflect.irregular "construcao", "construcoes"
 end
 
 # These inflection rules are supported but not enabled by default:

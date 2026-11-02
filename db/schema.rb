@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_02_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -248,6 +248,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
     t.index ["uuid"], name: "index_bans_on_uuid", unique: true
   end
 
+  create_table "camadas_construcao", force: :cascade do |t|
+    t.integer "construcao_id", null: false
+    t.integer "posicao", null: false
+    t.integer "materia_prima_id", null: false
+    t.boolean "do_cliente", default: false, null: false
+    t.string "lado"
+    t.integer "ligante_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["construcao_id", "posicao"], name: "index_camadas_construcao_on_construcao_id_and_posicao", unique: true
+    t.index ["construcao_id"], name: "index_camadas_construcao_on_construcao_id"
+    t.index ["ligante_id"], name: "index_camadas_construcao_on_ligante_id"
+    t.index ["materia_prima_id"], name: "index_camadas_construcao_on_materia_prima_id"
+  end
+
   create_table "clients", force: :cascade do |t|
     t.text "name", null: false
     t.text "responsible", null: false
@@ -267,6 +282,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
     t.string "dono_tecido"
     t.index ["deleted_at"], name: "index_clients_on_deleted_at"
     t.index ["uuid"], name: "index_clients_on_uuid", unique: true
+  end
+
+  create_table "construcoes", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "nome", null: false
+    t.integer "client_id"
+    t.string "situacao"
+    t.integer "materia_prima_id", null: false
+    t.decimal "preco_final", precision: 10, scale: 2
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_construcoes_on_client_id"
+    t.index ["deleted_at"], name: "index_construcoes_on_deleted_at"
+    t.index ["materia_prima_id"], name: "index_construcoes_on_materia_prima_id", unique: true
+    t.index ["uuid"], name: "index_construcoes_on_uuid", unique: true
   end
 
   create_table "cor_materiais", force: :cascade do |t|
@@ -318,6 +352,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
     t.decimal "preco_impressao_metro_tecido", precision: 10, scale: 2
     t.decimal "metragem_minima_tecido", precision: 8, scale: 1
     t.integer "filme_dtf_padrao_id"
+    t.decimal "preco_servico_dublagem", precision: 10, scale: 2
     t.index ["filme_dtf_padrao_id"], name: "index_empresas_on_filme_dtf_padrao_id"
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true
@@ -491,7 +526,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
     t.integer "micras"
     t.string "fornecedor"
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
-    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura", "densidade", "espessura_mm", "micras", "fornecedor"], name: "idx_materia_primas_composite", unique: true
+    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura", "densidade", "espessura_mm", "micras", "fornecedor"], name: "idx_materia_primas_composite", unique: true, where: "tipo <> 'dublado'"
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
     t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end
@@ -772,6 +807,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
   add_foreign_key "baixas_producao", "pedidos", column: "reposicao_id"
   add_foreign_key "baixas_producao", "users"
   add_foreign_key "baixas_producao", "users", column: "desfeita_por_id"
+  add_foreign_key "camadas_construcao", "construcoes"
+  add_foreign_key "camadas_construcao", "materia_primas"
+  add_foreign_key "camadas_construcao", "materia_primas", column: "ligante_id"
+  add_foreign_key "construcoes", "clients"
+  add_foreign_key "construcoes", "materia_primas"
   add_foreign_key "cut_layers", "arquivo_versions"
   add_foreign_key "empresas", "materia_primas", column: "filme_dtf_padrao_id"
   add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"

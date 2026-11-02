@@ -5,7 +5,7 @@ class MateriaisController < ApplicationController
 
   def index
     @movimentos = visiveis(MovimentoEstoque).recentes.includes(:client, :pedido, :baixa_producao, materia_prima: %i[grupo_material cor_material])
-    @materiais = visiveis(MateriaPrima).includes(:grupo_material, :cor_material).order(:largura)
+    @materiais = visiveis(MateriaPrima).includes(:grupo_material, :cor_material, :construcao).order(:largura)
 
     @saldos = SaldosDeEstoque.call(visiveis(MovimentoEstoque))
   end
@@ -14,6 +14,9 @@ class MateriaisController < ApplicationController
   # Usage: PATCH /materiais/:uuid (materia_prima[tipo|preco_metro])
   def update
     material = visiveis(MateriaPrima).por_uuid!(params[:id])
+    # Dublagem 3/5: the construção prices its dublado (decision 1).
+    return redirect_to materiais_path, alert: "#{material.nome_completo}: o preço de um dublado é o preço final da construção dele." if material.dublado?
+
     dados = params.require(:materia_prima).permit(:tipo, :preco_metro)
     dados[:preco_metro] = dados[:preco_metro].to_s.tr(",", ".").presence if dados.key?(:preco_metro)
     return redirect_to materiais_path, notice: "#{material.nome_completo} saved." if material.update(dados)

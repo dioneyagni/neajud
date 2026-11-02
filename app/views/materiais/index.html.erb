@@ -5,6 +5,10 @@
     <%= @materiais.count %> registered materials
   </span>
   <%= link_to "Grupos", grupo_materiais_path, class: "btn btn-secondary materiais-grupos-link", style: "margin-left:auto; margin-right:0.5rem;" %>
+  <%# Dublagem 3/5: the team's only, as the rede (the ligantes are the factory's). %>
+  <% unless cliente_final? %>
+    <%= link_to "Construções", construcoes_path, class: "btn btn-secondary materiais-construcoes-link", style: "margin-right:0.5rem;" %>
+  <% end %>
   <% if pode?(:estoque, :editar) %>
     <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary" %>
   <% end %>
@@ -35,9 +39,13 @@
             <% if (faltando = mp.atributos_faltando).any? %><small class="material-faltando" data-faltando><%= "falta #{faltando.map { |a| GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[a].downcase }.to_sentence}" %></small><% end %>
           </td>
           <td>
-            <% if pode?(:estoque, :editar) %>
+            <%# Dublagem 3/5: a dublado's type and price are its construção's. %>
+            <% if mp.dublado? %>
+              Dublado<%= " · #{number_to_currency(mp.preco_metro)}/m" if mp.preco_metro %>
+              <% if mp.construcao && !cliente_final? %><%= link_to "construção", edit_construcao_path(mp.construcao), class: "material-construcao-link" %><% end %>
+            <% elsif pode?(:estoque, :editar) %>
               <%= form_with model: mp, url: material_path(mp), method: :patch, class: "material-edicao", id: "material-#{mp.uuid}" do |f| %>
-                <%= f.select :tipo, MateriaPrima::ROTULOS_DOS_TIPOS.map { |t, rotulo| [ rotulo, t ] }, {}, id: "material-#{mp.uuid}-tipo", "aria-label": "Type of #{mp.nome_completo}" %>
+                <%= f.select :tipo, MateriaPrima::ROTULOS_DOS_TIPOS.except("dublado").map { |t, rotulo| [ rotulo, t ] }, {}, id: "material-#{mp.uuid}-tipo", "aria-label": "Type of #{mp.nome_completo}" %>
                 <%= f.text_field :preco_metro, value: (number_with_precision(mp.preco_metro, precision: 2, separator: ",") if mp.preco_metro),
                       placeholder: "R$ / m", inputmode: "decimal", id: "material-#{mp.uuid}-preco", "aria-label": "Sale price per meter of #{mp.nome_completo}" %>
                 <%= f.submit "Save", class: "btn btn-sm btn-secondary" %>

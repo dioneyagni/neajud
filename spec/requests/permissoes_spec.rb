@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/construcoes"
 
 # Etapa 0.5 (2/4): every route refuses (403) a função below its requirement
 # and lets through one that has exactly it. One row per requirement, not per
@@ -12,6 +13,7 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
   let(:molde) { create(:molde) }
   let(:pedido) { create(:pedido) }
   let(:tamanho) { create(:tamanho, arquivo: corte) }
+  let(:construcao) { montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("Lona"), material_de_dublagem("Filme", tipo: "filme", micras: 35) ]).tap(&:save!) }
 
   # [description, area, level needed, request]
   REQUISITOS = [
@@ -68,6 +70,14 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list the material groups", "estoque", 1, -> { get grupo_materiais_path } ],
     # Dublagem 2/5: the network, read only.
     [ "see the dublagem network", "estoque", 1, -> { get rede_de_dublagens_path } ],
+    # Dublagem 3/5: the construções.
+    [ "list the construções", "estoque", 1, -> { get construcoes_path } ],
+    [ "open a new construção's form", "estoque", 2, -> { get new_construcao_path } ],
+    [ "save a construção", "estoque", 2, -> { post construcoes_path, params: { construcao: { situacao: "" } } } ],
+    [ "rebuild a construção's form", "estoque", 2, -> { post montar_construcoes_path, params: { construcao: { situacao: "" } } } ],
+    [ "open a construção", "estoque", 2, -> { get edit_construcao_path(construcao) } ],
+    [ "change a construção", "estoque", 2, -> { patch construcao_path(construcao), params: { construcao: { preco_final: "40" } } } ],
+    [ "trash a construção", "estoque", 3, -> { delete construcao_path(construcao) } ],
     [ "open a material group's form", "estoque", 2, -> { get edit_grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")) } ],
     [ "set a material group's roles and attributes", "estoque", 2, -> { patch grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")), params: { grupo_material: { base: "1" } } } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],

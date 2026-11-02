@@ -42,7 +42,8 @@ class Visibilidade
   # The same for everyone: the official catalog and the empresa's lists.
   COMUNS = %w[Produto Modelo Peca MateriaPrima GrupoMaterial CorMaterial].freeze
   # The team's own business: a cliente final sees none of it.
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa].freeze
+  # Dublagem 3/5: the construções show the ligantes, the factory's only.
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa Construcao CamadaConstrucao].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

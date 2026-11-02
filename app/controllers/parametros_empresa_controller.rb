@@ -16,7 +16,8 @@ class ParametrosEmpresaController < ApplicationController
   # Usage: PATCH /parametros (empresa[papel_padrao_uuid|filme_dtf_padrao_uuid|largura_papel_mm|tolerancia_abaixo_pct|tolerancia_acima_pct|custo_impressao_metro|custo_corte_peca],
   #   Etapa 2.6a: empresa[largura_filme_dtf_mm|margem_filme_dtf_mm|espacamento_dtf_mm|fileiras_extras_dtf],
   #   Etapa 2.6c: empresa[preco_metro_dtf|preco_corte_dtf|cobranca_dtf|cobrar_excedente_dtf],
-  #   Etapa 2.7b: empresa[preco_impressao_metro_tecido|metragem_minima_tecido])
+  #   Etapa 2.7b: empresa[preco_impressao_metro_tecido|metragem_minima_tecido],
+  #   Dublagem 3/5: empresa[preco_servico_dublagem])
   def update
     @empresa = Empresa.atual
     return redirect_to edit_parametros_path, notice: "Production parameters saved." if @empresa.update(parametros)
@@ -32,7 +33,7 @@ class ParametrosEmpresaController < ApplicationController
                                             :custo_impressao_metro, :custo_corte_peca,
                                             :largura_filme_dtf_mm, :margem_filme_dtf_mm, :espacamento_dtf_mm, :fileiras_extras_dtf,
                                             :preco_metro_dtf, :preco_corte_dtf, :cobranca_dtf, :cobrar_excedente_dtf,
-                                            :preco_impressao_metro_tecido, :metragem_minima_tecido)
+                                            :preco_impressao_metro_tecido, :metragem_minima_tecido, :preco_servico_dublagem)
     papel = dados.delete(:papel_padrao_uuid)
     dados[:papel_padrao] = visiveis(MateriaPrima).papeis.find_by(uuid: papel) if papel
     # Etapa 2.3d1: the DTF film too.
@@ -42,7 +43,8 @@ class ParametrosEmpresaController < ApplicationController
     %i[custo_impressao_metro custo_corte_peca].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
     # Etapa 2.6a: "1,5" mm as typed; 2.6c: the DTF's prices too.
     # 2.7b: the tecido's price and minimum.
-    %i[espacamento_dtf_mm preco_metro_dtf preco_corte_dtf preco_impressao_metro_tecido metragem_minima_tecido].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
+    # Dublagem 3/5: the service per ligação.
+    %i[espacamento_dtf_mm preco_metro_dtf preco_corte_dtf preco_impressao_metro_tecido metragem_minima_tecido preco_servico_dublagem].each { |campo| dados[campo] = decimal_digitado(dados[campo]) if dados.key?(campo) }
     dados
   end
 end

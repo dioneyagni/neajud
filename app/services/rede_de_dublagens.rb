@@ -28,6 +28,16 @@ class RedeDeDublagens
 
       "#{grupo} #{micras.to_sentence(two_words_connector: " ou ", last_word_connector: " ou ")} µm"
     end
+
+    # Whether a registered material is this ligante: its group, with micras in
+    # the list or at least the minimum (Dublagem 3/5).
+    # Usage: ligante.serve?(filme_35) # => true
+    def serve?(material)
+      return false unless material.grupo_material.nome.casecmp?(grupo)
+      return material.micras.to_i >= minimo if minimo
+
+      micras.blank? || micras.include?(material.micras)
+    end
   end
 
   Ligacao = Struct.new(:par, :lado, :ligantes, :dubla, :situacoes, :a_confirmar, keyword_init: true) do

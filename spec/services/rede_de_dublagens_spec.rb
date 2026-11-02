@@ -33,6 +33,17 @@ RSpec.describe RedeDeDublagens do
     expect(described_class.ligacao("Oxford", "EVA").ligantes_na("vai_frequencia").map(&:descricao)).to eq([ "Filme 25 µm" ])
   end
 
+  # Dublagem 3/5: a registered material is a ligante of the network.
+  it "tells whether a material is a ligante: its group, micras in the list or at least the minimum" do
+    grupo = GrupoMaterial.create!(nome: "Filme", atributos: {})
+    filme = ->(micras) { MateriaPrima.new(grupo_material: grupo, micras: micras) }
+    lista, minimo, qualquer = described_class::Ligante.new(grupo: "Filme", micras: [ 25, 35 ]), described_class::Ligante.new(grupo: "filme", minimo: 35), described_class::Ligante.new(grupo: "Filme PU")
+
+    expect([ lista.serve?(filme.(25)), lista.serve?(filme.(30)) ]).to eq([ true, false ])
+    expect([ minimo.serve?(filme.(50)), minimo.serve?(filme.(25)) ]).to eq([ true, false ])
+    expect(qualquer.serve?(filme.(25))).to be(false)
+  end
+
   it "prefers the ligação of the lado asked, else the one for any side" do
     lida = ler(ligacao, ligacao("lado" => "avesso", "dubla" => "depois"))
     allow(described_class).to receive(:rede).and_return(lida)

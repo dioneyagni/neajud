@@ -23,6 +23,8 @@ class Empresa < ApplicationRecord
   validates :margem_filme_dtf_mm, :fileiras_extras_dtf, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   # Etapa 2.7b: the tecido's print per meter and minimum meters per item.
   validates :preco_impressao_metro_tecido, :metragem_minima_tecido, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  # Dublagem 3/5 (D7): the service charged per ligação of a construção.
+  validates :preco_servico_dublagem, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :espacamento_dtf_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }
   validate :margens_cabem_no_filme
   # Etapa 2.6b1: every DTF size's fit follows the film.

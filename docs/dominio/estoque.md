@@ -83,12 +83,60 @@ not listed keeps the usual ones). The situações' names are fixed at the top.
   ligação and what was expected. A group **not registered is a warning**,
   never an error (`avisos`: not registered, neither superfície nor base, no
   base in the pair), so the test database and a new instance still boot.
-- `ligacao(a, b, lado:)`, `ligantes_na(situacao)` and `ligacoes_de(grupo)`
-  are what the construção (3/5) will use.
+- `ligacao(a, b, lado:)`, `ligantes_na(situacao)`, `ligacoes_de(grupo)` and
+  `Ligante#serve?(material)` are what the construção (3/5) uses.
 - The page **Rede de dublagens** (`/rede-de-dublagens`, linked from Grupos)
   is read only, estoque: ver and **the team's only** (`exige_equipe`): the
   ligante is the factory's. A panel to edit it comes after real use.
 - E2E: `e2e/rede-de-dublagens.spec.js`.
+
+## The construção (Dublagem 3/5)
+
+Decided 30/10–02/11/2026 (plano Etapa 2.9, D6/D7). A `Construcao` is a saved
+dublado: its `CamadaConstrucao` rows, top to bottom — position 1 the
+superfície with its `lado` (trama | avesso), then the bases —, each
+`do_cliente` or the empresa's, each base with the `ligante` (a material) that
+joins it to the layer above; the `situacao` (one of the network's, blank =
+normal) and the `preco_final`. 2 to 5 layers.
+
+- **Its own material** (decision 1): saving it creates or updates a
+  `MateriaPrima` of tipo **dublado** — the superfície's group and color, the
+  **narrowest layer's width** (decision 3), `preco_metro` = the final price,
+  named after the construção ("Oxford Preto (avesso) / Espuma TC4 3 mm
+  Branco-1.40 m (Tecido molha)"). The duplicate rule of materials (and its
+  unique index) leaves dublados out; a dublado's type never changes and
+  nothing else becomes one; on Materiais its row is read only, with a link to
+  the construção, and a PATCH of its price is refused. The stock entry never
+  finds a dublado by group, color and width. The name **never carries the
+  client's**: every client reads the list of materials (`COMUNS`).
+- **Whose** (decision 2): a construção may have a client; a layer marked as
+  his needs him, and a client needs a layer of his. With a client, the
+  construção and its dublado are his (the dublado goes to his stock, 5/5).
+- **The rules** (`RegrasDaConstrucao`, a validation): all layers are tecidos;
+  the first a superfície, the others bases; each pair a ligação of the
+  network (the superfície's lado first); the ligante one the network allows
+  in the situação (`OpcoesDaConstrucao#ligantes`) — **or none while no
+  registered material serves** (decision 4: the cola until 5/5, shown as
+  "a escolher na 5/5"); never the same construção twice (a twin in the trash
+  says to restore it).
+- **In use** (decision 5): once the dublado has a stock movement or a pedido
+  item (`MateriaPrima#em_uso?`), only the final price changes; the page says
+  why and greys the layers out.
+- **Suggested price** (`PrecoSugeridoDaConstrucao`, D7): the empresa's layers
+  at their `preco_metro` (the client's show "do cliente"), each ligante's
+  `preco_metro` and the empresa's `preco_servico_dublagem` (Parâmetros,
+  "Dublagem") times the ligações. A missing price is a line "sem preço" that
+  adds nothing, listed under the total.
+- **Pages** (estoque: ver lists, editar builds, excluir trashes; **the team's
+  only**, as the rede): Construções (`/construcoes`, linked from Materiais) and
+  the form of the dublagem canvas. Every change posts the form to
+  `POST /construcoes/montar`, which answers it again as a turbo-stream — each
+  layer's options, the ligação's chips, the price, what is still wrong —
+  without saving (`construcao_controller.js`; only the latest answer is
+  drawn). A construção goes to the Lixeira (`Excluivel`), its dublado stays.
+- Not yet: the dublado in the pedido item (4/5); the ordens, the stock in
+  and out and the cola's measure (5/5).
+- E2E: `e2e/construcoes.spec.js`.
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 
