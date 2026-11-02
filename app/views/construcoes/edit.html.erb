@@ -1,0 +1,11 @@
+<div class="grupos-pagina construcoes-pagina">
+  <div>
+    <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › <%= link_to "Construções", construcoes_path %> › Editar</p>
+    <h2><%= @construcao.nome_in_database %></h2>
+  </div>
+  <%= render "formulario" %>
+  <% if pode?(:estoque, :excluir) %>
+    <%= button_to "Mandar para a lixeira", construcao_path(@construcao), method: :delete, class: "btn btn-secondary construcao-excluir",
+          form: { data: { turbo_confirm: "Mandar #{@construcao.nome_in_database} para a lixeira?" } } %>
+  <% end %>
+</div>

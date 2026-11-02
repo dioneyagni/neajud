@@ -116,5 +116,15 @@
       <small>Below it an item waits for someone with "aprovar abaixo do mínimo". Blank = no minimum.</small>
     </div>
   </fieldset>
+  <%# Dublagem 3/5 (D7): a construção's suggested price adds it per ligação. %>
+  <fieldset class="parametros-dublagem" id="parametros-dublagem">
+    <legend>Dublagem</legend>
+    <div class="client-field">
+      <label for="empresa_preco_servico_dublagem">Serviço por ligação, por metro (R$)</label>
+      <input type="text" inputmode="decimal" name="empresa[preco_servico_dublagem]" id="empresa_preco_servico_dublagem"
+             value="<%= @empresa.preco_servico_dublagem && number_with_precision(@empresa.preco_servico_dublagem, precision: 2, separator: ",") %>">
+      <small>A construção de três camadas tem duas ligações. Blank = not set (the suggested price says it is missing).</small>
+    </div>
+  </fieldset>
   <%= form.submit "Save", class: "btn btn-primary" %>
 <% end %>

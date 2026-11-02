@@ -140,6 +140,43 @@ RSpec.describe MateriaPrima, type: :model do
     mp.tipo = "couro"
     mp.preco_metro = -1
     expect(mp).not_to be_valid
-    expect(mp.errors.full_messages).to contain_exactly("Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf, kraft, plastico_succao", "Preco metro must be greater than or equal to 0")
+    expect(mp.errors.full_messages).to contain_exactly("Tipo couro is not a material type; expected one of tecido, papel, filme, filme_dtf, kraft, plastico_succao, dublado", "Preco metro must be greater than or equal to 0")
+  end
+
+  # Dublagem 3/5: a construção's own material.
+  describe "a dublado" do
+    let(:oxford) { MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Oxford"), cor_material: CorMaterial.create!(nome: "Preto"), largura: "1.40 m", gramatura: "100g") }
+
+    def dublado = MateriaPrima.create!(grupo_material: oxford.grupo_material, cor_material: oxford.cor_material, largura: "1.40 m", tipo: "dublado")
+
+    it "shares its group, color and width with others, never asked for the group's attributes" do
+      primeiro = dublado
+
+      expect(dublado).to be_persisted
+      expect(primeiro.atributos_faltando).to be_empty
+    end
+
+    it "never turns into another type, nor a material into a dublado" do
+      primeiro = dublado
+
+      expect(primeiro.update(tipo: "tecido")).to be(false)
+      expect(primeiro.errors[:tipo]).to eq([ "dublado can't become tecido: a dublado is made by its construção only" ])
+      expect(oxford.update(tipo: "dublado")).to be(false)
+    end
+
+    it "is in use once a stock movement or a pedido item counts on it" do
+      primeiro = dublado
+      expect(primeiro.em_uso?).to be(false)
+
+      MovimentoEstoque.create!(materia_prima: primeiro, tipo: "entrada", quantidade: 1, da_empresa: true)
+      expect(primeiro.em_uso?).to be(true)
+    end
+
+    it "names a layer by its group, attributes and color" do
+      espuma = MateriaPrima.create!(grupo_material: GrupoMaterial.create!(nome: "Espuma", atributos: {}), cor_material: oxford.cor_material, largura: "1.40 m",
+                                    densidade: "TC4", espessura_mm: 3)
+
+      expect(espuma.nome_da_camada).to eq("Espuma TC4 3 mm Preto")
+    end
   end
 end

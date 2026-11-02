@@ -10,15 +10,18 @@ class MateriaPrima < ApplicationRecord
   # The insumos say the stage that uses them up (decided 28/10/2026): the
   # papel and the filme DTF at Impressão, the kraft at Calandra, the plástico
   # de sucção on the cutting table. None is offered where a fabric is chosen.
-  TIPOS = %w[tecido papel filme filme_dtf kraft plastico_succao].freeze
+  # Dublagem 3/5 (02/11/2026): a dublado is a Construcao's own material, made
+  # and priced by it — never typed nor turned into another type by hand.
+  TIPOS = %w[tecido papel filme filme_dtf kraft plastico_succao dublado].freeze
   ROTULOS_DOS_TIPOS = { "tecido" => "Tecido", "papel" => "Papel (impressão)", "filme" => "Ligante (dublagem)", "filme_dtf" => "Filme DTF (impressão)",
-                        "kraft" => "Kraft (calandra)", "plastico_succao" => "Plástico de sucção (corte)" }.freeze
+                        "kraft" => "Kraft (calandra)", "plastico_succao" => "Plástico de sucção (corte)", "dublado" => "Dublado" }.freeze
 
   include GeraUuid
   belongs_to :grupo_material
   belongs_to :cor_material
   has_many :movimento_estoques, dependent: :restrict_with_error
   has_many :itens_pedido, class_name: "ItemPedido", dependent: :nullify
+  has_one :construcao, dependent: :restrict_with_error
 
   # A group that doesn't weigh its materials (Espuma) leaves gramatura blank;
   # the column is not null, as before 1/5.
@@ -27,10 +30,12 @@ class MateriaPrima < ApplicationRecord
   normalizes :densidade, :fornecedor, with: ->(valor) { valor.squish.presence }
 
   validates :largura, presence: true
-  validates :largura, uniqueness: { scope: %i[grupo_material_id cor_material_id gramatura densidade espessura_mm micras fornecedor] }
+  # A dublado is told apart by its construção, not by its group and color.
+  validates :largura, uniqueness: { scope: %i[grupo_material_id cor_material_id gramatura densidade espessura_mm micras fornecedor] }, unless: :dublado?
   validates :espessura_mm, numericality: { greater_than: 0 }, allow_nil: true
   validates :micras, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validate :atributos_obrigatorios, on: :create
+  validate :dublado_continua_dublado, on: :update
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a material type; expected one of #{TIPOS.join(", ")}" }
   validates :preco_metro, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
@@ -38,6 +43,7 @@ class MateriaPrima < ApplicationRecord
   scope :tecidos, -> { where(tipo: "tecido") }
   scope :papeis, -> { where(tipo: "papel") }
   scope :filmes_dtf, -> { where(tipo: "filme_dtf") }
+  scope :ligantes, -> { where(tipo: "filme") }
   # What a tecido pedido prints on: a tecido whose group prints (sim or with
   # ressalvas), never one that doesn't (Dublagem 1/5).
   scope :estampaveis, -> { tecidos.where(grupo_material: GrupoMaterial.estampaveis) }
@@ -74,16 +80,31 @@ class MateriaPrima < ApplicationRecord
   # material without them keeps its pre-1/5 name.
   # Usage: espuma.nome_completo # => "Espuma TC4 3 mm-Branco-1.40 m"
   def nome_completo
-    cabeca = [ grupo_material.nome, densidade, espessura_mm && "#{numero_curto(espessura_mm)} mm", micras && "#{micras} µm" ]
-    [ cabeca.compact.join(" "), cor_material.nome, largura, gramatura.presence, fornecedor ].compact.join("-")
+    return construcao.nome if dublado? && construcao
+
+    [ cabeca_do_nome, cor_material.nome, largura, gramatura.presence, fornecedor ].compact.join("-")
+  end
+
+  # The group with its densidade, espessura and micras, then the color: a
+  # construção's layer (Dublagem 3/5). Usage: espuma.nome_da_camada # => "Espuma TC4 3 mm Branco"
+  def nome_da_camada
+    "#{cabeca_do_nome} #{cor_material.nome}"
   end
 
   # The attributes its group requires that it lacks — a requirement added
   # after it was registered. Usage: espuma_antiga.atributos_faltando # => ["densidade"]
   def atributos_faltando
-    return [] unless grupo_material
+    return [] if grupo_material.nil? || dublado?
 
     grupo_material.atributos.select { |_atributo, obrigatorio| obrigatorio }.keys.select { |atributo| self[atributo].blank? }
+  end
+
+  def dublado? = tipo == "dublado"
+
+  # Something already counts on it: a stock movement or a pedido item. A
+  # construção in use keeps its layers (Dublagem 3/5, decision 5).
+  def em_uso?
+    movimento_estoques.exists? || itens_pedido.exists?
   end
 
   def saldo(cache = nil)
@@ -102,6 +123,16 @@ class MateriaPrima < ApplicationRecord
     atributos_faltando.each do |atributo|
       errors.add(atributo, "é obrigatório no grupo #{grupo_material.nome}")
     end
+  end
+
+  def dublado_continua_dublado
+    return unless will_save_change_to_tipo? && tipo_in_database.to_s.then { |antes| antes == "dublado" || dublado? }
+
+    errors.add(:tipo, "#{tipo_in_database} can't become #{tipo}: a dublado is made by its construção only")
+  end
+
+  def cabeca_do_nome
+    [ grupo_material.nome, densidade, espessura_mm && "#{numero_curto(espessura_mm)} mm", micras && "#{micras} µm" ].compact.join(" ")
   end
 
   def numero_curto(numero)

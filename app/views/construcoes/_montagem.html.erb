@@ -1,0 +1,75 @@
+<%# The construção being built (Dublagem 3/5), as the dublagem canvas draws
+    it: the situação, the client, the layers top to bottom with a ligação
+    between each two, and the price card. montar replaces it whole. In use,
+    only the final price changes (decision 5). %>
+<% em_uso = @construcao.em_uso? %>
+<% camadas = @construcao.camadas_em_ordem %>
+<div id="construcao-montagem" class="construcao-montagem">
+  <div class="construcao-card construcao-camadas">
+    <% if em_uso %>
+      <p class="construcao-em-uso" data-em-uso>Já está em uso (estoque ou pedido): as camadas ficam como estão e só o preço final muda. Para outra composição, crie outra construção.</p>
+    <% end %>
+    <fieldset class="construcao-situacoes" <%= "disabled" if em_uso %>>
+      <legend class="construcao-rotulo">Situação (escolhe os ligantes)</legend>
+      <% [ [ "", "Normal" ], *RedeDeDublagens.situacoes.to_a ].each do |valor, rotulo| %>
+        <label class="construcao-pill">
+          <input type="radio" name="construcao[situacao]" value="<%= valor %>" <%= "checked" if @construcao.situacao.to_s == valor %> data-action="change->construcao#montar">
+          <%= rotulo %>
+        </label>
+      <% end %>
+    </fieldset>
+
+    <div class="construcao-cliente">
+      <label class="construcao-rotulo" for="construcao_client_uuid">Cliente (quando uma camada é dele)</label>
+      <select name="construcao[client_uuid]" id="construcao_client_uuid" class="construcao-campo" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+        <option value="">— nenhum: tudo da empresa</option>
+        <% (@clientes.to_a | [ @construcao.client ].compact).each do |cliente| %>
+          <option value="<%= cliente.uuid %>" <%= "selected" if cliente == @construcao.client %>><%= cliente.name %></option>
+        <% end %>
+      </select>
+    </div>
+
+    <ol class="construcao-pilha">
+      <% camadas.each_with_index do |camada, indice| %>
+        <%= render "camada", camada: camada, indice: indice, acima: (camadas[indice - 1] if indice.positive?), em_uso: em_uso, total: camadas.size %>
+      <% end %>
+    </ol>
+    <% if !em_uso && camadas.size < Construcao::MAXIMO_DE_CAMADAS %>
+      <p class="construcao-mais">
+        <button type="button" class="btn btn-secondary" data-action="construcao#montar" data-acao="adicionar" <%= "disabled" unless camadas.last&.materia_prima %>>+ Camada</button>
+        <small>até <%= Construcao::MAXIMO_DE_CAMADAS %>; cada lista mostra só o que liga com a camada de cima</small>
+      </p>
+    <% end %>
+  </div>
+
+  <div class="construcao-card construcao-preco" data-preco>
+    <h3>Preço por metro</h3>
+    <dl class="construcao-linhas">
+      <% @preco.linhas.each do |linha| %>
+        <div class="construcao-linha" data-linha="<%= linha.rotulo %>">
+          <dt><%= linha.rotulo %><% if linha.nota %> <small>(<%= linha.nota %>)</small><% end %></dt>
+          <dd><%= linha.valor ? number_to_currency(linha.valor) : "—" %></dd>
+        </div>
+      <% end %>
+      <div class="construcao-linha construcao-linha--total">
+        <dt>Sugerido</dt>
+        <dd data-sugerido><%= number_to_currency(@preco.total) %></dd>
+      </div>
+    </dl>
+    <% if @preco.sem_preco.any? %>
+      <p class="construcao-sem-preco">Sem preço: <%= @preco.sem_preco.map(&:rotulo).to_sentence(two_words_connector: " e ", last_word_connector: " e ") %>. O sugerido não conta <%= @preco.sem_preco.one? ? "esse" : "esses" %>.</p>
+    <% end %>
+    <div>
+      <label class="construcao-rotulo" for="construcao_preco_final">Preço final por metro (R$)</label>
+      <input type="text" inputmode="decimal" name="construcao[preco_final]" id="construcao_preco_final" class="construcao-campo"
+             value="<%= @construcao.preco_final && number_with_precision(@construcao.preco_final, precision: 2, separator: ",") %>">
+    </div>
+    <p class="construcao-destino">O dublado vai para o estoque <%= @construcao.client ? "de #{@construcao.client.name}" : "da empresa" %>.</p>
+    <% if @problemas.present? %>
+      <ul class="construcao-problemas" data-problemas>
+        <% @problemas.each do |problema| %><li><%= problema %></li><% end %>
+      </ul>
+    <% end %>
+    <%= submit_tag "Salvar construção", class: "btn btn-primary construcao-salvar" %>
+  </div>
+</div>

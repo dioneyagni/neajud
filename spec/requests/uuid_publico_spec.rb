@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/construcoes"
 
 # Etapa 1.1 (1/2): the uuid is the only identifier that leaves the server —
 # URLs, JSON and form values. The integer id stays the internal key and must
@@ -17,10 +18,12 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       "pedido's Impressão page" => [ :pedido, ->(r) { "/pedidos/#{r}/impressao" } ],
       "pedido's Estamparia page" => [ :pedido, ->(r) { "/pedidos/#{r}/etapas/estamparia" } ],
       # Dublagem 1/5.
-      "material group (edit)" => [ -> { GrupoMaterial.create!(nome: "Espuma") }, ->(r) { "/grupos-de-material/#{r}/edit" } ]
+      "material group (edit)" => [ -> { GrupoMaterial.create!(nome: "Espuma") }, ->(r) { "/grupos-de-material/#{r}/edit" } ],
+      # Dublagem 3/5.
+      "construção (edit)" => [ -> { montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("EVA"), nil ]).tap(&:save!) }, ->(r) { "/construcoes/#{r}/edit" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
-        registro = factory.respond_to?(:call) ? factory.call : create(factory)
+        registro = factory.respond_to?(:call) ? instance_exec(&factory) : create(factory)
         get caminho.call(registro.uuid)
         expect(response).to have_http_status(:ok)
         get caminho.call(registro.id)

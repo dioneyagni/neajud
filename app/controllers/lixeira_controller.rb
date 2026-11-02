@@ -10,7 +10,7 @@ class LixeiraController < ApplicationController
   # (CatalogoOficial), the company can't (Etapa 1.1, 3/5).
   TIPOS = {
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
-    "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao
+    "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao, "construcoes" => Construcao
   }.freeze
 
   def index
