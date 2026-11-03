@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/construcoes"
 
 # Etapa 2.8 (1/5): who sees which records — the team everything, a cliente
 # final only its client's.
@@ -29,6 +30,19 @@ RSpec.describe Visibilidade do
     peca = create(:peca)
     visivel = described_class.new(mks)
     expect([ visivel.escopo(Peca).to_a, visivel.escopo(User).to_a, visivel.escopo(Funcao).to_a ]).to eq([ [ peca ], [], [] ])
+  end
+
+  # Dublagem 4/5: he picks his item's construção, never another client's;
+  # the layers (they show the ligantes) stay the team's.
+  it "shows a cliente final the empresa's construções and his own, never their layers" do
+    oxford = material_de_dublagem("Oxford")
+    lona = material_de_dublagem("Lona")
+    da_empresa = montar_construcao([ oxford, "trama" ], [ lona ]).tap(&:save!)
+    dele = montar_construcao([ oxford, "trama" ], [ lona, nil, { do_cliente: true } ], client: mks).tap(&:save!)
+    montar_construcao([ oxford, "trama" ], [ lona, nil, { do_cliente: true } ], client: create(:client)).save!
+
+    visivel = described_class.new(mks)
+    expect([ visivel.escopo(Construcao).to_a, visivel.escopo(CamadaConstrucao).to_a ]).to match([ contain_exactly(da_empresa, dele), [] ])
   end
 
   it "refuses a model without a rule, naming the ones that have one" do

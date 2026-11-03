@@ -3,6 +3,7 @@ class ItemPedido < ApplicationRecord
   include ReferenciaAtiva
   include PrecosDoItemTecido
   include EscolheDonoDoTecido
+  include ConstrucaoDoItem
 
   self.table_name = "itens_pedido"
 
@@ -71,10 +72,11 @@ class ItemPedido < ApplicationRecord
   end
 
   # The width the tecido is printed on: the one typed on the pedido, else
-  # the material's ("1,60 m" → 1600); nil when neither says.
+  # the dublado's when there is a construção (its narrowest layer, Dublagem
+  # 4/5), else the material's ("1,60 m" → 1600); nil when none says.
   # Usage: item.largura_efetiva_mm # => 1600
   def largura_efetiva_mm
-    largura_mm || materia_prima&.largura_mm
+    largura_mm || construcao&.materia_prima&.largura_mm || materia_prima&.largura_mm
   end
 
   private

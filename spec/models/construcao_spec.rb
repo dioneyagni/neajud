@@ -1,5 +1,6 @@
 require "rails_helper"
 require_relative "../support/construcoes"
+require_relative "../support/tecidos"
 
 RSpec.describe Construcao do
   let(:oxford) { material_de_dublagem("Oxford", cor: "Preto", largura: "1.60 m", preco: 20) }
@@ -55,6 +56,37 @@ RSpec.describe Construcao do
     construcao.situacao = "tecido_molha"
     expect(construcao.save).to be(false)
     expect(construcao.errors.full_messages.to_sentence).to include("já está em uso (estoque ou pedido): só o preço final muda")
+  end
+
+  # Dublagem 4/5: a pedido item dubbed into it is a use too.
+  it "counts a pedido item dubbed into it as a use" do
+    construcao = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).tap(&:save!)
+    expect(construcao.em_uso?).to be(false)
+
+    pedido = create(:pedido, tipo: "tecido")
+    create(:item_pedido, pedido: pedido, arquivo: criar_obra_de_tecido("corrida").arquivos.first, materia_prima: oxford, construcao: construcao)
+    construcao.reload.situacao = "tecido_molha"
+    expect([ construcao.em_uso?, construcao.save ]).to eq([ true, false ])
+  end
+
+  it "finds the construções on a superfície, the empresa's and a client's" do
+    fagner = create(:client)
+    da_empresa = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).tap(&:save!)
+    do_fagner = montar_construcao([ oxford, "trama" ], [ lona, filme_35, { do_cliente: true } ], client: fagner).tap(&:save!)
+    montar_construcao([ oxford, "trama" ], [ lona, filme_35, { do_cliente: true } ], client: create(:client)).save!
+
+    expect(described_class.sobre(oxford).do_cliente_ou_da_empresa(fagner)).to contain_exactly(da_empresa, do_fagner)
+    expect(described_class.sobre(lona)).to be_empty
+    expect(described_class.sobre(oxford).do_cliente_ou_da_empresa(nil)).to eq([ da_empresa ])
+  end
+
+  # D8: the network says, per ligação, if it dubs before or after the estampa.
+  it "says when each ligação dubs against the estampa" do
+    espuma = material_de_dublagem("Espuma", densidade: "TC4")
+    helanca = material_de_dublagem("Helanca")
+
+    expect(montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).momentos_da_dublagem).to eq([ "antes" ])
+    expect(montar_construcao([ oxford, "trama" ], [ espuma ], [ helanca ]).momentos_da_dublagem).to eq([ "depois" ])
   end
 
   it "refuses an unknown situação, naming the known ones" do

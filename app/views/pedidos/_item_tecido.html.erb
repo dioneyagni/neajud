@@ -3,8 +3,10 @@
     follows the material's unless typed. The cliente final changes the fabric
     and the meters on his draft; the width is the team's (how far the RIP
     repeats the module). Each fabric shows the balance of the pedido's owner
-    (information only), and a width past the paper is a warning. tecidos and
-    saldos come from the pedido page. %>
+    (information only), and a width past the paper is a warning. Dublagem
+    4/5: a construção on the fabric, its dublado's balance beside, and for
+    the team when it dubs against the estampa. tecidos and saldos come from
+    the pedido page. %>
 <% arquivo = item.arquivo %>
 <% editavel = pedido_editavel?(pedido) %>
 <% aviso = aviso_de_largura(item) %>
@@ -41,6 +43,18 @@
           <% end %>
         </select>
       </label>
+      <%# Dublagem 4/5: the construção whose superfície is this fabric. %>
+      <% if item.materia_prima %>
+        <label class="pedido-tecido-campo">Construção
+          <select name="construcao_uuid" class="pedido-tecido-construcao" data-action="change->auto-submit#submit">
+            <option value="">— sem dublagem —</option>
+            <% construcoes_do_item(item).each do |construcao| %>
+              <% saldo = saldo_da_construcao(construcao, saldos) %>
+              <option value="<%= construcao.uuid %>" <%= "selected" if item.construcao_id == construcao.id %>><%= construcao.nome %><%= " · saldo #{saldo}" if saldo %></option>
+            <% end %>
+          </select>
+        </label>
+      <% end %>
       <label class="pedido-tecido-campo">Metros
         <input type="text" inputmode="decimal" name="metros" class="pedido-tecido-metros" value="<%= number_with_precision(item.metros, precision: 1, separator: ",", strip_insignificant_zeros: true) %>"
                placeholder="12,5" data-action="change->auto-submit#submit">
@@ -50,16 +64,19 @@
       <% else %>
         <label class="pedido-tecido-campo">Largura (mm)
           <input type="number" name="largura_mm" class="pedido-tecido-largura-mm" min="1" max="9999" step="1" value="<%= item.largura_mm %>"
-                 placeholder="<%= item.materia_prima&.largura_mm %>" data-action="change->auto-submit#submit">
+                 placeholder="<%= (item.construcao&.materia_prima || item.materia_prima)&.largura_mm %>" data-action="change->auto-submit#submit">
         </label>
       <% end %>
     <% end %>
   <% else %>
     <dl class="pedido-tecido-dados">
       <dt>Tecido</dt><dd class="pedido-tecido-material"><%= item.materia_prima&.nome_completo || "—" %></dd>
+      <% if item.construcao %><dt>Construção</dt><dd class="pedido-tecido-construcao"><%= item.construcao.nome %> <%= selo_excluido(item.construcao) %></dd><% end %>
       <dt>Largura</dt><dd class="pedido-tecido-largura"><%= largura_em_metros(item.largura_efetiva_mm) %></dd>
     </dl>
   <% end %>
+  <% momento = item.construcao && !cliente_final? && momento_da_dublagem(item.construcao) %>
+  <% if momento %><p class="pedido-tecido-dublagem" data-dublagem><span class="rede-chip"><%= momento %></span></p><% end %>
   <% if aviso %><p class="pedido-tecido-aviso" role="note"><%= aviso %></p><% end %>
   <% if ressalva %><p class="pedido-tecido-aviso pedido-tecido-ressalva" role="note"><%= ressalva %></p><% end %>
   <% if item.abaixo_do_minimo? %><%= render "pedidos/minimo_do_item_tecido", item: item, pedido: pedido %><% end %>

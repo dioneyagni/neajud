@@ -120,7 +120,8 @@ normal) and the `preco_final`. 2 to 5 layers.
   "a escolher na 5/5"); never the same construção twice (a twin in the trash
   says to restore it).
 - **In use** (decision 5): once the dublado has a stock movement or a pedido
-  item (`MateriaPrima#em_uso?`), only the final price changes; the page says
+  item (`MateriaPrima#em_uso?`) — or, since 4/5, a pedido item is dubbed
+  into the construção (`Construcao#em_uso?`) —, only the final price changes; the page says
   why and greys the layers out.
 - **Suggested price** (`PrecoSugeridoDaConstrucao`, D7): the empresa's layers
   at their `preco_metro` (the client's show "do cliente"), each ligante's
@@ -128,14 +129,18 @@ normal) and the `preco_final`. 2 to 5 layers.
   "Dublagem") times the ligações. A missing price is a line "sem preço" that
   adds nothing, listed under the total.
 - **Pages** (estoque: ver lists, editar builds, excluir trashes; **the team's
-  only**, as the rede): Construções (`/construcoes`, linked from Materiais) and
+  only**, as the rede; since 4/5 a cliente final **reads** the empresa's
+  construções and his own — `Visibilidade` `Construcao`, to pick his item's —
+  never their layers, `CamadaConstrucao` stays the team's): Construções (`/construcoes`, linked from Materiais) and
   the form of the dublagem canvas. Every change posts the form to
   `POST /construcoes/montar`, which answers it again as a turbo-stream — each
   layer's options, the ligação's chips, the price, what is still wrong —
   without saving (`construcao_controller.js`; only the latest answer is
   drawn). A construção goes to the Lixeira (`Excluivel`), its dublado stays.
-- Not yet: the dublado in the pedido item (4/5); the ordens, the stock in
-  and out and the cola's measure (5/5).
+- The pedido item dubbed into a construção (4/5): `docs/dominio/tecido.md`,
+  "The item's construção".
+- Not yet: the ordens, the stock in and out, "aguardando dublagem" and the
+  cola's measure (5/5).
 - E2E: `e2e/construcoes.spec.js`.
 
 ## Where a pedido's materials come from (Etapa 2.3d1)

@@ -13,6 +13,10 @@
 #   :sem_preco_impressao, :sem_preco_tecido — no print price per meter (the
 #                 dono's, the client's or the item's), or the empresa's
 #                 fabric without its price (2.7b): confirming writes them.
+#   :construcao_nao_serve — the item's construção went to the trash, or no
+#                 longer fits (its superfície isn't the item's, or the
+#                 pedido's client changed) — Dublagem 4/5, the client's;
+#   :sem_preco_dublado — a construção without its final price, the factory's.
 # Wider than the paper is a warning on the item, never a block (decided
 # 16/10/2026: the factory may have a wider paper) — avisos_de_largura.
 # Nothing here splits the pedido by client.
@@ -32,17 +36,24 @@ class PedidoBloqueiosTecido
   end
 
   def call
-    sem_cliente + de_outro_cliente("Arte") + sem_material + zerados + sem_largura + abaixo_do_minimo + sem_preco
+    sem_cliente + de_outro_cliente("Arte") + sem_material + construcoes_que_nao_servem + zerados + sem_largura + abaixo_do_minimo + sem_preco
   end
 
   private
 
   def itens
-    @itens ||= @pedido.itens_pedido.includes(:arquivo, :arte, :materia_prima).order(:id).to_a
+    @itens ||= @pedido.itens_pedido.includes(:arquivo, :arte, :materia_prima, :construcao).order(:id).to_a
   end
 
   def sem_material
     itens.reject(&:materia_prima).map { |item| bloqueio(:sem_material, item, "sem tecido: escolha o material") }
+  end
+
+  def construcoes_que_nao_servem
+    itens.filter_map do |item|
+      motivo = item.construcao&.excluido? ? "está na lixeira" : item.motivo_da_construcao_que_nao_serve
+      bloqueio(:construcao_nao_serve, item, "com a construção #{item.construcao.nome}, que não serve: #{motivo}; escolha outra") if motivo
+    end
   end
 
   def zerados
@@ -67,6 +78,8 @@ class PedidoBloqueiosTecido
       item = falta.linha
       if falta.descricao == "Impressão"
         Bloqueio.new(tipo: :sem_preco_impressao, descricao: "#{item.arte.titulo} sem preço da impressão por metro")
+      elsif item.construcao
+        Bloqueio.new(tipo: :sem_preco_dublado, descricao: "#{item.arte.titulo}: a construção #{item.construcao.nome} sem preço final", construcao: item.construcao)
       else
         Bloqueio.new(tipo: :sem_preco_tecido, descricao: "#{item.arte.titulo}: o tecido #{item.materia_prima&.nome_completo || "do item"} sem preço por metro")
       end

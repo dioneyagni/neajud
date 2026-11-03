@@ -1,5 +1,6 @@
 require "rails_helper"
 require_relative "../support/tecidos"
+require_relative "../support/construcoes"
 
 # Etapa 2.7a (decided 16/10/2026): what keeps a tecido draft from being
 # confirmed — the client the pedido's, each item's fabric, meters and width.
@@ -24,6 +25,37 @@ RSpec.describe PedidoBloqueiosTecido do
     item(criar_obra_de_tecido("corrida", client: client), materia_prima: nil, metros: nil)
     item(criar_obra_de_tecido("corrida", client: client), materia_prima: criar_tecido(largura: "?", grupo: "Linho"))
     expect(described_class.call(pedido).map(&:tipo)).to eq(%i[sem_material zerado sem_largura])
+  end
+
+  # Dublagem 4/5: a construção that went to the trash or stopped serving
+  # (the pedido's client changed) is the client's to swap; the dublado
+  # without a final price the factory's.
+  describe "the item's construção" do
+    let(:oxford) { material_de_dublagem("Oxford", preco: 20) }
+    let(:lona) { material_de_dublagem("Lona") }
+
+    def com_construcao(**atributos)
+      construcao = montar_construcao([ oxford, "trama" ], [ lona, nil, { do_cliente: atributos[:client].present? } ], **atributos).tap(&:save!)
+      item(criar_obra_de_tecido("corrida", client: client), materia_prima: oxford).tap { |um| um.update!(construcao: construcao) }
+      construcao
+    end
+
+    it "says a construção in the trash or of another client no longer serves" do
+      com_construcao(preco_final: 40).excluir!(changed_by: "spec")
+      com_construcao(client: client, preco_final: 40)
+      pedido.update!(client: create(:client))
+
+      descricoes = described_class.call(pedido).select { |b| b.tipo == :construcao_nao_serve }.map(&:descricao)
+      expect(descricoes).to match([ /que não serve: está na lixeira; escolha outra/, /que não serve: é de outro cliente; escolha outra/ ])
+    end
+
+    it "asks the factory for the final price of a construção without one" do
+      construcao = com_construcao
+
+      bloqueio = described_class.call(pedido).find { |b| b.tipo == :sem_preco_dublado }
+      expect([ bloqueio.descricao, bloqueio.construcao ]).to match([ end_with(": a construção #{construcao.nome} sem preço final"), construcao ])
+      expect(PedidoBloqueiosService::DA_FABRICA).to include(:sem_preco_dublado)
+    end
   end
 
   # Decided 16/10/2026: a wider paper may exist — only a warning on the page.

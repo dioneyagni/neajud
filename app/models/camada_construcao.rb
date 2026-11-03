@@ -20,6 +20,13 @@ class CamadaConstrucao < ApplicationRecord
 
   def superficie? = posicao == 1
 
+  # The network's ligação between this layer and the material under it —
+  # the superfície's lado first; nil when they don't dub.
+  # Usage: superficie.ligacao_com(lona).dubla # => "antes"
+  def ligacao_com(material_abaixo)
+    RedeDeDublagens.ligacao(materia_prima.grupo_material.nome, material_abaixo.grupo_material.nome, lado: (lado if superficie?))
+  end
+
   # What makes two layers the same, for the duplicate construção check.
   def identidade = [ posicao, materia_prima_id, do_cliente, lado, ligante_id ]
 end
