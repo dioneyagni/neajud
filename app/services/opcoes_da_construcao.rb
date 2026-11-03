@@ -24,13 +24,10 @@ class OpcoesDaConstrucao
     tecidos.select { |material| material.grupo_material.base && ligacao(camada_acima, material) }
   end
 
-  # The network's ligação between a layer and the material under it — the
-  # superfície's lado first; nil when they don't dub.
+  # The network's ligação between a layer and the material under it
+  # (CamadaConstrucao#ligacao_com); nil when they don't dub.
   # Usage: opcoes.ligacao(superficie, lona).dubla # => "antes"
-  def ligacao(camada_acima, material_abaixo)
-    lado = camada_acima.lado if camada_acima.superficie?
-    RedeDeDublagens.ligacao(camada_acima.materia_prima.grupo_material.nome, material_abaixo.grupo_material.nome, lado: lado)
-  end
+  def ligacao(camada_acima, material_abaixo) = camada_acima.ligacao_com(material_abaixo)
 
   # The registered ligantes that serve a ligação in a situação (nil = normal).
   # Usage: opcoes.ligantes(ligacao, "vai_frequencia").map(&:micras) # => [35]

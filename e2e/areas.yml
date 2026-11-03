@@ -172,11 +172,12 @@ areas:
       - "app/controllers/precos_da_etiqueta_controller.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   tecido:
-    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido]
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido, construcoes]
     arquivos:
       - "app/javascript/controllers/repetir_metros_controller.js"
       - "app/views/pedidos/_amostra_da_arte.html.erb"
       - "**/*tecido*"
+      - "app/models/concerns/construcao_do_item.rb"
       - "**/*tecido*/**/*"
       - "app/services/dono_do_tecido.rb"
       - "app/services/{compactacao_de_arquivo,bloco_photoshop_do_tiff,copia_da_versao,bloqueios_do_cliente_do_pedido,busca_de_obras}.rb"

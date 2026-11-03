@@ -25,15 +25,19 @@
 #   # => ["Língua 33-34 (33×4, 34×2) sem arquivo de produção na arte 001-TNS · 20 · Bluey"]
 class PedidoBloqueiosService
   # tamanho: the DXF size missing a file (what "Enviar arquivo" fills);
-  # lado: the side missing, for :sem_lado; molde: where :sem_preco is settled.
-  Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, :lado, :molde, keyword_init: true)
+  # lado: the side missing, for :sem_lado; molde: where :sem_preco is settled;
+  # construcao: where :sem_preco_dublado is (Dublagem 4/5).
+  Bloqueio = Struct.new(:tipo, :descricao, :arquivo, :tamanho, :lado, :molde, :construcao, keyword_init: true)
   # What only the factory settles (Etapa 2.8, 5/5): a cliente final sees them
   # as "em análise"; the rest (quantity 0, a file or side missing) are his.
   # Etapa 2.6b1: a DTF's own (PedidoBloqueiosDtf) — a size without a file is his.
   # Etapa 2.7a: a tecido's (PedidoBloqueiosTecido) — the material and the
   # meters are his, the width the team's; 2.7b: below the minimum is his
-  # (he may raise the meters), the prices the factory's.
-  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente arte_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf sem_largura sem_preco_impressao sem_preco_tecido].freeze
+  # (he may raise the meters), the prices the factory's. Dublagem 4/5: a
+  # construção that no longer serves is his (he picks another), the
+  # dublado's price the factory's.
+  DA_FABRICA = %i[arquivo_excluido arte_sem_cliente sem_corte sem_preco pedido_sem_cliente arte_de_outro_cliente sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada sem_preco_dtf sem_largura sem_preco_impressao sem_preco_tecido
+                  sem_preco_dublado].freeze
 
   def self.call(pedido)
     new(pedido).call

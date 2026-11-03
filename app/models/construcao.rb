@@ -21,8 +21,17 @@ class Construcao < ApplicationRecord
   belongs_to :client, optional: true
   belongs_to :materia_prima, autosave: true
   has_many :camadas, -> { order(:posicao) }, class_name: "CamadaConstrucao", inverse_of: :construcao, dependent: :destroy, autosave: true
+  # Dublagem 4/5: the pedido items dubbed into it.
+  has_many :itens_pedido, class_name: "ItemPedido", inverse_of: :construcao, dependent: nil
   atribui_por_uuid :client
   recusa_excluido :client
+
+  # The construções whose superfície (the top layer) is the material.
+  # Usage: Construcao.sobre(oxford).do_cliente_ou_da_empresa(pedido.client)
+  scope :sobre, ->(material) { where(id: CamadaConstrucao.where(posicao: 1, materia_prima: material).select(:construcao_id)) }
+  # The empresa's and the client's (nil = the empresa's only): what a
+  # pedido of that client may be dubbed into (4/5, decision 3).
+  scope :do_cliente_ou_da_empresa, ->(client) { where(client_id: [ nil, client&.id ].uniq) }
 
   normalizes :situacao, with: ->(situacao) { situacao.presence }
 
@@ -51,10 +60,18 @@ class Construcao < ApplicationRecord
   # Usage: construcao.ligacoes # => 2 (three layers)
   def ligacoes = [ camadas_em_ordem.size - 1, 0 ].max
 
-  # Its dublado already counts somewhere: the layers stay as they are.
-  def em_uso? = persisted? && materia_prima.persisted? && materia_prima.em_uso?
+  # Its dublado already counts somewhere — a stock movement, a pedido item
+  # on the dublado or (4/5) one dubbed into it: the layers stay as they are.
+  def em_uso? = persisted? && (itens_pedido.exists? || (materia_prima.persisted? && materia_prima.em_uso?))
 
   def situacao_rotulo = situacao && RedeDeDublagens.situacoes[situacao]
+
+  # When each ligação dubs, against the estampa (D8: "antes" or "depois"),
+  # each once, top to bottom; a pair the network lost is left out.
+  # Usage: construcao.momentos_da_dublagem # => ["antes", "depois"]
+  def momentos_da_dublagem
+    camadas_em_ordem.select(&:materia_prima).each_cons(2).filter_map { |acima, abaixo| acima.ligacao_com(abaixo.materia_prima)&.dubla }.uniq
+  end
 
   # Never the client's name: the dublado is a material, and every client
   # reads the list of materials (Visibilidade::COMUNS).
@@ -89,7 +106,7 @@ class Construcao < ApplicationRecord
   end
 
   def composicao_fixa_em_uso
-    return unless MateriaPrima.find(materia_prima_id_in_database).em_uso?
+    return unless itens_pedido.exists? || MateriaPrima.find(materia_prima_id_in_database).em_uso?
     return unless will_save_change_to_situacao? || will_save_change_to_client_id? || camadas.any? { |camada| camada.new_record? || camada.marked_for_destruction? || camada.changed? }
 
     errors.add(:base, "#{nome_in_database} já está em uso (estoque ou pedido): só o preço final muda; para outra composição, crie outra construção")

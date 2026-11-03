@@ -29,7 +29,10 @@ class Visibilidade
     "AprovacaoArte" => ->(c) { AprovacaoArte.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
     "SolicitacaoAprovacao" => ->(c) { SolicitacaoAprovacao.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
     "AlteracaoArte" => ->(c) { AlteracaoArte.where(arte_id: DO_CLIENTE["Arte"].call(c).select(:id)) },
-    "FaixaDePreco" => ->(c) { FaixaDePreco.where(molde_id: Molde.where(client_id: c.id)) }
+    "FaixaDePreco" => ->(c) { FaixaDePreco.where(molde_id: Molde.where(client_id: c.id)) },
+    # Dublagem 4/5: he picks his item's construção among the empresa's and
+    # his own; the layers stay the team's (they show the ligantes).
+    "Construcao" => ->(c) { Construcao.do_cliente_ou_da_empresa(c) }
   }.freeze
   # The coleção geral (Etapa 2.5a, decided 12/10/2026): works "no catálogo"
   # open to every client — to read only. Writes never see them (escopo's
@@ -42,8 +45,8 @@ class Visibilidade
   # The same for everyone: the official catalog and the empresa's lists.
   COMUNS = %w[Produto Modelo Peca MateriaPrima GrupoMaterial CorMaterial].freeze
   # The team's own business: a cliente final sees none of it.
-  # Dublagem 3/5: the construções show the ligantes, the factory's only.
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa Construcao CamadaConstrucao].freeze
+  # Dublagem 3/5: a construção's layers show the ligantes, the factory's only.
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

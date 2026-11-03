@@ -42,6 +42,37 @@ module PedidosTecidoHelper
     metros(saldos.por_cliente(material)[pedido.client] || 0)
   end
 
+  # Dublagem 4/5: the construções an item may be dubbed into — active, on
+  # its superfície, the empresa's or the pedido's client's (Visibilidade
+  # leaves a cliente final only those) — plus the one it has, which stays
+  # listed even trashed (its pendência says so). Empty without a superfície.
+  # Usage: construcoes_do_item(item).map(&:nome) # => ["Oxford Preto / Lona Branco-1.40 m"]
+  def construcoes_do_item(item)
+    return [] unless item.materia_prima
+
+    opcoes = visiveis(Construcao).ativos.sobre(item.materia_prima).do_cliente_ou_da_empresa(item.pedido.client).includes(:client, :materia_prima).order(:nome).to_a
+    item.construcao && opcoes.exclude?(item.construcao) ? opcoes + [ item.construcao ] : opcoes
+  end
+
+  # The dublado's balance in its construção's owner's stock: the client's,
+  # or the empresa's — never the empresa's to a cliente final.
+  # Usage: saldo_da_construcao(construcao, saldos) # => "12 m"
+  def saldo_da_construcao(construcao, saldos)
+    return metros(saldos.por_cliente(construcao.materia_prima)[construcao.client] || 0) if construcao.client
+
+    metros(saldos.empresa(construcao.materia_prima)) unless cliente_final?
+  end
+
+  # When the item is dubbed against its estampa (D8), from the network; nil
+  # when the network says nothing. The team's: it comes from the ligantes.
+  # Usage: momento_da_dublagem(construcao) # => "dubla antes da estampa"
+  def momento_da_dublagem(construcao)
+    momentos = construcao.momentos_da_dublagem
+    return if momentos.empty?
+
+    momentos.one? ? "dubla #{momentos.first} da estampa" : "dubla parte antes, parte depois da estampa"
+  end
+
   # The warning of a price below today's (20/10/2026), for the team that sees
   # prices — never a cliente final; nil when none is.
   # Usage: aviso_de_preco_abaixo(item) # => "Impressão R$ 15,00/m — abaixo do valor de hoje (R$ 18,50/m)"

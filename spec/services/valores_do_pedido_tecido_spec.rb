@@ -1,5 +1,6 @@
 require "rails_helper"
 require_relative "../support/tecidos"
+require_relative "../support/construcoes"
 
 # Etapa 2.7b (decided 17/10/2026): a tecido pedido charges per item its meters
 # × the print per meter (edited > the client's agreed > the dono's) and, when
@@ -19,7 +20,7 @@ RSpec.describe ValoresDoPedidoTecido do
   it "charges the print only when the fabric is the client's" do
     item(10)
     valores = described_class.call(pedido)
-    expect([ valores.itens.first.cobrancas.map(&:descricao), valores.total, valores.tecido ]).to eq([ [ "Impressão" ], 150, nil ])
+    expect([ valores.itens.first.cobrancas.map(&:descricao), valores.total, valores.materiais ]).to eq([ [ "Impressão" ], 150, [] ])
   end
 
   it "charges the empresa's fabric at its material's price, and the client's agreed print over the dono's" do
@@ -27,7 +28,18 @@ RSpec.describe ValoresDoPedidoTecido do
     pedido.update!(dono_tecido: "empresa")
     um = item(2.5)
     valores = described_class.call(pedido)
-    expect([ valores.do_item(um).preco_por_metro, valores.do_item(um).subtotal, valores.impressao.subtotal, valores.tecido.subtotal ]).to eq([ 32, 80, 30, 50 ])
+    expect([ valores.do_item(um).preco_por_metro, valores.do_item(um).subtotal, valores.impressao.subtotal, valores.materiais.to_h.fetch("Tecido").subtotal ]).to eq([ 32, 80, 30, 50 ])
+  end
+
+  # Dublagem 4/5 (decision 4): the construção's final price already leaves
+  # the client's layers out, so its dublado is charged whoever owns the fabric.
+  it "charges an item with a construção its dublado at the final price, even with the client's fabric" do
+    superficie = material_de_dublagem("Oxford", preco: 20)
+    construcao = montar_construcao([ superficie, "trama" ], [ material_de_dublagem("Lona") ], preco_final: 46).tap(&:save!)
+    dublado = item(10).tap { |um| um.update!(materia_prima: superficie, construcao: construcao) }
+    valores = described_class.call(pedido)
+    expect([ valores.do_item(dublado).cobrancas.map(&:descricao), valores.do_item(dublado).subtotal, valores.materiais.map(&:first) ])
+      .to eq([ [ "Impressão", "Material dublado" ], 610, [ "Material dublado" ] ])
   end
 
   it "measures the discount of the edited prices and lists what has no price" do

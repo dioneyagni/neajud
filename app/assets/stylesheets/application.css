@@ -3835,6 +3835,11 @@ li.aprovacao--cancelada {
   color: #6b5200;
 }
 
+/* Dublagem 4/5: when the item's construção dubs against the estampa (the team's). */
+.pedido-tecido-dublagem {
+  margin: 0.4rem 0;
+}
+
 /* Etapa 2.7b: an item below the minimum, and its prices. */
 .pedido-tecido-minimo {
   display: flex;

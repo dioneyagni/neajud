@@ -1,10 +1,11 @@
 <%# What a tecido pedido charges (Etapa 2.7b, decided 17/10/2026;
     ValoresDoPedidoTecido): the print of every item summed and, when the
-    fabric is the empresa's, the fabric; the total, and the discount for the
+    fabric is the empresa's, the fabric — and the dublados of the items
+    with a construção (Dublagem 4/5); the total, and the discount for the
     team. Each item's prices sit on the item (edited there). valores comes
     from the pedido page. %>
 <% equipe = !cliente_final? && pode_acao?(:ver_valores) %>
-<% linhas = [ [ "Impressão", valores.impressao ], [ "Tecido", valores.tecido ] ].select(&:last) %>
+<% linhas = [ [ "Impressão", valores.impressao ], *valores.materiais ] %>
 <section class="pedido-valores pedido-valores-tecido" id="valores-tecido">
   <h3>Valores do pedido</h3>
   <%# 20/10/2026: a repeated draft may bring prices below today's. %>
@@ -12,7 +13,7 @@
   <% if abaixo.positive? %>
     <p class="tecido-preco-abaixo" data-precos-abaixo role="status"><%= abaixo == 1 ? "1 item com preço abaixo do valor de hoje" : "#{abaixo} itens com preço abaixo do valor de hoje" %>: confira antes de confirmar.</p>
   <% end %>
-  <p class="pedido-valores-cobranca"><%= DonoDoTecido.do_pedido(pedido).empresa? ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %></p>
+  <p class="pedido-valores-cobranca"><%= DonoDoTecido.do_pedido(pedido).empresa? ? "Impressão e tecido da empresa, por metro" : "Impressão por metro · tecido do cliente" %><%= " · dublado pelo preço da construção" if valores.itens.any? { |valor| valor.item.construcao } %></p>
   <div class="pedido-dtf-tabela-wrap">
     <table class="pedido-dtf-tabela pedido-valores-tabela pedido-dtf-blocos">
       <thead><tr><th>Cobrança</th><th>Metros</th><% if equipe %><th>Partida</th><% end %><th>Subtotal</th></tr></thead>

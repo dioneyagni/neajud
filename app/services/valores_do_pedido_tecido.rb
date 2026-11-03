@@ -1,6 +1,7 @@
 # What a tecido pedido charges (Etapa 2.7b, decided 17/10/2026): per item,
 # its meters × the print per meter and, when the fabric is the empresa's,
-# × the fabric per meter (PrecosDoItemTecido). Each keeps its starting price
+# × the fabric per meter (PrecosDoItemTecido) — with a construção, its
+# dublado at the final price (Dublagem 4/5). Each keeps its starting price
 # beside, so the discount is measured; a missing price is a falta (the
 # pendência :sem_preco_tecido). Confirming writes them (gravar!).
 #
@@ -36,7 +37,9 @@ class ValoresDoPedidoTecido
 
     # Each kind summed, the rows of "Valores do pedido".
     def impressao = somar(itens.map(&:impressao))
-    def tecido = itens.any?(&:tecido) ? somar(itens.filter_map(&:tecido)) : nil
+    # The fabric summed by what it is: "Tecido" and, with construções,
+    # "Material dublado" (Dublagem 4/5). Usage: valores.materiais # => [["Tecido", soma]]
+    def materiais = itens.filter_map(&:tecido).group_by(&:descricao).map { |descricao, partes| [ descricao, somar(partes) ] }
 
     def total
       cobrancas.filter_map(&:subtotal).sum
@@ -59,7 +62,7 @@ class ValoresDoPedidoTecido
   end
 
   def self.call(pedido)
-    itens = pedido.itens_pedido.includes(:arte, :materia_prima).order(:id).map { |item| do_item(item) }
+    itens = pedido.itens_pedido.includes(:arte, :materia_prima, :construcao).order(:id).map { |item| do_item(item) }
     Valores.new(itens: itens)
   end
 
@@ -72,7 +75,7 @@ class ValoresDoPedidoTecido
     metros = item.metros.to_d
     impressao = Cobranca.new(descricao: "Impressão", linha: item, quantidade: metros,
                              preco_partida: item.preco_impressao_de_partida, preco: item.preco_impressao_efetivo)
-    tecido = item.cobra_tecido? ? Cobranca.new(descricao: "Tecido", linha: item, quantidade: metros,
+    tecido = item.cobra_tecido? ? Cobranca.new(descricao: item.descricao_do_tecido, linha: item, quantidade: metros,
                                                preco_partida: item.preco_tecido_de_partida, preco: item.preco_tecido_efetivo) : nil
     Item.new(item: item, impressao: impressao, tecido: tecido)
   end

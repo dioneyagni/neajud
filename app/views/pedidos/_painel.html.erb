@@ -113,6 +113,9 @@
               <% elsif bloqueio.tipo == :sem_preco_impressao && dono? %>
                 <%# Etapa 2.7b: the dono's print price per meter. %>
                 <%= link_to "Parâmetros", edit_parametros_path(anchor: "parametros-tecido"), class: "pedido-pendencias-item" %>
+              <% elsif bloqueio.tipo == :sem_preco_dublado && !cliente_final? && pode?(:estoque, :editar) %>
+                <%# Dublagem 4/5: the dublado's price is its construção's final one. %>
+                <%= link_to "abrir construção", edit_construcao_path(bloqueio.construcao), class: "pedido-pendencias-item" %>
               <% elsif bloqueio.tipo == :sem_preco_tecido && pode?(:estoque, :editar) %>
                 <%# Etapa 2.7b: the fabric's price is its material's. %>
                 <%= link_to "Materiais", materiais_path, class: "pedido-pendencias-item" %>

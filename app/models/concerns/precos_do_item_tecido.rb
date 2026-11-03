@@ -36,10 +36,15 @@ module PrecosDoItemTecido
   end
 
   # Only the empresa's fabric is charged (decided in 2.3, 09/10/2026); whose
-  # it is cascades cliente → pedido since 2.3d1 (DonoDoTecido).
+  # it is cascades cliente → pedido since 2.3d1 (DonoDoTecido). Dublagem 4/5
+  # (decision 4): with a construção its dublado is always charged — its
+  # final price already leaves the client's layers out.
   def cobra_tecido?
-    DonoDoTecido.do_item(self).empresa?
+    construcao.present? || DonoDoTecido.do_item(self).empresa?
   end
+
+  # What the fabric line is called: the dublado's when there is a construção.
+  def descricao_do_tecido = construcao ? "Material dublado" : "Tecido"
 
   def preco_tecido_de_partida
     return preco_tecido_metro_partida if precos_gravados?
@@ -47,8 +52,11 @@ module PrecosDoItemTecido
     preco_tecido_de_hoje
   end
 
-  # The fabric's price today (nil when the client's fabric isn't charged).
+  # The fabric's price today (nil when the client's fabric isn't charged):
+  # the construção's final price, else the material's.
   def preco_tecido_de_hoje
+    return construcao.preco_final if construcao
+
     cobra_tecido? ? materia_prima&.preco_metro : nil
   end
 
@@ -73,7 +81,7 @@ module PrecosDoItemTecido
   # Usage: item.precos_abaixo_do_valor # => { "Impressão" => [15.0, 18.5] } (charged, today's)
   def precos_abaixo_do_valor
     { "Impressão" => [ preco_impressao_efetivo, preco_impressao_de_hoje ],
-      "Tecido" => (cobra_tecido? ? [ preco_tecido_efetivo, preco_tecido_de_hoje ] : nil) }
+      descricao_do_tecido => (cobra_tecido? ? [ preco_tecido_efetivo, preco_tecido_de_hoje ] : nil) }
       .compact.select { |_, (preco, hoje)| preco && hoje && preco < hoje }
   end
 

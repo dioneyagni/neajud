@@ -2,8 +2,15 @@
 // The team opens it from Materiais, picks the superfície, then only the bases
 // the network lets dub under it and only the ligantes it allows in the
 // situação; the suggested price adds the empresa's layers, the ligante and
-// the service per ligação; saved, it is a "Dublado" material.
+// the service per ligação; saved, it is a "Dublado" material. Dublagem 4/5:
+// a corrida printed on the Oxford is dubbed into it from the pedido's item,
+// its dublado charged at the final price.
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { execFileSync } = require("child_process");
 const { BASE_URL, runSpec } = require("./support/runner");
+const { uploadFileAndWait } = require("./support/upload");
 const { waitForText } = require("./support/wait");
 
 runSpec("Construções E2E Tests", async ({ page, test }) => {
@@ -83,6 +90,7 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
       ids.cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco").id;
     }
     const oxford = await grupo("Oxford");
+    ids.grupoOxford = oxford;
     const lona = await grupo("Lona", { base: true }, ["gramatura"]);
     const filme = await grupo("Filme", {}, ["micras"]);
     const pu = await grupo("Filme PU", {}, ["micras"]);
@@ -144,9 +152,58 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     if (!(await material.innerText()).includes("Dublado · $46.00/m")) throw new Error(`Materiais shows ${await material.innerText()}`);
     await material.locator("a.material-construcao-link").click();
     await page.locator("#construcao-montagem").waitFor();
+    ids.construcao = page.url();
+  });
+
+  // Each change of the item's form saves and Turbo renders the pedido again,
+  // swapping the body: mark the old one and wait for the new.
+  async function salvarItem(acao) {
+    await page.evaluate(() => { document.body.dataset.antigo = "1"; });
+    await acao();
+    await page.locator("body:not([data-antigo])").waitFor({ state: "attached" });
+  }
+
+  await test("Dubs a corrida's item into the construção: the dublado at its final price", async () => {
+    await postar("/parametros", { _method: "patch", "empresa[preco_impressao_metro_tecido]": "15" });
+    const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "construcoes-"));
+    const corrida = path.join(pasta, `corrida${U}.tif`);
+    execFileSync("convert", ["-size", "60x60", "xc:#3a6", corrida]);
+    await page.goto(`${BASE_URL}/arquivos`);
+    await page.selectOption('[data-upload-target="tipo"]', "corrida");
+    await uploadFileAndWait(page, corrida);
+    fs.rmSync(pasta, { recursive: true, force: true });
+    await page.locator(".stamp-card", { hasText: `corrida${U}` }).locator(".btn-add-to-order").click();
+    const modal = page.locator("dialog.add-to-order-dialog[open]");
+    await modal.locator(".add-to-order-metros").fill("2");
+    const [resposta] = await Promise.all([page.waitForResponse((r) => r.url().includes("/pedidos/adicionar_item")), modal.locator('button:has-text("Adicionar")').click()]);
+    ids.pedido = (await resposta.json()).pedido_uuid;
+
+    await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    const oxford = await page.$$eval(".pedido-tecido-material option", (os, nome) => os.find((o) => o.textContent.startsWith(nome))?.value, nomes.oxford);
+    await salvarItem(() => page.selectOption(".pedido-tecido-material", oxford));
+    const nome = "Oxford Branco / Lona Branco-1.40 m";
+    const construcao = await page.$$eval(".pedido-tecido-construcao option", (os, nome) => os.find((o) => o.textContent.startsWith(nome))?.value, nome);
+    if (!construcao) throw new Error(`The item doesn't offer ${nome}: ${await opcoes(".pedido-tecido-construcao")}`);
+    await salvarItem(() => page.selectOption(".pedido-tecido-construcao", construcao));
+
+    const partes = await page.locator(".pedido-tecido-preco-linha").evaluateAll((linhas) => linhas.map((l) => l.dataset.parte));
+    if (partes.join("|") !== "Impressão|Material dublado") throw new Error(`The item charges ${partes}`);
+    const total = (await page.locator("#valores-tecido .pedido-valores-total").innerText()).trim();
+    if (total !== "R$ 122,00") throw new Error(`Total ${total}; expected 2 m × (Impressão 15 + dublado 46)`);
+    if (!(await page.locator("[data-dublagem]").innerText()).includes("dubla antes da estampa")) throw new Error("No 'dubla antes'");
+  });
+
+  await test("Another superfície lets go of the construção, saying so", async () => {
+    const outra = `${U + 1}g`;
+    const outro = await material(ids.grupoOxford, `Oxford-Branco-1.40 m-${outra}`, { "movimento_estoque[gramatura]": outra }, "tecido", "20", outra);
+    await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    await salvarItem(() => page.selectOption(".pedido-tecido-material", outro));
+    await page.locator(".notice, p.notice", { hasText: "saiu do item" }).first().waitFor();
+    if (await page.locator(".pedido-tecido-construcao option:checked").innerText() !== "— sem dublagem —") throw new Error("The construção stayed");
   });
 
   await test("Goes to the trash from its page", async () => {
+    await page.goto(ids.construcao);
     // The confirm is accepted by the runner (e2e/support/runner.js).
     await page.locator(".construcao-excluir").click();
     await waitForText(page, "foi para a lixeira.");

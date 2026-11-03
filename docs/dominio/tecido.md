@@ -111,6 +111,38 @@ Decided 19/10/2026:
   includes it too); the files need `baixar_producao`.
 - E2E: `e2e/producao-tecido.spec.js`.
 
+## The item's construção (Dublagem 4/5)
+
+Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
+
+- **The estampa stays required** (decision 1): an item without arte is the
+  sale of fabric, postponed with it.
+- **The item keeps its superfície** (`materia_prima`, where the arte is
+  printed) and may name a construção (`itens_pedido.construcao_id`,
+  `ConstrucaoDoItem`, decision 2): one whose superfície (layer 1) is that
+  material, active, **the empresa's or the pedido's client's** (decision 3;
+  `Construcao.sobre(material).do_cliente_ou_da_empresa(client)`). Another
+  client's or one on another superfície is refused; changing the superfície
+  lets go of a construção that no longer fits, and the notice says so. Its
+  width defaults to the dublado's (the narrowest layer).
+- **The cliente final picks it** on his draft, among the empresa's and his
+  own (`Visibilidade` `Construcao`); he never sees the layers or the ligantes.
+  The team sees, from the network, when it dubs against the estampa ("dubla
+  antes/depois da estampa", `Construcao#momentos_da_dublagem`).
+- **Its price** (decision 4): the fabric line becomes **"Material dublado"**,
+  charged **always** at the construção's final price — whoever owns the
+  pedido's fabric, since the final price already leaves the client's layers
+  out (`PrecosDoItemTecido#cobra_tecido?`, `#descricao_do_tecido`). The same
+  columns as the fabric's (`preco_tecido_metro` and its partida): edited on
+  the item, written on confirming, compared with today's final price.
+- **Pendências** (`PedidoBloqueiosTecido`): `:construcao_nao_serve` — in the
+  trash, or the pedido's client changed (the client's: he picks another);
+  `:sem_preco_dublado` — no final price (the factory's, linked to the
+  construção for the team).
+- Production is unchanged (the Impressão and the Calandra on the
+  superfície); the ordens de dublagem and "aguardando dublagem" are 5/5.
+- E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…").
+
 ## The tecido pedidos' list and "Repetir pedido"
 
 Decided 20/10/2026, adapting the layout of the cor lisa canvas ("Cartões de

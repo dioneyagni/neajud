@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_02_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -464,8 +464,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_02_120000) do
     t.datetime "minimo_aprovado_em"
     t.decimal "minimo_aprovado_metros", precision: 8, scale: 1
     t.string "dono_tecido"
+    t.integer "construcao_id"
     t.index ["arquivo_id"], name: "index_itens_pedido_on_arquivo_id"
     t.index ["arte_id"], name: "index_itens_pedido_on_arte_id"
+    t.index ["construcao_id"], name: "index_itens_pedido_on_construcao_id"
     t.index ["materia_prima_id"], name: "index_itens_pedido_on_materia_prima_id"
     t.index ["minimo_aprovado_por_id"], name: "index_itens_pedido_on_minimo_aprovado_por_id"
     t.index ["pedido_id"], name: "index_itens_pedido_on_pedido_id"
@@ -824,6 +826,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_02_120000) do
   add_foreign_key "item_pedido_pecas", "pecas"
   add_foreign_key "itens_pedido", "arquivos"
   add_foreign_key "itens_pedido", "artes"
+  add_foreign_key "itens_pedido", "construcoes"
   add_foreign_key "itens_pedido", "materia_primas"
   add_foreign_key "itens_pedido", "pedidos"
   add_foreign_key "itens_pedido", "users", column: "minimo_aprovado_por_id"
