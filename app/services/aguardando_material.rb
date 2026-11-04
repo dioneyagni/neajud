@@ -34,6 +34,12 @@ class AguardandoMaterial
     @faltas.map(&:pedido_id).uniq
   end
 
+  # Dublagem 5a: the materials some pedido waits for (the dublados among
+  # them make the dublagens em aberto).
+  def material_ids
+    @faltas.map(&:materia_prima).uniq
+  end
+
   def do_pedido(pedido)
     @faltas.select { |falta| falta.pedido_id == pedido.id }.map { |falta| completa(falta) }
   end

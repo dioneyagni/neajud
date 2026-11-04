@@ -1,3 +1,5 @@
+require_relative "tecidos"
+
 # Materials of the dublagem network for the construção's specs (Dublagem
 # 3/5): each group with the roles config/dublagens.yml expects, and a
 # construção built from layers.
@@ -24,6 +26,18 @@ module Construcoes
     camadas += bases.map { |material, ligante, dono| { materia_prima: material, ligante: ligante, do_cliente: dono&.fetch(:do_cliente, false) || false } }
     construcao.definir_camadas(camadas)
     construcao
+  end
+
+  # Dublagem 5a: a confirmed tecido pedido whose corrida is dubbed into the
+  # construção, its stock out taken (the dublado, from the construção's owner).
+  # Usage: pedido = pedido_dublado_confirmado(construcao, metros: 10)
+  def pedido_dublado_confirmado(construcao, metros: 10, client: construcao.client || create(:client))
+    pedido = create(:pedido, client: client, tipo: "tecido")
+    arquivo = criar_obra_de_tecido("corrida", client: client).arquivos.first
+    create(:item_pedido, pedido: pedido, arquivo: arquivo, materia_prima: construcao.superficie.materia_prima, construcao: construcao, metros: metros)
+    pedido.update!(status: "confirmado")
+    SaidaDoPedido.call(pedido)
+    pedido.reload
   end
 end
 

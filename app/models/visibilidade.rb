@@ -46,7 +46,9 @@ class Visibilidade
   COMUNS = %w[Produto Modelo Peca MateriaPrima GrupoMaterial CorMaterial].freeze
   # The team's own business: a cliente final sees none of it.
   # Dublagem 3/5: a construção's layers show the ligantes, the factory's only.
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao].freeze
+  # Dublagem 5a: the ordens de dublagem are the factory's (a cliente final
+  # sees "Aguardando: dublagem" on his pedido).
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

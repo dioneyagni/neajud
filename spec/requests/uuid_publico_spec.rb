@@ -31,6 +31,15 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       end
     end
 
+    # Dublagem 5a: an ordem de dublagem is marked done and cancelled by its uuid.
+    it "refuses an ordem de dublagem by integer id" do
+      ordem = OrdemDublagem.create!(construcao: montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("EVA"), nil ]).tap(&:save!), metros: 5)
+      patch "/dublagens/#{ordem.id}/cancelar"
+      expect([ response.status, ordem.reload.status ]).to eq([ 404, "gerada" ])
+      post "/dublagens", params: { construcao_uuid: ordem.construcao.id, metros: "5" }
+      expect([ response.status, OrdemDublagem.count ]).to eq([ 404, 1 ])
+    end
+
     it "refuses a tamanho download by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/download"

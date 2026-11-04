@@ -64,4 +64,15 @@ RSpec.describe ConstrucaoDoItem do
 
     expect(item.reload.motivo_da_construcao_que_nao_serve).to eq("é de outro cliente")
   end
+
+  # Dublagem 5a: dubbed before the estampa, production takes the dublado from
+  # the construção's owner; one dubbed after keeps the superfície (until 5b).
+  it "is produced on the dublado, the construção's owner's, when it dubs before the estampa" do
+    item.update!(construcao: construcao(client: client), dono_tecido: "empresa")
+    expect([ item.material_da_producao, item.dono_na_producao ]).to eq([ item.construcao.materia_prima, "cliente" ])
+
+    depois = montar_construcao([ oxford, "trama" ], [ material_de_dublagem("Espuma"), nil ]).tap(&:save!)
+    item.update!(construcao: depois)
+    expect([ item.material_da_producao, item.dono_na_producao ]).to eq([ oxford, "empresa" ])
+  end
 end

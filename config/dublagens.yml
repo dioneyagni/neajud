@@ -22,6 +22,9 @@
 #     a_confirmar: the fields guessed when the network was written
 #                (ligantes, dubla, situacoes, lado), marked on the page
 #
+# Every dubla (antes/depois) confirmed by the factory on 04/11/2026
+# (Dublagem 5a): no longer "a confirmar".
+#
 # Oxford–Cetim holds for the Cetim on either side (the rule doesn't change
 # with it), so it has no lado.
 situacoes:
@@ -35,7 +38,7 @@ ligacoes:
     situacoes:
       vai_frequencia: [{ grupo: Filme, micras: [35] }]
       tecido_molha: [{ grupo: Filme PU }]
-    a_confirmar: [dubla, situacoes]
+    a_confirmar: [situacoes]
 
   - par: [Oxford, Microfibra]
     ligantes: [{ grupo: Filme, micras: [25, 35] }]
@@ -43,7 +46,7 @@ ligacoes:
     situacoes:
       vai_frequencia: [{ grupo: Filme, micras: [35] }]
       tecido_molha: [{ grupo: Filme PU }]
-    a_confirmar: [dubla, situacoes]
+    a_confirmar: [situacoes]
 
   - par: [Oxford, Cetim]
     ligantes: [{ grupo: Filme, micras: [25, 35] }]
@@ -51,29 +54,29 @@ ligacoes:
     situacoes:
       vai_frequencia: [{ grupo: Filme, micras: [35] }]
       tecido_molha: [{ grupo: Filme PU }]
-    a_confirmar: [dubla, situacoes]
+    a_confirmar: [situacoes]
 
   - par: [Oxford, Lona]
     ligantes: [{ grupo: Filme, micras: { min: 35 } }]
     dubla: antes
     situacoes:
       tecido_molha: [{ grupo: Filme PU }]
-    a_confirmar: [dubla, situacoes]
+    a_confirmar: [situacoes]
 
   - par: [Oxford, EVA]
     ligantes: [{ grupo: Filme, micras: [25] }]
     dubla: antes
     situacoes:
       tecido_molha: [{ grupo: Filme PU }]
-    a_confirmar: [dubla, situacoes]
+    a_confirmar: [situacoes]
 
   # The espuma goes on cola, with filme exceptions not told yet.
   - par: [Oxford, Espuma]
     ligantes: [{ grupo: Cola }]
     dubla: depois
-    a_confirmar: [ligantes, dubla]
+    a_confirmar: [ligantes]
 
   - par: [Espuma, Helanca]
     ligantes: [{ grupo: Cola }]
     dubla: depois
-    a_confirmar: [ligantes, dubla]
+    a_confirmar: [ligantes]

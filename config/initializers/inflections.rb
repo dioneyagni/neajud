@@ -8,6 +8,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "sequencia", "sequencias"
   # Dublagem 3/5.
   inflect.irregular "construcao", "construcoes"
+  # Dublagem 5a: /dublagens, the ordens de dublagem.
+  inflect.irregular "dublagem", "dublagens"
 end
 
 # These inflection rules are supported but not enabled by default:

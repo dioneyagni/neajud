@@ -5,10 +5,12 @@
 # serve (decision 3); changing the superfície lets go of one that no longer
 # fits, and construcao_solta? says so for the message. Its dublado is
 # charged at the construção's final price whoever owns the fabric (decision
-# 4, PrecosDoItemTecido).
+# 4, PrecosDoItemTecido). Dublagem 5a: when it dubs wholly before the
+# estampa, production takes and prints on the dublado, from the stock.
 #
 # Usage: item.update(construcao_uuid: construcao.uuid)
 #        item.update(materia_prima: outro_tecido); item.construcao_solta? # => true
+#        item.material_da_producao # => the dublado, or the superfície
 module ConstrucaoDoItem
   extend ActiveSupport::Concern
 
@@ -34,6 +36,23 @@ module ConstrucaoDoItem
     return "é de outro cliente" unless construcao.client_id.nil? || construcao.client_id == pedido&.client_id
 
     nil
+  end
+
+  # Dublagem 5a: the dublado comes from the stock — made by an ordem de
+  # dublagem — when every ligação dubs before the estampa; one dubbed after
+  # keeps the superfície until 5b.
+  def dublado_do_estoque? = construcao.present? && construcao.dubla_antes?
+
+  # What the stock out and the Calandra take: the dublado, or the superfície.
+  def material_da_producao = dublado_do_estoque? ? construcao.materia_prima : materia_prima
+
+  # Whose that material is: the construção's owner for the dublado (a
+  # client's construção is the pedido's client's), else the fabric's
+  # (DonoDoTecido). Usage: item.dono_na_producao # => "empresa" or "cliente"
+  def dono_na_producao
+    return DonoDoTecido.do_item(self).dono unless dublado_do_estoque?
+
+    construcao.client_id ? "cliente" : "empresa"
   end
 
   private

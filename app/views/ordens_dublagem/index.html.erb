@@ -1,0 +1,94 @@
+<%# The Dublagens page (Dublagem 5a, decided 03-04/11/2026): em aberto —
+    what confirmed pedidos miss of each dublado made for the stock, per
+    construção and owner, less what is already generated —, then the ordens
+    generated (mark done with the real meters, or cancel), done and
+    cancelled. A missing component is a warning, never a block (4a). %>
+<% opera = pode_acao?(:atualizar_producao) %>
+<div class="grupos-pagina dublagens-pagina">
+  <div>
+    <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › Dublagens</p>
+    <h2>Dublagens</h2>
+  </div>
+  <p class="construcoes-acoes">
+    <%= link_to "Construções", construcoes_path, class: "rede-link" %>
+    <%= link_to "Rede de dublagens", rede_de_dublagens_path, class: "rede-link" %>
+  </p>
+
+  <section class="dublagens-secao" id="dublagens-em-aberto">
+    <h3>Em aberto</h3>
+    <% if @em_aberto.empty? %>
+      <p class="dublagens-vazio">Nenhum pedido confirmado espera por dublado. Um item dublado antes da estampa tira o dublado do estoque na confirmação; o que faltar aparece aqui.</p>
+    <% else %>
+      <% @em_aberto.each do |linha| %>
+        <article class="dublagem-cartao" data-dublagem-aberta="<%= linha.construcao.nome %>" data-construcao="<%= linha.construcao.uuid %>">
+          <div class="dublagem-cabeca">
+            <strong><%= linha.construcao.nome %></strong>
+            <span class="rede-chip"><%= linha.client&.name || "Empresa" %></span>
+          </div>
+          <p class="dublagem-metros">Faltam <strong data-falta><%= metros(linha.metros) %></strong><% if linha.gerados.positive? %> · <%= metros(linha.gerados) %> já em ordem<% end %></p>
+          <p class="dublagem-pedidos">Pedidos: <%= safe_join(linha.pedido_ids.filter_map { |id| @pedidos[id] }.map { |pedido| link_to("##{pedido.uuid.first(8)}", resumo_pedido_path(pedido)) }, ", ") %></p>
+          <% if (falta = falta_de_componentes(linha.construcao, linha.metros, @saldos)) %><p class="dublagem-aviso" data-falta-componente role="status"><%= falta %></p><% end %>
+          <% if opera %>
+            <%= form_with url: dublagens_path, method: :post, class: "dublagem-form" do %>
+              <%= hidden_field_tag :construcao_uuid, linha.construcao.uuid %>
+              <label>Metros <%= text_field_tag :metros, number_with_precision(linha.metros, precision: 2, separator: ",", strip_insignificant_zeros: true), class: "construcao-campo dublagem-metros-campo", inputmode: "decimal" %></label>
+              <%= submit_tag "Gerar ordem", class: "btn btn-primary" %>
+            <% end %>
+          <% end %>
+        </article>
+      <% end %>
+    <% end %>
+  </section>
+
+  <section class="dublagens-secao" id="dublagens-geradas">
+    <h3>Geradas</h3>
+    <% if @geradas.empty? %>
+      <p class="dublagens-vazio">Nenhuma ordem na fila.</p>
+    <% else %>
+      <% @geradas.each do |ordem| %>
+        <article class="dublagem-cartao" data-ordem="<%= ordem.uuid %>" data-construcao="<%= ordem.construcao.uuid %>">
+          <div class="dublagem-cabeca">
+            <strong>#<%= ordem.uuid.first(8) %> · <%= ordem.construcao.nome %></strong>
+            <span class="rede-chip"><%= ordem.client&.name || "Empresa" %></span>
+          </div>
+          <p class="dublagem-metros"><strong><%= metros(ordem.metros) %></strong> · gerada <%= quem_e_quando(ordem.gerada_por, ordem.created_at) %></p>
+          <% if (falta = falta_de_componentes(ordem.construcao, ordem.metros, @saldos)) %><p class="dublagem-aviso" data-falta-componente role="status"><%= falta %></p><% end %>
+          <% if opera %>
+            <div class="dublagem-acoes">
+              <%= form_with url: feita_dublagem_path(ordem), method: :patch, class: "dublagem-form" do %>
+                <label>Metros feitos <%= text_field_tag :metros, number_with_precision(ordem.metros, precision: 2, separator: ",", strip_insignificant_zeros: true), class: "construcao-campo dublagem-metros-campo", inputmode: "decimal" %></label>
+                <%= submit_tag "Marcar feita", class: "btn btn-primary" %>
+              <% end %>
+              <%= button_to "Cancelar", cancelar_dublagem_path(ordem), method: :patch, class: "btn btn-secondary dublagem-cancelar",
+                    form: { data: { turbo_confirm: "Cancelar a ordem ##{ordem.uuid.first(8)}? O estoque não muda." } } %>
+            </div>
+          <% end %>
+        </article>
+      <% end %>
+    <% end %>
+  </section>
+
+  <section class="dublagens-secao" id="dublagens-feitas">
+    <h3>Feitas</h3>
+    <% if @feitas.empty? %>
+      <p class="dublagens-vazio">Nenhuma ordem feita ainda.</p>
+    <% else %>
+      <ul class="dublagens-lista">
+        <% @feitas.each do |ordem| %>
+          <li data-ordem="<%= ordem.uuid %>">#<%= ordem.uuid.first(8) %> · <%= ordem.construcao.nome %> (<%= ordem.client&.name || "Empresa" %>) · <strong><%= metros(ordem.metros_feitos) %></strong> de <%= metros(ordem.metros) %> · <%= quem_e_quando(ordem.feita_por, ordem.feita_em) %></li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
+
+  <% if @canceladas.any? %>
+    <section class="dublagens-secao" id="dublagens-canceladas">
+      <h3>Canceladas</h3>
+      <ul class="dublagens-lista">
+        <% @canceladas.each do |ordem| %>
+          <li data-ordem="<%= ordem.uuid %>">#<%= ordem.uuid.first(8) %> · <%= ordem.construcao.nome %> (<%= ordem.client&.name || "Empresa" %>) · <%= metros(ordem.metros) %> · <%= quem_e_quando(ordem.cancelada_por, ordem.cancelada_em) %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+</div>

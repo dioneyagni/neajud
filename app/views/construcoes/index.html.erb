@@ -8,6 +8,7 @@
   <p class="construcoes-acoes">
     <% if pode?(:estoque, :editar) %><%= link_to "+ Nova construção", new_construcao_path, class: "btn btn-primary" %><% end %>
     <%= link_to "Rede de dublagens", rede_de_dublagens_path, class: "rede-link" %>
+    <%= link_to "Dublagens", dublagens_path, class: "rede-link" %>
   </p>
 
   <% if @construcoes.empty? %>

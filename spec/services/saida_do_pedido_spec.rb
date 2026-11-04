@@ -1,5 +1,6 @@
 require "rails_helper"
 require_relative "../support/producao_tecido"
+require_relative "../support/construcoes"
 
 # Etapa 2.3d2 (decided 19/10/2026): confirming takes the expected meters
 # from the stock, one out per material × owner, pointing at the pedido; what
@@ -74,6 +75,17 @@ RSpec.describe SaidaDoPedido do
     tecido.itens_pedido.second.update!(dono_tecido: "cliente")
     expect(described_class.call(tecido)).to eq([])
     expect(saidas(tecido)).to contain_exactly([ "Papel", nil, "saida", 15.5 ], [ "Oxford", nil, "saida", 12.5 ], [ "Oxford", tecido.client.name, "saida", 3.0 ])
+  end
+
+  # Dublagem 5a: an item dubbed before the estampa takes its dublado, from
+  # the construção's owner — an ordem de dublagem makes what is missing.
+  it "takes a tecido item's dublado instead of its superfície when it dubs before the estampa" do
+    client = create(:client, name: "Malharia Sul")
+    oxford = material_de_dublagem("Oxford", largura: "1.60 m")
+    construcao = montar_construcao([ oxford, "trama" ], [ material_de_dublagem("Lona"), material_de_dublagem("Filme", tipo: "filme", micras: 35), { do_cliente: true } ], client: client).tap(&:save!)
+    tecido = pedido_dublado_confirmado(construcao, metros: 10)
+
+    expect(tecido.movimentos_estoque.order(:id).map { |m| [ m.materia_prima, m.client&.name, m.quantidade.to_f ] }).to eq([ [ papel, nil, 10.0 ], [ construcao.materia_prima, "Malharia Sul", 10.0 ] ])
   end
 
   it "takes a DTF's film meters of the fit written at confirmation" do

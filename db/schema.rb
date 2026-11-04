@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -606,12 +606,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_120000) do
     t.string "uuid", null: false
     t.integer "pedido_id"
     t.integer "baixa_producao_id"
+    t.integer "ordem_dublagem_id"
     t.index ["baixa_producao_id"], name: "index_movimento_estoques_on_baixa_producao_id"
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
+    t.index ["ordem_dublagem_id"], name: "index_movimento_estoques_on_ordem_dublagem_id"
     t.index ["pedido_id"], name: "index_movimento_estoques_on_pedido_id"
     t.index ["uuid"], name: "index_movimento_estoques_on_uuid", unique: true
+  end
+
+  create_table "ordens_dublagem", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "construcao_id", null: false
+    t.integer "client_id"
+    t.string "status", default: "gerada", null: false
+    t.decimal "metros", null: false
+    t.decimal "metros_feitos"
+    t.integer "gerada_por_id"
+    t.integer "feita_por_id"
+    t.datetime "feita_em"
+    t.integer "cancelada_por_id"
+    t.datetime "cancelada_em"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cancelada_por_id"], name: "index_ordens_dublagem_on_cancelada_por_id"
+    t.index ["client_id"], name: "index_ordens_dublagem_on_client_id"
+    t.index ["construcao_id"], name: "index_ordens_dublagem_on_construcao_id"
+    t.index ["feita_por_id"], name: "index_ordens_dublagem_on_feita_por_id"
+    t.index ["gerada_por_id"], name: "index_ordens_dublagem_on_gerada_por_id"
+    t.index ["status"], name: "index_ordens_dublagem_on_status"
+    t.index ["uuid"], name: "index_ordens_dublagem_on_uuid", unique: true
   end
 
   create_table "pecas", force: :cascade do |t|
@@ -849,7 +874,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_120000) do
   add_foreign_key "movimento_estoques", "baixas_producao", column: "baixa_producao_id"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
+  add_foreign_key "movimento_estoques", "ordens_dublagem", column: "ordem_dublagem_id"
   add_foreign_key "movimento_estoques", "pedidos"
+  add_foreign_key "ordens_dublagem", "clients"
+  add_foreign_key "ordens_dublagem", "construcoes"
+  add_foreign_key "ordens_dublagem", "users", column: "cancelada_por_id"
+  add_foreign_key "ordens_dublagem", "users", column: "feita_por_id"
+  add_foreign_key "ordens_dublagem", "users", column: "gerada_por_id"
   add_foreign_key "pedidos", "clients"
   add_foreign_key "pedidos", "materia_primas", column: "material_impressao_id"
   add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"

@@ -78,6 +78,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "open a construção", "estoque", 2, -> { get edit_construcao_path(construcao) } ],
     [ "change a construção", "estoque", 2, -> { patch construcao_path(construcao), params: { construcao: { preco_final: "40" } } } ],
     [ "trash a construção", "estoque", 3, -> { delete construcao_path(construcao) } ],
+    # Dublagem 5a: seen with estoque ver; changed with atualizar_producao (below).
+    [ "list the dublagens", "estoque", 1, -> { get dublagens_path } ],
     [ "open a material group's form", "estoque", 2, -> { get edit_grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")) } ],
     [ "set a material group's roles and attributes", "estoque", 2, -> { patch grupo_material_path(GrupoMaterial.find_or_create_by!(nome: "Oxford")), params: { grupo_material: { base: "1" } } } ],
     [ "see the trash", "lixeira", 1, -> { get lixeira_path } ],
@@ -145,6 +147,21 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
       post gerar_reposicao_pedido_path(p)
       expect(response).to have_http_status(:forbidden)
+    end
+
+    # Dublagem 5a (decision 3a): the operator who gives the baixas runs the ordens.
+    it "generating, marking done and cancelling an ordem de dublagem need atualizar_producao" do
+      ordem = OrdemDublagem.create!(construcao: construcao, metros: 5)
+      entrar_com_funcao(niveis: { "estoque" => 3 }, acoes: %w[baixar_producao])
+      post dublagens_path, params: { construcao_uuid: construcao.uuid, metros: "5" }
+      expect(response).to have_http_status(:forbidden)
+      patch feita_dublagem_path(ordem), params: { metros: "5" }
+      expect(response).to have_http_status(:forbidden)
+      patch cancelar_dublagem_path(ordem)
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "estoque" => 1 }, acoes: %w[atualizar_producao])
+      patch cancelar_dublagem_path(ordem)
+      expect(ordem.reload.status).to eq("cancelada")
     end
 
     it "the Usuários page needs gerenciar_usuarios" do

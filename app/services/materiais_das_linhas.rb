@@ -3,7 +3,7 @@
 # real is measured against, per material, and split between owners by.
 #   material impressao — the pedido's paper or DTF film, the empresa's;
 #   material linha     — each line's fabric: a tecido line's item says the
-#     owner; a Corte line may join items of different owners (one molde's
+#     owner (ItemPedido#dono_na_producao: its dublado's, Dublagem 5a); a Corte line may join items of different owners (one molde's
 #     fabric is the client's, another's the empresa's), so its lines are
 #     rebuilt per owner, as the stock out does (SaidaDoPedido).
 # A line without material is left out (it took nothing from the stock); a
@@ -61,7 +61,7 @@ class MateriaisDasLinhas
   end
 
   def do_item_de_cada_linha
-    @linhas.each { |linha| somar(linha.materia_prima, DonoDoTecido.do_item(linha.item).dono, linha.esperado, linha.pecas) }
+    @linhas.each { |linha| somar(linha.materia_prima, linha.item.dono_na_producao, linha.esperado, linha.pecas) }
   end
 
   # dono: "empresa", "cliente" or nil (already the empresa's: paper, film).
