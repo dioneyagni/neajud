@@ -139,8 +139,12 @@ Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
   trash, or the pedido's client changed (the client's: he picks another);
   `:sem_preco_dublado` — no final price (the factory's, linked to the
   construção for the team).
-- Production is unchanged (the Impressão and the Calandra on the
-  superfície); the ordens de dublagem and "aguardando dublagem" are 5/5.
+- Production (Dublagem 5a): an item dubbed **before** the estampa takes
+  its dublado from the stock at confirmation and is printed on it at the
+  Calandra, whose line says "aguardando dublagem: N m" while the dublado is
+  missing (`docs/dominio/estoque.md`, "The ordens de dublagem"). One dubbed
+  after the estampa still goes on the superfície until 5b, and the item
+  tells the team.
 - E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…").
 
 ## The tecido pedidos' list and "Repetir pedido"

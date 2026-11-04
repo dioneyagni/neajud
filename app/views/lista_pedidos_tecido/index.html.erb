@@ -65,7 +65,7 @@
             <td>
               <div class="tecido-status">
                 <span class="badge badge-<%= pedido.status %>"><%= rotulo_do_status(pedido.status) %></span>
-                <% if @aguardando_ids.include?(pedido.id) %><span class="badge badge-aguardando" data-aguardando>aguardando material</span><% end %>
+                <% if (aguardando = rotulo_do_aguardando(pedido)) %><span class="badge badge-aguardando" data-aguardando><%= aguardando %></span><% end %>
               </div>
             </td>
             <td class="tecido-acoes">

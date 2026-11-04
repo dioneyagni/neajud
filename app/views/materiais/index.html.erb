@@ -8,6 +8,8 @@
   <%# Dublagem 3/5: the team's only, as the rede (the ligantes are the factory's). %>
   <% unless cliente_final? %>
     <%= link_to "Construções", construcoes_path, class: "btn btn-secondary materiais-construcoes-link", style: "margin-right:0.5rem;" %>
+    <%# Dublagem 5a: the ordens de dublagem. %>
+    <%= link_to "Dublagens", dublagens_path, class: "btn btn-secondary materiais-dublagens-link", style: "margin-right:0.5rem;" %>
   <% end %>
   <% if pode?(:estoque, :editar) %>
     <%= link_to "+ Register Movement", new_movimento_path, class: "btn btn-primary" %>

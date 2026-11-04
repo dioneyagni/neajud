@@ -47,7 +47,11 @@
             <%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %>
             <%= link_to item.arte.titulo.presence || linha.arquivo.filename, linha.arquivo %>
           </td>
-          <td class="producao-tecido-material" data-rotulo="Tecido"><%= linha.materia_prima.nome_completo %></td>
+          <td class="producao-tecido-material" data-rotulo="Tecido">
+            <%= linha.materia_prima.nome_completo %>
+            <%# Dublagem 5a: never a block — the dublado may be there before the ordem is marked done. %>
+            <% if (falta = aguardando_dublagem_da_linha(@pedido, linha)) %><small class="producao-tecido-aguardando" data-aguardando-dublagem>aguardando dublagem: <%= metros(falta) %></small><% end %>
+          </td>
           <td data-rotulo="Largura"><%= metros(item.largura_efetiva_mm / 1000.0) %></td>
           <td class="corte-total" data-rotulo="Metros"><strong><%= metros(linha.esperado) %></strong></td>
           <% if baixar %>

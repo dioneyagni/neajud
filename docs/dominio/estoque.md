@@ -139,9 +139,63 @@ normal) and the `preco_final`. 2 to 5 layers.
   drawn). A construção goes to the Lixeira (`Excluivel`), its dublado stays.
 - The pedido item dubbed into a construção (4/5): `docs/dominio/tecido.md`,
   "The item's construção".
-- Not yet: the ordens, the stock in and out, "aguardando dublagem" and the
-  cola's measure (5/5).
+- The ordens de dublagem, the stock in and out and "aguardando dublagem"
+  for the construções dubbed before the estampa: "The ordens de dublagem
+  (Dublagem 5a)" below. Not yet: dubbing after the estampa (or in parallel
+  with the Impressão) as the pedido's own stage, and the cola's measure (5b).
 - E2E: `e2e/construcoes.spec.js`.
+
+## The ordens de dublagem (Dublagem 5a)
+
+Decided 03–04/11/2026 (plano Etapa 2.9 D1/D6/D8; the 5/5 split in two: 5a
+dubbing before the estampa, through the stock; 5b the pedido's own stage).
+
+- **Which construções**: `Construcao#dubla_antes?` — every ligação dubs
+  before the estampa (`config/dublagens.yml`, whose antes/depois the factory
+  confirmed on 04/11/2026). Its dublado is made for the stock and may serve
+  several pedidos (decision 5a).
+- **At confirmation** (`SaidaDoPedido`): such an item takes **its dublado**
+  instead of its superfície, from the construção's owner
+  (`ItemPedido#material_da_producao`, `#dono_na_producao`; `ConstrucaoDoItem`).
+  The Calandra's line is the dublado too (`LinhasDeProducao`), so the
+  baixa's adjustment (`MateriaisDasLinhas`, `AjusteDaBaixa`) follows. An item
+  whose construção dubs after the estampa, or partly, still takes the
+  superfície (5b); the item says so to the team.
+- **Em aberto** (`DublagensEmAberto`, computed, never stored): the
+  `AguardandoMaterial` faltas of dublados, per construção and owner (only
+  the construção's own), less the meters of the ordens generated, with the
+  pedidos that wait.
+- **The ordem** (`OrdemDublagem`, `ordens_dublagem`; never deleted, decision
+  2a): **generated** with the meters (the falta, or more for the stock), then
+  **done** with the real meters or **cancelled** (the stock untouched). Done
+  (`marcar_feita!`, one transaction): 1 m a meter of each layer out from its
+  owner (`do_cliente` = the construção's client), of each ligante from the
+  empresa (`ComponentesDaDublagem`; the same material twice is 2 m), and the
+  dublado in from the construção's owner — each movement with
+  `movimento_estoques.ordem_dublagem_id`. The loss of each dublagem is for
+  later. A construção dubbed after the estampa is refused.
+- **A missing component never blocks** (decision 4a): the balance goes
+  negative, as a baixa's does; before that, em aberto and the generated
+  ordens warn "falta componente: X da empresa, 4 m"
+  (`OrdensDublagemHelper#falta_de_componentes`), and a ligação without its
+  ligante chosen too.
+- **The page** `/dublagens` (`OrdensDublagemController`, linked from
+  Materiais and Construções): **the team's only** (`Visibilidade`
+  `OrdemDublagem` in `DA_EQUIPE`), seen with estoque ver; generating, marking
+  done and cancelling need **`atualizar_producao`** (decision 3a: the
+  operator who gives the baixas).
+- **"Aguardando: dublagem"** (`AguardandoMaterialHelper`): a dublado missing
+  reads "dublagem de <construção> · faltam 4 m" on the pedido's panel, the
+  badges of the pedidos lists say "aguardando dublagem" (or "material e
+  dublagem"), and the production page's line "aguardando dublagem: 4 m" —
+  never a block. A cliente final reads only "Aguardando: dublagem". An ordem
+  done brings the dublado in and the pedido stops waiting by itself.
+- **The ledger** names the ordem ("Dublagem #8f3a1b2c", linked for the team).
+- Machines (4 calandras: 1 de estamparia, 2 de dublagem com filme, 1 de
+  dublagem com cola) are not modelled: a stage of their own, later.
+- Tests: `spec/models/ordem_dublagem_spec.rb`,
+  `spec/services/{componentes_da_dublagem,dublagens_em_aberto}_spec.rb`,
+  `spec/requests/ordens_dublagem_spec.rb`, E2E `e2e/dublagens.spec.js`.
 
 ## Where a pedido's materials come from (Etapa 2.3d1)
 

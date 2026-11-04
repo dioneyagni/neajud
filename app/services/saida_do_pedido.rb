@@ -6,7 +6,8 @@
 #     its Impressão lines, the empresa's; a released reposição the same for
 #     the pieces it redoes (the owner of the item they came from);
 #   tecido  — each item's meters, of its fabric (the item's owner) and of
-#     the paper;
+#     the paper; Dublagem 5a: of its dublado instead when it dubs before
+#     the estampa (the construção's owner; ItemPedido#material_da_producao);
 #   DTF     — the film's meters of the fit written at confirmation.
 # A line without material or metragem takes nothing and comes back as a
 # warning; it never blocks. Only once per pedido (decided 20/10/2026: pedidos
@@ -66,7 +67,7 @@ class SaidaDoPedido
 
   def do_tecido_dos_itens
     LinhasDeProducao.call(@pedido, EtapasProducao.etapa("tecido", "calandra")).each do |linha|
-      somar_do_dono(linha.materia_prima, DonoDoTecido.do_item(linha.item).dono, linha.esperado)
+      somar_do_dono(linha.materia_prima, linha.item.dono_na_producao, linha.esperado)
     end
   end
 

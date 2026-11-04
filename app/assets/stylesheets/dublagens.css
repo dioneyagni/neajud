@@ -1,0 +1,67 @@
+/* The Dublagens page (Dublagem 5a, 04/11/2026): a card per dublagem em
+   aberto and per ordem generated, the warning of a missing component in
+   amber; the done and cancelled ones as a plain list. */
+
+.dublagens-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dublagens-secao h3 { margin: 0; font-size: 1rem; }
+
+.dublagem-cartao {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dublagem-cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dublagem-cartao p { margin: 0; }
+
+.dublagem-metros,
+.dublagem-pedidos { font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+
+.dublagem-aviso {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  background: #faeeda;
+  color: #633806;
+  font-size: 0.85rem;
+}
+
+.dublagem-acoes,
+.dublagem-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.dublagem-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; color: #5f5e5a; }
+.dublagem-metros-campo { width: 8rem; }
+
+.dublagens-lista {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The tecido production page's line: its dublado still waited for. */
+.producao-tecido-aguardando { display: block; color: #854f0b; font-size: 0.8rem; }
+
+/* Not .grupos-vazio: its flex-basis is a width in a row, a height here. */
+.dublagens-vazio { margin: 0; color: #5f5e5a; }

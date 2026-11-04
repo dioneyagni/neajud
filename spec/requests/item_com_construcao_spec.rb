@@ -35,7 +35,8 @@ RSpec.describe "A tecido item with a construção", type: :request do
     expect([ item.reload.construcao, item.largura_efetiva_mm ]).to eq([ dublado, 1400 ])
     html = pagina
     expect(html.at_css(".pedido-tecido-construcao option[selected]").text).to eq("#{dublado.nome} · saldo 0 m")
-    expect(html.at_css("[data-dublagem]").text.strip).to eq("dubla antes da estampa")
+    expect(html.at_css("[data-dublagem] .rede-chip").text).to eq("dubla antes da estampa")
+    expect(html.at_css("[data-dublagem-producao]").text).to eq("o dublado sai do estoque (Dublagens)")
     expect(html.css(".pedido-tecido-preco-linha").map { |linha| linha["data-parte"] }).to eq([ "Impressão", "Material dublado" ])
     expect(html.at_css("#valores-tecido .pedido-valores-total").text).to eq("R$ 610,00")
   end

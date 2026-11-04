@@ -89,6 +89,12 @@ RSpec.describe Construcao do
     expect(montar_construcao([ oxford, "trama" ], [ espuma ], [ helanca ]).momentos_da_dublagem).to eq([ "depois" ])
   end
 
+  # Dublagem 5a: only a construção dubbed wholly before the estampa is made for the stock.
+  it "dubs before the estampa only when every ligação does" do
+    expect(montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).dubla_antes?).to be(true)
+    expect(montar_construcao([ oxford, "trama" ], [ oxford, filme_35 ], [ material_de_dublagem("Espuma", densidade: "TC4") ]).dubla_antes?).to be(false)
+  end
+
   it "refuses an unknown situação, naming the known ones" do
     construcao = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ], situacao: "chove")
 

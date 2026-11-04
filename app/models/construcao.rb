@@ -23,6 +23,8 @@ class Construcao < ApplicationRecord
   has_many :camadas, -> { order(:posicao) }, class_name: "CamadaConstrucao", inverse_of: :construcao, dependent: :destroy, autosave: true
   # Dublagem 4/5: the pedido items dubbed into it.
   has_many :itens_pedido, class_name: "ItemPedido", inverse_of: :construcao, dependent: nil
+  # Dublagem 5a: the ordens that make its dublado.
+  has_many :ordens_dublagem, class_name: "OrdemDublagem", inverse_of: :construcao, dependent: nil
   atribui_por_uuid :client
   recusa_excluido :client
 
@@ -72,6 +74,10 @@ class Construcao < ApplicationRecord
   def momentos_da_dublagem
     camadas_em_ordem.select(&:materia_prima).each_cons(2).filter_map { |acima, abaixo| acima.ligacao_com(abaixo.materia_prima)&.dubla }.uniq
   end
+
+  # Dublagem 5a: every ligação dubs before the estampa, so its dublado is
+  # made for the stock by an ordem de dublagem.
+  def dubla_antes? = momentos_da_dublagem == [ "antes" ]
 
   # Never the client's name: the dublado is a material, and every client
   # reads the list of materials (Visibilidade::COMUNS).

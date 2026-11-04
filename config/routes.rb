@@ -164,6 +164,13 @@ Rails.application.routes.draw do
   resources :construcoes, only: %i[index new create edit update destroy] do
     collection { post :montar }
   end
+  # Dublagem 5a: the ordens de dublagem — open, generated, done, cancelled.
+  resources :dublagens, controller: "ordens_dublagem", only: %i[index create] do
+    member do
+      patch :feita
+      patch :cancelar
+    end
+  end
 
   resources :movimentos, only: %i[index new create]
 

@@ -9,7 +9,7 @@ RSpec.describe "Rede de dublagens", type: :request do
 
     html = Nokogiri::HTML(response.body)
     lona = html.at_css('.rede-ligacao[data-par="Oxford–Lona"]')
-    expect(lona.text.squish).to include("Lona", "Filme 35 µm ou mais", "dubla antes", "a confirmar: antes/depois, situações", "Lona — não cadastrado")
+    expect(lona.text.squish).to include("Lona", "Filme 35 µm ou mais", "dubla antes", "a confirmar: situações", "Lona — não cadastrado")
     expect(lona.at_css('[data-situacao="tecido_molha"]').text.strip).to eq("Filme PU")
     expect(lona.at_css('[data-situacao="vai_frequencia"]').text.strip).to eq("—")
     expect(html.css(".rede-grupo h3").map(&:text)).to eq(%w[Oxford Espuma])

@@ -100,13 +100,14 @@ class LinhasDeProducao
     end
   end
 
-  # An item without fabric, meters or width is a draft's pendência.
+  # An item without fabric, meters or width is a draft's pendência. Dublagem
+  # 5a: an item dubbed before the estampa is printed on its dublado.
   def linhas_do_tecido
-    @pedido.itens_pedido.includes(:arte, :materia_prima, arquivo: :approved_version).order(:id)
+    @pedido.itens_pedido.includes(:arte, :materia_prima, construcao: [ :materia_prima, { camadas: { materia_prima: :grupo_material } } ], arquivo: :approved_version).order(:id)
            .select { |item| item.materia_prima && item.metros.to_f.positive? && item.largura_efetiva_mm }
            .map do |item|
       Linha.new(chave: self.class.chave_do_tecido(item), referencia: item.uuid, item: item, arquivo: item.arquivo,
-                materia_prima: item.materia_prima, dispensa: [], esperado: item.metros.to_f)
+                materia_prima: item.material_da_producao, dispensa: [], esperado: item.metros.to_f)
     end
   end
 

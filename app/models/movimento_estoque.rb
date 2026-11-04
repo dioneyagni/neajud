@@ -10,6 +10,8 @@ class MovimentoEstoque < ApplicationRecord
   belongs_to :pedido, optional: true
   # Etapa 2.3e: the baixa whose real metragem this adjusts (AjusteDaBaixa).
   belongs_to :baixa_producao, optional: true
+  # Dublagem 5a: an ordem de dublagem done — its components out, its dublado in.
+  belongs_to :ordem_dublagem, optional: true, inverse_of: :movimentos_estoque
   atribui_por_uuid :client
   recusa_excluido :client
 

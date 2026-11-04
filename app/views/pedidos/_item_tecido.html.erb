@@ -76,7 +76,8 @@
     </dl>
   <% end %>
   <% momento = item.construcao && !cliente_final? && momento_da_dublagem(item.construcao) %>
-  <% if momento %><p class="pedido-tecido-dublagem" data-dublagem><span class="rede-chip"><%= momento %></span></p><% end %>
+  <%# Dublagem 5a: dubbed before the estampa, the dublado comes from the stock (an ordem de dublagem); after, the stage is still to come. %>
+  <% if momento %><p class="pedido-tecido-dublagem" data-dublagem><span class="rede-chip"><%= momento %></span> <small data-dublagem-producao><%= item.dublado_do_estoque? ? "o dublado sai do estoque (Dublagens)" : "a etapa de dublagem depois da estampa ainda não existe: a produção usa a superfície" %></small></p><% end %>
   <% if aviso %><p class="pedido-tecido-aviso" role="note"><%= aviso %></p><% end %>
   <% if ressalva %><p class="pedido-tecido-aviso pedido-tecido-ressalva" role="note"><%= ressalva %></p><% end %>
   <% if item.abaixo_do_minimo? %><%= render "pedidos/minimo_do_item_tecido", item: item, pedido: pedido %><% end %>

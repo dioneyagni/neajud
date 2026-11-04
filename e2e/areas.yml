@@ -99,7 +99,7 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens]
     arquivos:
       - "app/services/{materiais_das_linhas,ajuste_da_baixa}.rb"
       - "app/helpers/ajuste_do_estoque_helper.rb"
@@ -133,6 +133,12 @@ areas:
       - "app/services/{opcoes_da_construcao,regras_da_construcao,preco_sugerido_da_construcao}.rb"
       - "app/javascript/controllers/construcao_controller.js"
       - "app/assets/stylesheets/construcoes.css"
+      - "app/controllers/ordens_dublagem_controller.rb"
+      - "app/views/ordens_dublagem/**/*"
+      - "app/helpers/ordens_dublagem_helper.rb"
+      - "app/models/ordem_dublagem.rb"
+      - "app/services/{componentes_da_dublagem,dublagens_em_aberto}.rb"
+      - "app/assets/stylesheets/dublagens.css"
       - "app/assets/images/icons/lixeira/construcao.svg"
   artes:
     specs: [artes-arquivos, upload-agrupamento, tipo-da-arte, aprovacoes, arquivos-tipo-grade, cor-lisa]
@@ -172,7 +178,7 @@ areas:
       - "app/controllers/precos_da_etiqueta_controller.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   tecido:
-    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido, construcoes]
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido, construcoes, dublagens]
     arquivos:
       - "app/javascript/controllers/repetir_metros_controller.js"
       - "app/views/pedidos/_amostra_da_arte.html.erb"
