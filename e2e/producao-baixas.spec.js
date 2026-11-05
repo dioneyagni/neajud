@@ -146,7 +146,7 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
     // Etapa 2.2 (4/4, decided 08-09/10/2026): a short Conferência is counted
     // line by line, the conferente unchecks what doesn't need redoing, and the
     // missing pieces go to the reposição — released as the Conferência ends.
-    await test("A short Conferência asks each line's count and what to redo; the reposição goes to production without the Corte", async () => {
+    await test("A short Conferência asks each line's count and what to redo; the reposição goes to production without the Corte, inside its original on the Painel (live)", async () => {
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/estamparia`);
       await salvoERecarregado(() => darBaixa(page.locator(".etapa-andamento .baixa"), "10"));
 
@@ -193,7 +193,7 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       await page.getByText("Nenhuma parte para cortar neste pedido.").waitFor();
     });
 
-    await test("Marcar como entregue warns about the reposição in production; delivered anyway, the pedido is read only", async () => {
+    await test("Marcar como entregue warns about the reposição in production; delivered anyway, the pedido is read only and its reposição gets its own row on the Painel", async () => {
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/resumo`);
       if ((await page.locator("h2 .badge").innerText()).trim() !== "em produção") throw new Error("The first baixa puts the pedido in production");
       await page.locator(".entrega-botao").click();
