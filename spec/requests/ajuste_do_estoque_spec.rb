@@ -21,6 +21,7 @@ RSpec.describe "The stock adjusted by the baixas", type: :request do
 
   before do
     (Empresa.atual || create(:empresa)).update!(papel_padrao: papel, preco_impressao_metro_tecido: 15)
+    [ [ papel, nil ], [ oxford, client ], [ helanca, client ] ].each { |material, dono| estocar(material, client: dono) }
     post confirmar_pedido_path(pedido)
   end
 
@@ -64,7 +65,7 @@ RSpec.describe "The stock adjusted by the baixas", type: :request do
     baixar("calandra", medidas: { oxford.uuid => "5", helanca.uuid => "6" })
     get producao_tecido_pedido_path(pedido, etapa: "calandra")
     expect(html.at_css(".historico-baixa [data-estoque]").text).to eq("sem saída do estoque")
-    expect(MovimentoEstoque.count).to eq(0)
+    expect(MovimentoEstoque.where(pedido: pedido).count).to eq(0)
   end
 
   # The empresa's paper is none of the client's business; his fabric is.

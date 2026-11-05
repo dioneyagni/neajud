@@ -21,6 +21,7 @@ RSpec.describe AjusteDaBaixa do
   end
 
   def confirmar(saida: true)
+    [ [ papel, nil ], [ oxford, client ], [ oxford, nil ], [ helanca, client ] ].each { |material, dono| estocar(material, client: dono) }
     pedido.update!(status: "confirmado")
     SaidaDoPedido.call(pedido) if saida
   end
@@ -65,9 +66,9 @@ RSpec.describe AjusteDaBaixa do
 
     it "stops counting an undone baixa's adjustment" do
       feita = baixa("impressao", medida: "12").baixa
-      expect(MovimentoEstoque.que_contam.where(materia_prima: papel).sum(:quantidade).to_f).to eq(12.0)
+      expect(MovimentoEstoque.que_contam.saidas.where(materia_prima: papel).sum(:quantidade).to_f).to eq(12.0)
       DesfazerBaixaService.call(feita, user: usuario)
-      expect(MovimentoEstoque.que_contam.where(materia_prima: papel).sum(:quantidade).to_f).to eq(10.0)
+      expect(MovimentoEstoque.que_contam.saidas.where(materia_prima: papel).sum(:quantidade).to_f).to eq(10.0)
       expect(feita.ajustes_estoque.first.motivo_de_nao_contar).to eq("baixa desfeita")
     end
   end

@@ -101,7 +101,7 @@ areas:
   estoque:
     specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens]
     arquivos:
-      - "app/services/{materiais_das_linhas,ajuste_da_baixa}.rb"
+      - "app/services/{materiais_das_linhas,ajuste_da_baixa,entrada_da_falta_na_baixa}.rb"
       - "app/helpers/ajuste_do_estoque_helper.rb"
       - "app/views/pedidos/_consumo_do_pedido.html.erb"
       - "app/services/{saida_do_pedido,aguardando_material}.rb"

@@ -178,4 +178,43 @@ RSpec.describe "Production baixas", type: :request do
       expect(flash[:alert]).to eq("There is no open reposição with pieces in this pedido.")
     end
   end
+
+  # Decided 05/11/2026: the material missing is launched with the baixa —
+  # by who may edit the stock, or with the password of someone who may.
+  describe "the material missing" do
+    before do
+      pedido.update!(client: molde.client)
+      SaidaDoPedido.call(pedido)
+    end
+
+    let(:falta) { pedido.movimentos_estoque.saidas.sole }
+    let(:chave) { "#{material.uuid}:#{falta.client&.uuid || "empresa"}" }
+
+    it "answers what is missing, and launches the entry with the baixa" do
+      baixa("corte", "0,2")
+      expect(response.parsed_body).to eq("ok" => false, "pode_lancar" => true,
+                                         "falta_material" => "Falta material para esta baixa no estoque. Se ele chegou, lance a entrada para dar a baixa.",
+                                         "faltas" => [ { "chave" => chave, "material" => material.nome_completo, "dono" => falta.dono, "falta" => 0.2, "minimo" => 0.2 } ])
+      baixa("corte", "0,2", entradas: { chave => "5" })
+      expect(response.parsed_body).to eq("ok" => true)
+      expect(MovimentoEstoque.entradas.sole.slice(:quantidade, :lancado_por_id, :autorizado_por_id).transform_values { |v| v.is_a?(BigDecimal) ? v.to_f : v })
+        .to eq("quantidade" => 5.0, "lancado_por_id" => @usuario_logado.id, "autorizado_por_id" => nil)
+    end
+
+    it "asks who may not edit the stock for someone's password" do
+      dono = User.find(@usuario_logado.id)
+      operador = entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[atualizar_producao])
+      baixa("corte", "0,2")
+      expect(response.parsed_body["pode_lancar"]).to be(false)
+      baixa("corte", "0,2", entradas: { chave => "0,2" })
+      expect(response.parsed_body["error"]).to eq("Launching the entry needs the email and password of someone who may edit the stock.")
+      baixa("corte", "0,2", entradas: { chave => "0,2" }, autorizador: { email: dono.email_address, senha: "senha-segura-123" })
+      expect(response.parsed_body).to eq("ok" => true)
+      expect(MovimentoEstoque.entradas.sole.slice(:lancado_por_id, :autorizado_por_id)).to eq("lancado_por_id" => operador.id, "autorizado_por_id" => dono.id)
+      entrar_como(dono)
+      get movimentos_path
+      expect(Nokogiri::HTML(response.body).at_css("[data-lancada-na-baixa]").text.squish)
+        .to eq("lançada na baixa de ##{pedido.uuid.first(8)} · Corte, por #{operador.nome}, autorizada por #{dono.nome}")
+    end
+  end
 end

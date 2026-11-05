@@ -17,18 +17,23 @@
 #   (EtapasProducao `material`) adjusts it by the real (AjusteDaBaixa). Lines
 #   of several materials ask one measure each (`medidas`, material uuid =>
 #   meters; `medida` is their sum), each checked against its own expected.
+# - The material missing (decided 05/11/2026): when, adjusted, the lines
+#   leave the pedido waiting for a material they take, nothing is saved and
+#   it comes back as :falta_material (`faltas`) until the entry is sent with
+#   it (`entradas`, `autorizador` — EntradaDaFaltaNaBaixa).
 #
 # Usage: RegistrarBaixaService.call(pedido, etapa: "corte", nivel: "pedido", medida: "12,4", confirmar: false, user: u, changed_by: ip)
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
 class RegistrarBaixaService
-  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, :linhas, :contagem, keyword_init: true)
+  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, :linhas, :contagem, :faltas, keyword_init: true)
   STATUS = Pedido::EM_PRODUCAO
 
   def self.call(pedido, **dados)
     new(pedido, **dados).call
   end
 
-  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil, fontes: nil)
+  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil, fontes: nil,
+                 entradas: nil, autorizador: nil)
     @pedido = pedido
     @fontes = fontes
     @etapa = EtapasProducao.etapa(pedido.tipo, etapa, pedido: pedido)
@@ -41,6 +46,8 @@ class RegistrarBaixaService
     @medidas = (medidas || {}).to_h.transform_keys(&:to_s).transform_values { |valor| valor.to_s.tr(",", ".").strip }
     @medida = format("%.4f", @medidas.values.sum(&:to_d)) if @medida.blank? && @medidas.any?
     @autoria = { user: user, changed_by: changed_by }
+    @entradas = entradas
+    @autorizador = autorizador
   end
 
   def call
@@ -52,7 +59,10 @@ class RegistrarBaixaService
     faltas = contagem ? contagem.faltas : []
     return aviso(esperado) if faltas.empty? && fora?(esperado) && !@confirmar
 
-    Resultado.new(estado: :ok, baixa: registrar(esperado, faltas), esperado: esperado)
+    baixa = registrar(esperado, faltas)
+    return @sem_material if @sem_material
+
+    Resultado.new(estado: :ok, baixa: baixa, esperado: esperado)
   end
 
   # A line as the factory names it: "Lateral 29-30 ESQ".
@@ -82,16 +92,37 @@ class RegistrarBaixaService
 
   def registrar(esperado, faltas)
     medida = contagem ? contagem.medida : @medida.to_d
-    baixa = BaixaProducao.transaction do
+    baixa = BaixaProducao.transaction(requires_new: true) do
       @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: medida,
                                       esperado: (esperado if esperado.positive?), contagens: contagem&.por_linha || {},
                                       medidas: medidas_por_material, fora_da_faixa: faltas.empty? && fora?(esperado), **@autoria)
                     .tap { |nova| AjusteDaBaixa.call(nova, linhas) }
+                    .tap { |nova| lancar_o_que_falta(nova) }
     end
+    return nil if @sem_material
+
     baixa.update!(reposicao: AcumularReposicaoService.call(@pedido, faltas)) if faltas.any?
     @pedido.iniciar_producao!
     liberar_reposicao_ao_terminar
     baixa
+  end
+
+  # Adjusted, the material these lines take still missing: launched with
+  # the baixa, or everything undone and asked for (:falta_material / :erro).
+  def lancar_o_que_falta(baixa)
+    faltas = EntradaDaFaltaNaBaixa.faltas(@pedido, MateriaisDasLinhas.call(@pedido, @etapa, linhas))
+    return if faltas.empty?
+
+    erro = @entradas && EntradaDaFaltaNaBaixa.call(baixa, faltas, entradas: @entradas, user: @autoria[:user], autorizador: @autorizador)
+    return unless erro || @entradas.nil?
+
+    @sem_material = erro ? Resultado.new(estado: :erro, mensagem: erro) : falta_material(faltas)
+    raise ActiveRecord::Rollback
+  end
+
+  def falta_material(faltas)
+    Resultado.new(estado: :falta_material, faltas: faltas,
+                  mensagem: "Falta material para esta baixa no estoque. Se ele chegou, lance a entrada para dar a baixa.")
   end
 
   # The Conferência's last line sends the open reposição to production.

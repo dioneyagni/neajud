@@ -11,12 +11,16 @@
 # pedido — so what a person sees of it is filtered by who asks
 # (AguardandoMaterialHelper).
 #
+# para_liberar: the entry that frees this out — it and every older one
+# waiting on the same material × owner, which the entries cover first
+# (decided 05/11/2026, the entry launched at the baixa: EntradaDaFaltaNaBaixa).
+#
 # Usage: aguardando = AguardandoMaterial.call
-#        aguardando.do_pedido(pedido) # => [#<Falta materia_prima=Oxford client=MKS metros=12.5>]
+#        aguardando.do_pedido(pedido) # => [#<Falta materia_prima=Oxford client=MKS metros=12.5 para_liberar=17.5>]
 #        aguardando.pedido_ids        # => [42, 57]
 #        aguardando.do_material(oxford) # => [#<Falta …>, …] (one per waiting pedido)
 class AguardandoMaterial
-  Falta = Struct.new(:pedido_id, :materia_prima, :client, :metros, keyword_init: true)
+  Falta = Struct.new(:pedido_id, :materia_prima, :client, :metros, :para_liberar, keyword_init: true)
 
   def self.call(movimentos = MovimentoEstoque.all)
     new(movimentos)
@@ -57,7 +61,9 @@ class AguardandoMaterial
     grupo.select { |linha| linha[2] == "saida" }.filter_map do |_, _, _, quantidade, pedido_id|
       acumulado += quantidade
       falta = [ acumulado - entradas, quantidade ].min
-      Falta.new(pedido_id: pedido_id, materia_prima: material, client: client, metros: falta.to_f.round(2)) if pedido_id && falta.positive?
+      next unless pedido_id && falta.positive?
+
+      Falta.new(pedido_id: pedido_id, materia_prima: material, client: client, metros: falta.to_f.round(2), para_liberar: (acumulado - entradas).to_d.ceil(2))
     end
   end
 

@@ -16,6 +16,13 @@ module Tecidos
     create(:arquivo, category: "artes", arte: arte, client: client, filename: filename)
     arte.reload
   end
+
+  # Material in stock, so a baixa that takes it finds no falta (decided
+  # 05/11/2026: a baixa with material missing asks for its entry first).
+  # Usage: estocar(oxford, client: client) # => #<MovimentoEstoque tipo="entrada" quantidade=100>
+  def estocar(material, metros = 100, client: nil)
+    MovimentoEstoque.create!(materia_prima: material, client: client, da_empresa: client.nil?, tipo: "entrada", quantidade: metros)
+  end
 end
 
 RSpec.configure { |config| config.include Tecidos }

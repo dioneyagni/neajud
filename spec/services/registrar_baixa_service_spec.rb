@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/tecidos"
 
 # Etapa 2.2 (2/3, decided 07/10/2026): the factory's baixa of each stage —
 # granular, warned against what the files expect, locked where it can't
@@ -107,6 +108,7 @@ RSpec.describe RegistrarBaixaService do
       i.grades.create!(tamanho_nome: "30", quantidade: 15)
     end
     pedido.update!(status: "confirmado")
+    [ molde.client, nil ].each { |dono| estocar(material, client: dono) }
     SaidaDoPedido.call(pedido)
     expect(pedido.movimentos_estoque.map { |m| [ m.client, m.quantidade.to_f ] }).to contain_exactly([ molde.client, 0.3 ], [ nil, 0.9 ])
     baixa("corte", medida: "1,6", confirmar: true)

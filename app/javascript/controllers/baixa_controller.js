@@ -12,8 +12,13 @@ import { Turbo } from "@hotwired/turbo-rails"
 // confirms; the missing pieces go to the pedido's open reposição.
 // Stock (Etapa 2.3e; decided 20/10/2026): lines of several materials show one
 // field per material, sent as medidas[<material uuid>]; the server sums them.
+// Material missing (decided 05/11/2026): the server saves nothing and lists
+// what the stock lacks; the dialog asks how much came in (at least what
+// frees the pedido) and, from who may not edit the stock, the email and
+// password of someone who may — then sends the baixa again with them.
 export default class extends Controller {
-  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem"]
+  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem",
+                    "falta", "faltaLinhas", "autorizador", "autorizadorEmail", "autorizadorSenha", "faltaErro"]
   static values = { url: String, etapa: String, nivel: String, alvo: String }
 
   abrir() {
@@ -46,7 +51,8 @@ export default class extends Controller {
     this.enviar(true)
   }
 
-  enviar(confirmar) {
+  enviar(confirmar, extras = []) {
+    this.confirmou = confirmar
     const body = new FormData()
     const contagens = this.contagemTarget.querySelectorAll("input[data-chave]")
     const medida = contagens.length ? [...contagens].reduce((soma, input) => soma + (parseInt(input.value, 10) || 0), 0)
@@ -59,6 +65,7 @@ export default class extends Controller {
       const refazer = [...this.contagemTarget.querySelectorAll(`input[data-refazer][data-linha="${CSS.escape(input.dataset.chave)}"]:checked`)].map(c => c.value)
       body.append(`refazer[${input.dataset.chave}]`, refazer.join(","))
     })
+    extras.forEach(([campo, valor]) => body.append(campo, valor))
     const csrf = document.querySelector("meta[name='csrf-token']")?.content || ""
     fetch(this.urlValue, { method: "POST", headers: { "Accept": "application/json", "X-CSRF-Token": csrf }, body })
       .then(r => r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` })))
@@ -68,6 +75,8 @@ export default class extends Controller {
 
   responder(data) {
     if (data.ok) return Turbo.visit(window.location.href, { action: "replace" })
+    if (data.falta_material) return this.pedirEntrada(data.faltas, data.pode_lancar)
+    if (this.faltaTarget.open) return this.mostrarErroDaFalta(data.error || "Não foi possível registrar a baixa")
     if (data.contar) return this.pedirContagem(data.contar, data.linhas)
     if (data.aviso) return this.mostrar(data.aviso, true)
     this.mostrar(data.error || "Não foi possível registrar a baixa", false)
@@ -107,6 +116,54 @@ export default class extends Controller {
       label.append(caixa, ` ${nome}`)
       return label
     })
+  }
+
+  // One row per material × owner: the meters that came in, at least the minimum.
+  pedirEntrada(faltas, podeLancar) {
+    this.faltaLinhasTarget.replaceChildren(...faltas.map((falta, i) => this.linhaDaFalta(falta, i)))
+    this.autorizadorTarget.hidden = podeLancar
+    this.faltaErroTarget.hidden = true
+    if (!this.faltaTarget.open) this.faltaTarget.showModal()
+    this.faltaLinhasTarget.querySelector("input")?.focus()
+  }
+
+  linhaDaFalta(falta, i) {
+    const linhaEl = document.createElement("div")
+    linhaEl.className = "baixa-falta-linha"
+    const campo = Object.assign(document.createElement("input"), {
+      type: "text", inputmode: "decimal", className: "baixa-medida", id: `${this.faltaTarget.getAttribute("aria-labelledby")}-${i}`, value: this.metrosBr(falta.minimo)
+    })
+    campo.dataset.chave = falta.chave
+    const rotulo = Object.assign(document.createElement("label"), { htmlFor: campo.id, textContent: `${falta.material} · ${falta.dono}` })
+    const detalhe = document.createElement("span")
+    detalhe.className = "baixa-esperado"
+    detalhe.textContent = falta.minimo > falta.falta
+      ? `faltam ${this.metrosBr(falta.falta)} m deste pedido e ${this.metrosBr(falta.minimo - falta.falta)} m de saídas anteriores — mínimo ${this.metrosBr(falta.minimo)} m`
+      : `faltam ${this.metrosBr(falta.falta)} m — lance mais se chegou mais`
+    linhaEl.append(rotulo, campo, " m", detalhe)
+    return linhaEl
+  }
+
+  lancarFalta() {
+    const extras = [...this.faltaLinhasTarget.querySelectorAll("input[data-chave]")].map(input => [`entradas[${input.dataset.chave}]`, input.value])
+    if (!this.autorizadorTarget.hidden) {
+      extras.push(["autorizador[email]", this.autorizadorEmailTarget.value], ["autorizador[senha]", this.autorizadorSenhaTarget.value])
+    }
+    this.enviar(this.confirmou, extras)
+  }
+
+  fecharFalta() {
+    this.autorizadorSenhaTarget.value = ""
+    this.faltaTarget.close()
+  }
+
+  mostrarErroDaFalta(texto) {
+    this.faltaErroTarget.textContent = texto
+    this.faltaErroTarget.hidden = false
+  }
+
+  metrosBr(valor) {
+    return (Math.round(valor * 100) / 100).toString().replace(".", ",")
   }
 
   mostrar(texto, podeConfirmar) {
