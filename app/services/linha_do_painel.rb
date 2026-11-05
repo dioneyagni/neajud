@@ -9,6 +9,9 @@
 # A cliente final sees no material detail (the empresa's paper is not his,
 # AguardandoMaterialHelper) and the factory's pendências as "em análise".
 #
+# Its reposições in production come inside it (decided 05/11/2026): its
+# Entrega waits for them, and one still gathering shows as its pieces.
+#
 # Usage: linha = LinhaDoPainel.call(pedido, aguardando: AguardandoMaterial.call)
 #        linha.celulas["corte"].texto # => "3/8"
 #        linha.bloco                  # => :em_andamento
@@ -20,16 +23,23 @@ class LinhaDoPainel
   # The pendências that are about files (the rest are the Comercial's).
   DOS_ARQUIVOS = %i[arquivo_excluido sem_corte sem_arquivo sem_lado sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada].freeze
 
-  attr_reader :pedido, :celulas, :estados, :bloqueios, :faltas
+  # The states that put a pedido in a sector's queue.
+  NA_FILA = %i[pode_comecar andamento travada pendencia].freeze
+
+  attr_reader :pedido, :celulas, :estados, :bloqueios, :faltas, :reposicoes, :juntando
 
   # baixas: the pedido's baixas in force, read with the others' (PainelDeProducao).
-  def self.call(pedido, aguardando:, baixas: nil, cliente_final: false)
-    new(pedido, aguardando, baixas, cliente_final)
+  # reposicoes: its reposições' rows, shown inside it; juntando: the pieces
+  # of its reposição still gathering (nil when none).
+  def self.call(pedido, aguardando:, baixas: nil, cliente_final: false, reposicoes: [], juntando: nil)
+    new(pedido, aguardando, baixas, cliente_final, reposicoes, juntando)
   end
 
-  def initialize(pedido, aguardando, baixas, cliente_final)
+  def initialize(pedido, aguardando, baixas, cliente_final, reposicoes = [], juntando = nil)
     @pedido = pedido
     @cliente_final = cliente_final
+    @reposicoes = reposicoes
+    @juntando = juntando
     @faltas = aguardando.do_pedido(pedido)
     @bloqueios = pedido.confirmavel? ? PedidoBloqueiosService.call(pedido) : []
     @estados = pedido.saiu_do_rascunho? ? EstadoDasEtapas.call(pedido, baixas: baixas) : {}
@@ -65,12 +75,42 @@ class LinhaDoPainel
     pedido.confirmado_em || pedido.created_at
   end
 
-  def atrasado?(hoje = Date.current)
-    pedido.prazo_entrega.present? && pedido.status != "entregue" && pedido.prazo_entrega < hoje
+  # A reposição's is its original's: the client waits for those pieces.
+  # Usage: linha.prazo # => Wed, 12 Nov 2026
+  def prazo
+    pedido.prazo_entrega || pedido.reposicao_de&.prazo_entrega
   end
 
+  def atrasado?(hoje = Date.current)
+    prazo.present? && pedido.status != "entregue" && prazo < hoje
+  end
+
+  # Its own or a reposição's: the filter keeps the pair together.
   def pendencia?
-    celulas.values.any? { |c| c.estado == :pendencia } || faltas.any?
+    celulas.values.any? { |c| c.estado == :pendencia } || faltas.any? || reposicoes.any?(&:pendencia?)
+  end
+
+  # This row and every reposição inside it.
+  # Usage: linha.com_reposicoes.map { |l| l.pedido.uuid.first(8) } # => ["50271a44", "0b900440"]
+  def com_reposicoes
+    [ self ] + reposicoes.flat_map(&:com_reposicoes)
+  end
+
+  # The sectors whose queue it is in, its reposições' too.
+  # Usage: linha.filas # => ["impressao", "entrega"]
+  def filas
+    com_reposicoes.flat_map { |linha| linha.celulas.select { |_, c| NA_FILA.include?(c.estado) }.keys }.uniq
+  end
+
+  # The columns it needs that the page doesn't show (the page reloads).
+  # Usage: linha.fora(painel.colunas) # => ["corte"]
+  def fora(colunas)
+    com_reposicoes.flat_map { |linha| linha.celulas.reject { |chave, c| colunas.key?(chave) || c.estado == :nao_tem }.keys }.uniq
+  end
+
+  # Usage: linha.pecas_da_reposicao # => 80 (0 when it is not a reposição)
+  def pecas_da_reposicao
+    pedido.itens_reposicao.sum(&:pecas)
   end
 
   # What holds it now, in the order it is settled; nil when nothing does.
@@ -80,9 +120,10 @@ class LinhaDoPainel
     presa && "#{COLUNAS.fetch(presa.first)}: #{presa.last.detalhe || presa.last.texto}"
   end
 
-  # The stages in steps (CaminhoDoPedido), each with its column.
+  # The stages in steps (CaminhoDoPedido), each with its column; one it
+  # doesn't go through (a reposição's Corte not redone) is left out.
   def caminho
-    @caminho ||= CaminhoDoPedido.call(pedido)
+    @caminho ||= CaminhoDoPedido.call(pedido).map { |passo| passo.reject { |etapa| celulas[coluna_da_etapa(etapa)].estado == :nao_tem } }.reject(&:empty?)
   end
 
   def coluna_da_etapa(etapa)
@@ -149,8 +190,11 @@ class LinhaDoPainel
     return CelulaDoPainel.nova(:feita, "entregue", ("em #{pedido.entregue_em.strftime("%d/%m %H:%M")}" if pedido.entregue_em)) if pedido.status == "entregue"
     return CelulaDoPainel.nova(:ainda_nao, "—") unless pedido.em_producao? && estados.any?
 
-    pronto = celulas_de_producao(celulas).all? { |c| c.estado == :feita }
-    pronto ? CelulaDoPainel.nova(:pode_comecar, "pronto p/ entregar") : CelulaDoPainel.nova(:ainda_nao, "—")
+    return CelulaDoPainel.nova(:ainda_nao, "—") unless celulas_de_producao(celulas).all? { |c| c.estado == :feita }
+    return CelulaDoPainel.nova(:pode_comecar, "pronto p/ entregar") if reposicoes.empty?
+
+    numeros = reposicoes.map { |linha| "##{linha.pedido.uuid.first(8)}" }.join(", ")
+    CelulaDoPainel.nova(:travada, "espera reposição", "reposição #{numeros} ainda em produção")
   end
 
   def descricoes(bloqueios)

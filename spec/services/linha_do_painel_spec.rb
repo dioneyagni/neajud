@@ -64,4 +64,27 @@ RSpec.describe LinhaDoPainel do
   it "shows the tecido's Calandra in the Estamparia column" do
     expect(textos(linha(pedido_tecido_confirmado))["estamparia"]).to eq([ :travada, "espera Impressão" ])
   end
+
+  # Decided 05/11/2026: the reposição inside its original's row; the pair
+  # is in every queue, and needs every column, either of them is in.
+  it "takes its reposições' queues and columns, their pendências and pieces" do
+    pedido = pedido_calcado_confirmado
+    reposicao = linha(reposicao_com_falta(pedido))
+    original = linha(pedido.reload, reposicoes: [ reposicao ])
+
+    expect(original.com_reposicoes).to eq([ original, reposicao ])
+    expect(reposicao.filas).to eq(%w[impressao corte estamparia conferencia])
+    expect(original.filas).to eq(%w[entrega impressao corte estamparia conferencia])
+    expect(original.fora("entrega" => "Entrega")).to eq(%w[arquivos comercial material impressao corte estamparia conferencia])
+    expect([ reposicao.pecas_da_reposicao, original.pecas_da_reposicao ]).to eq([ 2, 0 ])
+    pedido.update!(prazo_entrega: Date.new(2026, 11, 20))
+    expect(linha(reposicao.pedido.reload).prazo).to eq(Date.new(2026, 11, 20))
+    expect(original.pendencia?).to be(false)
+    expect(linha(pedido, reposicoes: [ instance_double(described_class, pendencia?: true, pedido: reposicao.pedido) ]).pendencia?).to be(true)
+  end
+
+  it "leaves out of the path a stage the reposição doesn't redo" do
+    reposicao = linha(reposicao_com_falta(pedido_calcado_confirmado, refazer: "impressao"))
+    expect(reposicao.caminho.map { |passo| passo.map(&:chave) }).to eq([ %w[impressao], %w[estamparia], %w[conferencia] ])
+  end
 end

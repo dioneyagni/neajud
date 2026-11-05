@@ -5,7 +5,7 @@
 <div class="painel-faixa-num">
   <span class="painel-pct"><%= linha.percentual %>%</span>
   <span>Início <b><%= linha.inicio ? linha.inicio.strftime("%d/%m %H:%M") : "—" %></b></span>
-  <span>Prazo <b class="<%= "painel-atrasado" if linha.atrasado? %>"><%= pedido.prazo_entrega ? pedido.prazo_entrega.strftime("%d/%m/%Y") : "sem prazo" %><%= " · atrasado" if linha.atrasado? %></b></span>
+  <span>Prazo <b class="<%= "painel-atrasado" if linha.atrasado? %>"><%= linha.prazo ? linha.prazo.strftime("%d/%m/%Y") : "sem prazo" %><%= " · atrasado" if linha.atrasado? %></b></span>
   <span>Previsão <b>—</b> <small>(com os turnos)</small></span>
 </div>
 <div class="painel-caminho" aria-label="Caminho do pedido">
@@ -32,6 +32,20 @@
     <h4>Trava</h4>
     <p data-trava><%= linha.trava || "nada trava este pedido" %></p>
   </div>
+  <% if linha.juntando || linha.reposicoes.any? || pedido.reposicao? %>
+    <div class="painel-caixa" data-reposicao>
+      <h4>Reposição</h4>
+      <% if pedido.reposicao? %>
+        <p>Peças que faltaram no pedido <%= link_to "##{pedido.reposicao_de.uuid.first(8)}", resumo_pedido_path(pedido.reposicao_de) %>.</p>
+      <% end %>
+      <% linha.reposicoes.each do |reposicao| %>
+        <p><%= link_to "##{reposicao.pedido.uuid.first(8)}", resumo_pedido_path(reposicao.pedido) %> · <%= pluralize(reposicao.pecas_da_reposicao, "peça", plural: "peças") %> · <%= reposicao.percentual %>%</p>
+      <% end %>
+      <% if linha.juntando %>
+        <p>Juntando <%= pluralize(linha.juntando, "peça", plural: "peças") %><% unless cliente_final? %> — <%= link_to "gerar no resumo", resumo_pedido_path(pedido) %><% end %>.</p>
+      <% end %>
+    </div>
+  <% end %>
   <div class="painel-caixa">
     <h4>Links</h4>
     <p class="painel-links">

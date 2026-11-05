@@ -42,6 +42,41 @@ RSpec.describe PainelDeProducao do
     expect(described_class.call(Pedido.all).colunas.keys).to eq(%w[comercial material entrega])
   end
 
+  # Decided 05/11/2026: a reposição is a row under its original, and the
+  # original's Entrega waits for it.
+  describe "reposições" do
+    let(:pedido) { pedido_calcado_confirmado }
+
+    it "puts a released reposição under its original, whose Entrega waits for it" do
+      reposicao = reposicao_com_falta(pedido)
+      painel = described_class.call(Pedido.all)
+      expect(blocos(painel)[:em_andamento]).to eq([ pedido.id ])
+      original = painel.linhas.sole
+      expect(original.reposicoes.map { |l| [ l.pedido.id, l.pecas_da_reposicao ] }).to eq([ [ reposicao.id, 2 ] ])
+      expect(original.celulas["entrega"].to_h.values_at(:estado, :texto)).to eq([ :travada, "espera reposição" ])
+      expect(original.trava).to eq("Entrega: reposição ##{reposicao.uuid.first(8)} ainda em produção")
+    end
+
+    it "shows the pieces of a reposição still gathering on its original, not as a row" do
+      reposicao_com_falta(pedido, faltam: 3, juntando: true)
+      linhas = described_class.call(Pedido.all).linhas
+      expect(linhas.map { |l| [ l.pedido.id, l.juntando, l.reposicoes ] }).to eq([ [ pedido.id, 3, [] ] ])
+    end
+
+    # The original delivered anyway: the reposição is still to be made.
+    it "gives the reposição a row of its own once its original is delivered" do
+      reposicao = reposicao_com_falta(pedido)
+      pedido.update!(status: "entregue", entregue_em: Time.current)
+      expect(described_class.call(Pedido.all).linhas.map { |l| [ l.pedido.id, l.reposicoes ] }).to eq([ [ reposicao.id, [] ] ])
+    end
+
+    it "answers a reposição's uuid with its original's row, the reposição inside" do
+      reposicao = reposicao_com_falta(pedido)
+      linha = described_class.linha(Pedido.all, reposicao.uuid)
+      expect([ linha.pedido.id, linha.reposicoes.map { |l| l.pedido.id } ]).to eq([ pedido.id, [ reposicao.id ] ])
+    end
+  end
+
   it "gives one pedido's row, nil once it leaves the Painel" do
     pedido = pedido_calcado_confirmado
     expect(described_class.linha(Pedido.all, pedido.uuid).bloco).to eq(:prontos)

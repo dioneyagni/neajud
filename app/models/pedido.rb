@@ -148,6 +148,10 @@ class Pedido < ApplicationRecord
   end
   def avisar_painel
     CanaisAoVivo.avisar_painel(self)
+    # Delivered or trashed, the original leaves its reposições on rows of their own.
+    return unless (saved_changes.keys & %w[status deleted_at]).any?
+
+    reposicoes.ativos.where(status: PainelDeProducao::ABERTOS - %w[rascunho]).find_each { |reposicao| CanaisAoVivo.avisar_painel(reposicao) }
   end
   private :herdar_fileiras_extras, :marcar_confirmacao, :avisar_painel
 
