@@ -16,6 +16,24 @@ module ProducaoCalcado
     pedido.reload
   end
 
+  # The pedido produced up to the Conferência, which counts `faltam` Laterais
+  # fewer (of 10): the whole pedido at once releases the reposição; one line
+  # (juntando: true) leaves it gathering, a rascunho. refazer: the stages
+  # to redo ("impressao" alone: the cut piece was fine), else both.
+  # Usage: reposicao = reposicao_com_falta(pedido, faltam: 2) # => #<Pedido status="confirmado" reposicao_de=pedido>
+  def reposicao_com_falta(pedido, faltam: 2, juntando: false, refazer: nil)
+    %w[impressao corte estamparia].each { |etapa| RegistrarBaixaService.call(pedido, etapa: etapa, nivel: "pedido", medida: "20", confirmar: true) }
+    lateral, lingua = LinhasDeProducao.call(pedido, EtapasProducao.etapa("calcado", "conferencia")).map(&:chave)
+    contadas = (10 - faltam).to_s
+    baixa = if juntando
+      RegistrarBaixaService.call(pedido, etapa: "conferencia", nivel: "linha", alvo: lateral, medida: contadas, contagens: { lateral => contadas })
+    else
+      RegistrarBaixaService.call(pedido, etapa: "conferencia", nivel: "pedido", medida: (20 - faltam).to_s, contagens: { lateral => contadas, lingua => "10" },
+                                         refazer: (refazer && { lateral => refazer }))
+    end
+    baixa.baixa.reposicao.reload
+  end
+
   def corte_do_molde(molde, peca)
     create(:arquivo, :corte, organized: true, peca: peca, client: molde.client, modelo: molde.modelo, giro: "180").tap do |c|
       c.moldes << molde

@@ -18,6 +18,8 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "neajud-baixas-"));
   let pedidoUuid;
   let reposicaoUuid;
+  // The Painel open in another tab, following the reposição live (05/11/2026).
+  let painel;
 
   async function post(url, campos) {
     return page.evaluate(async ({ url, campos }) => {
@@ -159,6 +161,10 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       if ((await refazer.evaluateAll((cs) => cs.map((c) => `${c.value}:${c.checked}`))).join("|") !== "impressao:true|corte:true") throw new Error("Impressão and Corte come checked");
       // The cut piece was fine: only the print goes again.
       await pedido.locator('.baixa-contagem input[data-refazer][value="corte"]').uncheck();
+      painel = await page.context().newPage();
+      await painel.goto(`${BASE_URL}/painel`);
+      await painel.locator(`#painel_${pedidoUuid}`).waitFor();
+      await painel.evaluate(() => { window.semRecarregar = true });
       await salvoERecarregado(() => pedido.locator(".baixa-confirmar", { hasText: "Confirmar contagem" }).click());
       await page.getByText(/Peças que faltaram na reposição, que foi para a produção #[0-9a-f]{8}/).waitFor();
 
@@ -170,6 +176,15 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       const peca = (await page.locator(".reposicao-pecas li").innerText()).replace(/\s+/g, " ").trim();
       if (peca !== "Sem peça 29-30 refazer: impressão, estamparia, conferência 2 peças") throw new Error(`The reposição's piece: "${peca}"`);
       if ((await page.locator("h2 .badge").innerText()).trim() !== "confirmado") throw new Error("A reposição is born confirmed");
+
+      // On the Painel, without a reload: the reposição under its original, whose Entrega waits for it.
+      const filha = painel.locator(`#painel_${pedidoUuid} > .painel-reposicoes > #painel_${reposicaoUuid}`);
+      await filha.waitFor();
+      const ref = (await filha.locator(".painel-ref--reposicao").innerText()).trim();
+      if (ref !== `↻ reposição de #${pedidoUuid.slice(0, 8)} · 2 peças`) throw new Error(`The reposição's row says "${ref}"`);
+      const entrega = painel.locator(`#painel_${pedidoUuid} > .painel-linha [data-coluna='entrega']`);
+      if ((await entrega.getAttribute("data-estado")) !== "travada" || !(await entrega.innerText()).includes("espera reposição")) throw new Error(`The original's Entrega: ${await entrega.innerText()}`);
+      if (!(await painel.evaluate(() => window.semRecarregar))) throw new Error("The Painel reloaded");
 
       await page.locator("a.pedido-ir-impressao").click();
       await page.waitForURL(`**/pedidos/${reposicaoUuid}/impressao`);
@@ -187,6 +202,11 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       await Promise.all([ page.waitForResponse((r) => r.url().endsWith(`/pedidos/${pedidoUuid}/entregar`)), page.locator(".entrega-confirmar").click() ]);
       await page.locator(".pedido-entregue", { hasText: "Entregue em" }).waitFor();
       if ((await page.locator("h2 .badge").innerText()).trim() !== "entregue") throw new Error("The pedido should be delivered");
+
+      // Delivered anyway, the original leaves the Painel; its reposição stays, on a row of its own.
+      await painel.locator(`[data-painel-target=bloco] > #painel_${reposicaoUuid}`).waitFor();
+      await painel.locator(`#painel_${pedidoUuid}`).waitFor({ state: "detached" });
+      await painel.close();
 
       await page.goto(`${BASE_URL}/pedidos/${pedidoUuid}/etapas/estamparia`);
       if (await page.locator("[data-controller=baixa], .baixa-desfazer").count()) throw new Error("A delivered pedido takes no baixas and undoes none");

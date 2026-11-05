@@ -11,7 +11,9 @@ Turbo.StreamActions.painel_linha = function () {
 // The Painel (Painel 1/4, decided 04/11/2026): opening a pedido outlines its
 // path and shows its faixa (Q3a), its items load when asked (Q2a), the sector
 // tabs and the filters hide rows, the counters count what is on the page.
-// A row that changed comes back alone and keeps its place if opened.
+// A row that changed comes back alone and keeps its place if opened. A
+// reposição is a pedido inside its original's (decided 05/11/2026): filters
+// and counters see the pair as one.
 export default class extends Controller {
   static targets = ["grade", "bloco", "contagem", "tipo", "cliente", "pendencia"]
   static values = { linhaUrl: String, itensUrl: String, colunas: Array }
@@ -79,7 +81,7 @@ export default class extends Controller {
   aplicar() {
     this.pedidos().forEach((pedido) => { pedido.hidden = !this.passa(pedido) })
     // The opened pedido filtered out: nothing would be left undimmed.
-    if (this.element.querySelector(".painel-pedido--aberto[hidden]")) this.fecharTodos()
+    if (this.element.querySelector(".painel-pedido--aberto:is([hidden], [hidden] *)")) this.fecharTodos()
     this.contar()
   }
 
@@ -117,10 +119,11 @@ export default class extends Controller {
     })
   }
 
+  // A reposição under its original comes back as the original's row.
   async atualizarLinha(uuid) {
     const resposta = await fetch(this.urlCom(this.linhaUrlValue, uuid), { headers: { Accept: "text/html" } })
-    const atual = document.getElementById(`painel_${uuid}`)
-    if (resposta.status === 204) { atual?.remove(); this.contar(); return }
+    const anterior = document.getElementById(`painel_${uuid}`)
+    if (resposta.status === 204) { anterior?.remove(); this.aplicar(); return }
     if (!resposta.ok) return
 
     const modelo = document.createElement("template")
@@ -129,8 +132,12 @@ export default class extends Controller {
     // A column no row used before: the grid needs the whole page.
     if (nova.dataset.fora) { Turbo.visit(window.location.href, { action: "replace" }); return }
 
+    const atual = document.getElementById(nova.id)
+    // A reposição that was a row of its own now comes inside its original.
+    if (anterior && anterior !== atual && !atual?.contains(anterior)) anterior.remove()
+    const aberto = this.element.querySelector(".painel-pedido--aberto")?.id
     this.colocar(nova, atual)
-    if (atual?.classList.contains("painel-pedido--aberto")) this.marcarAberto(nova)
+    if (aberto && document.getElementById(aberto)) this.marcarAberto(document.getElementById(aberto))
     this.aplicar()
   }
 
@@ -145,22 +152,25 @@ export default class extends Controller {
 
   marcarAberto(pedido) {
     pedido.classList.add("painel-pedido--aberto")
+    // An opened reposição: its original stays lit around it.
+    pedido.parentElement.closest(".painel-pedido")?.classList.add("painel-pedido--contem")
     pedido.querySelector(".painel-faixa").hidden = false
     pedido.querySelector(".painel-ped-btn").setAttribute("aria-expanded", "true")
     this.gradeTarget.classList.add("painel-grade--destaque")
   }
 
   fecharTodos() {
-    this.pedidos().forEach((pedido) => {
-      pedido.classList.remove("painel-pedido--aberto")
+    this.element.querySelectorAll(".painel-pedido").forEach((pedido) => {
+      pedido.classList.remove("painel-pedido--aberto", "painel-pedido--contem")
       pedido.querySelector(".painel-faixa").hidden = true
       pedido.querySelector(".painel-ped-btn").setAttribute("aria-expanded", "false")
     })
     this.gradeTarget.classList.remove("painel-grade--destaque")
   }
 
+  // The top rows: a reposição inside its original is not counted twice.
   pedidos() {
-    return Array.from(this.element.querySelectorAll(".painel-pedido"))
+    return Array.from(this.element.querySelectorAll("[data-painel-target=bloco] > .painel-pedido"))
   }
 
   urlCom(modelo, uuid) {

@@ -94,5 +94,15 @@ RSpec.describe CanaisAoVivo do
       expect { pedido.update!(status: "confirmado") }.to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
       expect { pedido.update!(observacoes: "só texto") }.not_to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
     end
+
+    # Delivered, the original no longer holds its reposições: their own rows.
+    it "tells the rows of an original's open reposições when it is delivered" do
+      pedido = create(:pedido, client: alfa, status: "em_producao")
+      reposicao = create(:pedido, client: alfa, status: "confirmado", reposicao_de: pedido)
+      # One still gathering is not a row: nothing to tell.
+      juntando = create(:pedido, client: alfa, status: "rascunho", reposicao_de: pedido)
+      linha_de = ->(p) { have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel).with(a_string_including("painel_#{p.uuid}")) }
+      expect { pedido.update!(status: "entregue") }.to linha_de.(pedido).once.and linha_de.(reposicao).once.and linha_de.(juntando).exactly(0).times
+    end
   end
 end

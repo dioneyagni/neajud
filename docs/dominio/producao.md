@@ -98,7 +98,8 @@ menu, the Pedidos' permission (`pedidos › ver`) and visibility: a row per
 pedido, a column per stage, from the files to the delivery.
 
 - **Rows** — `PainelDeProducao.call(visiveis(Pedido))`: the pedidos not
-  delivered (a reposição still gathering, rascunho, is left out), and with
+  delivered (a reposição still gathering, rascunho, is left out — see
+  Reposição below), and with
   `?entregues=1` the ones delivered in the last 7 days. Blocks by status
   until the turnos (2/4) and the programação (3/4): **Em andamento** (some
   baixa), **Prontos para começar** (confirmed, nothing holds it),
@@ -129,6 +130,20 @@ pedido, a column per stage, from the files to the delivery.
   `GET /painel/pedidos/:uuid` with its columns and swaps or moves the row
   (204 = it left the Painel; a cell in a hidden column reloads the page).
   A stock entry clearing "aguardando material" shows on the next load.
+- **Reposição** (decided 05/11/2026, option a) — a reposição in production
+  is a row **inside its original's** (`LinhaDoPainel#reposicoes`, rendered
+  recursively, indented with a bar), in the original's block and order: the
+  pair is one pedido for the counters, filters and sector tabs
+  (`LinhaDoPainel#filas`/`#fora` join theirs). It takes the original's
+  `prazo` (`LinhaDoPainel#prazo`). The original's Entrega is **travada
+  "espera reposição"** while one is inside; one still gathering (rascunho)
+  is not a row but a badge on the original, "↻ juntando reposição: N peças",
+  with "gerar no resumo" in the faixa for the team. Once the original is
+  delivered (anyway) or trashed, the reposição becomes a row of its own,
+  "↻ reposição de #…". Live: a reposição's uuid answers with its original's
+  row (`PainelDeProducao.linha` climbs to the open original), and delivering
+  or trashing the original also tells its open reposições' rows.
+  A stage the reposição doesn't redo (its Corte) leaves its path.
 - **Data** — `pedidos.confirmado_em` / `confirmado_por_id` (written by
   `Pedido#marcar_confirmacao` on every way of confirming) and
   `prazo_entrega`, set by the team on the pedido's side panel, also after

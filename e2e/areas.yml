@@ -171,7 +171,7 @@ areas:
       - "config/etapas_producao.yml"
   # Painel 1/4 (04/11/2026): pedidos × stages; it reads every stage's state.
   painel:
-    specs: [painel]
+    specs: [painel, producao-baixas]
     arquivos:
       - "app/controllers/{paineis,prazos_do_pedido}_controller.rb"
       - "app/views/paineis/**/*"

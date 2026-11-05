@@ -34,6 +34,23 @@ RSpec.describe "Painel", type: :request do
     expect(response).to have_http_status(:no_content)
   end
 
+  # Decided 05/11/2026: the reposição comes inside its original's row.
+  it "shows a reposição under its original, and answers its uuid with the original's row" do
+    pedido = pedido_calcado_confirmado
+    reposicao = reposicao_com_falta(pedido)
+    get painel_path
+    pagina = Nokogiri::HTML(response.body)
+    expect(pagina.css("[data-painel-target=bloco] > .painel-pedido").map { |p| p["data-uuid"] }).to eq([ pedido.uuid ])
+    filha = pagina.css("#painel_#{pedido.uuid} > .painel-reposicoes > .painel-pedido--reposicao").sole
+    expect(filha["data-uuid"]).to eq(reposicao.uuid)
+    expect(filha.css(".painel-ref--reposicao").text.squish).to eq("↻ reposição de ##{pedido.uuid.first(8)} · 2 peças")
+    expect(pagina.css("#painel_#{pedido.uuid} > .painel-linha [data-coluna=entrega]").sole["data-estado"]).to eq("travada")
+
+    get linha_do_painel_path(reposicao.uuid), params: { colunas: LinhaDoPainel::COLUNAS.keys }
+    linha = Nokogiri::HTML(response.body).css("body > .painel-pedido").sole
+    expect([ linha["id"], linha.css(".painel-pedido--reposicao").sole["data-uuid"] ]).to eq([ "painel_#{pedido.uuid}", reposicao.uuid ])
+  end
+
   it "lists a pedido's items with their own Impressão lines" do
     pedido = pedido_calcado_confirmado(itens: 2)
     get itens_do_painel_path(pedido.uuid), params: { colunas: %w[impressao] }

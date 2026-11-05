@@ -55,6 +55,12 @@ main:has(.painel) { max-width: 1480px; }
 .painel-item-nome { font-size: 13px; padding-left: 16px; }
 .painel-linha--item .painel-ped { background: #fcfcfd; }
 
+/* A reposição under its original (05/11/2026): indented, a bar on the left. */
+.painel-pedido--reposicao > .painel-linha { border-top: 1px dashed #e0e0e0; }
+.painel-pedido--reposicao > .painel-linha .painel-ped { padding-left: 22px; background: #fcfcfd; box-shadow: inset 4px 0 #f29900; }
+.painel-ref--reposicao { color: #a24c00; }
+.painel-selo-reposicao { align-self: flex-start; font-size: 11px; color: #a24c00; background: #fef3e2; border-radius: 9px; padding: 1px 8px; }
+
 /* The cell states (CelulaDoPainel). */
 .painel-cel { margin: 6px 3px; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 3px; justify-content: center; min-height: 44px; box-sizing: border-box; font-size: 12px; line-height: 1.25; }
 .painel-cel-texto { font-weight: 600; }
@@ -75,7 +81,10 @@ main:has(.painel) { max-width: 1480px; }
 .painel-atrasado { color: #c5221f; font-weight: 600; }
 
 /* A pedido opened: the others dimmed, its path outlined, the faixa below. */
-.painel-grade--destaque .painel-pedido:not(.painel-pedido--aberto) { opacity: .35; }
+/* An opened reposição keeps its original's other rows dimmed, itself lit;
+   an opened original keeps its reposições lit. */
+.painel-grade--destaque .painel-pedido:not(.painel-pedido--aberto, .painel-pedido--contem, .painel-pedido--aberto .painel-pedido) { opacity: .35; }
+.painel-grade--destaque .painel-pedido--contem > :is(.painel-linha, .painel-itens) { opacity: .35; }
 .painel-pedido--aberto > .painel-linha .painel-ped { background: #e8f0fe; }
 .painel-pedido--aberto > .painel-linha { background: #f6f9fe; }
 .painel-pedido--aberto > .painel-linha .painel-cel:not(.painel-cel--nao_tem) { box-shadow: 0 0 0 2px #1a73e8; }
