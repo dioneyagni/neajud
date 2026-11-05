@@ -184,6 +184,9 @@ runSpec("Produção: etapas e baixas", async ({ page, test }) => {
       if (ref !== `↻ reposição de #${pedidoUuid.slice(0, 8)} · 2 peças`) throw new Error(`The reposição's row says "${ref}"`);
       const entrega = painel.locator(`#painel_${pedidoUuid} > .painel-linha [data-coluna='entrega']`);
       if ((await entrega.getAttribute("data-estado")) !== "travada" || !(await entrega.innerText()).includes("espera reposição")) throw new Error(`The original's Entrega: ${await entrega.innerText()}`);
+      // Every stage of the original is done, but its pieces are being redone: not 100% (05/11/2026).
+      const pct = (await painel.locator(`#painel_${pedidoUuid} > .painel-linha .painel-fim strong`).innerText()).trim();
+      if (pct === "100%" || pct === "0%") throw new Error(`The original with a reposição open shows ${pct}`);
       if (!(await painel.evaluate(() => window.semRecarregar))) throw new Error("The Painel reloaded");
 
       await page.locator("a.pedido-ir-impressao").click();

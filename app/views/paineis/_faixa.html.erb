@@ -4,6 +4,9 @@
 <% pedido = linha.pedido %>
 <div class="painel-faixa-num">
   <span class="painel-pct"><%= linha.percentual %>%</span>
+  <% if linha.reposicoes.any? %>
+    <span data-percentuais>(pedido <%= linha.percentual_proprio %>% · reposição <%= linha.percentual_das_reposicoes %>%)</span>
+  <% end %>
   <span>Início <b><%= linha.inicio ? linha.inicio.strftime("%d/%m %H:%M") : "—" %></b></span>
   <span>Prazo <b class="<%= "painel-atrasado" if linha.atrasado? %>"><%= linha.prazo ? linha.prazo.strftime("%d/%m/%Y") : "sem prazo" %><%= " · atrasado" if linha.atrasado? %></b></span>
   <span>Previsão <b>—</b> <small>(com os turnos)</small></span>
