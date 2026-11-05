@@ -1,0 +1,27 @@
+<%# The material missing, launched with a baixa or a delivery (decided
+    05/11/2026; EntradaDaFalta): one row per material × owner, the
+    authorizer's fields for who may not edit the stock. Filled and driven by
+    controllers/dialogo_da_falta.js from the Stimulus controller that owns it.
+    locals: controller ("baixa" or "entrega"), campo (a unique id prefix),
+            texto (what launching does here) %>
+<dialog class="client-dialog baixa-falta" data-<%= controller %>-target="falta" aria-labelledby="<%= campo %>-falta-titulo">
+  <h4 id="<%= campo %>-falta-titulo">Falta material no estoque</h4>
+  <p class="baixa-falta-texto"><%= texto %></p>
+  <div class="baixa-falta-linhas" data-falta-linhas></div>
+  <div class="baixa-falta-autorizador" data-falta-autorizador hidden>
+    <p>Você não pode lançar no estoque: quem pode autoriza com o e-mail e a senha.</p>
+    <div class="client-field">
+      <label for="<%= campo %>-autorizador-email">E-mail de quem autoriza</label>
+      <input type="email" id="<%= campo %>-autorizador-email" data-falta-email autocomplete="off">
+    </div>
+    <div class="client-field">
+      <label for="<%= campo %>-autorizador-senha">Senha</label>
+      <input type="password" id="<%= campo %>-autorizador-senha" data-falta-senha autocomplete="off">
+    </div>
+  </div>
+  <p class="baixa-mensagem" data-falta-erro role="alert" hidden></p>
+  <div class="client-dialog-actions">
+    <button type="button" class="btn btn-secondary" data-action="<%= controller %>#fecharFalta">Cancelar</button>
+    <button type="button" class="btn btn-primary baixa-falta-lancar" data-action="<%= controller %>#lancarFalta"><%= controller == "baixa" ? "Lançar entrada e dar baixa" : "Lançar entrada e entregar" %></button>
+  </div>
+</dialog>

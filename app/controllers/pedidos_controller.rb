@@ -1,6 +1,7 @@
 class PedidosController < ApplicationController
   include NumeroDigitado
   include ConfirmacaoDoPedido
+  include EntradaDaFaltaAutorizada
   exige :pedidos, :ver, only: %i[index show resumo corte impressao etapa]
   exige_acao :baixar_producao, only: %i[baixar_corte baixar_impressao]
   # Etapa 2.8 (3a): the Corte page is the cortes' (DXF drawings).
@@ -16,6 +17,7 @@ class PedidosController < ApplicationController
   before_action :recusar_pedido_travado, only: %i[update remover_item atualizar_item alternar_peca]
   # Etapa 2.7c: a tecido pedido's stages share one page of their own.
   before_action :levar_tecido_a_producao, only: %i[corte baixar_corte impressao baixar_impressao etapa]
+  limita_senha_do_autorizador only: :entregar
 
   # Etapa 2.2 (3/3): filtered by status (?status=em_producao), each pedido
   # past the draft with its stages' progress; Etapa 2.3d2: or by waiting for
@@ -218,13 +220,15 @@ class PedidosController < ApplicationController
   end
 
   # "Marcar como entregue" (Etapa 2.2, 3/3): JSON for the entrega Stimulus
-  # controller — ok, aviso (stages still open: deliver anyway?) or error.
-  # Usage: POST /pedidos/:uuid/entregar (confirmar)
+  # controller — ok, aviso (stages still open: deliver anyway?), falta_material
+  # (the entry to launch with it, decided 05/11/2026) or error.
+  # Usage: POST /pedidos/:uuid/entregar (confirmar; entradas[…], autorizador[email|senha])
   def entregar
-    resultado = EntregarPedidoService.call(@pedido, confirmar: params[:confirmar] == "1", user: Current.user)
+    resultado = EntregarPedidoService.call(@pedido, confirmar: params[:confirmar] == "1", user: Current.user, **campos_da_entrada)
     case resultado.estado
     when :ok then flash[:notice] = "Pedido entregue."; render json: { ok: true }
     when :aviso then render json: { ok: false, aviso: resultado.mensagem }
+    when :falta_material then render json: { ok: false, falta_material: resultado.mensagem, **dialogo_da_falta(resultado.faltas) }
     else render json: { ok: false, error: resultado.mensagem }, status: :unprocessable_content
     end
   end

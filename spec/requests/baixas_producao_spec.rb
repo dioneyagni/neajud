@@ -213,8 +213,18 @@ RSpec.describe "Production baixas", type: :request do
       expect(MovimentoEstoque.entradas.sole.slice(:lancado_por_id, :autorizado_por_id)).to eq("lancado_por_id" => operador.id, "autorizado_por_id" => dono.id)
       entrar_como(dono)
       get movimentos_path
-      expect(Nokogiri::HTML(response.body).at_css("[data-lancada-na-baixa]").text.squish)
+      expect(Nokogiri::HTML(response.body).at_css("[data-lancada]").text.squish)
         .to eq("lançada na baixa de ##{pedido.uuid.first(8)} · Corte, por #{operador.nome}, autorizada por #{dono.nome}")
+    end
+
+    it "asks the delivery for the entry too, and names it in the ledger" do
+      post entregar_pedido_path(pedido), params: { confirmar: "1" }, as: :json
+      expect(response.parsed_body).to include("falta_material" => a_string_including("ainda espera material"), "pode_lancar" => true,
+                                              "faltas" => [ a_hash_including("chave" => chave, "minimo" => 0.2) ])
+      post entregar_pedido_path(pedido), params: { confirmar: "1", entradas: { chave => "0,2" } }, as: :json
+      expect([ response.parsed_body, pedido.reload.status ]).to eq([ { "ok" => true }, "entregue" ])
+      get movimentos_path
+      expect(Nokogiri::HTML(response.body).at_css("[data-lancada]").text.squish).to eq("lançada na entrega de ##{pedido.uuid.first(8)}, por #{@usuario_logado.nome}")
     end
   end
 end

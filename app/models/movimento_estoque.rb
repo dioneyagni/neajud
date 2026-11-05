@@ -12,9 +12,11 @@ class MovimentoEstoque < ApplicationRecord
   belongs_to :baixa_producao, optional: true
   # Dublagem 5a: an ordem de dublagem done — its components out, its dublado in.
   belongs_to :ordem_dublagem, optional: true, inverse_of: :movimentos_estoque
-  # Decided 05/11/2026: an entry launched at a baixa (EntradaDaFaltaNaBaixa);
-  # unlike baixa_producao it keeps counting when the baixa is undone.
+  # Decided 05/11/2026: an entry launched at a baixa or a delivery
+  # (EntradaDaFalta); unlike baixa_producao and pedido they keep it counting
+  # when the baixa is undone or the pedido trashed.
   belongs_to :lancada_na_baixa, class_name: "BaixaProducao", optional: true
+  belongs_to :lancada_na_entrega, class_name: "Pedido", optional: true
   belongs_to :lancado_por, class_name: "User", optional: true
   belongs_to :autorizado_por, class_name: "User", optional: true
   atribui_por_uuid :client
@@ -33,7 +35,7 @@ class MovimentoEstoque < ApplicationRecord
   scope :recentes, -> { order(created_at: :desc) }
   # What the ledger (movimentos/_tabela) shows of each, read at once.
   scope :para_o_extrato, lambda {
-    recentes.includes(:client, :pedido, :baixa_producao, :ordem_dublagem, :lancado_por, :autorizado_por, lancada_na_baixa: :pedido,
+    recentes.includes(:client, :pedido, :baixa_producao, :ordem_dublagem, :lancado_por, :autorizado_por, :lancada_na_entrega, lancada_na_baixa: :pedido,
                       materia_prima: %i[grupo_material cor_material construcao])
   }
   # What the balances count (Etapa 2.3d2): a trashed pedido's outs don't —

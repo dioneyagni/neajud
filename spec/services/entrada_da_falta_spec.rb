@@ -6,7 +6,7 @@ require_relative "../support/producao_calcado"
 # its entry; whoever gives it knows the material came in, launches it with
 # the baixa (more when more came), and needs the password of someone who may
 # edit the stock if they may not. The entry stays if the baixa is undone.
-RSpec.describe EntradaDaFaltaNaBaixa do
+RSpec.describe EntradaDaFalta do
   let(:client) { create(:client) }
   let(:oxford) { criar_tecido(grupo: "Oxford") }
   let(:papel) { criar_tecido(grupo: "Papel", cor: "Branco", tipo: "papel") }
@@ -97,5 +97,39 @@ RSpec.describe EntradaDaFaltaNaBaixa do
     # The stock emptied again: the Estamparia takes nothing from it, so it doesn't ask.
     MovimentoEstoque.entradas.delete_all
     expect(RegistrarBaixaService.call(calcado, etapa: "estamparia", nivel: "pedido", medida: "10", confirmar: true).estado).to eq(:ok)
+  end
+
+  # Regression (05/11/2026): #d4f30331 was delivered skipping its Calandra,
+  # the one stage that took its fabric — delivered, a pedido stops showing as
+  # waiting, and the stock stayed short with no entry asked.
+  describe "at the delivery" do
+    def entregar(user: estoquista, **dados)
+      EntregarPedidoService.call(pedido, confirmar: true, user: user, **dados)
+    end
+
+    it "asks for every material the pedido still waits for, delivering nothing" do
+      resultado = entregar
+      expect(resultado.estado).to eq(:falta_material)
+      expect(resultado.faltas.map(&:chave)).to contain_exactly(chave(papel), chave(oxford, client))
+      expect(pedido.reload.status).to eq("confirmado")
+    end
+
+    it "launches the entries with the delivery, pointing at the pedido" do
+      expect(entregar(entradas: { chave(papel) => "4", chave(oxford, client) => "5" }).estado).to eq(:ok)
+      expect(pedido.reload.status).to eq("entregue")
+      expect(MovimentoEstoque.entradas.map { |m| [ m.materia_prima, m.quantidade.to_f, m.lancada_na_entrega, m.pedido_id ] })
+        .to contain_exactly([ papel, 4.0, pedido, nil ], [ oxford, 5.0, pedido, nil ])
+    end
+
+    it "delivers nothing when the entry is refused" do
+      resultado = entregar(user: operador, entradas: { chave(papel) => "4", chave(oxford, client) => "4" })
+      expect([ resultado.estado, pedido.reload.status, entradas ]).to eq([ :erro, "confirmado", [] ])
+    end
+
+    it "asks nothing of a pedido whose material came in" do
+      estocar(papel)
+      estocar(oxford, client: client)
+      expect(entregar.estado).to eq(:ok)
+    end
   end
 end

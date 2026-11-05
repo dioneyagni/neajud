@@ -210,11 +210,11 @@ runSpec("Ajuste do estoque", async ({ page, test }) => {
         const dialogo = baixa.locator("dialog.baixa-falta");
         await dialogo.locator(".baixa-falta-autorizador").waitFor({ state: "visible" });
         await dialogo.locator("input[data-chave]").fill("2");
-        await dialogo.locator("[data-baixa-target=autorizadorEmail]").fill(E2E_USUARIO.email);
-        await dialogo.locator("[data-baixa-target=autorizadorSenha]").fill("senha-errada-1");
+        await dialogo.locator("[data-falta-email]").fill(E2E_USUARIO.email);
+        await dialogo.locator("[data-falta-senha]").fill("senha-errada-1");
         await dialogo.locator(".baixa-falta-lancar").click();
-        await dialogo.locator("[data-baixa-target=faltaErro]", { hasText: "email and password of someone who may edit the stock" }).waitFor();
-        await dialogo.locator("[data-baixa-target=autorizadorSenha]").fill(E2E_USUARIO.senha);
+        await dialogo.locator("[data-falta-erro]", { hasText: "email and password of someone who may edit the stock" }).waitFor();
+        await dialogo.locator("[data-falta-senha]").fill(E2E_USUARIO.senha);
         await dialogo.locator(".baixa-falta-lancar").click();
         await outra.getByText("Baixa de Calandra registrada").waitFor();
       } finally {
@@ -222,9 +222,9 @@ runSpec("Ajuste do estoque", async ({ page, test }) => {
       }
 
       await page.goto(`${BASE_URL}/movimentos`);
-      const lancada = (await page.locator("[data-lancada-na-baixa]").first().innerText()).replace(/\s+/g, " ").trim();
+      const lancada = (await page.locator("[data-lancada]").first().innerText()).replace(/\s+/g, " ").trim();
       if (lancada !== `lançada na baixa de #${ids.pedido.slice(0, 8)} · Calandra, por ${operador.nome}, autorizada por ${E2E_USUARIO.nome}`) throw new Error(`The ledger reads ${lancada}`);
-      const quantidade = (await page.locator("tr", { has: page.locator("[data-lancada-na-baixa]") }).first().locator("td").nth(4).innerText()).trim();
+      const quantidade = (await page.locator("tr", { has: page.locator("[data-lancada]") }).first().locator("td").nth(4).innerText()).trim();
       if (quantidade !== "2 m") throw new Error(`The entry reads ${quantidade}`);
     });
   } finally {

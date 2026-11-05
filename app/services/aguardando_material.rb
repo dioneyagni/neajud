@@ -13,7 +13,7 @@
 #
 # para_liberar: the entry that frees this out — it and every older one
 # waiting on the same material × owner, which the entries cover first
-# (decided 05/11/2026, the entry launched at the baixa: EntradaDaFaltaNaBaixa).
+# (decided 05/11/2026, the entry launched at the baixa: EntradaDaFalta).
 #
 # Usage: aguardando = AguardandoMaterial.call
 #        aguardando.do_pedido(pedido) # => [#<Falta materia_prima=Oxford client=MKS metros=12.5 para_liberar=17.5>]

@@ -2,7 +2,7 @@
     field (metragem or pieces) next to the line, the arte or the pedido.
     Etapa 2.3e: lines of several materials ask one measure each.
     Decided 05/11/2026: the material missing in the stock opens the dialog
-    to launch its entry with the baixa (EntradaDaFaltaNaBaixa).
+    to launch its entry with the baixa (EntradaDaFalta).
     locals: pedido, etapa (EtapasProducao::Etapa), nivel, alvo, rotulo, esperado,
             materiais (optional: material => expected meters, when several) %>
 <% unidade = etapa.unidade_da_medida %>
@@ -40,25 +40,6 @@
     <div class="baixa-contagem" data-baixa-target="contagem" hidden></div>
     <button type="button" class="btn btn-sm btn-outline baixa-confirmar" data-baixa-target="confirmar" data-action="baixa#confirmarAssim" hidden>Confirmar assim mesmo</button>
   </div>
-  <dialog class="client-dialog baixa-falta" data-baixa-target="falta" aria-labelledby="<%= campo %>-falta-titulo">
-    <h4 id="<%= campo %>-falta-titulo">Falta material no estoque</h4>
-    <p class="baixa-falta-texto">Se o material chegou, confirme quanto entrou: a entrada vai para o estoque e a baixa é dada.</p>
-    <div class="baixa-falta-linhas" data-baixa-target="faltaLinhas"></div>
-    <div class="baixa-falta-autorizador" data-baixa-target="autorizador" hidden>
-      <p>Você não pode lançar no estoque: quem pode autoriza com o e-mail e a senha.</p>
-      <div class="client-field">
-        <label for="<%= campo %>-autorizador-email">E-mail de quem autoriza</label>
-        <input type="email" id="<%= campo %>-autorizador-email" data-baixa-target="autorizadorEmail" autocomplete="off">
-      </div>
-      <div class="client-field">
-        <label for="<%= campo %>-autorizador-senha">Senha</label>
-        <input type="password" id="<%= campo %>-autorizador-senha" data-baixa-target="autorizadorSenha" autocomplete="off">
-      </div>
-    </div>
-    <p class="baixa-mensagem" data-baixa-target="faltaErro" role="alert" hidden></p>
-    <div class="client-dialog-actions">
-      <button type="button" class="btn btn-secondary" data-action="baixa#fecharFalta">Cancelar</button>
-      <button type="button" class="btn btn-primary baixa-falta-lancar" data-action="baixa#lancarFalta">Lançar entrada e dar baixa</button>
-    </div>
-  </dialog>
+  <%= render "pedidos/dialogo_da_falta", controller: "baixa", campo: campo,
+             texto: "Se o material chegou, confirme quanto entrou: a entrada vai para o estoque e a baixa é dada." %>
 </div>

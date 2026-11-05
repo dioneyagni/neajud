@@ -20,7 +20,7 @@
 # - The material missing (decided 05/11/2026): when, adjusted, the lines
 #   leave the pedido waiting for a material they take, nothing is saved and
 #   it comes back as :falta_material (`faltas`) until the entry is sent with
-#   it (`entradas`, `autorizador` — EntradaDaFaltaNaBaixa).
+#   it (`entradas`, `autorizador` — EntradaDaFalta).
 #
 # Usage: RegistrarBaixaService.call(pedido, etapa: "corte", nivel: "pedido", medida: "12,4", confirmar: false, user: u, changed_by: ip)
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
@@ -110,10 +110,10 @@ class RegistrarBaixaService
   # Adjusted, the material these lines take still missing: launched with
   # the baixa, or everything undone and asked for (:falta_material / :erro).
   def lancar_o_que_falta(baixa)
-    faltas = EntradaDaFaltaNaBaixa.faltas(@pedido, MateriaisDasLinhas.call(@pedido, @etapa, linhas))
+    faltas = EntradaDaFalta.faltas(@pedido, MateriaisDasLinhas.call(@pedido, @etapa, linhas))
     return if faltas.empty?
 
-    erro = @entradas && EntradaDaFaltaNaBaixa.call(baixa, faltas, entradas: @entradas, user: @autoria[:user], autorizador: @autorizador)
+    erro = @entradas && EntradaDaFalta.call(faltas, origem: { lancada_na_baixa: baixa }, entradas: @entradas, user: @autoria[:user], autorizador: @autorizador)
     return unless erro || @entradas.nil?
 
     @sem_material = erro ? Resultado.new(estado: :erro, mensagem: erro) : falta_material(faltas)
