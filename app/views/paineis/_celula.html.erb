@@ -1,0 +1,10 @@
+<%# One cell (CelulaDoPainel). locals: celula, coluna %>
+<div class="painel-cel painel-cel--<%= celula.estado %>" data-coluna="<%= coluna %>" data-estado="<%= celula.estado %>"
+     <% if celula.detalhe.present? %>title="<%= celula.detalhe %>"<% end %>>
+  <% unless celula.estado == :nao_tem %>
+    <span class="painel-cel-texto"><%= celula.texto %></span>
+    <% if celula.estado == :andamento && celula.percentual %>
+      <span class="painel-barra"><span class="painel-barra-in" style="width: <%= celula.percentual %>%"></span></span>
+    <% end %>
+  <% end %>
+</div>

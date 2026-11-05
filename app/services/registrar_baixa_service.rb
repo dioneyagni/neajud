@@ -28,8 +28,9 @@ class RegistrarBaixaService
     new(pedido, **dados).call
   end
 
-  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil)
+  def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil, fontes: nil)
     @pedido = pedido
+    @fontes = fontes
     @etapa = EtapasProducao.etapa(pedido.tipo, etapa, pedido: pedido)
     @nivel = nivel.to_s
     @alvo = alvo.to_s
@@ -63,9 +64,11 @@ class RegistrarBaixaService
 
   # Every line of this stage by key: :feita (with its baixa), :aguardando
   # (the stage it waits for) or :aberta. Shared by the pages.
+  # fontes: the pedido's lines and baixas already read (EstadoDasEtapas,
+  # Painel 1/4), so every stage of many pedidos doesn't read them again.
   # Usage: RegistrarBaixaService.situacao(pedido, "estamparia")["…/…"].aguardando # => "Corte"
-  def self.situacao(pedido, etapa)
-    new(pedido, etapa: etapa, nivel: "pedido", medida: "0").situacao
+  def self.situacao(pedido, etapa, fontes: nil)
+    new(pedido, etapa: etapa, nivel: "pedido", medida: "0", fontes: fontes).situacao
   end
 
   def situacao
@@ -171,7 +174,7 @@ class RegistrarBaixaService
   end
 
   def todas
-    @todas ||= LinhasDeProducao.call(@pedido, @etapa)
+    @todas ||= @fontes ? @fontes.linhas(@etapa) : LinhasDeProducao.call(@pedido, @etapa)
   end
 
   def estado_da(linha)
@@ -189,13 +192,18 @@ class RegistrarBaixaService
   end
 
   def baixas_por_chave
-    @baixas_por_chave ||= @pedido.baixas_producao.vigentes.da_etapa(@etapa.chave).includes(:user).order(:created_at)
-                                 .each_with_object({}) { |baixa, mapa| baixa.linhas.each { |chave| mapa[chave] ||= baixa } }
+    @baixas_por_chave ||= baixas_vigentes(@etapa.chave).each_with_object({}) { |baixa, mapa| baixa.linhas.each { |chave| mapa[chave] ||= baixa } }
   end
 
   def feitas(etapa)
     @feitas ||= {}
-    @feitas[etapa] ||= @pedido.baixas_producao.vigentes.da_etapa(etapa).feitas
+    @feitas[etapa] ||= @fontes ? baixas_vigentes(etapa).flat_map(&:linhas).to_set : @pedido.baixas_producao.vigentes.da_etapa(etapa).feitas
+  end
+
+  def baixas_vigentes(etapa)
+    return @fontes.baixas(etapa) if @fontes
+
+    @pedido.baixas_producao.vigentes.da_etapa(etapa).includes(:user).order(:created_at)
   end
 
   # Outside the dono's band: the whole measure, or any material's own.

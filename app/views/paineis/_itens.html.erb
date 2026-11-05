@@ -1,0 +1,11 @@
+<%# A pedido's items as rows (ItensDoPainel): their own lines of each stage;
+    the Corte's are the whole pedido's. locals: itens, colunas %>
+<% itens.each do |item| %>
+  <div class="painel-linha painel-linha--item" data-item="<%= item.item.uuid %>">
+    <div class="painel-ped"><span class="painel-item-nome"><%= item.nome %></span></div>
+    <% colunas.each_key do |chave| %>
+      <%= render "paineis/celula", celula: item.celulas.fetch(chave) { CelulaDoPainel.nova(:nao_tem) }, coluna: chave %>
+    <% end %>
+    <div class="painel-fim"></div>
+  </div>
+<% end %>

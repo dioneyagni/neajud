@@ -40,6 +40,19 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect([ response.status, OrdemDublagem.count ]).to eq([ 404, 1 ])
     end
 
+    # Painel 1/4: a row, its items and the delivery date by the pedido's uuid.
+    it "finds a Painel row, its items and the delivery date by uuid only" do
+      pedido = create(:pedido)
+      get "/painel/pedidos/#{pedido.uuid}"
+      expect(response.body).to include(%(id="painel_#{pedido.uuid}"))
+      get "/painel/pedidos/#{pedido.id}"
+      expect(response).to have_http_status(:no_content)
+      get "/painel/pedidos/#{pedido.id}/itens"
+      expect(response).to have_http_status(:not_found)
+      patch "/pedidos/#{pedido.id}/prazo", params: { prazo_entrega: "2026-11-20" }
+      expect([ response.status, pedido.reload.prazo_entrega ]).to eq([ 404, nil ])
+    end
+
     it "refuses a tamanho download by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/download"

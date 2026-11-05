@@ -934,3 +934,8 @@
 /* Etapa 2.3d2: a pedido waiting for material — a warning, never a block. */
 .badge-aguardando { background: #fdecea; color: #8a1c13; margin-left: 0.25rem; }
 .pedido-aguardando { margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-left: 3px solid #c0392b; background: #fdf3f2; color: #8a1c13; overflow-wrap: anywhere; }
+
+/* Painel 1/4: the delivery date in the side panel. */
+.pedido-prazo { margin-top: 0.75rem; font-size: 0.875rem; }
+.pedido-prazo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.pedido-prazo-form input[type="date"] { font: inherit; padding: 4px 6px; border: 1px solid #dadce0; border-radius: 6px; }

@@ -7,6 +7,11 @@ module CanaisAoVivoHelper
     assinatura_ao_vivo(CanaisAoVivo.cartoes(Current.user.cliente))
   end
 
+  # The Painel's rows this person sees (Painel 1/4). Usage: <%= canal_do_painel %>
+  def canal_do_painel
+    assinatura_ao_vivo(CanaisAoVivo.painel(Current.user.cliente))
+  end
+
   # Usage: <%= canal_do_registro(@pedido) %>
   def canal_do_registro(registro)
     assinatura_ao_vivo(CanaisAoVivo.do_registro(registro))

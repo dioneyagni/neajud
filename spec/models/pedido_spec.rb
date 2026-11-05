@@ -214,4 +214,24 @@ RSpec.describe Pedido, type: :model do
       expect(pedido.errors[:material_impressao].first).to end_with("is a papel; a DTF pedido prints on a filme_dtf")
     end
   end
+
+  # Painel 1/4: the arrival order — when and who, on every way of confirming.
+  describe "confirmado_em" do
+    it "is written when the pedido becomes confirmado, with the user, once" do
+      usuario = create(:user)
+      pedido = create(:pedido)
+      Current.set(session: Session.create!(user: usuario)) { pedido.update!(status: "confirmado") }
+      expect([ pedido.confirmado_em, pedido.confirmado_por ]).to match([ be_within(5.seconds).of(Time.current), usuario ])
+
+      primeira = pedido.confirmado_em
+      pedido.update!(status: "em_producao")
+      pedido.update!(status: "confirmado")
+      expect(pedido.reload.confirmado_em).to eq(primeira)
+    end
+
+    it "is written on a pedido created confirmed (the calçado split by client)" do
+      expect(create(:pedido, status: "confirmado").confirmado_em).to be_present
+      expect(create(:pedido).confirmado_em).to be_nil
+    end
+  end
 end

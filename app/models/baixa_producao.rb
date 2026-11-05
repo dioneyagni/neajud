@@ -26,6 +26,9 @@ class BaixaProducao < ApplicationRecord
   validate :cobre_alguma_linha
 
   scope :vigentes, -> { where(desfeita_em: nil) }
+
+  # A baixa given or undone moves its pedido's row on the Painel (Painel 1/4).
+  after_commit -> { CanaisAoVivo.avisar_painel(pedido) }, on: %i[create update]
   scope :da_etapa, ->(etapa) { where(etapa: etapa.to_s) }
 
   # The line keys these baixas covered.

@@ -89,3 +89,56 @@ from the files themselves. Done (1/3 to 4/4):
   from those items (`pecas_fixas`), so it goes through every stage again
   with the same pages; its own short Conferência makes another one. The
   original's delivery warns while a reposição isn't delivered.
+
+## The Painel (Painel 1/4)
+
+Decided 04/11/2026 (prototype in the canvas "Painel de produção"; the
+decisions Q1–Q16 are in `docs/plano.md`, Etapa 2.10). `/painel`, first in the
+menu, the Pedidos' permission (`pedidos › ver`) and visibility: a row per
+pedido, a column per stage, from the files to the delivery.
+
+- **Rows** — `PainelDeProducao.call(visiveis(Pedido))`: the pedidos not
+  delivered (a reposição still gathering, rascunho, is left out), and with
+  `?entregues=1` the ones delivered in the last 7 days. Blocks by status
+  until the turnos (2/4) and the programação (3/4): **Em andamento** (some
+  baixa), **Prontos para começar** (confirmed, nothing holds it),
+  **Pendentes de início** (draft, sent, waiting for material),
+  **Entregues**. Inside a block: late, with a pendência, nearest deadline,
+  arrival (`confirmado_em`, else `created_at`).
+- **Columns and cells** — `LinhaDoPainel` + `CelulaDoPainel`: Arquivos (the
+  file pendências of `PedidoBloqueiosService`), Comercial (the other
+  pendências, the arte's approval, confirmed), Material (`AguardandoMaterial`:
+  material or dublagem), Impressão, Corte, Estamparia (the tecido's Calandra
+  too), Conferência (each from the stage's lines), Entrega. States: feita,
+  andamento (x/y + bar), pode começar, travada ("espera Corte"), pendência,
+  não tem, ainda não. Empty columns hide. A cliente final sees no material
+  detail and the factory's pendências as "em análise pela fábrica". The
+  Dublagem columns come with Dublagem 5b (4/4).
+- **Opened** (painel_controller.js): the others dim, its cells are outlined,
+  the faixa shows %, início (`confirmado_em`, else the first baixa), prazo,
+  "previsão —" until 2/4, the path (`CaminhoDoPedido`: steps from the
+  stages' `trava`, side by side when they don't wait for each other), what
+  holds it and the links. "N itens" loads `GET /painel/pedidos/:uuid/itens`
+  (`ItensDoPainel`: each item's own lines; the Corte is the pedido's).
+- **Sector tabs** (Todos, Impressão, Corte…) keep the pedidos in that
+  column's queue (pode começar, andamento, travada, pendência); the filters
+  (tipo, cliente, só com pendência) and the counters run in the page.
+- **Live** — `CanaisAoVivo.avisar_painel(pedido)` (Pedido after_commit on
+  status, prazo, trash, client; BaixaProducao on create/update) sends only
+  the uuid to `painel:equipe` and `painel:<client uuid>`; the page fetches
+  `GET /painel/pedidos/:uuid` with its columns and swaps or moves the row
+  (204 = it left the Painel; a cell in a hidden column reloads the page).
+  A stock entry clearing "aguardando material" shows on the next load.
+- **Data** — `pedidos.confirmado_em` / `confirmado_por_id` (written by
+  `Pedido#marcar_confirmacao` on every way of confirming) and
+  `prazo_entrega`, set by the team on the pedido's side panel, also after
+  confirming (`PATCH /pedidos/:uuid/prazo`).
+- **Speed** (measured 04/11/2026 on the dev data, 16 open pedidos: 1,8 s and
+  2.300 queries): `EstadoDasEtapas` reads every stage once per pedido — the
+  Impressão, Estamparia and Conferência lines are built once
+  (`LinhasDeProducao` `memoria:`), the baixas come in one query for the whole
+  Painel (`RegistrarBaixaService.situacao(…, fontes:)`) — and
+  `ResolucaoDoItem` preloads each file's corte part (148 + 148 single
+  queries in a pedido of 6 items). Now ~255 ms and 444 queries; the pedido's
+  page and list use it too (`AndamentoDoPedido`). A cache of the rows comes
+  only if it gets slow again.

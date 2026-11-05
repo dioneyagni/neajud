@@ -22,8 +22,11 @@ class LinhasDeProducao
                      :pecas, :esperado, :corte_chave, :origem, :dispensa, :encaixe, keyword_init: true)
 
   # largura_papel_mm: the pedido's paper unless given (Etapa 2.3d1).
-  def self.call(pedido, etapa, largura_papel_mm: pedido.largura_do_papel_mm)
-    new(pedido, etapa, largura_papel_mm).call
+  # memoria: a Hash shared by the calls of one pedido (EstadoDasEtapas,
+  # Painel 1/4): Impressão, Estamparia and Conferência read the same
+  # ImpressaoPedidoService groups, built once instead of once per stage.
+  def self.call(pedido, etapa, largura_papel_mm: pedido.largura_do_papel_mm, memoria: {})
+    new(pedido, etapa, largura_papel_mm, memoria).call
   end
 
   # The Corte line key of a part × size × material.
@@ -50,10 +53,11 @@ class LinhasDeProducao
     [ item.uuid, item.arquivo.uuid ].join("/")
   end
 
-  def initialize(pedido, etapa, largura_papel_mm)
+  def initialize(pedido, etapa, largura_papel_mm, memoria = {})
     @pedido = pedido
     @etapa = etapa
     @largura_papel_mm = largura_papel_mm
+    @memoria = memoria
   end
 
   def call
@@ -68,7 +72,7 @@ class LinhasDeProducao
   private
 
   def linhas_da_impressao
-    ImpressaoPedidoService.call(@pedido).flat_map do |grupo|
+    (@memoria[:impressao] ||= ImpressaoPedidoService.call(@pedido)).flat_map do |grupo|
       linhas = grupo.linhas.select(&:arquivo).reject(&:pendencia)
       linhas = linhas.reject { |l| l.refazer_impressao == false } if @etapa.chave == "impressao"
       linhas.map { |linha| da_impressao(grupo.item, linha) }
@@ -85,7 +89,7 @@ class LinhasDeProducao
   end
 
   def linhas_do_corte
-    ProducaoPedidoService.call(@pedido).select(&:tamanho).map do |linha|
+    (@memoria[:corte] ||= ProducaoPedidoService.call(@pedido)).select(&:tamanho).map do |linha|
       Linha.new(chave: self.class.chave_do_corte(linha.peca, linha.tamanho, linha.materia_prima), peca: linha.peca,
                 tamanho: linha.tamanho, materia_prima: linha.materia_prima, pecas: linha.pecas,
                 esperado: esperado(linha.pecas) { linha.metros_esperados })
