@@ -177,6 +177,11 @@ Rails.application.routes.draw do
   # Etapa 2.5b: every cor lisa — the chart and the table.
   resources :cores, only: :index
 
+  # Painel 1/4 (04/11/2026): pedidos × stages; one pedido's row and items for
+  # the live update and the expansion.
+  get "painel", to: "paineis#show", as: :painel
+  get "painel/pedidos/:uuid", to: "paineis#linha", as: :linha_do_painel
+  get "painel/pedidos/:uuid/itens", to: "paineis#itens", as: :itens_do_painel
   # The tecido pedidos' own list (20/10/2026); before resources so "tecido" isn't a uuid.
   get "pedidos/tecido", to: "lista_pedidos_tecido#index", as: :pedidos_tecido
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
@@ -233,6 +238,8 @@ Rails.application.routes.draw do
       get "tecido/arquivos", to: "producao_tecido#arquivos", as: :tecido_arquivos
       get "tecido/compactados", to: "producao_tecido#preparados", as: :tecido_compactados
       get :resumo
+      # Painel 1/4: the delivery date promised to the client, also after confirming.
+      patch :prazo, to: "prazos_do_pedido#update"
     end
   end
 

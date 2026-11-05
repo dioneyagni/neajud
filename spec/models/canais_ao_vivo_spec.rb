@@ -60,6 +60,14 @@ RSpec.describe CanaisAoVivo do
       expect(described_class.permitido?(cliente_final(beta), "pedido:#{create(:pedido, client: alfa).uuid}")).to be(false)
     end
 
+    # Painel 1/4: the Painel's rows, like the cards — the team's or one client's.
+    it "gives the Painel's stream to the team, a client's to its own people only" do
+      expect(described_class.permitido?(create(:vinculo).user, "painel:equipe")).to be(true)
+      expect(described_class.permitido?(cliente_final(alfa), "painel:equipe")).to be(false)
+      expect(described_class.permitido?(cliente_final(alfa), "painel:#{alfa.uuid}")).to be(true)
+      expect(described_class.permitido?(cliente_final(beta), "painel:#{alfa.uuid}")).to be(false)
+    end
+
     it "refuses an unknown or incomplete name" do
       user = create(:vinculo).user
       expect(described_class.permitido?(user, "arquivos")).to be(false)
@@ -70,5 +78,21 @@ RSpec.describe CanaisAoVivo do
   it "signs with its own verifier: Turbo's signature is not accepted" do
     expect(described_class.ler(described_class.assinar("cartoes:equipe"))).to eq("cartoes:equipe")
     expect(described_class.ler(Turbo::StreamsChannel.signed_stream_name("cartoes:equipe"))).to be_nil
+  end
+
+  # Painel 1/4: only the uuid goes out; the page asks for the row itself.
+  describe ".avisar_painel" do
+    it "tells the team's Painel and the pedido's client's" do
+      pedido = create(:pedido, client: alfa)
+      expect { described_class.avisar_painel(pedido) }
+        .to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
+        .and have_broadcasted_to("painel:#{alfa.uuid}").from_channel(Turbo::StreamsChannel)
+    end
+
+    it "is sent when a pedido is confirmed, and when a baixa is given" do
+      pedido = create(:pedido, client: alfa)
+      expect { pedido.update!(status: "confirmado") }.to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
+      expect { pedido.update!(observacoes: "só texto") }.not_to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
+    end
   end
 end

@@ -53,6 +53,12 @@ class Pedido < ApplicationRecord
   validates :fileiras_extras, numericality: { only_integer: true, in: 0..100 }
   # Etapa 2.6b1: a DTF pedido's extra rows start at the dono's default.
   before_save :herdar_fileiras_extras, if: -> { will_save_change_to_tipo? && tipo == "dtf" }
+  # Painel 1/4: every way of confirming (the button, the calçado's split by
+  # client, a released reposição) writes when and who — the arrival order.
+  belongs_to :confirmado_por, class_name: "User", optional: true
+  before_save :marcar_confirmacao, if: -> { will_save_change_to_status? && status == "confirmado" && confirmado_em.nil? }
+  # The Painel's row follows what moves it between blocks or flags it.
+  after_commit :avisar_painel, if: -> { (saved_changes.keys & %w[id status prazo_entrega deleted_at client_id]).any? }
 
   # The pedido type an arte goes into: an etiqueta DTF's, a corrida's or cor
   # lisa's tecido, else calçado's.
@@ -135,7 +141,15 @@ class Pedido < ApplicationRecord
   def herdar_fileiras_extras
     self.fileiras_extras = Empresa.atual&.fileiras_extras_dtf || 0
   end
-  private :herdar_fileiras_extras
+
+  def marcar_confirmacao
+    self.confirmado_em = Time.current
+    self.confirmado_por ||= Current.user
+  end
+  def avisar_painel
+    CanaisAoVivo.avisar_painel(self)
+  end
+  private :herdar_fileiras_extras, :marcar_confirmacao, :avisar_painel
 
   # A sub-pedido of the pieces a Conferência missed (Etapa 2.2, 4/4).
   # Usage: pedido.reposicao? # => true

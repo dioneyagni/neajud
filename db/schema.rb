@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -679,7 +679,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.decimal "preco_corte_partida", precision: 10, scale: 4
     t.string "dono_tecido"
     t.integer "material_impressao_id"
+    t.datetime "confirmado_em"
+    t.integer "confirmado_por_id"
+    t.date "prazo_entrega"
     t.index ["client_id"], name: "index_pedidos_on_client_id"
+    t.index ["confirmado_por_id"], name: "index_pedidos_on_confirmado_por_id"
     t.index ["deleted_at"], name: "index_pedidos_on_deleted_at"
     t.index ["entregue_por_id"], name: "index_pedidos_on_entregue_por_id"
     t.index ["material_impressao_id"], name: "index_pedidos_on_material_impressao_id"
@@ -884,6 +888,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
   add_foreign_key "pedidos", "clients"
   add_foreign_key "pedidos", "materia_primas", column: "material_impressao_id"
   add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"
+  add_foreign_key "pedidos", "users", column: "confirmado_por_id"
   add_foreign_key "pedidos", "users", column: "entregue_por_id"
   add_foreign_key "referencias", "moldes"
   add_foreign_key "sessions", "users"

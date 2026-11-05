@@ -1,0 +1,13 @@
+<%# The delivery date promised to the client (Painel 1/4): the team edits it
+    before or after confirming; the Painel orders and flags by it. locals: pedido %>
+<div class="pedido-prazo" data-prazo>
+  <% if pode?(:pedidos, :editar) && !cliente_final? && !pedido.excluido? %>
+    <%= form_with url: prazo_pedido_path(pedido), method: :patch, class: "pedido-prazo-form" do %>
+      <label for="prazo_entrega">Prazo de entrega</label>
+      <input type="date" id="prazo_entrega" name="prazo_entrega" value="<%= pedido.prazo_entrega&.iso8601 %>">
+      <button type="submit" class="btn btn-sm btn-secondary">Salvar prazo</button>
+    <% end %>
+  <% else %>
+    <span>Prazo de entrega: <strong><%= pedido.prazo_entrega ? pedido.prazo_entrega.strftime("%d/%m/%Y") : "sem prazo" %></strong></span>
+  <% end %>
+</div>

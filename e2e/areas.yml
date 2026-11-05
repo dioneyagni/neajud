@@ -162,13 +162,23 @@ areas:
       - "app/services/{pedido_bloqueios_service,resolucao_do_item,custo_por_par,valores_do_pedido,impressao_pedido_service,producao_pedido_service,dxf_do_tamanho,zip_de_arquivos,zips_temporarios}.rb"
       - "app/javascript/controllers/{add_to_order,pedido_adicionar,pedido_counter,item_pecas,grade_matriz,grade_por_numero}_controller.js"
   producao:
-    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque]
+    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque, painel]
     arquivos:
       - "app/controllers/baixas_producao_controller.rb"
       - "app/models/{baixa_producao,item_reposicao}.rb"
       - "app/services/{etapas_producao,linhas_de_producao,registrar_baixa_service,desfazer_baixa_service,entregar_pedido_service,acumular_reposicao_service,liberar_reposicao_service,contagem_da_conferencia,andamento_do_pedido}.rb"
       - "app/javascript/controllers/{baixa,entrega}_controller.js"
       - "config/etapas_producao.yml"
+  # Painel 1/4 (04/11/2026): pedidos × stages; it reads every stage's state.
+  painel:
+    specs: [painel]
+    arquivos:
+      - "app/controllers/{paineis,prazos_do_pedido}_controller.rb"
+      - "app/views/paineis/**/*"
+      - "app/views/pedidos/_prazo_entrega.html.erb"
+      - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas}.rb"
+      - "app/javascript/controllers/painel_controller.js"
+      - "app/assets/stylesheets/painel.css"
   dtf:
     specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]
     arquivos:

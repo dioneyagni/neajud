@@ -1,0 +1,105 @@
+/* The Painel (Painel 1/4, 04/11/2026), as in the approved prototype: a grid
+   of pedidos × columns, the pedido column sticky while the stages scroll
+   sideways (a phone too), a cell's state by colour + short text (Q6a), the
+   opened pedido's path outlined and the rest dimmed (Q3a). */
+
+main:has(.painel) { max-width: 1480px; }
+
+.painel { display: flex; flex-direction: column; gap: 14px; }
+.painel h2 { margin: 0; }
+
+.painel-topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.painel-contadores { display: flex; flex-wrap: wrap; gap: 8px; }
+.painel-cont { border: 1px solid #dadce0; background: #fff; border-radius: 16px; padding: 6px 12px; font: inherit; color: #202124; cursor: pointer; min-height: 32px; }
+.painel-cont strong { font-variant-numeric: tabular-nums; }
+.painel-cont--atraso strong { color: #c5221f; }
+.painel-cont--ativo { background: #e8f0fe; border-color: #1a73e8; }
+
+.painel-setores { display: flex; flex-wrap: wrap; gap: 6px; }
+.painel-setor { font: inherit; border: 1px solid #dadce0; background: #fff; border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 36px; color: #3c4043; display: inline-flex; gap: 6px; align-items: center; }
+.painel-setor--ativo { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+.painel-setor-n { font-size: 11px; background: #e8f0fe; color: #174ea6; border-radius: 9px; padding: 1px 6px; font-variant-numeric: tabular-nums; }
+
+.painel-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; }
+/* A long client name must not widen the page on a phone (seen in the E2E data). */
+.painel-filtros label { display: flex; gap: 6px; align-items: center; color: #5f6368; min-width: 0; max-width: 100%; }
+.painel-filtros select { min-width: 0; max-width: 100%; text-overflow: ellipsis; font: inherit; padding: 5px 8px; border: 1px solid #dadce0; border-radius: 6px; background: #fff; color: #202124; }
+.painel-entregues-link { margin-left: auto; }
+
+.painel-legenda { display: flex; flex-wrap: wrap; gap: 10px; color: #5f6368; font-size: 12px; }
+.painel-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.painel-leg { width: 22px; height: 14px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
+
+.painel-quadro { overflow-x: auto; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; }
+.painel-grade { min-width: calc(220px + var(--painel-colunas) * 110px + 120px); }
+.painel-linha { display: grid; grid-template-columns: 220px repeat(var(--painel-colunas), minmax(0, 1fr)) 120px; border-top: 1px solid #f1f3f4; transition: opacity .15s; }
+.painel-cab { border-top: 0; border-bottom: 1px solid #e0e0e0; }
+.painel-cab > div { padding: 10px 6px; font-size: 12px; color: #5f6368; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; background: #fff; }
+
+.painel-bloco-cab { padding: 14px 12px 6px; background: #f8f9fa; border-top: 1px solid #e0e0e0; position: sticky; left: 0; width: fit-content; min-width: 100%; box-sizing: border-box; }
+.painel-bloco-nome { font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.painel-bloco-nome--em_andamento { color: #1a73e8; }
+.painel-bloco-nome--prontos { color: #137333; }
+.painel-bloco-nome--pendentes { color: #a24c00; }
+.painel-bloco-nome--entregues { color: #5f6368; }
+.painel-vazio { padding: 8px 12px; color: #5f6368; font-size: 13px; position: sticky; left: 0; }
+.painel-bloco-pedidos:has(.painel-pedido:not([hidden])) + .painel-vazio { display: none; }
+
+.painel-ped { position: sticky; left: 0; z-index: 2; background: #fff; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #f1f3f4; }
+.painel-ped-btn { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; }
+.painel-ped-btn:focus-visible { outline: 2px solid #1a73e8; }
+.painel-pid { font-weight: 600; font-variant-numeric: tabular-nums; }
+.painel-pid small { font-weight: 400; color: #5f6368; margin-left: 6px; }
+.painel-ref { color: #5f6368; font-size: 12px; }
+.painel-itens-btn { align-self: flex-start; font: inherit; font-size: 12px; border: 1px solid #dadce0; background: #fff; border-radius: 12px; padding: 2px 8px; cursor: pointer; color: #3c4043; }
+.painel-item-nome { font-size: 13px; padding-left: 16px; }
+.painel-linha--item .painel-ped { background: #fcfcfd; }
+
+/* The cell states (CelulaDoPainel). */
+.painel-cel { margin: 6px 3px; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 3px; justify-content: center; min-height: 44px; box-sizing: border-box; font-size: 12px; line-height: 1.25; }
+.painel-cel-texto { font-weight: 600; }
+.painel-cel--feita { background: #e6f4ea; color: #137333; }
+.painel-cel--feita .painel-cel-texto::before { content: "✓ "; }
+.painel-cel--andamento { background: #e8f0fe; color: #174ea6; }
+.painel-cel--pode_comecar { background: #fff; color: #3c4043; border: 1.5px solid #80868b; }
+.painel-cel--travada { background: #f1f3f4; color: #5f6368; }
+.painel-cel--pendencia { background: #fef3e2; color: #a24c00; border: 1px solid #f29900; }
+.painel-cel--pendencia .painel-cel-texto::before { content: "! "; }
+.painel-cel--ainda_nao { color: #9aa0a6; align-items: center; }
+.painel-cel--nao_tem { background: transparent; }
+.painel-barra { height: 4px; background: #c6dafc; border-radius: 2px; overflow: hidden; display: block; }
+.painel-barra-in { display: block; height: 100%; background: #1a73e8; }
+
+.painel-fim { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; justify-content: center; font-size: 12px; color: #5f6368; font-variant-numeric: tabular-nums; }
+.painel-fim strong { font-size: 16px; color: #202124; }
+.painel-atrasado { color: #c5221f; font-weight: 600; }
+
+/* A pedido opened: the others dimmed, its path outlined, the faixa below. */
+.painel-grade--destaque .painel-pedido:not(.painel-pedido--aberto) { opacity: .35; }
+.painel-pedido--aberto > .painel-linha .painel-ped { background: #e8f0fe; }
+.painel-pedido--aberto > .painel-linha { background: #f6f9fe; }
+.painel-pedido--aberto > .painel-linha .painel-cel:not(.painel-cel--nao_tem) { box-shadow: 0 0 0 2px #1a73e8; }
+.painel-faixa { position: sticky; left: 0; box-sizing: border-box; width: min(100vw - 34px, 1446px); max-width: 100%; margin: 0 0 10px; padding: 14px 16px; background: #fff; border: 2px solid #1a73e8; border-radius: 8px; display: flex; flex-direction: column; gap: 14px; }
+.painel-faixa[hidden] { display: none; }
+.painel-faixa-num { display: flex; flex-wrap: wrap; gap: 20px; align-items: baseline; font-variant-numeric: tabular-nums; color: #5f6368; }
+.painel-faixa-num b { color: #202124; }
+.painel-pct { font-size: 28px; font-weight: 700; color: #202124; }
+.painel-caminho { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.painel-passo { display: flex; flex-direction: column; gap: 6px; }
+.painel-passo--paralelo { padding-right: 10px; border-right: 2px solid #80868b; border-radius: 0 10px 10px 0; }
+.painel-no { border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; min-width: 120px; box-sizing: border-box; }
+.painel-no strong { font-size: 13px; }
+.painel-seta { color: #80868b; font-size: 18px; }
+.painel-faixa-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.painel-caixa { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.painel-caixa h4 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; }
+.painel-links { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* A sector chosen: its column lit, the others faded (Q16a). */
+.painel-grade[data-setor]:not([data-setor=""]) [data-coluna] { opacity: .4; }
+.painel-grade[data-setor="impressao"] [data-coluna="impressao"],
+.painel-grade[data-setor="corte"] [data-coluna="corte"],
+.painel-grade[data-setor="estamparia"] [data-coluna="estamparia"],
+.painel-grade[data-setor="conferencia"] [data-coluna="conferencia"],
+.painel-grade[data-setor="entrega"] [data-coluna="entrega"] { opacity: 1; }
+.painel-cab [data-coluna].painel-coluna--ativa { color: #174ea6; background: #e8f0fe; }

@@ -1,0 +1,44 @@
+<%# What opens below a pedido (Q3a): % done, start, deadline, the path of
+    its stages, what holds it, links. The previsão comes with the turnos and
+    the rhythm (Painel 2/4). locals: linha %>
+<% pedido = linha.pedido %>
+<div class="painel-faixa-num">
+  <span class="painel-pct"><%= linha.percentual %>%</span>
+  <span>Início <b><%= linha.inicio ? linha.inicio.strftime("%d/%m %H:%M") : "—" %></b></span>
+  <span>Prazo <b class="<%= "painel-atrasado" if linha.atrasado? %>"><%= pedido.prazo_entrega ? pedido.prazo_entrega.strftime("%d/%m/%Y") : "sem prazo" %><%= " · atrasado" if linha.atrasado? %></b></span>
+  <span>Previsão <b>—</b> <small>(com os turnos)</small></span>
+</div>
+<div class="painel-caminho" aria-label="Caminho do pedido">
+  <% %w[arquivos comercial material].each do |chave| %>
+    <% celula = linha.celulas[chave] %>
+    <% next if celula.estado == :nao_tem %>
+    <span class="painel-no painel-cel--<%= celula.estado %>"><strong><%= LinhaDoPainel::COLUNAS[chave] %></strong> <%= celula.texto %></span>
+    <span class="painel-seta" aria-hidden="true">→</span>
+  <% end %>
+  <% linha.caminho.each do |passo| %>
+    <span class="painel-passo<%= " painel-passo--paralelo" if passo.size > 1 %>">
+      <% passo.each do |etapa| %>
+        <% celula = linha.celulas[linha.coluna_da_etapa(etapa)] %>
+        <span class="painel-no painel-cel--<%= celula.estado %>" data-etapa="<%= etapa.chave %>"><strong><%= etapa.nome %></strong> <%= celula.texto %></span>
+      <% end %>
+    </span>
+    <span class="painel-seta" aria-hidden="true">→</span>
+  <% end %>
+  <% entrega = linha.celulas["entrega"] %>
+  <span class="painel-no painel-cel--<%= entrega.estado %>"><strong>Entrega</strong> <%= entrega.texto %></span>
+</div>
+<div class="painel-faixa-info">
+  <div class="painel-caixa">
+    <h4>Trava</h4>
+    <p data-trava><%= linha.trava || "nada trava este pedido" %></p>
+  </div>
+  <div class="painel-caixa">
+    <h4>Links</h4>
+    <p class="painel-links">
+      <%= link_to "Resumo do pedido", resumo_pedido_path(pedido) %>
+      <% if pedido.saiu_do_rascunho? && !cliente_final? %>
+        <% linha.caminho.flatten.each do |etapa| %><%= link_to etapa.nome, caminho_da_etapa(pedido, etapa) %><% end %>
+      <% end %>
+    </p>
+  </div>
+</div>

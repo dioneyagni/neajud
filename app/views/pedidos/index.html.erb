@@ -46,6 +46,7 @@
         <th>Itens</th>
         <th>Status</th>
         <th>Data</th>
+        <th>Prazo</th>
         <th></th>
       </tr>
     </thead>
@@ -68,6 +69,8 @@
             <% end %>
           </td>
           <td><%= l p.created_at, format: :short %></td>
+          <%# Painel 1/4: the delivery date promised. %>
+          <td class="pedido-prazo-lista"><%= p.prazo_entrega&.strftime("%d/%m/%Y") || "—" %></td>
           <td>
             <% if p.confirmavel? %>
               <% pendentes = @bloqueios_por_pedido[p.id].to_i %>
@@ -93,7 +96,7 @@
         </tr>
       <% end %>
       <% if @pedidos.empty? %>
-        <tr><td colspan="7" class="gallery-empty">No pedidos yet.</td></tr>
+        <tr><td colspan="8" class="gallery-empty">No pedidos yet.</td></tr>
       <% end %>
     </tbody>
   </table>

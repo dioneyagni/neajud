@@ -1,0 +1,37 @@
+<%# A pedido on the Painel: its row, its items (loaded when opened) and the
+    faixa below it. Rendered by the page and alone for the live update
+    (PaineisController#linha). locals: linha (LinhaDoPainel), colunas %>
+<% pedido = linha.pedido %>
+<% na_fila = %i[pode_comecar andamento travada pendencia] %>
+<% filas = linha.celulas.select { |_, c| na_fila.include?(c.estado) }.keys %>
+<% fora = linha.celulas.reject { |chave, c| colunas.key?(chave) || c.estado == :nao_tem }.keys %>
+<div class="painel-pedido" id="painel_<%= pedido.uuid %>" data-uuid="<%= pedido.uuid %>" data-bloco="<%= linha.bloco %>"
+     data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-filas="<%= filas.join(" ") %>"
+     data-pendencia="<%= linha.pendencia? %>" data-atrasado="<%= linha.atrasado? %>" data-fora="<%= fora.join(" ") %>">
+  <div class="painel-linha">
+    <div class="painel-ped">
+      <button type="button" class="painel-ped-btn" data-action="painel#abrir" aria-expanded="false">
+        <span class="painel-pid">#<%= pedido.uuid.first(8) %> <small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></span>
+        <span class="painel-ref"><%= pedido.client&.name || "sem cliente" %><% if pedido.reposicao? %> · reposição<% end %></span>
+      </button>
+      <% if pedido.itens_pedido.size > 1 %>
+        <button type="button" class="painel-itens-btn" data-action="painel#itens" aria-expanded="false"><%= pedido.itens_pedido.size %> itens</button>
+      <% end %>
+    </div>
+    <% colunas.each_key do |chave| %>
+      <%= render "paineis/celula", celula: linha.celulas.fetch(chave), coluna: chave %>
+    <% end %>
+    <div class="painel-fim">
+      <strong><%= linha.percentual %>%</strong>
+      <% if pedido.prazo_entrega %>
+        <span class="<%= "painel-atrasado" if linha.atrasado? %>">prazo <%= pedido.prazo_entrega.strftime("%d/%m") %></span>
+      <% else %>
+        <span>sem prazo</span>
+      <% end %>
+    </div>
+  </div>
+  <div class="painel-itens" data-painel-itens hidden></div>
+  <div class="painel-faixa" hidden>
+    <%= render "paineis/faixa", linha: linha %>
+  </div>
+</div>

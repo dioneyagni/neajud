@@ -100,7 +100,7 @@ class ResolucaoDoItem
   def config_da_parte(peca)
     @configs ||= {}
     @configs[peca&.id] ||= begin
-      parte = @molde && peca && @molde.molde_pecas.find_by(peca: peca)
+      parte = @molde && peca && @molde.molde_pecas.find { |row| row.peca_id == peca.id }
       parte ? { pecas_por_par: parte.pecas_por_par, espelhada: parte.espelhada, needs_cut: parte.needs_cut } : CONFIG_PADRAO
     end
   end
@@ -135,7 +135,7 @@ class ResolucaoDoItem
   end
 
   def arquivos_da_parte(peca)
-    @arquivos_por_peca ||= (@item.arte&.arquivos&.ativos&.includes(:peca, :approved_version, tamanho: { arquivo: :peca })&.order(:id).to_a || [])
+    @arquivos_por_peca ||= (@item.arte&.arquivos&.ativos&.includes(:peca, :approved_version, tamanho: { arquivo: :peca }, corte: :peca)&.order(:id).to_a || [])
                            .group_by { |a| a.resolved_peca&.id }
     @arquivos_por_peca[peca&.id] || []
   end

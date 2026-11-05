@@ -173,7 +173,8 @@ runSpec("Pages E2E: clients, modelos & pecas", async ({ page, test }) => {
     await page.goto(BASE_URL);
     await page.waitForSelector("header", { timeout: 5000 });
 
-    const navLink = await page.$(".header-nav-link");
+    // Painel 1/4: the Painel is the first link now; find the Clients one.
+    const navLink = await page.$('.header-nav-link[href="/clients"]');
     if (!navLink) throw new Error("Header nav link not found");
 
     const href = await navLink.getAttribute("href");

@@ -34,6 +34,8 @@
       <nav class="header-nav">
         <%# Only the áreas the user's função can see (Etapa 0.5, ControleDeAcesso),
             and for a cliente final the kinds his grid opens (2.8, 3a). %>
+        <%# Painel 1/4: the team's view of production, first (Q12b). %>
+        <%= link_to "Painel", painel_path, class: "header-nav-link header-nav-painel" if pode?(:pedidos, :ver) && aberto_ao_cliente?(:pedidos) %>
         <% if pode?(:clientes, :ver) %>
           <%= link_to "Clients", clients_path, class: "header-nav-link" %>
         <% end %>

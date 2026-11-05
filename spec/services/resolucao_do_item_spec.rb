@@ -156,4 +156,22 @@ RSpec.describe ResolucaoDoItem do
     item.grades.create!(tamanho_nome: "_total", quantidade: 3)
     expect(resumo(item)).to eq("Lateral" => [ [ "_total", "34", "sem-molde", :producao, nil ] ])
   end
+
+  # Painel 1/4 (04/11/2026): each file's part was read one by one through its
+  # corte (148 queries of pecas and 148 of arquivos in a pedido of 6 items).
+  it "reads the files' parts in a fixed number of queries, whatever the sizes" do
+    contar = lambda do |pares|
+      corte_lat = corte(lateral, *pares)
+      primeiro = nil
+      corte_lat.tamanhos.each { |t| primeiro ||= arquivo(lateral, t); arquivo(lateral, t, arte: primeiro.arte) unless t == corte_lat.tamanhos.first }
+      item = item_com(primeiro, pares.to_h { |(a, _)| [ a.to_s, 1 ] })
+      item = ItemPedido.find(item.id)
+      consultas = 0
+      contador = ->(*, dados) { consultas += 1 unless dados[:name] == "SCHEMA" }
+      ActiveSupport::Notifications.subscribed(contador, "sql.active_record") { described_class.call(item) }
+      consultas
+    end
+
+    expect(contar.call([ [ 37, 38 ], [ 39, 40 ], [ 41, 42 ], [ 43, 44 ] ])).to eq(contar.call([ [ 33, 34 ] ]))
+  end
 end
