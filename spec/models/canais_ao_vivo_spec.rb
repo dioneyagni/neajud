@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/tecidos"
 
 # Etapa 2.8 (3b, decided 11/10/2026): who receives each live update. The gallery
 # cards went to one stream for everyone — a cliente final got every client's.
@@ -60,12 +61,13 @@ RSpec.describe CanaisAoVivo do
       expect(described_class.permitido?(cliente_final(beta), "pedido:#{create(:pedido, client: alfa).uuid}")).to be(false)
     end
 
-    # Painel 1/4: the Painel's rows, like the cards — the team's or one client's.
-    it "gives the Painel's stream to the team, a client's to its own people only" do
-      expect(described_class.permitido?(create(:vinculo).user, "painel:equipe")).to be(true)
-      expect(described_class.permitido?(cliente_final(alfa), "painel:equipe")).to be(false)
-      expect(described_class.permitido?(cliente_final(alfa), "painel:#{alfa.uuid}")).to be(true)
-      expect(described_class.permitido?(cliente_final(beta), "painel:#{alfa.uuid}")).to be(false)
+    # Painel 2/4b (Q5a): the queue's stream carries no data and every
+    # client's previsão moves with it — everyone gets it; no other painel name.
+    it "gives the Painel's queue stream to everyone, and no other painel name" do
+      expect(described_class.permitido?(create(:vinculo).user, "painel:fila")).to be(true)
+      expect(described_class.permitido?(cliente_final(alfa), "painel:fila")).to be(true)
+      expect(described_class.permitido?(cliente_final(alfa), "painel:#{alfa.uuid}")).to be(false)
+      expect(described_class.permitido?(create(:vinculo).user, "painel:equipe")).to be(false)
     end
 
     it "refuses an unknown or incomplete name" do
@@ -80,29 +82,23 @@ RSpec.describe CanaisAoVivo do
     expect(described_class.ler(Turbo::StreamsChannel.signed_stream_name("cartoes:equipe"))).to be_nil
   end
 
-  # Painel 1/4: only the uuid goes out; the page asks for the row itself.
-  describe ".avisar_painel" do
-    it "tells the team's Painel and the pedido's client's" do
-      pedido = create(:pedido, client: alfa)
-      expect { described_class.avisar_painel(pedido) }
-        .to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
-        .and have_broadcasted_to("painel:#{alfa.uuid}").from_channel(Turbo::StreamsChannel)
+  # Painel 2/4b (Q5a): what moves the queue tells the Painel, with no data.
+  describe ".avisar_fila" do
+    def avisa
+      have_broadcasted_to("painel:fila").from_channel(Turbo::StreamsChannel).with(a_string_including('action="painel_fila"'))
     end
 
-    it "is sent when a pedido is confirmed, and when a baixa is given" do
+    it "is sent when a pedido is confirmed, not for a note" do
       pedido = create(:pedido, client: alfa)
-      expect { pedido.update!(status: "confirmado") }.to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
-      expect { pedido.update!(observacoes: "só texto") }.not_to have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel)
+      expect { pedido.update!(status: "confirmado") }.to avisa
+      expect { pedido.update!(observacoes: "só texto") }.not_to avisa
     end
 
-    # Delivered, the original no longer holds its reposições: their own rows.
-    it "tells the rows of an original's open reposições when it is delivered" do
-      pedido = create(:pedido, client: alfa, status: "em_producao")
-      reposicao = create(:pedido, client: alfa, status: "confirmado", reposicao_de: pedido)
-      # One still gathering is not a row: nothing to tell.
-      juntando = create(:pedido, client: alfa, status: "rascunho", reposicao_de: pedido)
-      linha_de = ->(p) { have_broadcasted_to("painel:equipe").from_channel(Turbo::StreamsChannel).with(a_string_including("painel_#{p.uuid}")) }
-      expect { pedido.update!(status: "entregue") }.to linha_de.(pedido).once.and linha_de.(reposicao).once.and linha_de.(juntando).exactly(0).times
+    it "is sent by a turno, a day off, a rhythm and a stock movement" do
+      expect { Turno.create!(nome: "Manhã", inicio: "06:00", fim: "14:00", dias: [ 1 ]) }.to avisa
+      expect { ExcecaoCalendario.create!(data: Date.new(2026, 11, 13), nome: "Parada") }.to avisa
+      expect { RitmoProducao.create!(tipo: "calcado", etapa: "impressao", por_hora: 5) }.to avisa
+      expect { MovimentoEstoque.create!(client: alfa, materia_prima: criar_tecido(largura: "1.40"), tipo: "entrada", quantidade: 5) }.to avisa
     end
   end
 end

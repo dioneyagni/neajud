@@ -1,17 +1,10 @@
 # The Painel's rows by block (Painel 1/4, decided 04/11/2026): every pedido
 # not delivered — and, asked for, the ones delivered in the last 7 days —,
-# one LinhaDoPainel each. Blocks follow the status until the turnos and the
-# programação (2/4, 3/4) bring Agora / Próximos / Amanhã:
-#
-#   :em_andamento — some stage already took a baixa
-#   :prontos      — confirmed, nothing holds it, no baixa yet
-#   :pendentes    — a draft, sent, or waiting for material
-#   :entregues    — delivered (only with entregues: true)
-#
-# Inside a block, the most urgent first (Q7): past the deadline, with a
-# pendência, the nearest deadline, the arrival order. The baixas of every
-# pedido come in one query (measured 04/11/2026: per stage they made the
-# page slow).
+# one LinhaDoPainel each. Painel 2/4b: the blocks are in time, where each
+# row's next piece of work is in the queue (BlocosNoTempo, FilaDeProducao),
+# and every row has its previsão. The baixas of every pedido come in one
+# query, their stages' states read once for the rows and the queue
+# (measured 04/11/2026: per stage they made the page slow).
 #
 # A reposição (decided 05/11/2026) is a row under its original, in the
 # original's block and order, while the original is not delivered; its
@@ -19,52 +12,23 @@
 # (rascunho) is not a row: the original says how many it holds.
 #
 # Usage: painel = PainelDeProducao.call(visiveis(Pedido))
-#        painel.blocos.map { |b| [ b.chave, b.linhas.size ] } # => [[:em_andamento, 2], [:prontos, 8], …]
+#        painel.blocos.map { |b| [ b.chave, b.linhas.size ] } # => [["agora", 2], ["amanha", 8], …]
+#        painel.fila.do_setor("corte")
 class PainelDeProducao
-  BLOCOS = { em_andamento: "Em andamento", prontos: "Prontos para começar", pendentes: "Pendentes de início", entregues: "Entregues (7 dias)" }.freeze
   ABERTOS = %w[rascunho enviado confirmado em_producao].freeze
   DIAS_DOS_ENTREGUES = 7
-  # A pedido without deadline sorts after every dated one.
-  SEM_PRAZO = Date.new(9999, 12, 31)
 
-  Bloco = Struct.new(:chave, :nome, :linhas, keyword_init: true)
-  Painel = Struct.new(:blocos, :colunas, keyword_init: true) do
+  Painel = Struct.new(:blocos, :colunas, :fila, keyword_init: true) do
     def linhas
       blocos.flat_map(&:linhas)
     end
   end
 
-  # pedidos: the scope this person sees (visiveis(Pedido)).
-  def self.call(pedidos, entregues: false, cliente_final: false, hoje: Date.current)
-    new(pedidos, entregues, cliente_final, hoje).call
+  # pedidos: the scope this person sees (visiveis(Pedido)). The queue reads
+  # the whole factory, its calendar too (FilaDeProducao).
+  def self.call(pedidos, entregues: false, cliente_final: false, agora: Time.current, calendario: CalendarioDeProducao.new)
+    new(pedidos, entregues, cliente_final, agora, calendario).call
   end
-
-  # One pedido's row, for the live update — a reposição under its original
-  # comes back as the original's row, with it inside; nil when it is not on
-  # the Painel.
-  # Usage: PainelDeProducao.linha(visiveis(Pedido), uuid)&.bloco # => :prontos
-  def self.linha(pedidos, uuid, cliente_final: false)
-    pedido = pedidos.ativos.find_by(uuid: uuid)
-    return unless pedido
-
-    raiz = raiz_de(pedidos, pedido)
-    new(familia(pedidos, raiz), true, cliente_final, Date.current).call.linhas.find { |linha| linha.pedido.id == raiz.id }
-  end
-
-  # The pedido and its reposições, theirs too (a reposição can miss pieces).
-  def self.familia(pedidos, raiz)
-    ids = nivel = [ raiz.id ]
-    ids += nivel while (nivel = pedidos.where(reposicao_de_id: nivel).ids).any?
-    pedidos.where(id: ids)
-  end
-  private_class_method :familia
-
-  # The row a pedido is shown in: a reposição's original while it is open.
-  def self.raiz_de(pedidos, pedido)
-    original = pedido.reposicao_de_id && pedidos.ativos.where.not(status: "entregue").find_by(id: pedido.reposicao_de_id)
-    original ? raiz_de(pedidos, original) : pedido
-  end
-  private_class_method :raiz_de
 
   # The pedidos the Painel shows, out of the visible ones.
   def self.do_painel(pedidos, entregues)
@@ -74,20 +38,19 @@ class PainelDeProducao
     abertos.includes(:client, :reposicao_de, :itens_reposicao, itens_pedido: :arte)
   end
 
-  def initialize(pedidos, entregues, cliente_final, hoje)
+  def initialize(pedidos, entregues, cliente_final, agora, calendario)
     @visiveis = pedidos
     @pedidos = self.class.do_painel(pedidos, entregues).to_a
     @entregues = entregues
     @cliente_final = cliente_final
-    @hoje = hoje
+    @agora = agora
+    @calendario = calendario
   end
 
   def call
     linhas = montar_linhas
-    blocos = BLOCOS.filter_map do |chave, nome|
-      Bloco.new(chave: chave, nome: nome, linhas: ordenar(linhas.select { |l| l.bloco == chave })) unless chave == :entregues && !@entregues
-    end
-    Painel.new(blocos: blocos, colunas: colunas_usadas(linhas))
+    blocos = BlocosNoTempo.call(linhas, agora: @agora, cliente_final: @cliente_final, entregues: @entregues)
+    Painel.new(blocos: blocos, colunas: colunas_usadas(linhas), fila: @fila)
   end
 
   private
@@ -96,17 +59,24 @@ class PainelDeProducao
   # original's Entrega waits for them).
   def montar_linhas
     @aguardando = AguardandoMaterial.call
-    @baixas = BaixaProducao.vigentes.where(pedido_id: @pedidos.map(&:id)).includes(:user).group_by(&:pedido_id)
+    @estados = estados_das_etapas
+    @fila = FilaDeProducao.call(agora: @agora, calendario: @calendario, estados: @estados, aguardando: @aguardando)
     @juntando = pecas_juntando
     @filhas = @pedidos.select { |p| aninhada?(p) }.group_by(&:reposicao_de_id)
     @pedidos.reject { |p| aninhada?(p) }.map { |p| linha_com_reposicoes(p) }
   end
 
-  def linha_com_reposicoes(pedido)
-    LinhaDoPainel.call(pedido, aguardando: @aguardando, baixas: @baixas.fetch(pedido.id, []), cliente_final: @cliente_final,
-                               reposicoes: @filhas.fetch(pedido.id, []).map { |filha| linha_com_reposicoes(filha) }, juntando: @juntando[pedido.id])
+  # Every pedido past the draft, its baixas in one query.
+  def estados_das_etapas
+    producao = @pedidos.select(&:saiu_do_rascunho?)
+    baixas = BaixaProducao.vigentes.where(pedido_id: producao.map(&:id)).includes(:user).group_by(&:pedido_id)
+    producao.to_h { |pedido| [ pedido.id, EstadoDasEtapas.call(pedido, baixas: baixas.fetch(pedido.id, [])) ] }
   end
 
+  def linha_com_reposicoes(pedido)
+    LinhaDoPainel.call(pedido, aguardando: @aguardando, estados: @estados[pedido.id], fila: @fila, cliente_final: @cliente_final,
+                               reposicoes: @filhas.fetch(pedido.id, []).map { |filha| linha_com_reposicoes(filha) }, juntando: @juntando[pedido.id])
+  end
   # Under its original: the original is on the Painel and not delivered.
   def aninhada?(pedido)
     @originais ||= @pedidos.index_by(&:id)
@@ -118,10 +88,6 @@ class PainelDeProducao
   def pecas_juntando
     juntando = @visiveis.ativos.where(status: "rascunho", reposicao_de_id: @pedidos.map(&:id)).includes(:itens_reposicao)
     juntando.to_h { |reposicao| [ reposicao.reposicao_de_id, reposicao.itens_reposicao.sum(&:pecas) ] }
-  end
-
-  def ordenar(linhas)
-    linhas.sort_by { |l| [ l.atrasado?(@hoje) ? 0 : 1, l.pendencia? ? 0 : 1, l.prazo || SEM_PRAZO, l.chegada ] }
   end
 
   # Empty columns hide (Q4): a column shows when some row goes through it.

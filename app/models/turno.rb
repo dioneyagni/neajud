@@ -9,6 +9,7 @@
 #        turno.horario # => "06:00–14:00"
 class Turno < ApplicationRecord
   include GeraUuid
+  include AvisaAFila
   include Excluivel
 
   DIAS = %w[dom seg ter qua qui sex sáb].freeze
@@ -21,6 +22,11 @@ class Turno < ApplicationRecord
   validate :nome_unico
   validate :nao_tem_duracao_zero
   validate :nao_sobrepoe
+
+  # Usage: Turno.dia_com_semana(Date.new(2026, 11, 4)) # => "qua 04/11"
+  def self.dia_com_semana(data)
+    "#{DIAS[data.wday]} #{data.strftime("%d/%m")}"
+  end
 
   # "06:00" as typed in the form's time field.
   def inicio=(hhmm)

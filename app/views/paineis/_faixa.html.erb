@@ -1,7 +1,8 @@
-<%# What opens below a pedido (Q3a): % done, start, deadline, the path of
-    its stages, what holds it, links. The previsão comes with the turnos and
-    the rhythm (Painel 2/4). locals: linha %>
+<%# What opens below a pedido (Q3a): % done, start, deadline, the previsão
+    (Painel 2/4b), the path of its stages with each one's time in the queue,
+    what holds it, links. locals: linha %>
 <% pedido = linha.pedido %>
+<% vezes = linha.previsao ? linha.previsao.vezes.index_by { |vez| vez.etapa.chave } : {} %>
 <div class="painel-faixa-num">
   <span class="painel-pct"><%= linha.percentual %>%</span>
   <% if linha.reposicoes.any? %>
@@ -9,7 +10,7 @@
   <% end %>
   <span>Início <b><%= linha.inicio ? linha.inicio.strftime("%d/%m %H:%M") : "—" %></b></span>
   <span>Prazo <b class="<%= "painel-atrasado" if linha.atrasado? %>"><%= linha.prazo ? linha.prazo.strftime("%d/%m/%Y") : "sem prazo" %><%= " · atrasado" if linha.atrasado? %></b></span>
-  <span>Previsão <b>—</b> <small>(com os turnos)</small></span>
+  <span data-faixa-previsao>Previsão <b><%= texto_da_previsao(linha.previsao) %></b> <%= selo_da_folga(linha.folga) %></span>
 </div>
 <div class="painel-caminho" aria-label="Caminho do pedido">
   <% %w[arquivos comercial material].each do |chave| %>
@@ -22,7 +23,8 @@
     <span class="painel-passo<%= " painel-passo--paralelo" if passo.size > 1 %>">
       <% passo.each do |etapa| %>
         <% celula = linha.celulas[linha.coluna_da_etapa(etapa)] %>
-        <span class="painel-no painel-cel--<%= celula.estado %>" data-etapa="<%= etapa.chave %>"><strong><%= etapa.nome %></strong> <%= celula.texto %></span>
+        <span class="painel-no painel-cel--<%= celula.estado %>" data-etapa="<%= etapa.chave %>"><strong><%= etapa.nome %></strong> <%= celula.texto %>
+          <% if (vez = vezes[etapa.chave]) %><small class="painel-no-tempo"><%= periodo_da_vez(vez) %></small><% end %></span>
       <% end %>
     </span>
     <span class="painel-seta" aria-hidden="true">→</span>

@@ -57,19 +57,17 @@ class RitmoMedido
     Medida.new(valor: mediana(por_turno.map { |ocorrencia, do_turno| do_turno.sum { |baixa| carga(baixa) } / ocorrencia.horas }).round(3), turnos: por_turno.size)
   end
 
-  # What a baixa did, in its rhythm's unit.
+  # What a baixa did, in its rhythm's unit (CargaDaEtapa).
   def carga(baixa)
     etapa = EtapasProducao.etapa(baixa.pedido.tipo, baixa.etapa)
-    case etapa.ritmo
-    when "papel" then linhas_da(baixa, etapa.dup.tap { |em_papel| em_papel.esperado = "papel" }).sum { |linha| linha.esperado.to_f }
-    when "maquina_de_corte" then TempoDoCorte.call(linhas_da(baixa, etapa), ritmo_de(baixa)).horas
-    else baixa.medida
-    end
+    return baixa.medida if etapa.ritmo.nil?
+
+    CargaDaEtapa.call(baixa.pedido, etapa, linhas_da(baixa, etapa), ritmo_de(baixa), memoria: @linhas).valor
   end
 
   # The pedido's lines of the stage that the baixa covered, built once.
   def linhas_da(baixa, etapa)
-    todas = @linhas[[ baixa.pedido_id, etapa.chave, etapa.esperado ]] ||= LinhasDeProducao.call(baixa.pedido, etapa)
+    todas = @linhas[[ baixa.pedido_id, etapa.chave ]] ||= LinhasDeProducao.call(baixa.pedido, etapa)
     todas.select { |linha| baixa.linhas.include?(linha.chave) }
   end
 

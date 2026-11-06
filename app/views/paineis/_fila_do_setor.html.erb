@@ -1,0 +1,56 @@
+<%# A sector's numbered queue (Painel 2/4b, the Fila A mockup approved on
+    05/11/2026), shown instead of the grid when its tab is picked: a dark
+    band per day (today in blue), a hatched one for the days skipped
+    without turno, a light one per turno with its hours and load, the
+    pedido's piece inside it; the ones without previsão at the end. Only to
+    see: reordering comes with the programação (3/4).
+    locals: fila (FilaDeProducao), setor, nome, linhas ({ pedido id => LinhaDoPainel }) %>
+<% vezes = fila.do_setor(setor) %>
+<% previstas = vezes.select(&:fim) %>
+<% agora = fila.agora %>
+<section class="painel-fila" data-fila-setor="<%= setor %>" hidden>
+  <div class="painel-fila-resumo">
+    <strong>Fila da <%= nome %></strong>
+    <span><%= pluralize(previstas.size, "pedido", plural: "pedidos") %> · <%= horas_da_fila(previstas.sum(&:horas)) %></span>
+    <% if previstas.any? %><span>a fila termina <b><%= momento_da_fila(previstas.last.fim) %></b></span><% end %>
+    <span>ordem: chegada</span>
+  </div>
+  <div class="painel-fila-quadro">
+    <div class="painel-fila-l painel-fila-cab"><div>#</div><div>Pedido</div><div>O que fazer</div><div>Quantidade</div><div>Horário</div><div>Prazo</div><div>Situação</div></div>
+    <% anterior = nil %>
+    <% fila.turnos_do_setor(setor).group_by { |turno| turno.ocorrencia.data }.each do |data, turnos| %>
+      <% pulados = anterior && ((anterior + 1)...data).to_a %>
+      <% if pulados.present? %>
+        <div class="painel-fila-sem-turno"><%= pulados.map { |dia| dia_com_semana(dia) }.join(", ") %> · sem turno</div>
+      <% end %>
+      <% anterior = data %>
+      <div class="painel-fila-dia<%= " painel-fila-dia--hoje" if data == agora.to_date %>" data-fila-dia="<%= data.iso8601 %>">
+        <span class="painel-fila-dia-nome"><%= dia_com_semana(data) %></span>
+        <span class="painel-fila-dia-rel"><%= { agora.to_date => "hoje", agora.to_date + 1 => "amanhã" }.fetch(data) { "em #{(data - agora.to_date).to_i} dias" } %></span>
+        <span class="painel-fila-dia-fim"><%= pluralize(turnos.flat_map { |t| t.pecas.map { |vez, _| vez.pedido.id } }.uniq.size, "pedido", plural: "pedidos") %> · <%= turnos.map { |t| t.ocorrencia.turno.nome }.join(" e ") %></span>
+      </div>
+      <% turnos.each do |turno| %>
+        <% ocorrencia = turno.ocorrencia %>
+        <% carga = turno.livres.positive? ? [ (turno.ocupadas / turno.livres * 100).round, 100 ].min : 100 %>
+        <div class="painel-fila-turno" data-fila-turno="<%= ocorrencia.turno.nome %>">
+          <span class="painel-fila-turno-nome"><%= ocorrencia.turno.nome %></span>
+          <span class="painel-fila-turno-hora"><%= ocorrencia.turno.horario %></span>
+          <% if ocorrencia.contem?(agora) %><span class="painel-fila-turno-exec">em execução · agora <%= agora.strftime("%H:%M") %></span><% end %>
+          <span class="painel-fila-turno-carga"><%= horas_da_fila(turno.ocupadas) %> de <%= horas_da_fila(turno.livres) %><%= " livres" if ocorrencia.contem?(agora) %>
+            <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga >= 95 %>" style="width: <%= carga %>%"></i></span></span>
+        </div>
+        <% turno.pecas.each do |vez, trecho| %>
+          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id] %>
+        <% end %>
+      <% end %>
+    <% end %>
+    <% sem = vezes.reject(&:fim) %>
+    <% if sem.any? %>
+      <div class="painel-fila-sem-previsao"><b>Sem previsão</b><span>algo impede entrar na fila</span></div>
+      <% sem.each do |vez| %>
+        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id] %>
+      <% end %>
+    <% end %>
+    <% if vezes.empty? %><p class="painel-fila-vazia">Nenhum pedido na fila da <%= nome %>.</p><% end %>
+  </div>
+</section>

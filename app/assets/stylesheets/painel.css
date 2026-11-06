@@ -17,6 +17,7 @@ main:has(.painel) { max-width: 1480px; }
 .painel-cont { border: 1px solid #dadce0; background: #fff; border-radius: 16px; padding: 6px 12px; font: inherit; color: #202124; cursor: pointer; min-height: 32px; }
 .painel-cont strong { font-variant-numeric: tabular-nums; }
 .painel-cont--atraso strong { color: #c5221f; }
+.painel-cont--vai-atrasar strong { color: #a24c00; }
 .painel-cont--ativo { background: #e8f0fe; border-color: #1a73e8; }
 
 .painel-setores { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -42,9 +43,10 @@ main:has(.painel) { max-width: 1480px; }
 
 .painel-bloco-cab { padding: 14px 12px 6px; background: #f8f9fa; border-top: 1px solid #e0e0e0; position: sticky; left: 0; width: fit-content; min-width: 100%; box-sizing: border-box; }
 .painel-bloco-nome { font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
-.painel-bloco-nome--em_andamento { color: #1a73e8; }
-.painel-bloco-nome--prontos { color: #137333; }
-.painel-bloco-nome--pendentes { color: #a24c00; }
+/* Painel 2/4b: the blocks in time — now in blue, the days in ink. */
+.painel-bloco-nome--agora, .painel-bloco-nome--hoje, .painel-bloco-nome--turno { color: #1a73e8; }
+.painel-bloco-nome--amanha, .painel-bloco-nome--dia { color: #3c4043; }
+.painel-bloco-nome--sem_previsao, .painel-bloco-nome--pendentes { color: #a24c00; }
 .painel-bloco-nome--entregues { color: #5f6368; }
 .painel-vazio { padding: 8px 12px; color: #5f6368; font-size: 13px; position: sticky; left: 0; }
 .painel-bloco-pedidos:has(.painel-pedido:not([hidden])) + .painel-vazio { display: none; }
@@ -116,3 +118,58 @@ main:has(.painel) { max-width: 1480px; }
 .painel-grade[data-setor="conferencia"] [data-coluna="conferencia"],
 .painel-grade[data-setor="entrega"] [data-coluna="entrega"] { opacity: 1; }
 .painel-cab [data-coluna].painel-coluna--ativa { color: #174ea6; background: #e8f0fe; }
+
+/* Painel 2/4b: the previsão and the folga chip (the Fila A mockup). */
+.painel-previsao { color: #3c4043; }
+.painel-folga { align-self: flex-start; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 1px 7px; white-space: nowrap; }
+.painel-folga--ok { background: #e6f4ea; color: #137333; }
+.painel-folga--justa { background: #fef3e2; color: #a24c00; }
+.painel-folga--atrasa { background: #fce8e6; color: #a50e0e; }
+.painel-no-tempo { font-weight: 400; font-variant-numeric: tabular-nums; opacity: .9; }
+
+/* A sector's queue: a dark band per day (today blue), a hatched one for
+   the days without turno, a light one per turno with its load. */
+.painel-fila { display: flex; flex-direction: column; gap: 10px; }
+.painel-fila[hidden] { display: none; }
+.painel-fila-resumo { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 14px; font-variant-numeric: tabular-nums; color: #5f6368; }
+.painel-fila-resumo strong { font-size: 16px; color: #202124; }
+.painel-fila-resumo b { color: #202124; }
+.painel-fila-quadro { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow-x: auto; }
+.painel-fila-l { display: grid; grid-template-columns: 52px minmax(180px, 1.4fr) minmax(160px, 1.6fr) 110px 130px 130px minmax(150px, 1fr); align-items: center; border-top: 1px solid #f1f3f4; min-height: 48px; min-width: 900px; }
+.painel-fila-l > div { padding: 6px 8px; box-sizing: border-box; min-width: 0; }
+.painel-fila-cab { border-top: 0; min-height: 36px; }
+.painel-fila-cab > div { font-size: 12px; color: #5f6368; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.painel-fila-l--andamento { background: #f6f9fe; }
+.painel-fila-dia { display: flex; align-items: baseline; gap: 12px; padding: 9px 14px; background: #3c4043; color: #fff; min-width: 900px; box-sizing: border-box; }
+.painel-fila-dia--hoje { background: #1a73e8; }
+.painel-fila-dia-nome { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.painel-fila-dia-rel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+.painel-fila-dia-fim { margin-left: auto; font-size: 12px; opacity: .85; }
+.painel-fila-sem-turno { padding: 5px 14px; background: repeating-linear-gradient(135deg, #f8f9fa 0 6px, #eef0f2 6px 12px); color: #5f6368; font-size: 12px; border-top: 1px solid #e0e0e0; min-width: 900px; box-sizing: border-box; }
+.painel-fila-turno { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 7px 14px 7px 24px; background: #f8f9fa; border-top: 1px solid #e0e0e0; min-width: 900px; box-sizing: border-box; }
+.painel-fila-turno-nome { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #3c4043; }
+.painel-fila-turno-hora { font-size: 12px; color: #3c4043; background: #fff; border: 1px solid #dadce0; border-radius: 10px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.painel-fila-turno-exec { font-size: 11px; font-weight: 600; color: #fff; background: #1a73e8; border-radius: 10px; padding: 2px 8px; }
+.painel-fila-turno-carga { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5f6368; font-variant-numeric: tabular-nums; }
+.painel-fila-carga { display: inline-block; width: 120px; height: 6px; background: #e8eaed; border-radius: 3px; overflow: hidden; }
+.painel-fila-carga i { display: block; height: 100%; background: #1a73e8; }
+.painel-fila-carga i.painel-fila-carga--cheia { background: #e37400; }
+.painel-fila-sem-previsao { display: flex; gap: 12px; align-items: baseline; padding: 9px 14px; background: #fef3e2; color: #a24c00; border-top: 1px solid #f29900; min-width: 900px; box-sizing: border-box; }
+.painel-fila-sem-previsao b { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; }
+.painel-fila-sem-previsao span { font-size: 12px; }
+.painel-fila-pos { font-size: 18px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.painel-fila-pid { font-weight: 600; }
+.painel-fila-pid small { font-weight: 400; color: #5f6368; margin-left: 6px; }
+.painel-fila-ref { color: #a24c00; font-size: 12px; }
+.painel-fila-num { font-variant-numeric: tabular-nums; color: #3c4043; }
+.painel-fila-hora { font-variant-numeric: tabular-nums; font-weight: 600; color: #202124; white-space: nowrap; }
+.painel-fila-hora small { display: block; font-weight: 400; color: #5f6368; font-size: 11px; }
+.painel-fila-prazo { display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+.painel-fila-pz { font-size: 13px; color: #3c4043; }
+.painel-fila-pz::before { content: "◆ "; font-size: 10px; }
+.painel-fila-chip { font-size: 12px; border-radius: 10px; padding: 2px 8px; display: inline-block; background: #fff; color: #3c4043; border: 1px solid #80868b; }
+.painel-fila-chip--andamento { background: #e8f0fe; color: #174ea6; border-color: transparent; }
+.painel-fila-chip--espera { background: #f1f3f4; color: #5f6368; border-color: transparent; }
+.painel-fila-barra { height: 4px; background: #c6dafc; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.painel-fila-barra i { display: block; height: 100%; background: #1a73e8; }
+.painel-fila-vazia { padding: 12px 14px; color: #5f6368; margin: 0; }

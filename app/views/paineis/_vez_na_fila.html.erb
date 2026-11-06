@@ -1,0 +1,39 @@
+<%# A pedido's piece in a sector's queue: its place, what is left of the
+    stage, its time inside the turno, the deadline with the folga, what it
+    waits for. trecho nil: no previsão (the reason instead).
+    locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil) %>
+<% pedido = vez.pedido %>
+<% primeiro = trecho.nil? || trecho == vez.trechos.first %>
+<div class="painel-fila-l<%= " painel-fila-l--andamento" if vez.iniciada? %>" data-fila-pedido="<%= pedido.uuid %>"
+     data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-pendencia="<%= linha&.pendencia? || false %>">
+  <div class="painel-fila-pos"><%= vez.posicao ? "#{vez.posicao}º" : "—" %></div>
+  <div>
+    <div class="painel-fila-pid"><%= link_to "##{pedido.uuid.first(8)}", resumo_pedido_path(pedido) %> · <%= pedido.client&.name || "sem cliente" %><small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></div>
+    <% if pedido.reposicao? %><div class="painel-fila-ref">↻ reposição de #<%= pedido.reposicao_de.uuid.first(8) %></div><% end %>
+  </div>
+  <div>
+    <div><%= vez.iniciada? ? "#{vez.abertas} de #{vez.total} linhas" : pluralize(vez.total, "linha", plural: "linhas") %> · <%= vez.etapa.nome %></div>
+    <% if vez.iniciada? %><div class="painel-fila-barra"><i style="width: <%= ((vez.total - vez.abertas) * 100.0 / vez.total).round %>%"></i></div><% end %>
+  </div>
+  <div class="painel-fila-num"><%= carga_da_vez(vez) if vez.carga %></div>
+  <div class="painel-fila-hora">
+    <% if trecho %>
+      <%= trecho.inicio.strftime("%H:%M") %>–<%= trecho.fim.strftime("%H:%M") %>
+      <small><%= primeiro ? horas_da_fila(vez.horas) : "continuação" %></small>
+    <% end %>
+  </div>
+  <div class="painel-fila-prazo">
+    <% if linha&.prazo %><span class="painel-fila-pz"><%= dia_com_semana(linha.prazo) %></span><%= selo_da_folga(linha.folga) %><% end %>
+  </div>
+  <div>
+    <% if trecho.nil? %>
+      <span class="painel-fila-chip painel-fila-chip--espera"><%= motivo_da_vez(vez) %></span>
+    <% elsif vez.espera && primeiro %>
+      <span class="painel-fila-chip painel-fila-chip--espera">espera <%= vez.espera.etapa.nome %> (até <%= momento_da_fila(vez.espera.fim) %>)</span>
+    <% elsif vez.iniciada? %>
+      <span class="painel-fila-chip painel-fila-chip--andamento">em andamento</span>
+    <% else %>
+      <span class="painel-fila-chip">pode começar</span>
+    <% end %>
+  </div>
+</div>

@@ -11,13 +11,14 @@
 #   cartoes:<client uuid>   the cards a cliente final of that client sees
 #   arquivo:<uuid>          refresh of an arquivo's page
 #   pedido:<uuid>           refresh of a pedido's page
-#   painel:equipe           the Painel's rows, for the team (Painel 1/4)
-#   painel:<client uuid>    the rows of a cliente final of that client
+#   painel:fila             the Painel's queue changed (Painel 2/4b): no data,
+#                           for everyone signed in — a client's previsão
+#                           moves with the other clients' pedidos too
 #
 # Usage: CanaisAoVivo.recarregar(pedido)
 module CanaisAoVivo
   EQUIPE = "cartoes:equipe".freeze
-  PAINEL_DA_EQUIPE = "painel:equipe".freeze
+  PAINEL = "painel:fila".freeze
   REGISTROS = { "arquivo" => "Arquivo", "pedido" => "Pedido" }.freeze
 
   module_function
@@ -53,20 +54,13 @@ module CanaisAoVivo
     [ EQUIPE ] + candidatos.select { |c| Visibilidade.new(c).escopo(Arquivo, colecao_geral: true).exists?(id: arquivo.id) }.map { |c| cartoes(c) }
   end
 
-  # The Painel's stream for this person (Painel 1/4).
-  # Usage: CanaisAoVivo.painel(Current.user.cliente) # => "painel:equipe"
-  def painel(cliente)
-    cliente ? "painel:#{cliente.uuid}" : PAINEL_DA_EQUIPE
-  end
-
-  # Tells whoever has the Painel open that a pedido's row changed. Only its
-  # uuid goes out: the page asks for the row itself (GET /painel/pedidos/:uuid),
-  # so what each person sees still goes through Visibilidade.
-  # Usage: CanaisAoVivo.avisar_painel(pedido)
-  def avisar_painel(pedido)
-    [ PAINEL_DA_EQUIPE, (painel(pedido.client) if pedido.client) ].compact.each do |nome|
-      Turbo::StreamsChannel.broadcast_action_to(nome, action: :painel_linha, target: "painel_#{pedido.uuid}")
-    end
+  # Tells whoever has the Painel open that the queue changed (Painel 2/4b,
+  # Q5a): a baixa, a confirmation, a material in, a turno, the calendar, a
+  # rhythm. Nothing else goes out: the page reloads itself (at most every few
+  # seconds), so what each person sees still goes through Visibilidade.
+  # Usage: CanaisAoVivo.avisar_fila
+  def avisar_fila
+    Turbo::StreamsChannel.broadcast_action_to(PAINEL, action: :painel_fila, target: "painel")
   end
 
   # Morph-refreshes the record's page for whoever has it open.
@@ -76,9 +70,11 @@ module CanaisAoVivo
 
   # Usage: CanaisAoVivo.permitido?(user, "pedido:8f3a…") # => false for another client's
   def permitido?(user, nome)
+    return true if nome == PAINEL
+
     tipo, chave = nome.to_s.split(":", 2)
     return false if chave.blank?
-    return chave == (user.cliente&.uuid || "equipe") if %w[cartoes painel].include?(tipo)
+    return chave == (user.cliente&.uuid || "equipe") if tipo == "cartoes"
 
     modelo = REGISTROS[tipo]
     # A page shows what it reads: the coleção geral too (Etapa 2.5a).

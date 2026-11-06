@@ -1,10 +1,13 @@
 // Painel 1/4 (decided 04/11/2026): every pedido as a row, every stage as a
-// column. A confirmed tecido pedido of two items shows in "Prontos", its
-// Impressão may start and the Calandra (in the Estamparia column) waits;
-// opening it outlines its path and shows the faixa, its items come in rows,
-// the sector tabs filter. A baixa given elsewhere moves the row to "Em
-// andamento" without a reload, the faixa still open; a past delivery date
-// makes it late. On a phone the pedido column stays while the stages scroll.
+// column. Painel 2/4b: a confirmed tecido pedido of two items is in a block
+// in time with its previsão — its Impressão may start and the Calandra (in
+// the Estamparia column) waits; opening it outlines its path with each
+// stage's time and shows the faixa, its items come in rows; a sector's tab is
+// its numbered queue, Entrega still filters the grid. A baixa given
+// elsewhere refreshes the page by itself, the tab, filter and faixa kept; a
+// slow Calandra makes it "vão atrasar", a past delivery date late. On a phone
+// the pedido column stays while the stages scroll. The turnos come from
+// parametros-producao, run before; alone, this spec registers a 24 h one.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -88,11 +91,38 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     await waitForText(page, "Pedido confirmed.");
   });
 
-  await test("The Painel shows it in Prontos: Impressão may start, the Calandra waits in the Estamparia column", async () => {
+  await test("Setup: a turno (when none) and the tecido's rhythms", async () => {
+    await page.goto(`${BASE_URL}/parametros/turnos`);
+    if (await page.getByText("No turno yet").count()) {
+      const novo = "form.turno-novo";
+      await page.fill(`${novo} input[name="turno[nome]"]`, "Painel 24h");
+      await page.fill(`${novo} input[name="turno[inicio]"]`, "00:00");
+      await page.fill(`${novo} input[name="turno[fim]"]`, "23:59");
+      for (const dia of [0, 6]) await page.check(`${novo} input[name="turno[dias][]"][value="${dia}"]`);
+      await page.click(`${novo} input[type="submit"][value="Add turno"]`);
+      await waitForText(page, "Turno Painel 24h saved.");
+    }
+    await ritmo("calandra", "100");
+  });
+
+  async function ritmo(etapa, valor) {
+    await page.goto(`${BASE_URL}/parametros/ritmos/edit`);
+    await page.fill('input[name="ritmos[tecido][impressao][por_hora]"]', "100");
+    await page.fill(`input[name="ritmos[tecido][${etapa}][por_hora]"]`, valor);
+    await page.evaluate(() => { document.body.dataset.antesDeSalvar = "1" });
+    await page.click('.ritmos-form button[type="submit"]');
+    await page.waitForSelector("body:not([data-antes-de-salvar])");
+    await waitForText(page, "Production rhythm saved.");
+  }
+
+  await test("The Painel shows it in a block in time with its previsão: Impressão may start, the Calandra waits in the Estamparia column", async () => {
     await page.goto(`${BASE_URL}/painel`);
     await pedido().waitFor();
     const bloco = await pedido().evaluate((el) => el.closest("[data-painel-target=bloco]").dataset.bloco);
-    if (bloco !== "prontos") throw new Error(`In block ${bloco}`);
+    // Which one depends on the hour the suite runs: now, a later turno, a day.
+    if (!/^(agora|turno:|amanha|dia:)/.test(bloco)) throw new Error(`In block ${bloco}`);
+    const previsao = (await pedido().locator("[data-previsao]").innerText()).trim();
+    if (!/^(hoje|amanhã|\S{3} \d\d\/\d\d) \d\d:\d\d$/.test(previsao)) throw new Error(`Previsão "${previsao}"`);
     const estados = [await estado("comercial"), await estado("impressao"), await estado("estamparia"), await estado("entrega")].join(",");
     if (estados !== "feita,pode_comecar,travada,ainda_nao") throw new Error(`Cells: ${estados}`);
     const texto = await pedido().locator(":scope > .painel-linha [data-coluna='estamparia']").innerText();
@@ -106,6 +136,8 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     if (!grade.includes("painel-grade--destaque")) throw new Error("The others are not dimmed");
     const caminho = await pedido().locator(".painel-caminho [data-etapa]").evaluateAll((nos) => nos.map((n) => n.dataset.etapa).join(">"));
     if (caminho !== "impressao>calandra") throw new Error(`Path ${caminho}`);
+    const tempos = await pedido().locator(".painel-caminho [data-etapa] .painel-no-tempo").allInnerTexts();
+    if (tempos.length !== 2 || !tempos.every((t) => t.includes("→"))) throw new Error(`The stages' times: ${tempos.join(" | ")}`);
     const trava = await pedido().locator("[data-trava]").innerText();
     if (trava !== "Estamparia: espera Impressão") throw new Error(`Trava: ${trava}`);
     const links = await pedido().locator(".painel-links a").allInnerTexts();
@@ -125,34 +157,66 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     await pedido().locator(".painel-linha--item").first().waitFor({ state: "hidden" });
   });
 
-  await test("The Impressão tab keeps it (its queue), the Entrega tab hides it", async () => {
+  function naFila(setor) {
+    return page.locator(`[data-fila-setor='${setor}'] [data-fila-pedido='${ids.pedido}']`);
+  }
+
+  await test("The Impressão tab shows its numbered queue instead of the grid; the Calandra's waits; Entrega filters the grid", async () => {
     await page.locator(".painel-setor[data-setor='impressao']").click();
-    if (await pedido().isHidden()) throw new Error("Hidden from the Impressão queue");
-    const n = await page.locator("[data-conta='fila:impressao']").innerText();
-    if (Number(n) < 1) throw new Error(`Impressão counts ${n}`);
+    await page.locator("[data-fila-setor='impressao']").waitFor();
+    if (await page.locator(".painel-quadro").isVisible()) throw new Error("The grid shows with the queue");
+    const posicao = (await naFila("impressao").first().locator(".painel-fila-pos").innerText()).trim();
+    if (!/^\d+º$/.test(posicao)) throw new Error(`Its place in the queue: ${posicao}`);
+    if (!(await naFila("impressao").first().locator(".painel-fila-hora").innerText()).match(/\d\d:\d\d–\d\d:\d\d/)) throw new Error("No time in the turno");
+    if (Number(await page.locator("[data-conta='fila:impressao']").innerText()) < 1) throw new Error("The Impressão tab counts nothing");
+    await page.locator(".painel-setor[data-setor='estamparia']").click();
+    if (!(await naFila("estamparia").first().innerText()).includes("espera Impressão")) throw new Error("The Calandra doesn't wait for the Impressão");
     await page.locator(".painel-setor[data-setor='entrega']").click();
+    await page.locator(".painel-quadro").waitFor();
     // Not ready to deliver: nothing of it is done yet.
     await pedido().waitFor({ state: "hidden" });
     await page.locator(".painel-setor[data-setor='']").click();
     await pedido().waitFor();
   });
 
-  await test("A baixa given elsewhere moves it to Em andamento without a reload, still open", async () => {
+  // Q5a: the queue changed — the page refreshes by itself, keeping the tab,
+  // the filter and the opened faixa.
+  await test("A baixa given elsewhere refreshes the Painel by itself, keeping the tab, the filter and the faixa", async () => {
+    await page.selectOption("[data-painel-target=tipo]", "tecido");
     await pedido().locator(".painel-ped-btn").click();
     await pedido().locator(".painel-faixa").waitFor();
     await page.evaluate(() => { window.semRecarregar = true });
     const outra = await page.context().newPage();
     await outra.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
-    const [linha] = await Promise.all([
-      page.waitForResponse((r) => new URL(r.url()).pathname === `/painel/pedidos/${ids.pedido}`),
+    await Promise.all([
+      page.waitForResponse((r) => new URL(r.url()).pathname === "/painel" && r.request().method() === "GET"),
       postar(`/pedidos/${ids.pedido}/baixas`, { etapa: "impressao", nivel: "pedido", medida: "23,5", confirmar: "1" }, outra),
     ]);
     await outra.close();
-    if (!linha.ok()) throw new Error(`The row answered ${linha.status()}`);
-    await page.locator(`[data-painel-target=bloco][data-bloco='em_andamento'] #painel_${ids.pedido}`).waitFor();
-    if ((await estado("impressao")) !== "feita") throw new Error(`Impressão is ${await estado("impressao")}`);
+    await page.locator(`#painel_${ids.pedido} > .painel-linha [data-coluna='impressao'][data-estado='feita']`).waitFor();
     if (!(await page.evaluate(() => window.semRecarregar))) throw new Error("The page reloaded");
     if (await pedido().locator(".painel-faixa").isHidden()) throw new Error("The faixa closed");
+    if ((await page.locator("[data-painel-target=tipo]").inputValue()) !== "tecido") throw new Error("The filter was lost");
+    if (await naFila("impressao").count()) throw new Error("Printed, it is still in the Impressão queue");
+    await page.selectOption("[data-painel-target=tipo]", "");
+  });
+
+  // Q6a: the previsão falls after a deadline that hasn't passed.
+  await test("A slow Calandra makes it go past today's deadline: \"vão atrasar\" counts and filters it", async () => {
+    await ritmo("calandra", "0,5");
+    const hoje = await page.evaluate(() => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
+    await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    await page.fill("#prazo_entrega", hoje);
+    await page.click(".pedido-prazo-form button[type=submit]");
+    await waitForText(page, "Prazo de entrega atualizado.");
+    await page.goto(`${BASE_URL}/painel`);
+    if ((await pedido().getAttribute("data-vai-atrasar")) !== "true") throw new Error("Not going to be late");
+    const selo = (await pedido().locator(".painel-fim .painel-folga").innerText()).trim();
+    if (!/^atrasa \d+ dias?$/.test(selo)) throw new Error(`The folga says "${selo}"`);
+    await page.locator(".painel-cont[data-filtro='vaiAtrasar']").click();
+    const visiveis = await page.locator("[data-painel-target=bloco] > .painel-pedido:not([hidden])").evaluateAll((ps) => ps.map((p) => p.dataset.uuid));
+    if (visiveis.join() !== ids.pedido) throw new Error(`The "vão atrasar" filter shows ${visiveis.join()}`);
+    await page.locator(".painel-cont[data-filtro='vaiAtrasar']").click();
   });
 
   await test("A past delivery date set on the pedido makes it late on the Painel", async () => {

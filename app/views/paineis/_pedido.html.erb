@@ -1,12 +1,12 @@
 <%# A pedido on the Painel: its row, its items (loaded when opened), the
     faixa below it and its reposições under it (themselves, rendered with
-    filha: true). Rendered by the page and alone for the live update
-    (PaineisController#linha). locals: linha (LinhaDoPainel), colunas, filha %>
+    filha: true). locals: linha (LinhaDoPainel), colunas, bloco (its block's
+    key, BlocosNoTempo), filha %>
 <% pedido = linha.pedido %>
 <% filha = local_assigns.fetch(:filha, false) %>
-<div class="painel-pedido<%= " painel-pedido--reposicao" if filha %>" id="painel_<%= pedido.uuid %>" data-uuid="<%= pedido.uuid %>" data-bloco="<%= linha.bloco %>"
+<div class="painel-pedido<%= " painel-pedido--reposicao" if filha %>" id="painel_<%= pedido.uuid %>" data-uuid="<%= pedido.uuid %>" data-bloco="<%= bloco %>"
      data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-filas="<%= linha.filas.join(" ") %>"
-     data-pendencia="<%= linha.pendencia? %>" data-atrasado="<%= linha.atrasado? %>" data-fora="<%= linha.fora(colunas).join(" ") %>">
+     data-pendencia="<%= linha.pendencia? %>" data-atrasado="<%= linha.atrasado? %>" data-vai-atrasar="<%= linha.com_reposicoes.any?(&:vai_atrasar?) %>">
   <div class="painel-linha">
     <div class="painel-ped">
       <button type="button" class="painel-ped-btn" data-action="painel#abrir" aria-expanded="false">
@@ -31,9 +31,11 @@
       <strong><%= linha.percentual %>%</strong>
       <% if linha.prazo %>
         <span class="<%= "painel-atrasado" if linha.atrasado? %>">prazo <%= linha.prazo.strftime("%d/%m") %></span>
+        <%= selo_da_folga(linha.folga) unless linha.atrasado? %>
       <% else %>
         <span>sem prazo</span>
       <% end %>
+      <span class="painel-previsao" data-previsao><%= texto_da_previsao(linha.previsao) if linha.previsao %></span>
     </div>
   </div>
   <div class="painel-itens" data-painel-itens hidden></div>
@@ -43,7 +45,7 @@
   <% if linha.reposicoes.any? %>
     <div class="painel-reposicoes">
       <% linha.reposicoes.each do |reposicao| %>
-        <%= render "paineis/pedido", linha: reposicao, colunas: colunas, filha: true %>
+        <%= render "paineis/pedido", linha: reposicao, colunas: colunas, bloco: bloco, filha: true %>
       <% end %>
     </div>
   <% end %>

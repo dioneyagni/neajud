@@ -2,7 +2,7 @@
 module TurnosHelper
   # Usage: dia_com_semana(Date.new(2026, 11, 20)) # => "sex 20/11"
   def dia_com_semana(data)
-    "#{Turno::DIAS[data.wday]} #{data.strftime("%d/%m")}"
+    Turno.dia_com_semana(data)
   end
 
   # The Painel's header: today, the time and the turno on — or the next one;

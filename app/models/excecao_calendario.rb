@@ -11,6 +11,7 @@
 #        excecao.para?(ocorrencia, "calandra") # => true
 class ExcecaoCalendario < ApplicationRecord
   include GeraUuid
+  include AvisaAFila
 
   self.table_name = "excecoes_calendario"
 

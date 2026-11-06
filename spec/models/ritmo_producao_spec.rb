@@ -32,6 +32,13 @@ RSpec.describe RitmoProducao do
     end
   end
 
+  # Painel 2/4b: a load over the rhythm in use; the machine's load is hours.
+  it "says how many hours a load takes, none without a rhythm" do
+    expect(described_class.new(tipo: "calcado", etapa: "impressao", por_hora: 5).horas(12, nil)).to eq(2.4)
+    expect(described_class.new(tipo: "calcado", etapa: "impressao").horas(12, nil)).to be_nil
+    expect(described_class.de("calcado", "corte").horas(1.24, medida.tap { |m| m.valor = 0.62 })).to eq(2.0)
+  end
+
   it "refuses a stage the type doesn't have, and a rhythm of 0" do
     expect(described_class.de("dtf", "estamparia").tap(&:valid?).errors[:etapa].first).to include('unknown production stage "estamparia" for dtf')
     expect(described_class.new(tipo: "calcado", etapa: "corte", por_hora: 0).tap(&:valid?).errors[:por_hora].first).to include("must be more than 0")

@@ -186,10 +186,9 @@ Rails.application.routes.draw do
   # Etapa 2.5b: every cor lisa — the chart and the table.
   resources :cores, only: :index
 
-  # Painel 1/4 (04/11/2026): pedidos × stages; one pedido's row and items for
-  # the live update and the expansion.
+  # Painel 1/4 (04/11/2026): pedidos × stages; a pedido's items for the
+  # expansion (its row alone went with 2/4b: the page refreshes whole).
   get "painel", to: "paineis#show", as: :painel
-  get "painel/pedidos/:uuid", to: "paineis#linha", as: :linha_do_painel
   get "painel/pedidos/:uuid/itens", to: "paineis#itens", as: :itens_do_painel
   # The tecido pedidos' own list (20/10/2026); before resources so "tecido" isn't a uuid.
   get "pedidos/tecido", to: "lista_pedidos_tecido#index", as: :pedidos_tecido

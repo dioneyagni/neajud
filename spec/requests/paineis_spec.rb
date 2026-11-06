@@ -1,41 +1,53 @@
 require "rails_helper"
 require_relative "../support/producao_calcado"
+require_relative "../support/fila_de_producao"
 
-# Painel 1/4 (decided 04/11/2026): the page, one row for the live update,
-# a row's items and the delivery date — the Pedidos' permission and visibility.
+# Painel 1/4 (decided 04/11/2026): the page, a row's items and the delivery
+# date — the Pedidos' permission and visibility. Painel 2/4b: the blocks in
+# time, the previsão and each sector's queue; a cliente final by day only.
 RSpec.describe "Painel", type: :request do
   def entrar_como_cliente_final(cliente)
     funcao = create(:funcao, :para_cliente, niveis: Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE)
     entrar_como(create(:vinculo, user: create(:user), client: cliente, funcao: funcao).user)
   end
 
-  it "shows every pedido as a row in its block, the empty columns hidden" do
+  it "shows every pedido as a row in its block in time, the empty columns hidden" do
     pedido = pedido_calcado_confirmado
     rascunho = create(:pedido)
     get painel_path
 
     expect(response).to have_http_status(:ok)
     pagina = Nokogiri::HTML(response.body)
-    expect(pagina.css(".painel-bloco-pedidos[data-bloco=prontos] .painel-pedido").map { |p| p["data-uuid"] }).to eq([ pedido.uuid ])
+    # No rhythm (nor turnos) yet: no previsão.
+    expect(pagina.css(".painel-bloco-pedidos[data-bloco=sem_previsao] .painel-pedido").map { |p| p["data-uuid"] }).to eq([ pedido.uuid ])
     expect(pagina.css(".painel-bloco-pedidos[data-bloco=pendentes] .painel-pedido").map { |p| p["data-uuid"] }).to eq([ rascunho.uuid ])
     expect(pagina.css(".painel-cab [data-coluna]").map(&:text)).to eq(%w[Arquivos Comercial Material Impressão Corte Estamparia Conferência Entrega])
     expect(pagina.css("#painel_#{pedido.uuid} [data-coluna=estamparia]").first["data-estado"]).to eq("travada")
+    expect(pagina.css("#painel_#{pedido.uuid} [data-previsao]").sole.text).to eq("Impressão (Calçado) sem ritmo")
   end
 
-  it "answers one row in the columns asked, and nothing once it left the Painel" do
+  # Q3a, Q6a: the row goes to Agora, with its previsão and folga; the
+  # sector's tab is its numbered queue (the Fila A mockup).
+  it "puts a pedido in Agora with its previsão, folga and place in each sector's queue" do
+    turno_o_dia_todo
+    ritmos_do_calcado
     pedido = pedido_calcado_confirmado
-    get linha_do_painel_path(pedido.uuid), params: { colunas: %w[corte entrega] }
-    linha = Nokogiri::HTML(response.body)
-    expect(linha.css(".painel-pedido > .painel-linha [data-coluna]").map { |c| c["data-coluna"] }).to eq(%w[corte entrega])
-    expect(linha.css(".painel-pedido").first["data-fora"].split).to eq(%w[arquivos comercial material impressao estamparia conferencia])
+    pedido.update!(prazo_entrega: Date.current + 3)
+    get painel_path
 
-    pedido.excluir!(changed_by: "spec")
-    get linha_do_painel_path(pedido.uuid)
-    expect(response).to have_http_status(:no_content)
+    pagina = Nokogiri::HTML(response.body)
+    linha = pagina.css(".painel-bloco-pedidos[data-bloco=agora] > .painel-pedido").sole
+    expect([ linha["data-uuid"], linha["data-vai-atrasar"], linha.css(".painel-fim .painel-folga").text ]).to eq([ pedido.uuid, "false", "folga 3 dias" ])
+    expect(linha.css("[data-previsao]").text).to start_with("hoje")
+    expect(linha.css(".painel-faixa [data-etapa=impressao] .painel-no-tempo").text).to start_with("hoje")
+    fila = pagina.css("[data-fila-setor=impressao]").sole
+    expect(fila.css(".painel-fila-dia--hoje .painel-fila-dia-rel").text).to eq("hoje")
+    expect(fila.css("[data-fila-pedido='#{pedido.uuid}'] .painel-fila-pos").map(&:text)).to eq([ "1º" ])
+    expect(pagina.css("[data-fila-setor]").map { |s| s["data-fila-setor"] }).to eq(%w[impressao corte estamparia conferencia])
   end
 
   # Decided 05/11/2026: the reposição comes inside its original's row.
-  it "shows a reposição under its original, and answers its uuid with the original's row" do
+  it "shows a reposição under its original" do
     pedido = pedido_calcado_confirmado
     reposicao = reposicao_com_falta(pedido)
     get painel_path
@@ -46,10 +58,6 @@ RSpec.describe "Painel", type: :request do
     expect(filha.css(".painel-ref--reposicao").text.squish).to eq("↻ reposição de ##{pedido.uuid.first(8)} · 2 peças")
     expect(pagina.css("#painel_#{pedido.uuid} > .painel-linha [data-coluna=entrega]").sole["data-estado"]).to eq("travada")
     expect(pagina.css("#painel_#{pedido.uuid} > .painel-faixa [data-percentuais]").sole.text.squish).to eq("(pedido 100% · reposição 0%)")
-
-    get linha_do_painel_path(reposicao.uuid), params: { colunas: LinhaDoPainel::COLUNAS.keys }
-    linha = Nokogiri::HTML(response.body).css("body > .painel-pedido").sole
-    expect([ linha["id"], linha.css(".painel-pedido--reposicao").sole["data-uuid"] ]).to eq([ "painel_#{pedido.uuid}", reposicao.uuid ])
   end
 
   it "lists a pedido's items with their own Impressão lines" do
@@ -67,10 +75,24 @@ RSpec.describe "Painel", type: :request do
       get painel_path
       expect(response.body).to include(meu.uuid)
       expect(response.body).not_to include(outro.uuid)
-      get linha_do_painel_path(outro.uuid)
-      expect(response).to have_http_status(:no_content)
       get itens_do_painel_path(outro.uuid)
       expect(response).to have_http_status(:not_found)
+    end
+
+    # Q4a: the previsão by day — the factory's queue behind it, but no
+    # sectors, queue or turnos on his page.
+    it "sees his previsão by day, with no sector, queue or turno" do
+      turno_o_dia_todo
+      ritmos_do_calcado
+      pedido_calcado_confirmado
+      meu = pedido_calcado_confirmado
+      entrar_como_cliente_final(meu.client)
+      get painel_path
+
+      pagina = Nokogiri::HTML(response.body)
+      expect(pagina.css(".painel-bloco-pedidos[data-bloco=hoje] > .painel-pedido").map { |p| p["data-uuid"] }).to eq([ meu.uuid ])
+      expect(pagina.css("#painel_#{meu.uuid} [data-previsao]").text).to eq("hoje")
+      expect(pagina.css(".painel-setores, [data-fila-setor], [data-painel-agora]")).to be_empty
     end
   end
 

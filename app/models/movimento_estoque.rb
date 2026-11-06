@@ -2,6 +2,7 @@
 # is the empresa's own stock; with one, that client's material kept here.
 class MovimentoEstoque < ApplicationRecord
   include GeraUuid
+  include AvisaAFila
   include ReferenciaAtiva
 
   belongs_to :materia_prima
