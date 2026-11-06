@@ -4,7 +4,7 @@ class MovimentosController < ApplicationController
   include MovimentoCreatable
 
   def index
-    @movimentos = visiveis(MovimentoEstoque).recentes.includes(:client, :pedido, :baixa_producao, :ordem_dublagem, materia_prima: %i[grupo_material cor_material construcao])
+    @movimentos = visiveis(MovimentoEstoque).para_o_extrato
   end
 
   def new

@@ -9,7 +9,9 @@ const { BASE_URL, runSpec } = require("./support/runner");
 // Etapa 2.3d2 (decided 19/10/2026): confirming takes the pedido's expected
 // meters from the stock — the fabric from its owner, the paper from the
 // empresa — and a pedido whose out passes what came in waits for material,
-// oldest outs covered first; an entry clears it. Never blocks.
+// oldest outs covered first; an entry clears it. Never blocks a baixa's
+// start — but delivering it asks for the entry first (decided 05/11/2026:
+// delivered, it would stop showing as waiting with the stock short).
 runSpec("Saída do estoque", async ({ page, test }) => {
   const U = `${Date.now()}`.slice(-6);
   const nomes = { cliente: `Saida ${U}`, tecido: `TecSaida${U}`, papel: `PapSaida${U}`, corrida: `saida${U}` };
@@ -106,10 +108,40 @@ runSpec("Saída do estoque", async ({ page, test }) => {
       if (material !== "Aguardando: 1 pedido · faltam 7 m") throw new Error(`Materials reads ${material}`);
     });
 
+    // Regression (05/11/2026): #d4f30331 was delivered skipping its Calandra and no entry was ever asked.
+    await test("Delivering it while it waits asks for the 7 m first; too little is refused, Cancel delivers nothing", async () => {
+      await page.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+      await page.locator(".entrega-botao").click();
+      await page.locator(".entrega-confirmar").click();
+      const dialogo = page.locator(".entrega dialog.baixa-falta");
+      await dialogo.waitFor({ state: "visible" });
+      const caixa = await dialogo.boundingBox();
+      const tela = page.viewportSize();
+      if (Math.abs(caixa.x + caixa.width / 2 - tela.width / 2) > 2 || Math.abs(caixa.y + caixa.height / 2 - tela.height / 2) > 2) throw new Error(`Dialog not centered: ${JSON.stringify(caixa)}`);
+      const linhas = await dialogo.locator(".baixa-falta-linha label").allInnerTexts();
+      if (linhas.length !== 1 || !linhas[0].includes(nomes.tecido) || !linhas[0].includes(nomes.cliente)) throw new Error(`The dialog asks for ${linhas.join(" | ")}`);
+      const campo = dialogo.locator("input[data-chave]");
+      if ((await campo.inputValue()) !== "7") throw new Error(`The entry starts at ${await campo.inputValue()}, expected the 7 m missing`);
+      await campo.fill("6");
+      await dialogo.locator(".baixa-falta-lancar").click();
+      await dialogo.locator("[data-falta-erro]", { hasText: "is below the 7 m missing" }).waitFor();
+      await dialogo.getByText("Cancelar").click();
+      await dialogo.waitFor({ state: "hidden" });
+      await page.reload();
+      if ((await page.locator(".pedido-entregue").count()) !== 0) throw new Error("Cancel delivered the pedido");
+    });
+
     await test("An entry of the 7 m clears it by itself", async () => {
       await entrada(nomes.tecido, "1.40", "7", ids.cliente);
       if ((await listadosAguardando()) !== 0) throw new Error("The covered pedido should leave the filter");
       if (await aguardando()) throw new Error("The covered pedido's panel should not say it waits");
+    });
+
+    // The material came in: delivering asks nothing more than the stages still open.
+    await test("Covered, it is delivered without the dialog", async () => {
+      await page.locator(".entrega-botao").click();
+      await page.locator(".entrega-confirmar").click();
+      await page.locator(".pedido-entregue").waitFor();
     });
   } finally {
     fs.rmSync(pasta, { recursive: true, force: true });

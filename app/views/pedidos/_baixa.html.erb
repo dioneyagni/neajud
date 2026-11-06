@@ -1,6 +1,8 @@
 <%# A production stage's baixa button (Etapa 2.2, 2/3): opens the measure
     field (metragem or pieces) next to the line, the arte or the pedido.
     Etapa 2.3e: lines of several materials ask one measure each.
+    Decided 05/11/2026: the material missing in the stock opens the dialog
+    to launch its entry with the baixa (EntradaDaFalta).
     locals: pedido, etapa (EtapasProducao::Etapa), nivel, alvo, rotulo, esperado,
             materiais (optional: material => expected meters, when several) %>
 <% unidade = etapa.unidade_da_medida %>
@@ -38,4 +40,6 @@
     <div class="baixa-contagem" data-baixa-target="contagem" hidden></div>
     <button type="button" class="btn btn-sm btn-outline baixa-confirmar" data-baixa-target="confirmar" data-action="baixa#confirmarAssim" hidden>Confirmar assim mesmo</button>
   </div>
+  <%= render "pedidos/dialogo_da_falta", controller: "baixa", campo: campo,
+             texto: "Se o material chegou, confirme quanto entrou: a entrada vai para o estoque e a baixa é dada." %>
 </div>

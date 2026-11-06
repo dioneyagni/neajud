@@ -1,19 +1,23 @@
 # The baixa of a production stage, from the Impressão, Corte, Estamparia and
 # Conferência pages (Etapa 2.2, 2/3). JSON for the baixa Stimulus controller:
 # ok (the page reloads and shows the flash), aviso (outside the dono's band:
-# correct or confirm) or error. Undoing one (3/3) goes back to the page.
+# correct or confirm), falta_material (the entry to launch with it, decided
+# 05/11/2026) or error. Undoing one (3/3) goes back to the page.
 #
-# Usage: POST /pedidos/:pedido_uuid/baixas (etapa, nivel, alvo, medida, confirmar; medidas[<material uuid>] — Etapa 2.3e)
+# Usage: POST /pedidos/:pedido_uuid/baixas (etapa, nivel, alvo, medida, confirmar; medidas[<material uuid>] — Etapa 2.3e;
+#        entradas[<material uuid>:<client uuid|empresa>], autorizador[email], autorizador[senha] — the material missing)
 #        DELETE /pedidos/:pedido_uuid/baixas/:uuid
 class BaixasProducaoController < ApplicationController
+  include EntradaDaFaltaAutorizada
   exige_acao :atualizar_producao
   before_action :set_pedido
+  limita_senha_do_autorizador only: :create
 
   def create
     resultado = RegistrarBaixaService.call(@pedido, etapa: params[:etapa], nivel: params[:nivel], alvo: params[:alvo],
                                                     medida: params[:medida], confirmar: params[:confirmar] == "1",
                                                     contagens: params[:contagens]&.to_unsafe_h, refazer: params[:refazer]&.to_unsafe_h,
-                                                    medidas: params[:medidas]&.to_unsafe_h, **autoria)
+                                                    medidas: params[:medidas]&.to_unsafe_h, **campos_da_entrada, **autoria)
     responder(resultado)
   rescue EtapasProducao::Invalida => e
     render json: { ok: false, error: e.message }, status: :unprocessable_content
@@ -36,6 +40,7 @@ class BaixasProducaoController < ApplicationController
       flash[:notice] = aviso_de_registro(resultado.baixa)
       render json: { ok: true }
     when :aviso then render json: { ok: false, aviso: resultado.mensagem }
+    when :falta_material then render json: { ok: false, falta_material: resultado.mensagem, **dialogo_da_falta(resultado.faltas) }
     when :contar then render json: { ok: false, contar: resultado.mensagem, linhas: linhas_para_contar(resultado) }
     else render json: { ok: false, error: resultado.mensagem }, status: :unprocessable_content
     end

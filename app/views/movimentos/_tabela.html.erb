@@ -3,7 +3,9 @@
     longer counts (MovimentoEstoque.que_contam). Etapa 2.3e: a baixa's
     adjustment names its stage, and stops counting once the baixa is undone.
     Dublagem 5a: an ordem de dublagem's movements name it (linked for the
-    team; the ordens are the factory's). %>
+    team; the ordens are the factory's). Decided 05/11/2026: an entry
+    launched at a baixa or a delivery names it, who launched it and who
+    authorized it (the names only for the team). %>
 <div class="materiais-tabela-wrap">
   <table class="clients-table movimentos-tabela">
     <thead>
@@ -31,6 +33,9 @@
               <%= link_to "##{m.pedido.uuid.first(8)}", resumo_pedido_path(m.pedido) %>
               <% if m.baixa_producao %><span class="movimento-etapa">· <%= EtapasProducao.etapa(m.pedido.tipo, m.baixa_producao.etapa).nome %></span><% end %>
               <% if (motivo = m.motivo_de_nao_contar) %><small class="movimento-nao-conta"><%= motivo %>: não conta</small><% end %>
+            <% end %>
+            <% if (lancada = m.lancada_na_baixa&.pedido || m.lancada_na_entrega) %>
+              <span class="movimento-lancada" data-lancada>lançada na <%= m.lancada_na_baixa ? "baixa" : "entrega" %> de <%= link_to "##{lancada.uuid.first(8)}", resumo_pedido_path(lancada) %><%= " · #{EtapasProducao.etapa(lancada.tipo, m.lancada_na_baixa.etapa).nome}" if m.lancada_na_baixa %><% unless cliente_final? %><%= ", por #{m.lancado_por.nome}" if m.lancado_por %><%= ", autorizada por #{m.autorizado_por.nome}" if m.autorizado_por %><% end %></span>
             <% end %>
             <% if m.ordem_dublagem %>
               <span class="movimento-dublagem" data-ordem-dublagem="<%= m.ordem_dublagem.uuid %>"><%= cliente_final? ? "Dublagem ##{m.ordem_dublagem.uuid.first(8)}" : link_to("Dublagem ##{m.ordem_dublagem.uuid.first(8)}", dublagens_path) %></span>

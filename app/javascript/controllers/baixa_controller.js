@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
+import DialogoDaFalta from "controllers/dialogo_da_falta"
 
 // A production stage's baixa (Etapa 2.2, 2/3; decided 07/10/2026): "Baixa"
 // opens the measure field next to the download; saving checks it against
@@ -12,9 +13,16 @@ import { Turbo } from "@hotwired/turbo-rails"
 // confirms; the missing pieces go to the pedido's open reposição.
 // Stock (Etapa 2.3e; decided 20/10/2026): lines of several materials show one
 // field per material, sent as medidas[<material uuid>]; the server sums them.
+// Material missing (decided 05/11/2026): the server saves nothing and lists
+// what the stock lacks; the dialog (DialogoDaFalta) asks how much came in
+// and, from who may not, someone's password — then the baixa goes again.
 export default class extends Controller {
-  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem"]
+  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem", "falta"]
   static values = { url: String, etapa: String, nivel: String, alvo: String }
+
+  connect() {
+    this.dialogoDaFalta = new DialogoDaFalta(this.faltaTarget)
+  }
 
   abrir() {
     this.abrirTarget.hidden = true
@@ -46,7 +54,8 @@ export default class extends Controller {
     this.enviar(true)
   }
 
-  enviar(confirmar) {
+  enviar(confirmar, extras = []) {
+    this.confirmou = confirmar
     const body = new FormData()
     const contagens = this.contagemTarget.querySelectorAll("input[data-chave]")
     const medida = contagens.length ? [...contagens].reduce((soma, input) => soma + (parseInt(input.value, 10) || 0), 0)
@@ -59,6 +68,7 @@ export default class extends Controller {
       const refazer = [...this.contagemTarget.querySelectorAll(`input[data-refazer][data-linha="${CSS.escape(input.dataset.chave)}"]:checked`)].map(c => c.value)
       body.append(`refazer[${input.dataset.chave}]`, refazer.join(","))
     })
+    extras.forEach(([campo, valor]) => body.append(campo, valor))
     const csrf = document.querySelector("meta[name='csrf-token']")?.content || ""
     fetch(this.urlValue, { method: "POST", headers: { "Accept": "application/json", "X-CSRF-Token": csrf }, body })
       .then(r => r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` })))
@@ -68,6 +78,8 @@ export default class extends Controller {
 
   responder(data) {
     if (data.ok) return Turbo.visit(window.location.href, { action: "replace" })
+    if (data.falta_material) return this.dialogoDaFalta.abrir(data.faltas, data.pode_lancar)
+    if (this.dialogoDaFalta.aberto) return this.dialogoDaFalta.mostrarErro(data.error || "Não foi possível registrar a baixa")
     if (data.contar) return this.pedirContagem(data.contar, data.linhas)
     if (data.aviso) return this.mostrar(data.aviso, true)
     this.mostrar(data.error || "Não foi possível registrar a baixa", false)
@@ -107,6 +119,14 @@ export default class extends Controller {
       label.append(caixa, ` ${nome}`)
       return label
     })
+  }
+
+  lancarFalta() {
+    this.enviar(this.confirmou, this.dialogoDaFalta.campos())
+  }
+
+  fecharFalta() {
+    this.dialogoDaFalta.fechar()
   }
 
   mostrar(texto, podeConfirmar) {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -607,9 +607,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.integer "pedido_id"
     t.integer "baixa_producao_id"
     t.integer "ordem_dublagem_id"
+    t.integer "lancada_na_baixa_id"
+    t.integer "lancada_na_entrega_id"
+    t.integer "lancado_por_id"
+    t.integer "autorizado_por_id"
+    t.index ["autorizado_por_id"], name: "index_movimento_estoques_on_autorizado_por_id"
     t.index ["baixa_producao_id"], name: "index_movimento_estoques_on_baixa_producao_id"
     t.index ["client_id"], name: "index_movimento_estoques_on_client_id"
     t.index ["created_at"], name: "index_movimento_estoques_on_created_at"
+    t.index ["lancada_na_baixa_id"], name: "index_movimento_estoques_on_lancada_na_baixa_id"
+    t.index ["lancada_na_entrega_id"], name: "index_movimento_estoques_on_lancada_na_entrega_id"
+    t.index ["lancado_por_id"], name: "index_movimento_estoques_on_lancado_por_id"
     t.index ["materia_prima_id"], name: "index_movimento_estoques_on_materia_prima_id"
     t.index ["ordem_dublagem_id"], name: "index_movimento_estoques_on_ordem_dublagem_id"
     t.index ["pedido_id"], name: "index_movimento_estoques_on_pedido_id"
@@ -876,10 +884,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
   add_foreign_key "moldes", "moldes", column: "base_id"
   add_foreign_key "moldes", "moldes", column: "variacao_de_id"
   add_foreign_key "movimento_estoques", "baixas_producao", column: "baixa_producao_id"
+  add_foreign_key "movimento_estoques", "baixas_producao", column: "lancada_na_baixa_id"
   add_foreign_key "movimento_estoques", "clients"
   add_foreign_key "movimento_estoques", "materia_primas"
   add_foreign_key "movimento_estoques", "ordens_dublagem", column: "ordem_dublagem_id"
   add_foreign_key "movimento_estoques", "pedidos"
+  add_foreign_key "movimento_estoques", "pedidos", column: "lancada_na_entrega_id"
+  add_foreign_key "movimento_estoques", "users", column: "autorizado_por_id"
+  add_foreign_key "movimento_estoques", "users", column: "lancado_por_id"
   add_foreign_key "ordens_dublagem", "clients"
   add_foreign_key "ordens_dublagem", "construcoes"
   add_foreign_key "ordens_dublagem", "users", column: "cancelada_por_id"

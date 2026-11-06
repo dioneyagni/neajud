@@ -299,3 +299,53 @@ Decided 20/10/2026:
 - Tests: `spec/services/{ajuste_da_baixa,registrar_baixa_service}_spec.rb`,
   `spec/requests/ajuste_do_estoque_spec.rb`, E2E `e2e/ajuste-do-estoque.spec.js`
   (the calçado's Corte is covered by RSpec only: it needs a DXF's fit).
+
+## The material missing, launched at the baixa or the delivery
+
+Decided 05/11/2026. A pedido that kept "aguardando material" after its
+production was done (#f0e495d6: the fabric came in, nobody launched it) led
+to this. Whoever gives the baixa knows the material arrived:
+
+- **When:** a stage with `material:` whose lines, adjusted (`AjusteDaBaixa`),
+  leave the pedido waiting (`AguardandoMaterial`) for a material × owner
+  they take (`MateriaisDasLinhas`). Other materials the pedido waits for
+  don't ask. `RegistrarBaixaService` saves the baixa and the adjustment in a
+  savepoint, checks, and rolls everything back answering `:falta_material`
+  (`faltas`: `EntradaDaFalta::Item`, material, owner, `falta`,
+  `minimo`). **No baixa without the entry** (Q2 b).
+- **At the delivery too** (decided 05/11/2026, after the first test on dev:
+  #d4f30331 was delivered skipping its Calandra, the one stage that took its
+  fabric; a delivered pedido stops showing as waiting, and the stock stayed
+  short). `EntregarPedidoService`, after the "Entregar assim mesmo" for open
+  stages, asks for **every** material the pedido still waits for
+  (`EntradaDaFalta.faltas(pedido)`, no `partes`), the same way.
+- **How much:** at least `minimo`, what frees the pedido:
+  `AguardandoMaterial::Falta#para_liberar`, since the entries cover the
+  oldest outs first (by hand or of other pedidos), it can exceed the pedido's
+  own falta; more when more came.
+- **Who:** someone with Estoque: editar launches it directly; anyone else
+  types the email and password of someone who has it (`User.authenticate_by`,
+  an active user). The password stays with that one launch: the session is
+  still the operator's. Wrong attempts are limited like the sign-in (10 per 3
+  minutes, `rate_limit` of `EntradaDaFaltaAutorizada`, only when a password comes).
+- **Recorded:** a plain `entrada` with no `pedido_id`: the material is the
+  stock's, and a trashed pedido must not take it away. It has
+  `lancada_na_baixa_id` or `lancada_na_entrega_id`, `lancado_por_id` and
+  `autorizado_por_id` (only when someone else authorized). It points at the
+  baixa through `lancada_na_baixa` and not `baixa_producao`, so **undoing the
+  baixa keeps the entry** (Q4 a, the material arrived either way). The ledger
+  shows "lançada na baixa de #… · Calandra, por X, autorizada por Y" (or
+  "lançada na entrega de #…"), without the names for a cliente final.
+- **Screen:** `pedidos/_dialogo_da_falta`, driven by
+  `controllers/dialogo_da_falta.js` from the `baixa` or the `entrega`
+  Stimulus controller. It has one row per material × owner (starting at the
+  minimum), the authorizer's fields when `pode_lancar` is false, and "Lançar
+  entrada e dar baixa" (or "e entregar") / Cancelar. It sends the request
+  again with `entradas[<material uuid>:<client uuid|empresa>]` and
+  `autorizador[email|senha]`. The fields, the JSON and the password limit
+  are shared by both controllers (`EntradaDaFaltaAutorizada`).
+- Tests: `spec/services/entrada_da_falta_spec.rb` (with "at the delivery",
+  the regression), `spec/requests/baixas_producao_spec.rb` ("the material
+  missing"), E2E `e2e/ajuste-do-estoque.spec.js` (the baixa's dialog, Cancel,
+  a Produção worker with the dono's password) and
+  `e2e/saida-do-estoque.spec.js` (the delivery's dialog).

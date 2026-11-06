@@ -549,6 +549,40 @@
   color: #1a4b9c;
 }
 
+/* Decided 05/11/2026: the material missing, launched with the baixa. */
+.baixa-falta {
+  max-width: 480px;
+}
+
+.baixa-falta-texto {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.baixa-falta-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.baixa-falta-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.baixa-falta-linha label {
+  flex-basis: 100%;
+  font-weight: 600;
+}
+
+.baixa-falta-autorizador {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
 /* Etapa 2.3e: one measure per material, each on its own row. */
 .baixa-materiais {
   flex-basis: 100%;

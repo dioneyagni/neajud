@@ -5,12 +5,16 @@ const { execFileSync } = require("child_process");
 const { uploadFileAndWait } = require("./support/upload");
 const { waitForText } = require("./support/wait");
 const { BASE_URL, runSpec } = require("./support/runner");
+const { E2E_USUARIO } = require("./support/sessao");
 
 // Etapa 2.3e (decided 20/10/2026): a metragem baixa adjusts the stock by the
 // real minus the expected — an out of what passed it, an entry of what was
 // left — one measure per material when the lines take several. Shown in the
 // stage's history, the ledger and the pedido's panel; undoing the baixa stops
 // the adjustment counting.
+// Decided 05/11/2026: a baixa whose fabric is missing in the stock opens a
+// dialog to launch the entry with it; from who may not edit the stock it
+// takes the email and password of someone who may.
 runSpec("Ajuste do estoque", async ({ page, test }) => {
   const U = `${Date.now()}`.slice(-6);
   const nomes = { cliente: `Ajuste ${U}`, oxford: `OxAjuste${U}`, helanca: `HeAjuste${U}`, papel: `PapAjuste${U}` };
@@ -30,12 +34,12 @@ runSpec("Ajuste do estoque", async ({ page, test }) => {
   }
 
   // An entry of a material (the client's when given, else the empresa's); its uuid.
-  async function entrada(grupo, metros, cliente) {
+  async function entrada(grupo, metros, cliente, tipo = "entrada") {
     await postar("/materiais/create_grupo", { "grupo_material[nome]": grupo });
     const grupoUuid = (await buscarJson(`/materiais/grupos?q=${grupo}`)).find((g) => g.nome === grupo).id;
     const cor = (await buscarJson("/materiais/cores"))[0].id;
     const dono = cliente ? { "movimento_estoque[client_uuid]": cliente } : { "movimento_estoque[da_empresa]": "1" };
-    await postar("/materiais", { ...dono, "movimento_estoque[tipo]": "entrada", "movimento_estoque[grupo_material_uuid]": grupoUuid, "movimento_estoque[cor_material_uuid]": cor,
+    await postar("/materiais", { ...dono, "movimento_estoque[tipo]": tipo, "movimento_estoque[grupo_material_uuid]": grupoUuid, "movimento_estoque[cor_material_uuid]": cor,
       "movimento_estoque[largura]": "1.60", "movimento_estoque[gramatura]": "100g", "movimento_estoque[quantidade]": metros });
     return (await buscarJson(`/materiais/search?q=${grupo}`))[0].id;
   }
@@ -148,6 +152,80 @@ runSpec("Ajuste do estoque", async ({ page, test }) => {
       const naoContam = await page.locator(`[data-pedido="${ids.pedido}"] .movimento-nao-conta`).allInnerTexts();
       if (naoContam.length !== 2 || naoContam.some((t) => t !== "baixa desfeita: não conta")) throw new Error(`The ledger reads ${naoContam.join(" | ")}`);
       if ((await consumo(ids.oxford)) !== "saída 12 m") throw new Error(`The panel reads ${await consumo(ids.oxford)}`);
+    });
+
+    // In 30 m, the pedido's 12 m and 18 m by hand out: the Calandra's 0,5 m past the expected is missing.
+    await test("The Calandra with the fabric missing opens the dialog, centered; Cancel saves nothing", async () => {
+      await entrada(nomes.oxford, "18", ids.cliente, "saida");
+      await etapa("calandra");
+      const baixa = page.locator(".etapa-andamento .baixa");
+      await baixa.locator(".baixa-abrir").click();
+      await baixa.locator(`.baixa-material[data-material="${ids.oxford}"] .baixa-medida`).fill("12,5");
+      await baixa.locator(`.baixa-material[data-material="${ids.helanca}"] .baixa-medida`).fill("11,5");
+      await baixa.locator(".baixa-salvar").click();
+      const dialogo = baixa.locator("dialog.baixa-falta");
+      await dialogo.waitFor({ state: "visible" });
+      const caixa = await dialogo.boundingBox();
+      const tela = page.viewportSize();
+      if (Math.abs(caixa.x + caixa.width / 2 - tela.width / 2) > 2 || Math.abs(caixa.y + caixa.height / 2 - tela.height / 2) > 2) throw new Error(`Dialog not centered: ${JSON.stringify(caixa)}`);
+      const valor = await dialogo.locator("input[data-chave]").inputValue();
+      if (valor !== "0,5") throw new Error(`The entry starts at ${valor}, expected the 0,5 m missing`);
+      // The dono may edit the stock: no one else's password asked.
+      if (await dialogo.locator(".baixa-falta-autorizador").isVisible()) throw new Error("The dono was asked for someone's password");
+      await dialogo.getByText("Cancelar").click();
+      await dialogo.waitFor({ state: "hidden" });
+      await page.reload();
+      if ((await page.locator(".historico-baixa:not(.historico-baixa--desfeita)").count()) !== 0) throw new Error("Cancel saved a baixa");
+    });
+
+    await test("A Produção worker launches 2 m with the dono's password: the entry goes in and the baixa is given", async () => {
+      const operador = { nome: `Prod ${U}`, email: `prod${U}@neajud.test`, provisoria: "provisoria-e2e-1", senha: "senha-prod-e2e-1" };
+      await page.goto(`${BASE_URL}/usuarios`);
+      await page.click('a:has-text("+ New user")');
+      await page.fill('input[name="usuario[nome]"]', operador.nome);
+      await page.fill('input[name="usuario[email_address]"]', operador.email);
+      await page.fill('input[name="usuario[senha_provisoria]"]', operador.provisoria);
+      await page.selectOption('select[name="usuario[funcao_uuid]"]', { label: "Produção" });
+      await page.click('input[type="submit"][value="Add user"]');
+      await page.locator(`tr.usuario-linha[data-email="${operador.email}"]`).waitFor();
+
+      const contexto = await page.context().browser().newContext();
+      const outra = await contexto.newPage();
+      try {
+        await outra.goto(`${BASE_URL}/session/new`);
+        await outra.fill('input[name="email_address"]', operador.email);
+        await outra.fill('input[name="password"]', operador.provisoria);
+        await outra.click('input[type="submit"][value="Sign in"]');
+        await outra.waitForURL("**/senha/edit");
+        await outra.fill('input[name="nova_senha"]', operador.senha);
+        await outra.click('input[type="submit"][value="Change password"]');
+        await outra.waitForURL((url) => !url.pathname.startsWith("/senha"));
+
+        await outra.goto(`${BASE_URL}/pedidos/${ids.pedido}/tecido/producao/calandra`);
+        const baixa = outra.locator(".etapa-andamento .baixa");
+        await baixa.locator(".baixa-abrir").click();
+        await baixa.locator(`.baixa-material[data-material="${ids.oxford}"] .baixa-medida`).fill("12,5");
+        await baixa.locator(`.baixa-material[data-material="${ids.helanca}"] .baixa-medida`).fill("11,5");
+        await baixa.locator(".baixa-salvar").click();
+        const dialogo = baixa.locator("dialog.baixa-falta");
+        await dialogo.locator(".baixa-falta-autorizador").waitFor({ state: "visible" });
+        await dialogo.locator("input[data-chave]").fill("2");
+        await dialogo.locator("[data-falta-email]").fill(E2E_USUARIO.email);
+        await dialogo.locator("[data-falta-senha]").fill("senha-errada-1");
+        await dialogo.locator(".baixa-falta-lancar").click();
+        await dialogo.locator("[data-falta-erro]", { hasText: "email and password of someone who may edit the stock" }).waitFor();
+        await dialogo.locator("[data-falta-senha]").fill(E2E_USUARIO.senha);
+        await dialogo.locator(".baixa-falta-lancar").click();
+        await outra.getByText("Baixa de Calandra registrada").waitFor();
+      } finally {
+        await contexto.close();
+      }
+
+      await page.goto(`${BASE_URL}/movimentos`);
+      const lancada = (await page.locator("[data-lancada]").first().innerText()).replace(/\s+/g, " ").trim();
+      if (lancada !== `lançada na baixa de #${ids.pedido.slice(0, 8)} · Calandra, por ${operador.nome}, autorizada por ${E2E_USUARIO.nome}`) throw new Error(`The ledger reads ${lancada}`);
+      const quantidade = (await page.locator("tr", { has: page.locator("[data-lancada]") }).first().locator("td").nth(4).innerText()).trim();
+      if (quantidade !== "2 m") throw new Error(`The entry reads ${quantidade}`);
     });
   } finally {
     fs.rmSync(pasta, { recursive: true, force: true });
