@@ -38,7 +38,10 @@ module NeajudApp
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # Decided 05/11/2026 (Painel 2/4a): the factory's turnos are local time.
+    # Rows stay in UTC; pages and "today" are Brasília's. A parameter of the
+    # empresa when the hosted plan serves other time zones (Fase 3).
+    config.time_zone = "Brasilia"
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
