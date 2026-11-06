@@ -53,6 +53,18 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect([ response.status, pedido.reload.prazo_entrega ]).to eq([ 404, nil ])
     end
 
+    # Painel 2/4a: a turno and a calendar exception by their uuid.
+    it "refuses a turno and a calendar exception by integer id" do
+      turno = Turno.create!(nome: "Manhã", inicio: "06:00", fim: "14:00", dias: [ 1 ])
+      excecao = ExcecaoCalendario.create!(data: Date.new(2026, 11, 13), nome: "Recesso")
+      patch "/parametros/turnos/#{turno.id}", params: { turno: { nome: "X" } }
+      expect([ response.status, turno.reload.nome ]).to eq([ 404, "Manhã" ])
+      delete "/parametros/excecoes/#{excecao.id}"
+      expect([ response.status, ExcecaoCalendario.count ]).to eq([ 404, 1 ])
+      post "/parametros/excecoes", params: { excecao: { nome: "Reunião", data: "2026-11-13", turno_uuid: turno.id.to_s } }
+      expect(ExcecaoCalendario.count).to eq(1)
+    end
+
     it "refuses a tamanho download by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/download"

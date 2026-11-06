@@ -3,7 +3,7 @@ module ExcluivelHelper
   ICONES_LIXEIRA = {
     "Client" => "icons/lixeira/client", "Molde" => "icons/lixeira/molde", "Modelo" => "icons/lixeira/modelo",
     "Peca" => "icons/lixeira/peca", "Pedido" => "icons/lixeira/pedido", "Funcao" => "icons/lixeira/funcao",
-    "Construcao" => "icons/lixeira/construcao"
+    "Construcao" => "icons/lixeira/construcao", "Turno" => "icons/lixeira/turno"
   }.freeze
 
   # The "excluído em" badge next to a record in the trash that is still shown

@@ -1,5 +1,10 @@
 <%# The dono's production parameters (Etapa 2.2, 1/3). %>
 <h2>Production parameters</h2>
+<%# Painel 2/4a: the turnos, calendar and rhythm the previsão runs on. %>
+<nav class="parametros-links" aria-label="Production calendar">
+  <%= link_to "Turnos e calendário", parametros_turnos_path, class: "btn btn-secondary" %>
+  <%= link_to "Production rhythm", edit_parametros_ritmos_path, class: "btn btn-secondary" %>
+</nav>
 <p class="funcoes-intro">Used to check each baixa: the expected metragem comes from the files themselves
   (the arte's size on the paper, the DXF's fit on the fabric).</p>
 

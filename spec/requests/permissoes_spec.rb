@@ -344,6 +344,22 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:forbidden)
     end
 
+    # Painel 2/4a: the turnos, the calendar and the rhythm, like the parameters.
+    it "the turnos, the calendar and the rhythm are the dono's only, whatever the grid says" do
+      turno = Turno.create!(nome: "Manhã", inicio: "06:00", fim: "14:00", dias: [ 1 ])
+      excecao = ExcecaoCalendario.create!(data: Date.new(2026, 11, 13), nome: "Recesso")
+      entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
+      pedidos = [
+        -> { get parametros_turnos_path }, -> { post parametros_turnos_path, params: { turno: { nome: "Tarde" } } },
+        -> { patch parametros_turno_path(turno), params: { turno: { nome: "X" } } }, -> { delete parametros_turno_path(turno) },
+        -> { post parametros_excecoes_path, params: { excecao: { nome: "X" } } }, -> { delete parametros_excecao_path(excecao) },
+        -> { post feriado_parametros_excecoes_path, params: { data: "2026-11-20", confirmado: "1" } },
+        -> { get edit_parametros_ritmos_path }, -> { patch parametros_ritmos_path, params: { ritmos: {} } }
+      ]
+      expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
+      expect([ turno.reload.nome, ExcecaoCalendario.count, RitmoProducao.count ]).to eq([ "Manhã", 1, 0 ])
+    end
+
     it "the Funções page is the dono's only, whatever the grid says" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
       get funcoes_path

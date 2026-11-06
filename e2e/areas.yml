@@ -182,6 +182,16 @@ areas:
       - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas}.rb"
       - "app/javascript/controllers/painel_controller.js"
       - "app/assets/stylesheets/painel.css"
+  # Painel 2/4a (05/11/2026): the turnos, the calendar and the rhythm.
+  calendario:
+    specs: [parametros-producao, painel]
+    arquivos:
+      - "app/controllers/{turnos,excecoes_calendario,ritmos_producao}_controller.rb"
+      - "app/views/{turnos,ritmos_producao}/**/*"
+      - "app/models/{turno,excecao_calendario,ritmo_producao}.rb"
+      - "app/services/{calendario_de_producao,feriados_nacionais,ritmo_medido}.rb"
+      - "app/helpers/turnos_helper.rb"
+      - "app/assets/stylesheets/turnos.css"
   dtf:
     specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]
     arquivos:
