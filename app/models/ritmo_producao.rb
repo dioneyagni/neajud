@@ -13,6 +13,7 @@
 #        ritmo.em_uso(medida) # => 4.6 (the measured) or the typed one
 class RitmoProducao < ApplicationRecord
   include GeraUuid
+  include AvisaAFila
 
   self.table_name = "ritmos_producao"
 
@@ -62,6 +63,15 @@ class RitmoProducao < ApplicationRecord
     return por_hora if fixar_informado || medida.nil?
 
     medida.valor
+  end
+
+  # The hours a load (CargaDaEtapa) takes at the rhythm in use (Painel 2/4b);
+  # nil without a rhythm (Q2a). The machine's load is already hours, over
+  # its aproveitamento.
+  # Usage: ritmo.horas(12.0, medida) # => 2.4 at 5 m/h
+  def horas(carga, medida)
+    em_uso = em_uso(medida)
+    em_uso && carga.to_f / em_uso.to_f
   end
 
   # Usage: ritmo.origem_em_uso(medida) # => "medido", "informado" or nil (none)

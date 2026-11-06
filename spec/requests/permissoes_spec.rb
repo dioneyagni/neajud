@@ -40,7 +40,6 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list the tecido pedidos", "pedidos", 1, -> { get pedidos_tecido_path } ],
     # Painel 1/4: the Painel, a row and its items; the delivery date.
     [ "open the Painel", "pedidos", 1, -> { get painel_path } ],
-    [ "get a Painel row", "pedidos", 1, -> { get linha_do_painel_path(pedido.uuid) } ],
     [ "get a Painel row's items", "pedidos", 1, -> { get itens_do_painel_path(pedido.uuid) } ],
     [ "set a pedido's delivery date", "pedidos", 2, -> { patch prazo_pedido_path(pedido), params: { prazo_entrega: "2026-11-20" } } ],
     [ "open a tecido pedido's repeat screen", "pedidos", 2, -> { get repetir_pedido_path(create(:pedido, tipo: "tecido", status: "entregue")) } ],

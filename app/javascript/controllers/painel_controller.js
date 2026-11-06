@@ -1,33 +1,75 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
-// The live update of the Painel (Painel 1/4): the server sends only which
-// pedido changed (CanaisAoVivo.avisar_painel); the page asks for its row.
-Turbo.StreamActions.painel_linha = function () {
-  const uuid = this.target.replace(/^painel_/, "")
-  document.dispatchEvent(new CustomEvent("painel:linha", { detail: { uuid } }))
+// The queue changed (CanaisAoVivo.avisar_fila, Painel 2/4b): nothing else
+// comes; the page refreshes itself.
+Turbo.StreamActions.painel_fila = function () {
+  document.dispatchEvent(new CustomEvent("painel:fila"))
 }
 
+// At most one refresh every few seconds (Q5a): a pedido's baixas come in a row.
+const INTERVALO_MS = 3000
+
 // The Painel (Painel 1/4, decided 04/11/2026): opening a pedido outlines its
-// path and shows its faixa (Q3a), its items load when asked (Q2a), the sector
-// tabs and the filters hide rows, the counters count what is on the page.
-// A row that changed comes back alone and keeps its place if opened. A
-// reposição is a pedido inside its original's (decided 05/11/2026): filters
-// and counters see the pair as one.
+// path and shows its faixa (Q3a), its items load when asked (Q2a), the filters
+// hide rows, the counters count what is on the page. A reposição is a pedido
+// inside its original's (decided 05/11/2026): filters and counters see the
+// pair as one. Painel 2/4b: a sector's tab shows its numbered queue instead
+// of the grid (Entrega still filters the grid); the page morph-refreshes
+// when the queue changes and when a turno starts or ends, and puts back the
+// tab, the filters, the counter and what was open (Q5a).
 export default class extends Controller {
-  static targets = ["grade", "bloco", "contagem", "tipo", "cliente", "pendencia"]
-  static values = { linhaUrl: String, itensUrl: String, colunas: Array }
+  static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia"]
+  static values = { itensUrl: String, colunas: Array, virada: Number }
 
   connect() {
     this.filtroDoContador = ""
     this.setorAtual = ""
-    this.boundAtualizar = (event) => this.atualizarLinha(event.detail.uuid)
-    document.addEventListener("painel:linha", this.boundAtualizar)
+    this.aberto = null
+    this.itensAbertos = new Set()
+    this.ultimaRecarga = 0
+    this.boundRecarga = () => this.pedirRecarga()
+    this.boundRestaurar = () => this.restaurar()
+    document.addEventListener("painel:fila", this.boundRecarga)
+    document.addEventListener("turbo:morph", this.boundRestaurar)
     this.aplicar()
   }
 
   disconnect() {
-    document.removeEventListener("painel:linha", this.boundAtualizar)
+    document.removeEventListener("painel:fila", this.boundRecarga)
+    document.removeEventListener("turbo:morph", this.boundRestaurar)
+    clearTimeout(this.recarga)
+    clearTimeout(this.timerDaVirada)
+  }
+
+  // The next turno to start or end refreshes the blocks ("Agora") by itself.
+  viradaValueChanged() {
+    clearTimeout(this.timerDaVirada)
+    if (!this.viradaValue) return
+    const espera = this.viradaValue - Date.now() + 1000
+    if (espera > 0 && espera < 2 ** 31) this.timerDaVirada = setTimeout(() => this.pedirRecarga(), espera)
+  }
+
+  pedirRecarga() {
+    if (this.recarga) return
+    const espera = Math.max(0, this.ultimaRecarga + INTERVALO_MS - Date.now())
+    this.recarga = setTimeout(() => {
+      this.recarga = null
+      this.ultimaRecarga = Date.now()
+      Turbo.session.refresh(document.baseURI)
+    }, espera)
+  }
+
+  // After the morph the server's HTML is back: hidden rows, tabs, selects.
+  restaurar() {
+    this.tipoTarget.value = this.filtros?.tipo ?? ""
+    this.clienteTarget.value = this.filtros?.cliente ?? ""
+    this.pendenciaTarget.checked = this.filtros?.pendencia ?? false
+    this.marcarContador()
+    this.mostrarSetor()
+    const aberto = this.aberto && document.getElementById(this.aberto)
+    if (aberto) this.marcarAberto(aberto)
+    this.itensAbertos.forEach((uuid) => this.carregarItens(document.getElementById(`painel_${uuid}`)))
   }
 
   abrir(event) {
@@ -37,26 +79,44 @@ export default class extends Controller {
     if (!jaAberto) this.marcarAberto(pedido)
   }
 
-  async itens(event) {
-    const botao = event.currentTarget
-    const caixa = botao.closest(".painel-pedido").querySelector("[data-painel-itens]")
-    const abrir = caixa.hidden
-    botao.setAttribute("aria-expanded", String(abrir))
-    if (!abrir) { caixa.hidden = true; return }
+  itens(event) {
+    const pedido = event.currentTarget.closest(".painel-pedido")
+    const caixa = pedido.querySelector("[data-painel-itens]")
+    if (!caixa.hidden) {
+      caixa.hidden = true
+      event.currentTarget.setAttribute("aria-expanded", "false")
+      this.itensAbertos.delete(pedido.dataset.uuid)
+      return
+    }
+    this.itensAbertos.add(pedido.dataset.uuid)
+    this.carregarItens(pedido)
+  }
 
-    const resposta = await fetch(this.urlCom(this.itensUrlValue, botao.closest(".painel-pedido").dataset.uuid), { headers: { Accept: "text/html" } })
+  async carregarItens(pedido) {
+    if (!pedido) return
+    const resposta = await fetch(this.urlCom(this.itensUrlValue, pedido.dataset.uuid), { headers: { Accept: "text/html" } })
     if (!resposta.ok) return
+    const caixa = pedido.querySelector("[data-painel-itens]")
     caixa.innerHTML = await resposta.text()
     caixa.hidden = false
+    pedido.querySelector(".painel-itens-btn")?.setAttribute("aria-expanded", "true")
   }
 
   setor(event) {
     this.setorAtual = event.currentTarget.dataset.setor
+    this.mostrarSetor()
+  }
+
+  // A production sector shows its queue; Todos and Entrega the grid.
+  mostrarSetor() {
     this.element.querySelectorAll(".painel-setor").forEach((botao) => {
       const ativo = botao.dataset.setor === this.setorAtual
       botao.classList.toggle("painel-setor--ativo", ativo)
       botao.setAttribute("aria-pressed", String(ativo))
     })
+    const fila = this.filaDoSetor(this.setorAtual)
+    this.element.querySelectorAll("[data-fila-setor]").forEach((secao) => { secao.hidden = secao !== fila })
+    this.quadroTarget.hidden = Boolean(fila)
     this.gradeTarget.dataset.setor = this.setorAtual
     this.gradeTarget.querySelectorAll(".painel-cab [data-coluna]").forEach((coluna) => {
       coluna.classList.toggle("painel-coluna--ativa", coluna.dataset.coluna === this.setorAtual)
@@ -67,31 +127,41 @@ export default class extends Controller {
   contador(event) {
     const filtro = event.currentTarget.dataset.filtro
     this.filtroDoContador = this.filtroDoContador === filtro ? "" : filtro
-    this.element.querySelectorAll(".painel-cont").forEach((botao) => {
-      botao.classList.toggle("painel-cont--ativo", botao.dataset.filtro === this.filtroDoContador)
-    })
+    this.marcarContador()
     this.aplicar()
   }
 
+  marcarContador() {
+    this.element.querySelectorAll(".painel-cont").forEach((botao) => {
+      botao.classList.toggle("painel-cont--ativo", botao.dataset.filtro === this.filtroDoContador)
+    })
+  }
+
   filtrar() {
+    this.filtros = { tipo: this.tipoTarget.value, cliente: this.clienteTarget.value, pendencia: this.pendenciaTarget.checked }
     this.aplicar()
   }
 
   // Hides what the filters leave out, then counts what is left.
   aplicar() {
     this.pedidos().forEach((pedido) => { pedido.hidden = !this.passa(pedido) })
+    this.element.querySelectorAll("[data-fila-pedido]").forEach((linha) => { linha.hidden = !this.passaNosFiltros(linha) })
     // The opened pedido filtered out: nothing would be left undimmed.
     if (this.element.querySelector(".painel-pedido--aberto:is([hidden], [hidden] *)")) this.fecharTodos()
     this.contar()
   }
 
   passa(pedido, { ignorarSetor = false } = {}) {
-    const d = pedido.dataset
+    if (!this.passaNosFiltros(pedido)) return false
+    if (!ignorarSetor && this.setorAtual && !this.filaDoSetor(this.setorAtual) && !this.naFila(pedido, this.setorAtual)) return false
+    return this.passaNoContador(pedido)
+  }
+
+  passaNosFiltros(elemento) {
+    const d = elemento.dataset
     if (this.tipoTarget.value && d.tipo !== this.tipoTarget.value) return false
     if (this.clienteTarget.value && d.cliente !== this.clienteTarget.value) return false
-    if (this.pendenciaTarget.checked && d.pendencia !== "true") return false
-    if (!ignorarSetor && this.setorAtual && !this.naFila(pedido, this.setorAtual)) return false
-    return this.passaNoContador(pedido)
+    return !(this.pendenciaTarget.checked && d.pendencia !== "true")
   }
 
   passaNoContador(pedido) {
@@ -105,12 +175,16 @@ export default class extends Controller {
     return pedido.dataset.filas.split(" ").includes(setor)
   }
 
+  filaDoSetor(setor) {
+    return setor ? this.element.querySelector(`[data-fila-setor="${setor}"]`) : null
+  }
+
   contar() {
     const todos = this.pedidos()
     this.contagemTargets.forEach((alvo) => {
       const conta = alvo.dataset.conta
       if (conta.startsWith("fila:")) {
-        alvo.textContent = todos.filter((p) => this.naFila(p, conta.slice(5)) && this.passa(p, { ignorarSetor: true })).length
+        alvo.textContent = this.naFilaDoSetor(conta.slice(5), todos)
       } else if (conta.startsWith("bloco:")) {
         alvo.textContent = todos.filter((p) => p.dataset.bloco === conta.slice(6)).length
       } else {
@@ -119,38 +193,16 @@ export default class extends Controller {
     })
   }
 
-  // A reposição under its original comes back as the original's row.
-  async atualizarLinha(uuid) {
-    const resposta = await fetch(this.urlCom(this.linhaUrlValue, uuid), { headers: { Accept: "text/html" } })
-    const anterior = document.getElementById(`painel_${uuid}`)
-    if (resposta.status === 204) { anterior?.remove(); this.aplicar(); return }
-    if (!resposta.ok) return
-
-    const modelo = document.createElement("template")
-    modelo.innerHTML = (await resposta.text()).trim()
-    const nova = modelo.content.firstElementChild
-    // A column no row used before: the grid needs the whole page.
-    if (nova.dataset.fora) { Turbo.visit(window.location.href, { action: "replace" }); return }
-
-    const atual = document.getElementById(nova.id)
-    // A reposição that was a row of its own now comes inside its original.
-    if (anterior && anterior !== atual && !atual?.contains(anterior)) anterior.remove()
-    const aberto = this.element.querySelector(".painel-pedido--aberto")?.id
-    this.colocar(nova, atual)
-    if (aberto && document.getElementById(aberto)) this.marcarAberto(document.getElementById(aberto))
-    this.aplicar()
-  }
-
-  colocar(nova, atual) {
-    const bloco = this.blocoTargets.find((alvo) => alvo.dataset.bloco === nova.dataset.bloco)
-    if (!bloco) { atual?.remove(); return }
-    if (atual && atual.parentElement === bloco) { atual.replaceWith(nova); return }
-
-    atual?.remove()
-    bloco.append(nova)
+  // A queue counts its pedidos once, even split over turnos.
+  naFilaDoSetor(setor, todos) {
+    const fila = this.filaDoSetor(setor)
+    if (!fila) return todos.filter((p) => this.naFila(p, setor) && this.passa(p, { ignorarSetor: true })).length
+    const linhas = Array.from(fila.querySelectorAll("[data-fila-pedido]")).filter((linha) => this.passaNosFiltros(linha))
+    return new Set(linhas.map((linha) => linha.dataset.filaPedido)).size
   }
 
   marcarAberto(pedido) {
+    this.aberto = pedido.id
     pedido.classList.add("painel-pedido--aberto")
     // An opened reposição: its original stays lit around it.
     pedido.parentElement.closest(".painel-pedido")?.classList.add("painel-pedido--contem")
@@ -160,6 +212,7 @@ export default class extends Controller {
   }
 
   fecharTodos() {
+    this.aberto = null
     this.element.querySelectorAll(".painel-pedido").forEach((pedido) => {
       pedido.classList.remove("painel-pedido--aberto", "painel-pedido--contem")
       pedido.querySelector(".painel-faixa").hidden = true

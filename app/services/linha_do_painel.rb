@@ -12,9 +12,12 @@
 # Its reposições in production come inside it (decided 05/11/2026): its
 # Entrega waits for them, and one still gathering shows as its pieces.
 #
-# Usage: linha = LinhaDoPainel.call(pedido, aguardando: AguardandoMaterial.call)
+# Its previsão comes from the queue (FilaDeProducao, Painel 2/4b): a draft
+# or a sent pedido's is "se confirmar agora" (Q1c).
+#
+# Usage: linha = LinhaDoPainel.call(pedido, aguardando: AguardandoMaterial.call, fila: FilaDeProducao.call)
 #        linha.celulas["corte"].texto # => "3/8"
-#        linha.bloco                  # => :em_andamento
+#        linha.previsao.fim           # => Thu, 12 Nov 2026 15:30
 class LinhaDoPainel
   COLUNAS = { "arquivos" => "Arquivos", "comercial" => "Comercial", "material" => "Material", "impressao" => "Impressão",
               "corte" => "Corte", "estamparia" => "Estamparia", "conferencia" => "Conferência", "entrega" => "Entrega" }.freeze
@@ -28,32 +31,44 @@ class LinhaDoPainel
 
   attr_reader :pedido, :celulas, :estados, :bloqueios, :faltas, :reposicoes, :juntando
 
-  # baixas: the pedido's baixas in force, read with the others' (PainelDeProducao).
+  # estados: the pedido's EstadoDasEtapas, read with the others' (PainelDeProducao);
+  # read here when not given. fila: the queue (FilaDeProducao), nil for no previsão.
   # reposicoes: its reposições' rows, shown inside it; juntando: the pieces
   # of its reposição still gathering (nil when none).
-  def self.call(pedido, aguardando:, baixas: nil, cliente_final: false, reposicoes: [], juntando: nil)
-    new(pedido, aguardando, baixas, cliente_final, reposicoes, juntando)
+  def self.call(pedido, aguardando:, estados: nil, fila: nil, cliente_final: false, reposicoes: [], juntando: nil)
+    new(pedido, aguardando, estados, fila, cliente_final, reposicoes, juntando)
   end
 
-  def initialize(pedido, aguardando, baixas, cliente_final, reposicoes = [], juntando = nil)
+  def initialize(pedido, aguardando, estados, fila, cliente_final, reposicoes = [], juntando = nil)
     @pedido = pedido
+    @fila = fila
     @cliente_final = cliente_final
     @reposicoes = reposicoes
     @juntando = juntando
     @faltas = aguardando.do_pedido(pedido)
     @bloqueios = pedido.confirmavel? ? PedidoBloqueiosService.call(pedido) : []
-    @estados = pedido.saiu_do_rascunho? ? EstadoDasEtapas.call(pedido, baixas: baixas) : {}
+    @estados = pedido.saiu_do_rascunho? ? (estados || EstadoDasEtapas.call(pedido)) : {}
     @celulas = montar_celulas
   end
 
-  # :em_andamento, :prontos, :pendentes or :entregues.
-  def bloco
-    return :entregues if pedido.status == "entregue"
-    return :pendentes if Pedido::ANTES_DA_CONFIRMACAO.include?(pedido.status) || faltas.any?
+  # Its place in the queue (FilaDeProducao::Previsao); nil when delivered,
+  # or without a queue.
+  # Usage: linha.previsao&.fim # => Thu, 12 Nov 2026 15:30
+  def previsao
+    return if @fila.nil? || pedido.status == "entregue"
 
-    # A baixa puts it in production (Pedido#iniciar_producao!); older
-    # pedidos may still say confirmado with baixas given.
-    pedido.status == "em_producao" || primeira_baixa ? :em_andamento : :prontos
+    @previsao ||= pedido.confirmavel? ? @fila.se_confirmar(pedido, pendencias: bloqueios.any? || pedido.itens_pedido.empty?) : @fila.previsao(pedido)
+  end
+
+  # Days between the previsão and the deadline (negative: it will be late).
+  # Usage: linha.folga # => 2
+  def folga
+    previsao&.folga(prazo)
+  end
+
+  # The previsão falls after a deadline that has not passed yet (Q6a).
+  def vai_atrasar?(hoje = Date.current)
+    !atrasado?(hoje) && folga.to_i.negative?
   end
 
   # Lines done over the lines of every stage, its reposições' too (decided
@@ -114,12 +129,6 @@ class LinhaDoPainel
   # Usage: linha.filas # => ["impressao", "entrega"]
   def filas
     com_reposicoes.flat_map { |linha| linha.celulas.select { |_, c| NA_FILA.include?(c.estado) }.keys }.uniq
-  end
-
-  # The columns it needs that the page doesn't show (the page reloads).
-  # Usage: linha.fora(painel.colunas) # => ["corte"]
-  def fora(colunas)
-    com_reposicoes.flat_map { |linha| linha.celulas.reject { |chave, c| colunas.key?(chave) || c.estado == :nao_tem }.keys }.uniq
   end
 
   # Usage: linha.pecas_da_reposicao # => 80 (0 when it is not a reposição)

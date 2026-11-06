@@ -1,7 +1,9 @@
 # The Painel (Painel 1/4, decided 04/11/2026): every pedido as a row, every
 # stage as a column, from the files to the delivery — the same permission
-# and visibility as the Pedidos (Q12b). One pedido's row comes back alone
-# for the live update, and its items when the row is opened.
+# and visibility as the Pedidos (Q12b). A pedido's items come back when its
+# row is opened. Painel 2/4b: the blocks in time, the previsão and each
+# sector's queue (FilaDeProducao); the page refreshes itself when the queue
+# changes (CanaisAoVivo.avisar_fila).
 class PaineisController < ApplicationController
   exige :pedidos, :ver
 
@@ -11,16 +13,6 @@ class PaineisController < ApplicationController
     @painel = PainelDeProducao.call(visiveis(Pedido), entregues: @entregues, cliente_final: cliente_final?)
     # Painel 2/4a: the turno on now, in the header (none for a cliente final).
     @calendario = CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
-  end
-
-  # One row, in the columns the page shows (?colunas[]=…); 204 when the
-  # pedido left the Painel (trashed, delivered long ago) or is not visible.
-  # Usage: GET /painel/pedidos/:uuid?colunas[]=arquivos&colunas[]=corte
-  def linha
-    linha = PainelDeProducao.linha(visiveis(Pedido), params[:uuid], cliente_final: cliente_final?)
-    return head :no_content unless linha
-
-    render partial: "paineis/pedido", locals: { linha: linha, colunas: colunas_pedidas }
   end
 
   # Usage: GET /painel/pedidos/:uuid/itens?colunas[]=…

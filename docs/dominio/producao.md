@@ -103,12 +103,8 @@ pedido, a column per stage, from the files to the delivery.
 - **Rows** — `PainelDeProducao.call(visiveis(Pedido))`: the pedidos not
   delivered (a reposição still gathering, rascunho, is left out — see
   Reposição below), and with
-  `?entregues=1` the ones delivered in the last 7 days. Blocks by status
-  until the turnos (2/4) and the programação (3/4): **Em andamento** (some
-  baixa), **Prontos para começar** (confirmed, nothing holds it),
-  **Pendentes de início** (draft, sent, waiting for material),
-  **Entregues**. Inside a block: late, with a pendência, nearest deadline,
-  arrival (`confirmado_em`, else `created_at`).
+  `?entregues=1` the ones delivered in the last 7 days. The blocks are in
+  time since 2/4b (below: The queue and the previsão).
 - **Columns and cells** — `LinhaDoPainel` + `CelulaDoPainel`: Arquivos (the
   file pendências of `PedidoBloqueiosService`), Comercial (the other
   pendências, the arte's approval, confirmed), Material (`AguardandoMaterial`:
@@ -120,33 +116,27 @@ pedido, a column per stage, from the files to the delivery.
   Dublagem columns come with Dublagem 5b (4/4).
 - **Opened** (painel_controller.js): the others dim, its cells are outlined,
   the faixa shows %, início (`confirmado_em`, else the first baixa), prazo,
-  "previsão —" until 2/4, the path (`CaminhoDoPedido`: steps from the
+  the previsão with the folga chip (2/4b), the path (`CaminhoDoPedido`: steps from the
   stages' `trava`, side by side when they don't wait for each other), what
   holds it and the links. "N itens" loads `GET /painel/pedidos/:uuid/itens`
   (`ItensDoPainel`: each item's own lines; the Corte is the pedido's).
-- **Sector tabs** (Todos, Impressão, Corte…) keep the pedidos in that
-  column's queue (pode começar, andamento, travada, pendência); the filters
-  (tipo, cliente, só com pendência) and the counters run in the page.
-- **Live** — `CanaisAoVivo.avisar_painel(pedido)` (Pedido after_commit on
-  status, prazo, trash, client; BaixaProducao on create/update) sends only
-  the uuid to `painel:equipe` and `painel:<client uuid>`; the page fetches
-  `GET /painel/pedidos/:uuid` with its columns and swaps or moves the row
-  (204 = it left the Painel; a cell in a hidden column reloads the page).
-  A stock entry clearing "aguardando material" shows on the next load.
+- **Sector tabs** (Todos, Impressão, Corte…): a production sector's tab is
+  its numbered queue since 2/4b; Entrega keeps the pedidos ready to deliver
+  in the grid. The filters (tipo, cliente, só com pendência) and the
+  counters run in the page.
+- **Live** — since 2/4b the whole page morph-refreshes when the queue
+  changes (below); the row alone (`GET /painel/pedidos/:uuid`) is gone.
 - **Reposição** (decided 05/11/2026, option a) — a reposição in production
   is a row **inside its original's** (`LinhaDoPainel#reposicoes`, rendered
   recursively, indented with a bar), in the original's block and order: the
   pair is one pedido for the counters, filters and sector tabs
-  (`LinhaDoPainel#filas`/`#fora` join theirs). It takes the original's
+  (`LinhaDoPainel#filas` joins theirs). It takes the original's
   `prazo` (`LinhaDoPainel#prazo`). The original's Entrega is **travada
   "espera reposição"** while one is inside; one still gathering (rascunho)
   is not a row but a badge on the original, "↻ juntando reposição: N peças",
   with "gerar no resumo" in the faixa for the team. Once the original is
   delivered (anyway) or trashed, the reposição becomes a row of its own,
-  "↻ reposição de #…". Live: a reposição's uuid answers with its original's
-  row (`PainelDeProducao.linha` climbs to the open original), and delivering
-  or trashing the original also tells its open reposições' rows.
-  A stage the reposição doesn't redo (its Corte) leaves its path. The
+  "↻ reposição de #…". A stage the reposição doesn't redo (its Corte) leaves its path. The
   original's % counts its reposições' lines too (`LinhaDoPainel#percentual`;
   decided 05/11/2026): it is not 100% while pieces are being redone, and the
   faixa shows both apart, "(pedido 100% · reposição 0%)".
@@ -163,6 +153,65 @@ pedido, a column per stage, from the files to the delivery.
   queries in a pedido of 6 items). Now ~255 ms and 444 queries; the pedido's
   page and list use it too (`AndamentoDoPedido`). A cache of the rows comes
   only if it gets slow again.
+
+## The queue and the previsão (Painel 2/4b)
+
+Decided 05–06/11/2026 (Q1c–Q6a in `docs/plano.md`, Etapa 2.10; the sector
+queue as in the canvas's "Fila A").
+
+- **`FilaDeProducao`** — a queue per sector (a Painel column: the tecido's
+  Calandra is in the Estamparia's), the confirmed pedidos in arrival order
+  (`confirmado_em`). Each stage of a pedido takes what its open lines weigh
+  (`CargaDaEtapa`: the expected, the paper's meters, or the cutting
+  machine's hours from the material the pedido before it ended on) over its
+  tipo's rhythm in use (`RitmoProducao#horas`). The hours fill the turnos
+  from now (the turno under way only what is left of it) where the stage
+  works (`CalendarioDeProducao#horas`), and a stage starts when the ones it
+  waits for (`trava`) end for that pedido. Strict order: a pedido waiting
+  for its Impressão also holds the ones after it in the Estamparia
+  (reordering is the programação, 3/4).
+- **No previsão** for a stage, and every stage that waits for it, when:
+  - a **material is missing** (Q1c): it holds only the stage that takes it
+    from the stock — without fabric the Impressão runs and the Corte
+    waits; without paper the Impressão and what waits for it. A held stage
+    takes no place in the queue: "previsão quando <material> entrar" (a
+    cliente final: "quando o material entrar");
+  - the stage has **no rhythm** (Q2a): "Corte (Calçado) sem ritmo";
+  - the queue goes **past 90 days**, or there are no turnos.
+- **Drafts and sent pedidos** (Q1c) — "previsão se confirmar agora":
+  placed after the whole queue, pushing no one
+  (`FilaDeProducao#se_confirmar`); none while they have pendências.
+- **The whole factory** — the queue reads every pedido, the calendar and
+  the rhythms even for a cliente final, whose previsão moves with the other
+  clients' pedidos (like `AguardandoMaterial`); the page shows only the
+  visible rows, and a cliente final no queue.
+- **Blocks in time** (`BlocosNoTempo`, Q3a) — where the row's next piece of
+  work is (its reposições' too): **Agora** (the turno under way, or only the
+  delivery left), **Hoje · Tarde (…)** for today's next turnos,
+  **Amanhã**, a block per later day, **Sem previsão**, **Pendentes de
+  início**, **Entregues**. Inside: by that time, the ones that will be late
+  ahead of the same time. A cliente final sees days only (Q4a).
+- **Previsão and folga** (Q6a) — the end of the last stage, in the row and
+  the faixa; each stage's time on the path. The folga chip (prazo −
+  previsão): green from 2 days, orange on the day or 1 day, red "atrasa N
+  dias". Counters "atrasados" (past the deadline) and **"vão atrasar"** (the
+  previsão after a deadline that hasn't passed), each a filter.
+- **A sector's queue** (`_fila_do_setor`) — a dark band per day (today in
+  blue, "hoje / amanhã / em N dias"), a hatched one for the days skipped
+  without turno, a light one per turno with its hours, "em execução" and its
+  load (hours used of the hours it has); the pedido's piece with its place
+  (1º, 2º…), what is left (lines, the load in the rhythm's unit), its time in
+  the turno, the deadline with the folga and "espera Impressão (até …)";
+  the ones without previsão at the end. Only to see: ↑↓ comes with 3/4.
+- **Live** (Q5a) — `CanaisAoVivo.avisar_fila` sends an action with no data
+  to `painel:fila`, for everyone signed in, on a baixa, a pedido's status,
+  deadline, trash or client, and any save of a turno, calendar exception,
+  rhythm or stock movement (`AvisaAFila`). The page morph-refreshes at most
+  every 3 s, and by itself when a turno starts or ends; the tab, the
+  filters, the counter, the opened faixa and items come back.
+- **Speed** (dev data, 06/11/2026): the queue adds ~20 ms to the Painel —
+  it reuses the rows' stage states (`estados:`); the page is ~390 ms, most
+  of it the stage states and the drafts' pendências, as before.
 
 ## Turnos, calendar and rhythm (Painel 2/4a)
 

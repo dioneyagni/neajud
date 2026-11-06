@@ -1,12 +1,17 @@
 <% content_for :title, "Painel" %>
-<%# Painel 1/4 (04/11/2026): pedidos × stages. Blocks by status until the
-    turnos and the programação (2/4, 3/4); filters, sectors and counters
-    run in the page (painel_controller.js). %>
-<% setores = @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
-<div class="painel" data-controller="painel"
-     data-painel-linha-url-value="<%= linha_do_painel_path("UUID") %>"
+<%# Painel 1/4 (04/11/2026): pedidos × stages. Painel 2/4b: blocks in time
+    (BlocosNoTempo), the previsão, and a sector's tab is its numbered queue
+    (_fila_do_setor, as in the Fila A mockup). It refreshes itself when the
+    queue changes or a turno turns, keeping what was open (Q5a). Filters,
+    sectors and counters run in the page (painel_controller.js). A cliente
+    final sees days only: no sectors, queue or turnos (Q4a). %>
+<% turbo_refreshes_with method: :morph, scroll: :preserve %>
+<% setores = cliente_final? ? {} : @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
+<% linhas_por_pedido = @painel.linhas.flat_map(&:com_reposicoes).index_by { |linha| linha.pedido.id } %>
+<div class="painel" id="painel" data-controller="painel"
      data-painel-itens-url-value="<%= itens_do_painel_path("UUID") %>"
-     data-painel-colunas-value="<%= @painel.colunas.keys.to_json %>">
+     data-painel-colunas-value="<%= @painel.colunas.keys.to_json %>"
+     data-painel-virada-value="<%= proxima_virada(@painel.fila) %>">
   <%= canal_do_painel %>
 
   <div class="painel-topo">
@@ -17,22 +22,26 @@
     <div class="painel-contadores" role="group" aria-label="Contadores">
       <button type="button" class="painel-cont painel-cont--atraso" data-action="painel#contador" data-filtro="atrasado">
         <strong data-painel-target="contagem" data-conta="atrasado">0</strong> atrasados</button>
+      <button type="button" class="painel-cont painel-cont--vai-atrasar" data-action="painel#contador" data-filtro="vaiAtrasar">
+        <strong data-painel-target="contagem" data-conta="vaiAtrasar">0</strong> vão atrasar</button>
       <button type="button" class="painel-cont" data-action="painel#contador" data-filtro="pendencia">
         <strong data-painel-target="contagem" data-conta="pendencia">0</strong> com pendência</button>
-      <% @painel.blocos.each do |bloco| %>
+      <% @painel.blocos.select { |bloco| BlocosNoTempo::CONTADOS.include?(bloco.chave) }.each do |bloco| %>
         <button type="button" class="painel-cont" data-action="painel#contador" data-filtro="bloco:<%= bloco.chave %>">
-          <strong data-painel-target="contagem" data-conta="bloco:<%= bloco.chave %>"><%= bloco.linhas.size %></strong> <%= bloco.nome.downcase %></button>
+          <strong data-painel-target="contagem" data-conta="bloco:<%= bloco.chave %>"><%= bloco.linhas.size %></strong> <%= bloco.nome.split(" · ").first.downcase %></button>
       <% end %>
     </div>
   </div>
 
-  <nav class="painel-setores" aria-label="Setor">
-    <button type="button" class="painel-setor painel-setor--ativo" data-action="painel#setor" data-setor="" aria-pressed="true">Todos</button>
-    <% setores.each do |chave, nome| %>
-      <button type="button" class="painel-setor" data-action="painel#setor" data-setor="<%= chave %>" aria-pressed="false">
-        <%= nome %> <span class="painel-setor-n" data-painel-target="contagem" data-conta="fila:<%= chave %>">0</span></button>
-    <% end %>
-  </nav>
+  <% if setores.any? %>
+    <nav class="painel-setores" aria-label="Setor">
+      <button type="button" class="painel-setor painel-setor--ativo" data-action="painel#setor" data-setor="" aria-pressed="true">Todos</button>
+      <% setores.each do |chave, nome| %>
+        <button type="button" class="painel-setor" data-action="painel#setor" data-setor="<%= chave %>" aria-pressed="false">
+          <%= nome %> <span class="painel-setor-n" data-painel-target="contagem" data-conta="fila:<%= chave %>">0</span></button>
+      <% end %>
+    </nav>
+  <% end %>
 
   <div class="painel-filtros">
     <label>Tipo
@@ -59,7 +68,7 @@
     <% end %>
   </div>
 
-  <div class="painel-quadro">
+  <div class="painel-quadro" data-painel-target="quadro">
     <div class="painel-grade" data-painel-target="grade" style="--painel-colunas: <%= @painel.colunas.size %>">
       <div class="painel-linha painel-cab">
         <div class="painel-ped">Pedido</div>
@@ -68,10 +77,10 @@
       </div>
       <% @painel.blocos.each do |bloco| %>
         <section class="painel-bloco" data-bloco="<%= bloco.chave %>">
-          <div class="painel-bloco-cab"><span class="painel-bloco-nome painel-bloco-nome--<%= bloco.chave %>"><%= bloco.nome %></span></div>
+          <div class="painel-bloco-cab"><span class="painel-bloco-nome painel-bloco-nome--<%= bloco.chave.split(":").first %>"><%= bloco.nome %></span></div>
           <div class="painel-bloco-pedidos" data-painel-target="bloco" data-bloco="<%= bloco.chave %>">
             <% bloco.linhas.each do |linha| %>
-              <%= render "paineis/pedido", linha: linha, colunas: @painel.colunas %>
+              <%= render "paineis/pedido", linha: linha, colunas: @painel.colunas, bloco: bloco.chave %>
             <% end %>
           </div>
           <p class="painel-vazio">Nenhum pedido.</p>
@@ -79,4 +88,8 @@
       <% end %>
     </div>
   </div>
+
+  <% setores.except("entrega").each do |chave, nome| %>
+    <%= render "paineis/fila_do_setor", fila: @painel.fila, setor: chave, nome: nome, linhas: linhas_por_pedido %>
+  <% end %>
 </div>

@@ -57,8 +57,8 @@ class Pedido < ApplicationRecord
   # client, a released reposição) writes when and who — the arrival order.
   belongs_to :confirmado_por, class_name: "User", optional: true
   before_save :marcar_confirmacao, if: -> { will_save_change_to_status? && status == "confirmado" && confirmado_em.nil? }
-  # The Painel's row follows what moves it between blocks or flags it.
-  after_commit :avisar_painel, if: -> { (saved_changes.keys & %w[id status prazo_entrega deleted_at client_id]).any? }
+  # What moves the queue or a row of the Painel refreshes it (Painel 2/4b).
+  after_commit -> { CanaisAoVivo.avisar_fila }, if: -> { (saved_changes.keys & %w[id status prazo_entrega deleted_at client_id]).any? }
 
   # The pedido type an arte goes into: an etiqueta DTF's, a corrida's or cor
   # lisa's tecido, else calçado's.
@@ -146,14 +146,7 @@ class Pedido < ApplicationRecord
     self.confirmado_em = Time.current
     self.confirmado_por ||= Current.user
   end
-  def avisar_painel
-    CanaisAoVivo.avisar_painel(self)
-    # Delivered or trashed, the original leaves its reposições on rows of their own.
-    return unless (saved_changes.keys & %w[status deleted_at]).any?
-
-    reposicoes.ativos.where(status: PainelDeProducao::ABERTOS - %w[rascunho]).find_each { |reposicao| CanaisAoVivo.avisar_painel(reposicao) }
-  end
-  private :herdar_fileiras_extras, :marcar_confirmacao, :avisar_painel
+  private :herdar_fileiras_extras, :marcar_confirmacao
 
   # A sub-pedido of the pieces a Conferência missed (Etapa 2.2, 4/4).
   # Usage: pedido.reposicao? # => true
