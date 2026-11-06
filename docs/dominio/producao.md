@@ -143,7 +143,10 @@ pedido, a column per stage, from the files to the delivery.
   "↻ reposição de #…". Live: a reposição's uuid answers with its original's
   row (`PainelDeProducao.linha` climbs to the open original), and delivering
   or trashing the original also tells its open reposições' rows.
-  A stage the reposição doesn't redo (its Corte) leaves its path.
+  A stage the reposição doesn't redo (its Corte) leaves its path. The
+  original's % counts its reposições' lines too (`LinhaDoPainel#percentual`;
+  decided 05/11/2026): it is not 100% while pieces are being redone, and the
+  faixa shows both apart, "(pedido 100% · reposição 0%)".
 - **Data** — `pedidos.confirmado_em` / `confirmado_por_id` (written by
   `Pedido#marcar_confirmacao` on every way of confirming) and
   `prazo_entrega`, set by the team on the pedido's side panel, also after

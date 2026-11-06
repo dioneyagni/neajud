@@ -55,6 +55,9 @@ RSpec.describe PainelDeProducao do
       expect(original.reposicoes.map { |l| [ l.pedido.id, l.pecas_da_reposicao ] }).to eq([ [ reposicao.id, 2 ] ])
       expect(original.celulas["entrega"].to_h.values_at(:estado, :texto)).to eq([ :travada, "espera reposição" ])
       expect(original.trava).to eq("Entrega: reposição ##{reposicao.uuid.first(8)} ainda em produção")
+      # Its 8 lines done, the reposição's 4 open: not 100% while pieces are redone.
+      expect([ original.contagem_de_linhas, original.reposicoes.sole.contagem_de_linhas ]).to eq([ [ 8, 8 ], [ 0, 4 ] ])
+      expect([ original.percentual, original.percentual_proprio, original.percentual_das_reposicoes ]).to eq([ 66, 100, 0 ])
     end
 
     it "shows the pieces of a reposição still gathering on its original, not as a row" do

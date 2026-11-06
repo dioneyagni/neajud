@@ -56,13 +56,27 @@ class LinhaDoPainel
     pedido.status == "em_producao" || primeira_baixa ? :em_andamento : :prontos
   end
 
-  # Lines done over the lines of every stage. Usage: linha.percentual # => 45
+  # Lines done over the lines of every stage, its reposições' too (decided
+  # 05/11/2026): an original whose pieces are still being redone is not 100%.
+  # Usage: linha.percentual # => 92
   def percentual
-    return 100 if pedido.status == "entregue"
+    pedido.status == "entregue" ? 100 : percentual_de(com_reposicoes)
+  end
 
+  # Its own lines and its reposições', apart, for the faixa beside the pair's.
+  # Usage: [ linha.percentual_proprio, linha.percentual_das_reposicoes ] # => [100, 0]
+  def percentual_proprio
+    pedido.status == "entregue" ? 100 : percentual_de([ self ])
+  end
+
+  def percentual_das_reposicoes
+    percentual_de(reposicoes.flat_map(&:com_reposicoes))
+  end
+
+  # [lines done, lines] of its own stages. Usage: linha.contagem_de_linhas # => [8, 8]
+  def contagem_de_linhas
     producao = celulas_de_producao(celulas)
-    total = producao.sum { |c| c.total.to_i }
-    total.zero? ? 0 : producao.sum { |c| c.feitas.to_i } * 100 / total
+    [ producao.sum { |c| c.feitas.to_i }, producao.sum { |c| c.total.to_i } ]
   end
 
   # When it started: its confirmation, else (confirmed before Painel 1/4) its first baixa.
@@ -207,6 +221,11 @@ class LinhaDoPainel
 
   def contagem(numero, palavra)
     "#{numero} #{palavra}#{"s" if numero != 1}"
+  end
+
+  def percentual_de(linhas)
+    feitas, total = linhas.map(&:contagem_de_linhas).transpose.map(&:sum)
+    total.to_i.zero? ? 0 : feitas * 100 / total
   end
 
   def primeira_baixa

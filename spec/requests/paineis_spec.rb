@@ -45,6 +45,7 @@ RSpec.describe "Painel", type: :request do
     expect(filha["data-uuid"]).to eq(reposicao.uuid)
     expect(filha.css(".painel-ref--reposicao").text.squish).to eq("↻ reposição de ##{pedido.uuid.first(8)} · 2 peças")
     expect(pagina.css("#painel_#{pedido.uuid} > .painel-linha [data-coluna=entrega]").sole["data-estado"]).to eq("travada")
+    expect(pagina.css("#painel_#{pedido.uuid} > .painel-faixa [data-percentuais]").sole.text.squish).to eq("(pedido 100% · reposição 0%)")
 
     get linha_do_painel_path(reposicao.uuid), params: { colunas: LinhaDoPainel::COLUNAS.keys }
     linha = Nokogiri::HTML(response.body).css("body > .painel-pedido").sole
