@@ -208,7 +208,8 @@ for (const pl of result.polylines) {
   const inOuter = isClosed && closed.some(c => c.vertices === verts) && outerSet.has(closed.find(c => c.vertices === verts));
   if (inOuter) continue;
   const length = isClosed ? polygonPerimeter(verts) : polylineLength(verts);
-  if (length > 0) innerPolylines.push({ vertices: verts, length, isClosed });
+  const eff = effectiveColor(pl.rgb);
+  if (length > 0) innerPolylines.push({ vertices: verts, length, isClosed, color: rgbToHex(eff[0], eff[1], eff[2]) });
 }
 
 function inferSizeNames(filename, count) {
@@ -247,13 +248,21 @@ const tamanhos = outer.map((poly, i) => {
     if (v[1] > maxY) maxY = v[1];
   }
 
+  // Painel 2/4a2 (decided 06/11/2026): the inner lines by layer color, so
+  // the Corte's time counts only the layers marked Cut and the holes
+  // (closed figures) of the ones marked Hole (TempoDoCorte).
   let innerLinesMm = 0;
+  const linhasPorCor = {};
   for (const ip of innerPolylines) {
     if (isInsideOuter(ip.vertices, poly.vertices)) {
       innerLinesMm += ip.length;
+      const daCor = linhasPorCor[ip.color] || (linhasPorCor[ip.color] = { mm: 0, figuras: 0 });
+      daCor.mm += ip.length;
+      if (ip.isClosed) daCor.figuras += 1;
     }
   }
   innerLinesMm = Math.round(innerLinesMm * toMm * 100) / 100;
+  for (const daCor of Object.values(linhasPorCor)) daCor.mm = Math.round(daCor.mm * toMm * 100) / 100;
   const outerPerim = Math.round(polygonPerimeter(poly.vertices) * toMm * 100) / 100;
 
   return {
@@ -266,6 +275,7 @@ const tamanhos = outer.map((poly, i) => {
     perimeter_mm: outerPerim,
     inner_lines_mm: innerLinesMm,
     total_line_mm: outerPerim + innerLinesMm,
+    linhas_por_cor: linhasPorCor,
   };
 });
 

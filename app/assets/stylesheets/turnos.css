@@ -44,3 +44,9 @@
   .turno-cab { display: none; }
   .turno-linha > span:first-child, .turno-dias, .turno-acoes { grid-column: 1 / -1; }
 }
+
+/* Painel 2/4a2: the cutting machine's parameters in the Corte's row. */
+.ritmos-aviso { color: #a24c00; }
+.ritmo-maquina { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px 10px; min-width: 260px; }
+.ritmo-parametro { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #5f6368; }
+.ritmo-parametro input { width: 90px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px; font: inherit; font-size: 14px; color: inherit; }

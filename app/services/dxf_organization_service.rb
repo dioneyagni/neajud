@@ -21,16 +21,28 @@ class DxfOrganizationService
     detect_tamanhos(input_path)
   end
 
-  private
+  # What bin/detect-tamanhos.js finds in the approved version's file: the
+  # sizes (each with its lines by layer color, Painel 2/4a2) and overlaps;
+  # nil when it finds none or fails. Also used by MedirCamadasDoCorte.
+  # Usage: DxfOrganizationService.new(corte).deteccao&.dig("tamanhos", 0, "linhas_por_cor")
+  def deteccao(path = @arquivo.approved_version&.original_path)
+    return unless path && File.exist?(path)
 
-  def detect_tamanhos(path)
     script = Rails.root.join("bin", "detect-tamanhos.js").to_s
-    filename = @arquivo.filename.to_s
-    output = `node #{Shellwords.escape(script)} #{Shellwords.escape(path)} #{Shellwords.escape(filename)} 2>/dev/null`.strip
+    output = `node #{Shellwords.escape(script)} #{Shellwords.escape(path)} #{Shellwords.escape(@arquivo.filename.to_s)} 2>/dev/null`.strip
     return if output.blank?
 
     result = JSON.parse(output)
-    return unless result["tamanhos"].is_a?(Array) && result["tamanhos"].any?
+    result if result["tamanhos"].is_a?(Array) && result["tamanhos"].any?
+  rescue JSON::ParserError
+    nil
+  end
+
+  private
+
+  def detect_tamanhos(path)
+    result = deteccao(path)
+    return unless result
 
     @arquivo.tamanhos.destroy_all
     tamanho_records = result["tamanhos"].map do |t|
@@ -42,7 +54,8 @@ class DxfOrganizationService
         area_mm2: t["area_mm2"],
         perimeter_mm: t["perimeter_mm"],
         inner_lines_mm: t["inner_lines_mm"],
-        total_line_mm: t["total_line_mm"]
+        total_line_mm: t["total_line_mm"],
+        linhas_por_cor: t["linhas_por_cor"]
       )
       generate_tamanho_preview(record, path)
       record
@@ -72,8 +85,6 @@ class DxfOrganizationService
     else
       @arquivo.update!(organize_error: nil)
     end
-  rescue JSON::ParserError
-    nil
   end
 
   def cut_layer_hole_colors

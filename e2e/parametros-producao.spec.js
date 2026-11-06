@@ -1,7 +1,8 @@
 // Painel 2/4a (decided 05/11/2026): the dono registers the turnos (an
 // overlapping one is refused), adds a stage's day off in a dialog, confirms a
 // national holiday and types a stage's rhythm; the Painel's header shows the
-// turno on now; a trashed turno comes back from the Lixeira.
+// turno on now; a trashed turno comes back from the Lixeira. Painel 2/4a2:
+// the Corte's cutting machine parameters.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { waitForText } = require("./support/wait");
 
@@ -76,6 +77,26 @@ runSpec("Turnos, calendário e ritmo E2E Tests", async ({ page, test }) => {
     const depois = page.locator('tr[data-ritmo="calcado:impressao"]');
     if ((await depois.locator("input[type=text]").inputValue()) !== "5,5") throw new Error("Rhythm not kept");
     if (!(await depois.locator(".ritmo-em-uso").textContent()).includes("5,5 m/h")) throw new Error("Rhythm in use should be 5,5 m/h");
+  });
+
+  // Painel 2/4a2 (decided 06/11/2026): the calçado's Corte is the cutting
+  // machine (defaults as placeholders) and its Estamparia counts paper.
+  await test("Typing the Corte's machine, the Estamparia in m/h", async () => {
+    const corte = page.locator('tr[data-ritmo="calcado:corte"]');
+    if ((await corte.locator('input[name="ritmos[calcado][corte][velocidade_mm_s]"]').getAttribute("placeholder")) !== "100") throw new Error("Speed default should be 100");
+    if (!(await page.locator('tr[data-ritmo="calcado:estamparia"] .ritmo-unidade').textContent()).includes("m/h")) throw new Error("Estamparia should be m/h");
+    await corte.locator('input[name="ritmos[calcado][corte][velocidade_mm_s]"]').fill("120");
+    await corte.locator('input[name="ritmos[calcado][corte][troca_min]"]').fill("8");
+    // The previous test's "saved" flash is still shown, and the typed values
+    // are in this form: wait for the page Turbo renders after the save.
+    await page.evaluate(() => { document.body.dataset.antesDeSalvar = "1"; });
+    await page.click('.ritmos-form button[type="submit"]');
+    await page.waitForSelector("body:not([data-antes-de-salvar])");
+    await waitForText(page, "Production rhythm saved.");
+    const depois = page.locator('tr[data-ritmo="calcado:corte"]');
+    if ((await depois.locator('input[name="ritmos[calcado][corte][velocidade_mm_s]"]').inputValue()) !== "120") throw new Error("Speed not kept");
+    if ((await depois.locator('input[name="ritmos[calcado][corte][pinca_s]"]').inputValue()) !== "") throw new Error("Punch should stay blank (the default)");
+    if (!(await depois.locator(".ritmo-em-uso").textContent()).includes("machine time only")) throw new Error("Corte in use should be the machine time");
   });
 
   await test("The Painel's header shows today, the time and the turno — or the next one", async () => {
