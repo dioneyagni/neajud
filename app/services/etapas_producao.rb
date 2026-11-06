@@ -18,8 +18,13 @@ class EtapasProducao
   # What a stage's `quando` may ask of the pedido (Etapa 2.6b2, decided
   # 15/10/2026: the DTF's Corte only when it is delivered cut).
   QUANDO = { "entrega" => Pedido::ENTREGAS }.freeze
+  # What a stage's rhythm counts when it is not its baixa's measure (Painel
+  # 2/4a2, decided 06/11/2026): papel — the meters of paper of its lines (the
+  # calçado's Estamparia, counted in pieces); maquina_de_corte — the cutting
+  # machine's time (TempoDoCorte). Each with the lines it needs.
+  RITMOS = { "papel" => "impressao", "maquina_de_corte" => "corte" }.freeze
 
-  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, :quando, :unidade, :material, keyword_init: true) do
+  Etapa = Struct.new(:chave, :nome, :medida, :esperado, :linhas, :niveis, :trava, :reposicao, :quando, :unidade, :material, :ritmo, keyword_init: true) do
     def metragem?
       medida == "metragem"
     end
@@ -75,7 +80,7 @@ class EtapasProducao
       (Array(etapa.niveis) - NIVEIS).map { |nivel| "nivel #{nivel.inspect} is not one of #{NIVEIS.join(", ")}" } +
       (etapa.trava - chaves).map { |outra| "trava #{outra.inspect} is not a stage of this type" } +
       (etapa.reposicao && etapa.medida != "quantidade" ? [ "reposicao needs medida quantidade (it counts missing pieces)" ] : []) +
-      erros_do_material(etapa) +
+      erros_do_material(etapa) + erros_do_ritmo(etapa) +
       erros_do_quando(etapa.quando)
   end
 
@@ -95,5 +100,12 @@ class EtapasProducao
 
     etapa.metragem? ? [] : [ "material needs medida metragem (the stock is kept in meters)" ]
   end
-  private_class_method :ler, :etapa_de, :erros_da, :erros_do_quando, :erros_do_material
+
+  def self.erros_do_ritmo(etapa)
+    return [] if etapa.ritmo.nil?
+    return [ "ritmo #{etapa.ritmo.inspect} is not one of #{RITMOS.keys.join(", ")}" ] unless RITMOS.key?(etapa.ritmo)
+
+    RITMOS[etapa.ritmo] == etapa.linhas ? [] : [ "ritmo #{etapa.ritmo} needs linhas #{RITMOS[etapa.ritmo]}" ]
+  end
+  private_class_method :ler, :etapa_de, :erros_da, :erros_do_quando, :erros_do_material, :erros_do_ritmo
 end

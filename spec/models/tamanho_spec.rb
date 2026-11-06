@@ -9,6 +9,22 @@ RSpec.describe Tamanho, type: :model do
     it { should belong_to(:arquivo) }
   end
 
+  # Painel 2/4a2 (decided 06/11/2026): what the cutting machine goes through.
+  describe "#corte_da_maquina" do
+    let(:linhas) { { "#FF0000" => { "mm" => 500, "figuras" => 1 }, "#00ff00" => { "mm" => 60, "figuras" => 10 }, "#0000FF" => { "mm" => 300, "figuras" => 2 } } }
+
+    it "cuts the contour and the Cut layers (and colors with no layer), punches the Hole ones, skips the rest" do
+      corte = Tamanho.new(perimeter_mm: 1000, linhas_por_cor: linhas).corte_da_maquina("#00FF00" => "hole", "#0000FF" => "engraving")
+      expect(corte.to_h).to eq(linha_mm: 1500.0, furos: 10, por_camada: true)
+    end
+
+    it "takes the whole line before the layers were measured, and nil with no measure" do
+      expect(Tamanho.new(perimeter_mm: 1000, total_line_mm: 1860).corte_da_maquina({}).to_h).to eq(linha_mm: 1860.0, furos: 0, por_camada: false)
+      expect(Tamanho.new.corte_da_maquina({})).to be_nil
+      expect(Tamanho.new(linhas_por_cor: {}).corte_da_maquina({})).to be_nil
+    end
+  end
+
   describe "default scope" do
     it "orders by position" do
       arquivo = create(:arquivo)

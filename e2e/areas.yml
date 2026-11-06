@@ -42,7 +42,7 @@ sem_e2e:
   - "{.gitignore,.gitattributes,.dockerignore,.rubocop.yml,.rspec,Dockerfile}"
   - "config/{deploy.yml,ci.rb,brakeman.yml,brakeman.ignore,bundler-audit.yml}"
   - "bin/{brakeman,bundler-audit,check-residues,ci,kamal,rubocop,rspec,dev-backup,dev-restore,docker-entrypoint,thrust,setup,dev,jobs}"
-  - "lib/tasks/{artes,pedidos,producao}.rake"
+  - "lib/tasks/{artes,pedidos,producao,cortes}.rake"
   - "**/.keep"
   - "{log,tmp,storage,script}/**/*"
 
@@ -189,8 +189,8 @@ areas:
       - "app/controllers/{turnos,excecoes_calendario,ritmos_producao}_controller.rb"
       - "app/views/{turnos,ritmos_producao}/**/*"
       - "app/models/{turno,excecao_calendario,ritmo_producao}.rb"
-      - "app/services/{calendario_de_producao,feriados_nacionais,ritmo_medido}.rb"
-      - "app/helpers/turnos_helper.rb"
+      - "app/services/{calendario_de_producao,feriados_nacionais,ritmo_medido,tempo_do_corte,medir_camadas_do_corte}.rb"
+      - "app/helpers/{turnos,ritmos_producao}_helper.rb"
       - "app/assets/stylesheets/turnos.css"
   dtf:
     specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]

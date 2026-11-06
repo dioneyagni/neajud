@@ -203,3 +203,27 @@ it is the dono's, in Parâmetros (`exige_dono`), and the team's only
   unless the dono fixes his — a baixa records when the stage ended, not how
   long it took, so one given for a whole pedido at the end of a turno
   skews it.
+- **The calçado's Corte and Estamparia** (Painel 2/4a2, decided
+  06/11/2026, A1–A7): a stage's rhythm may count something other than its
+  baixa (`ritmo:` in `config/etapas_producao.yml`).
+  - `ritmo: papel` — the Estamparia, given in pieces, runs in **m/h of
+    printed paper**: its lines' paper meters (the transfer through the
+    press). Measured from the same lines' paper.
+  - `ritmo: maquina_de_corte` — the Corte is the **cutting machine's time**
+    (`TempoDoCorte`): per piece the cut line (contour + the inner lines of
+    the layers marked **Cut**) ÷ the speed, plus the holes (closed figures
+    of the layers marked **Hole**) × the punch; + the fabric's meters × the
+    setup (each meter is laid); + the pieces ÷ the unloading; + each change
+    of material × the troca — in the pedido, and from the material the
+    machine ended on, the pedido before it in the queue (2/4b). Engraving
+    and Ignore don't go through the machine. Defaults (`RitmoProducao::
+    MAQUINA_PADRAO`, editable on the rhythm page; blank = default): 100 mm/s,
+    2 s per hole, 5 min per meter, 50 pieces/min, 10 min per change.
+    Measured: the **aproveitamento**, that time over the turno's hours
+    ("62% of the turno"); without it, or fixed, the machine time alone.
+  - Each size keeps its inner lines by layer color (`tamanhos.linhas_por_cor`,
+    from `bin/detect-tamanhos.js`: mm and closed figures per color), so
+    changing a layer's type changes the time without reprocessing. Sizes
+    detected before (nil) count their whole line, no holes; `bin/rails
+    cortes:medir_camadas` (`MedirCamadasDoCorte`) fills them by position,
+    never recreating a size. The rhythm page says how many are left.

@@ -1,11 +1,18 @@
 <% content_for :title, "Production rhythm" %>
 <%# Painel 2/4a (decided 05/11/2026): each type × stage's rhythm per hour,
-    typed by the dono, measured from the baixas (RitmoMedido). %>
+    typed by the dono, measured from the baixas (RitmoMedido). Painel 2/4a2:
+    the calçado's Corte is the cutting machine's time (TempoDoCorte). %>
 <p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Turnos e calendário", parametros_turnos_path %></p>
 <h2>Production rhythm</h2>
 <p class="funcoes-intro">How much each stage does per hour, in the unit its baixa is given in. The measured one comes from the
   baixas of the last <%= RitmoMedido::DIAS %> days (the median of the turnos that had one) and replaces yours once it has
   <%= RitmoMedido::MINIMO_DE_TURNOS %> turnos — unless you fix yours, e.g. when baixas are given for a whole pedido at the end of a turno.</p>
+<p class="funcoes-intro">The cutting machine's stage counts its time from the corte files: the cut line (contour and the layers
+  marked Cut) at its speed, a punch per hole (layers Hole), the setup per meter of fabric, the unloading and each change of
+  material. What is measured there is how much of the turno that time took.</p>
+<% if @cortes_sem_camadas.positive? %>
+  <p class="ritmos-aviso" data-cortes-sem-camadas><%= pluralize(@cortes_sem_camadas, "corte file is", plural: "corte files are") %> not measured by layer yet: their whole line counts as cut, with no holes.</p>
+<% end %>
 
 <%= form_with url: parametros_ritmos_path, method: :patch, class: "ritmos-form" do %>
   <div class="ritmos-rolagem">
@@ -16,36 +23,15 @@
         <% ritmo = linha.ritmo %>
         <% campo = "ritmos[#{linha.tipo}][#{linha.etapa.chave}]" %>
         <% id = "ritmo_#{linha.tipo}_#{linha.etapa.chave}" %>
+        <% rotulo = "#{linha.etapa.nome} (#{Pedido::ROTULOS_DOS_TIPOS[linha.tipo]})" %>
         <tr class="ritmo" data-ritmo="<%= linha.tipo %>:<%= linha.etapa.chave %>">
           <td><%= Pedido::ROTULOS_DOS_TIPOS[linha.tipo] %></td>
           <td><%= linha.etapa.nome %></td>
-          <td class="ritmo-informado">
-            <label class="visually-hidden" for="<%= id %>"><%= linha.etapa.nome %> (<%= Pedido::ROTULOS_DOS_TIPOS[linha.tipo] %>) per hour</label>
-            <input type="text" inputmode="decimal" name="<%= campo %>[por_hora]" id="<%= id %>"
-                   value="<%= ritmo.por_hora && number_with_precision(ritmo.por_hora, precision: 3, separator: ",", strip_insignificant_zeros: true) %>">
-            <span class="ritmo-unidade"><%= ritmo.unidade %></span>
-          </td>
-          <td class="ritmo-medido">
-            <% if linha.medida %>
-              <%= number_with_precision(linha.medida.por_hora, precision: 2, separator: ",", strip_insignificant_zeros: true) %> <%= ritmo.unidade %>
-              <small>· <%= linha.medida.turnos %> turnos</small>
-            <% else %>
-              <small>too few turnos</small>
-            <% end %>
-          </td>
-          <td>
-            <input type="hidden" name="<%= campo %>[fixar_informado]" value="0">
-            <label class="ritmo-fixar"><input type="checkbox" name="<%= campo %>[fixar_informado]" value="1" <%= "checked" if ritmo.fixar_informado %>> fix</label>
-          </td>
-          <td class="ritmo-em-uso">
-            <% em_uso = ritmo.em_uso(linha.medida) %>
-            <% if em_uso %>
-              <strong><%= number_with_precision(em_uso, precision: 2, separator: ",", strip_insignificant_zeros: true) %> <%= ritmo.unidade %></strong>
-              <small><%= ritmo.origem_em_uso(linha.medida) == "medido" ? "measured" : "yours" %></small>
-            <% else %>
-              <small class="ritmo-falta">not set</small>
-            <% end %>
-          </td>
+          <% if ritmo.maquina_de_corte? %>
+            <%= render "maquina", ritmo: ritmo, medida: linha.medida, campo: campo, id: id, rotulo: rotulo %>
+          <% else %>
+            <%= render "por_hora", ritmo: ritmo, medida: linha.medida, campo: campo, id: id, rotulo: rotulo %>
+          <% end %>
         </tr>
       <% end %>
     </tbody>

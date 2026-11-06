@@ -17,6 +17,16 @@ RSpec.describe EtapasProducao do
       'calcado/corte: medida "peso" is not one of metragem, quantidade; nivel "lote" is not one of linha, referencia, pedido; trava "costura" is not a stage of this type')
   end
 
+  # Painel 2/4a2 (decided 06/11/2026): what a stage's rhythm counts.
+  it "reads the calçado's rhythms, and refuses one without the lines it needs" do
+    expect(described_class.do_tipo("calcado").map(&:ritmo)).to eq([ nil, "maquina_de_corte", "papel", nil ])
+    errado = { "dtf" => [ { "chave" => "corte", "nome" => "Corte", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "dtf", "ritmo" => "maquina_de_corte" },
+                          { "chave" => "x", "nome" => "X", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "dtf", "ritmo" => "peso" } ] }
+    expect { described_class.send(:ler, errado) }.to raise_error(described_class::Invalida, "dtf/corte: ritmo maquina_de_corte needs linhas corte")
+    errado["dtf"].shift
+    expect { described_class.send(:ler, errado) }.to raise_error(described_class::Invalida, 'dtf/x: ritmo "peso" is not one of papel, maquina_de_corte')
+  end
+
   it "raises on an unknown type or stage" do
     expect { described_class.do_tipo("bordado") }.to raise_error(described_class::Invalida, /no production stages for pedido type "bordado"/)
     expect { described_class.etapa("calcado", "costura") }.to raise_error(described_class::Invalida, /unknown production stage "costura"/)

@@ -39,6 +39,7 @@ RSpec.describe DxfOrganizationService do
             "perimeter_mm" => 400.0,
             "inner_lines_mm" => 0.0,
             "total_line_mm" => 400.0,
+            "linhas_por_cor" => { "#00FF00" => { "mm" => 57.3, "figuras" => 10 } },
             "color" => "FF0000"
           }
         ],
@@ -67,6 +68,8 @@ RSpec.describe DxfOrganizationService do
       expect(tamanho.position).to eq(1)
       expect(tamanho.width_mm).to eq(120.0)
       expect(tamanho.height_mm).to eq(80.0)
+      # Painel 2/4a2: the inner lines by layer color, for the Corte's time.
+      expect(tamanho.linhas_por_cor).to eq("#00FF00" => { "mm" => 57.3, "figuras" => 10 })
     end
 
     it "sets organize_error to nil on success" do

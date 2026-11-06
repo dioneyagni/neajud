@@ -92,6 +92,29 @@ RSpec.describe "Turnos, calendário e ritmo", type: :request do
       expect([ RitmoProducao.count, flash[:alert] ]).to eq([ 0, "Corte (Calçado): Por hora must be more than 0 per hour (blank = not set)" ])
     end
 
+    # Painel 2/4a2 (decided 06/11/2026): the calçado's Corte types the cutting machine.
+    it "shows the Corte's machine with its defaults, and saves the typed ones (blank = the default)" do
+      get edit_parametros_ritmos_path
+      linha = response.body[/data-ritmo="calcado:corte".*?<\/tr>/m]
+      expect(linha).to include('name="ritmos[calcado][corte][velocidade_mm_s]"', 'placeholder="100"', 'placeholder="2"', 'placeholder="50"', "machine time only", "100%")
+      expect(linha).not_to include("[por_hora]")
+      patch parametros_ritmos_path, params: { ritmos: { calcado: { corte: { velocidade_mm_s: "120", pinca_s: "1,5", preparo_min: "", troca_min: "" } } } }
+      ritmo = RitmoProducao.sole
+      expect([ ritmo.velocidade_mm_s, ritmo.pinca_s, ritmo.preparo_min, ritmo.maquina(:preparo_min) ]).to eq([ 120, 1.5, nil, 5.0 ])
+    end
+
+    it "refuses a machine parameter of 0, naming it" do
+      patch parametros_ritmos_path, params: { ritmos: { calcado: { corte: { troca_min: "0" } } } }
+      expect([ RitmoProducao.count, flash[:alert] ]).to eq([ 0, "Corte (Calçado): Troca min must be more than 0 (blank = the default)" ])
+    end
+
+    it "warns of the cortes not measured by layer yet" do
+      create(:tamanho, arquivo: create(:arquivo, :corte), linhas_por_cor: nil)
+      create(:tamanho, arquivo: create(:arquivo, :corte), linhas_por_cor: {})
+      get edit_parametros_ritmos_path
+      expect(response.body).to include("1 corte file is not measured by layer yet")
+    end
+
     it "shows the measured rhythm in use once there are enough turnos" do
       Turno.create!(nome: "Dia", inicio: "00:00", fim: "23:59", dias: (0..6).to_a)
       RitmoProducao.create!(tipo: "calcado", etapa: "impressao", por_hora: 5)

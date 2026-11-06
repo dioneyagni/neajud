@@ -1,0 +1,27 @@
+<%# The cutting machine's parameters (Painel 2/4a2, decided 06/11/2026);
+    blank = the default shown as placeholder. The measured one is its
+    aproveitamento. locals: ritmo, medida, campo, id, rotulo %>
+<td class="ritmo-maquina">
+  <% { velocidade_mm_s: [ "Speed", "mm/s" ], pinca_s: [ "Punch", "s per hole" ], preparo_min: [ "Setup", "min per m of fabric" ],
+       recolhimento_pecas_min: [ "Unloading", "pieces/min" ], troca_min: [ "Material change", "min" ] }.each do |parametro, (nome, unidade)| %>
+    <label class="ritmo-parametro" for="<%= id %>_<%= parametro %>">
+      <span><%= nome %></span>
+      <input type="text" inputmode="decimal" name="<%= campo %>[<%= parametro %>]" id="<%= id %>_<%= parametro %>"
+             value="<%= numero_br(ritmo[parametro], 3) %>" placeholder="<%= numero_br(RitmoProducao::MAQUINA_PADRAO[parametro]) %>"
+             aria-label="<%= rotulo %>: <%= nome %> (<%= unidade %>)">
+      <small><%= unidade %></small>
+    </label>
+  <% end %>
+</td>
+<td class="ritmo-medido">
+  <% if medida %>
+    <%= percentual_br(medida.valor) %> of the turno <small>· <%= medida.turnos %> turnos</small>
+  <% else %>
+    <small>too few turnos</small>
+  <% end %>
+</td>
+<td><%= render "fixar", ritmo: ritmo, campo: campo %></td>
+<td class="ritmo-em-uso">
+  <strong><%= percentual_br(ritmo.em_uso(medida)) %></strong>
+  <small><%= ritmo.origem_em_uso(medida) == "medido" ? "measured" : "machine time only" %></small>
+</td>

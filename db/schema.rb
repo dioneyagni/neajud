@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_180000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -747,6 +747,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
     t.boolean "fixar_informado", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "velocidade_mm_s", precision: 10, scale: 3
+    t.decimal "pinca_s", precision: 10, scale: 3
+    t.decimal "preparo_min", precision: 10, scale: 3
+    t.decimal "recolhimento_pecas_min", precision: 10, scale: 3
+    t.decimal "troca_min", precision: 10, scale: 3
     t.index ["tipo", "etapa"], name: "index_ritmos_producao_on_tipo_and_etapa", unique: true
     t.index ["uuid"], name: "index_ritmos_producao_on_uuid", unique: true
   end
@@ -802,6 +807,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
     t.string "uuid", null: false
     t.json "numeros", default: [], null: false
     t.json "metros_por_peca", default: {}, null: false
+    t.json "linhas_por_cor"
     t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
     t.index ["uuid"], name: "index_tamanhos_on_uuid", unique: true
   end
