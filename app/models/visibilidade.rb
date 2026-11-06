@@ -48,7 +48,8 @@ class Visibilidade
   # Dublagem 3/5: a construção's layers show the ligantes, the factory's only.
   # Dublagem 5a: the ordens de dublagem are the factory's (a cliente final
   # sees "Aguardando: dublagem" on his pedido).
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem].freeze
+  # Painel 2/4a: the factory's turnos, calendar and rhythms.
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem Turno ExcecaoCalendario RitmoProducao].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

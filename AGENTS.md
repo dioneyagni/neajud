@@ -547,7 +547,8 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   confirmed (`PedidoBloqueiosService` `:arquivo_excluido`).
 - Still physical on purpose: removing an item / zeroing a size of a **draft**
   pedido, unlinking a corte from a molde, removing a part from a molde
-  (`remover_parte`), and derived data rebuilt by reprocessing (tamanhos, cut
+  (`remover_parte`), removing a calendar exception (a setting about the
+  future, Painel 2/4a), and derived data rebuilt by reprocessing (tamanhos, cut
   layers).
 
 ## Guard: never run bin/e2e with the wrong RAILS_ENV

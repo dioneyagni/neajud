@@ -10,6 +10,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "construcao", "construcoes"
   # Dublagem 5a: /dublagens, the ordens de dublagem.
   inflect.irregular "dublagem", "dublagens"
+  # Painel 2/4a: /parametros/excecoes, the calendar's exceptions.
+  inflect.irregular "excecao", "excecoes"
 end
 
 # These inflection rules are supported but not enabled by default:

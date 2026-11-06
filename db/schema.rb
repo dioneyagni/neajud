@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -371,6 +371,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
     t.index ["uuid"], name: "index_eventos_pedido_on_uuid", unique: true
   end
 
+  create_table "excecoes_calendario", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.date "data", null: false
+    t.string "nome", null: false
+    t.integer "turno_id"
+    t.string "etapa"
+    t.string "origem", default: "manual", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["data"], name: "index_excecoes_calendario_on_data"
+    t.index ["turno_id"], name: "index_excecoes_calendario_on_turno_id"
+    t.index ["uuid"], name: "index_excecoes_calendario_on_uuid", unique: true
+  end
+
   create_table "exclusao_logs", force: :cascade do |t|
     t.string "registro_type", null: false
     t.integer "registro_id", null: false
@@ -725,6 +739,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
     t.index ["uuid"], name: "index_referencias_on_uuid", unique: true
   end
 
+  create_table "ritmos_producao", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "tipo", null: false
+    t.string "etapa", null: false
+    t.decimal "por_hora", precision: 10, scale: 3
+    t.boolean "fixar_informado", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tipo", "etapa"], name: "index_ritmos_producao_on_tipo_and_etapa", unique: true
+    t.index ["uuid"], name: "index_ritmos_producao_on_uuid", unique: true
+  end
+
   create_table "sequencias", force: :cascade do |t|
     t.string "nome", null: false
     t.integer "ultimo", default: 0, null: false
@@ -778,6 +804,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
     t.json "metros_por_peca", default: {}, null: false
     t.index ["arquivo_id"], name: "index_tamanhos_on_arquivo_id"
     t.index ["uuid"], name: "index_tamanhos_on_uuid", unique: true
+  end
+
+  create_table "turnos", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "nome", null: false
+    t.integer "inicio_min", null: false
+    t.integer "fim_min", null: false
+    t.json "dias", default: [], null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["uuid"], name: "index_turnos_on_uuid", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -856,6 +897,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
   add_foreign_key "empresas", "materia_primas", column: "papel_padrao_id"
   add_foreign_key "eventos_pedido", "pedidos"
   add_foreign_key "eventos_pedido", "users"
+  add_foreign_key "excecoes_calendario", "turnos"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "faixas_de_preco", "moldes"
   add_foreign_key "item_pedido_pecas", "arquivos"

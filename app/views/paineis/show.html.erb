@@ -10,7 +10,10 @@
   <%= canal_do_painel %>
 
   <div class="painel-topo">
-    <h2>Painel</h2>
+    <div class="painel-titulo">
+      <h2>Painel</h2>
+      <% if (agora = agora_no_painel(@calendario)) %><span class="painel-agora" data-painel-agora><%= agora %></span><% end %>
+    </div>
     <div class="painel-contadores" role="group" aria-label="Contadores">
       <button type="button" class="painel-cont painel-cont--atraso" data-action="painel#contador" data-filtro="atrasado">
         <strong data-painel-target="contagem" data-conta="atrasado">0</strong> atrasados</button>

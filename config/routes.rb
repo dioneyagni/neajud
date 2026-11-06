@@ -17,9 +17,18 @@ Rails.application.routes.draw do
   resource :visibilidade, only: %i[edit update], controller: "visibilidade_padrao"
   # The dono's production parameters (Etapa 2.2, 1/3).
   resource :parametros, only: %i[edit update], controller: "parametros_empresa"
+  # Painel 2/4a (decided 05/11/2026): the turnos and the calendar on one
+  # page, the rhythm per type × stage on another — the dono's, like the rest.
+  scope "parametros", as: "parametros" do
+    resources :turnos, only: %i[index create update destroy], param: :uuid
+    resources :excecoes, only: %i[create destroy], param: :uuid, controller: "excecoes_calendario" do
+      collection { post :feriado }
+    end
+    resource :ritmos, only: %i[edit update], controller: "ritmos_producao"
+  end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes/ }
+       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes|turnos/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do

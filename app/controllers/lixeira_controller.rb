@@ -10,7 +10,9 @@ class LixeiraController < ApplicationController
   # (CatalogoOficial), the company can't (Etapa 1.1, 3/5).
   TIPOS = {
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
-    "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao, "construcoes" => Construcao
+    "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao, "construcoes" => Construcao,
+    # Painel 2/4a.
+    "turnos" => Turno
   }.freeze
 
   def index
@@ -22,6 +24,9 @@ class LixeiraController < ApplicationController
     registro = registro_excluido
     registro.restaurar!(**autoria)
     redirect_to lixeira_path, notice: "#{registro.model_name.human} \"#{registro.rotulo_lixeira}\" restored."
+  rescue ActiveRecord::RecordInvalid => e
+    # A turno that now overlaps another (Turno#restaurar!).
+    redirect_to lixeira_path, alert: e.record.errors.full_messages.to_sentence
   end
 
   private

@@ -163,3 +163,43 @@ pedido, a column per stage, from the files to the delivery.
   queries in a pedido of 6 items). Now ~255 ms and 444 queries; the pedido's
   page and list use it too (`AndamentoDoPedido`). A cache of the rows comes
   only if it gets slow again.
+
+## Turnos, calendar and rhythm (Painel 2/4a)
+
+Decided 05/11/2026: what the queue and the previsão (2/4b) run on. All of
+it is the dono's, in Parâmetros (`exige_dono`), and the team's only
+(`Visibilidade::DA_EQUIPE`).
+
+- **Time zone** — the app runs on Brasília time (`config.time_zone =
+  "Brasilia"`; it ran on UTC until then, 3 h ahead on every page). Rows stay
+  in UTC; a parameter of the empresa with the hosted plan.
+- **Turnos** (`/parametros/turnos`, `Turno`) — name, start, end and the days
+  of the week it starts on. One that ends at or before its start crosses
+  midnight and belongs to the day it starts (a Friday "Noite 22:00–06:00"
+  ends on Saturday). Two turnos may not overlap anywhere in the week
+  (`Turno#sobreposicao_com` names where they meet). Trashed, not deleted —
+  the measured rhythm reads past baixas by the turno they fell in — and
+  restored only if its hours are still free.
+- **Calendar** (`ExcecaoCalendario`) — a day or one turno of it that the
+  **whole factory or one stage** doesn't work (Q8a: a recess, the Calandra
+  stopped); the stage gets no hours there. Removed physically, like a
+  molde's price: a setting about the future. The **national holidays** are
+  computed (`FeriadosNacionais`, the movable ones from Easter; Carnaval and
+  Corpus Christi marked "ponto facultativo") and only suggested: the dono
+  checks the ones the factory stops on (origem `feriado`, Q9a). State and
+  city holidays are ordinary exceptions.
+- **`CalendarioDeProducao`** — the turnos laid on real days minus the
+  exceptions: `agora` (the turno on now, after midnight too), `proxima`,
+  `ocorrencias(de:, ate:)` and `horas(ocorrencia, etapa, desde:)`. The
+  Painel's header shows "qua 04/11 · 10:40 · turno Manhã (06:00–14:00)", or
+  "fora de turno · próximo: …" (`TurnosHelper#agora_no_painel`).
+- **Rhythm** (`/parametros/ritmos/edit`, `RitmoProducao`) — per hour (Q2a),
+  per pedido type × stage of `config/etapas_producao.yml` (Q3a), in the unit
+  of the stage's baixa (m, peças, unidades). The queue will be one per stage:
+  each pedido takes the time its type's rhythm gives (Q4a; machines later).
+  **Measured** (`RitmoMedido`, Q5a): over the last 30 days, each turno's
+  baixas of that type × stage divided by the turno's hours; the median of
+  the turnos that had one, and nothing below 5. It replaces the typed one
+  unless the dono fixes his — a baixa records when the stage ended, not how
+  long it took, so one given for a whole pedido at the end of a turno
+  skews it.

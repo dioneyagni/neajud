@@ -1,0 +1,24 @@
+<%# One turno as a row of its own form (a new one for "Add turno"). Locals:
+    turno, url, method, botao. %>
+<% novo = turno.new_record? %>
+<%= form_with model: turno, scope: :turno, url: url, method: method, class: "turno-linha#{" turno-novo" if novo}", data: { turno: (turno.nome unless novo) } do |form| %>
+  <span><%= form.label :nome, "Name", class: "visually-hidden", for: "turno_nome_#{turno.uuid || "novo"}" %>
+    <%= form.text_field :nome, required: true, placeholder: ("Manhã" if novo), id: "turno_nome_#{turno.uuid || "novo"}" %></span>
+  <span><%= form.label :inicio, "Start", class: "visually-hidden", for: "turno_inicio_#{turno.uuid || "novo"}" %>
+    <%= form.time_field :inicio, value: turno.inicio, required: true, id: "turno_inicio_#{turno.uuid || "novo"}" %></span>
+  <span><%= form.label :fim, "End", class: "visually-hidden", for: "turno_fim_#{turno.uuid || "novo"}" %>
+    <%= form.time_field :fim, value: turno.fim, required: true, id: "turno_fim_#{turno.uuid || "novo"}" %></span>
+  <fieldset class="turno-dias">
+    <legend class="visually-hidden">Days</legend>
+    <%= hidden_field_tag "turno[dias][]", "", id: nil %>
+    <% Turno::DIAS.each_with_index do |dia, numero| %>
+      <label class="turno-dia"><input type="checkbox" name="turno[dias][]" value="<%= numero %>" <%= "checked" if turno.dias.include?(numero) %>><span><%= dia %></span></label>
+    <% end %>
+  </fieldset>
+  <span class="turno-acoes">
+    <%= form.submit botao, class: "btn #{novo ? "btn-primary" : "btn-secondary"} btn-sm" %>
+    <% unless novo %>
+      <%= link_to "Trash", parametros_turno_path(turno), data: { turbo_method: :delete, turbo_confirm: "Move turno #{turno.nome} to the trash?" }, class: "btn btn-secondary btn-sm" %>
+    <% end %>
+  </span>
+<% end %>

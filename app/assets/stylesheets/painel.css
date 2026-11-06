@@ -9,6 +9,10 @@ main:has(.painel) { max-width: 1480px; }
 .painel h2 { margin: 0; }
 
 .painel-topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+/* Painel 2/4a: the turno on now. */
+.painel-titulo { display: flex; flex-direction: column; gap: 4px; }
+.painel-titulo h2 { margin: 0; }
+.painel-agora { color: #5f6368; font-variant-numeric: tabular-nums; }
 .painel-contadores { display: flex; flex-wrap: wrap; gap: 8px; }
 .painel-cont { border: 1px solid #dadce0; background: #fff; border-radius: 16px; padding: 6px 12px; font: inherit; color: #202124; cursor: pointer; min-height: 32px; }
 .painel-cont strong { font-variant-numeric: tabular-nums; }

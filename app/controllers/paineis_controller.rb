@@ -9,6 +9,8 @@ class PaineisController < ApplicationController
   def show
     @entregues = params[:entregues] == "1"
     @painel = PainelDeProducao.call(visiveis(Pedido), entregues: @entregues, cliente_final: cliente_final?)
+    # Painel 2/4a: the turno on now, in the header (none for a cliente final).
+    @calendario = CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
   end
 
   # One row, in the columns the page shows (?colunas[]=…); 204 when the
