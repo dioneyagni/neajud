@@ -14,6 +14,8 @@ class Pedido < ApplicationRecord
   # Etapa 2.8 (5/5): sent, taken back, returned with a note.
   has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
   has_many :movimentos_da_fila, class_name: "MovimentoDaFila", dependent: :destroy
+  has_many :vezes_da_foto, class_name: "VezDaFoto", dependent: :delete_all
+  has_many :viradas_do_pedido, class_name: "ViradaDoPedido", dependent: :destroy
   # Etapa 2.3d2: what it took from the stock when confirmed (SaidaDoPedido).
   has_many :movimentos_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 

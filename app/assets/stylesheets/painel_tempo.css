@@ -64,6 +64,8 @@
 .painel-tempo-carga--ok { background: #e8f0fe; color: #174ea6; }
 .painel-tempo-carga--alto { background: #feefc3; color: #7a4100; }
 .painel-tempo-carga--cheio { background: #fad2cf; color: #a50e0e; font-weight: 600; }
+/* Painel 3/4b: what was programmed for today no longer fits. */
+.painel-tempo-carga--estourado { background: #d93025; color: #fff; font-weight: 700; }
 .painel-tempo-carga--parada { background: #fce8e6; color: #a50e0e; }
 .painel-tempo-carga--passado, .painel-tempo-carga--encerrado { color: #9aa0a6; }
 

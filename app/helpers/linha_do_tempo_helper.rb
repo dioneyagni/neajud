@@ -31,12 +31,14 @@ module LinhaDoTempoHelper
   end
 
   # Usage: dica_da_carga("Corte", celula) # => "Corte · qui 12/11 · 64% das horas de turno"
+  #        (Painel 3/4b: "Corte · sáb 07/11 · o programado para hoje não cabe: 5,2 h em 4 h")
   def dica_da_carga(nome, celula)
     detalhe = case celula.estado
     when :passado then "passado: só o registro"
     when :sem_turno then "sem turno"
     when :parada then "a etapa para neste dia"
     when :encerrado then "os turnos de hoje acabaram"
+    when :estourado then "o programado para hoje não cabe: #{horas_da_fila(celula.programadas)} em #{horas_da_fila(celula.livres)}"
     else "#{celula.percentual}% das horas de turno#{" que restam hoje" if celula.data == Date.current}"
     end
     "#{nome} · #{dia_com_semana(celula.data)} · #{detalhe}"

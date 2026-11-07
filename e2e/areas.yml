@@ -175,13 +175,14 @@ areas:
   # Painel 1/4 (04/11/2026): pedidos × stages; it reads every stage's state.
   # Painel 2/4b: the queue, the blocks in time and the page refreshing itself.
   painel:
-    specs: [painel, painel-programacao, producao-baixas]
+    specs: [painel, painel-programacao, painel-virada, producao-baixas]
     arquivos:
       - "app/controllers/{paineis,prazos_do_pedido,movimentos_da_fila}_controller.rb"
       - "app/views/paineis/**/*"
       - "app/views/pedidos/_prazo_entrega.html.erb"
-      - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas,fila_de_producao,blocos_no_tempo,carga_da_etapa,linha_do_tempo,barra_no_tempo,tempo_do_pedido,impacto_do_movimento,mover_na_fila}.rb"
-      - "app/models/movimento_da_fila.rb"
+      - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas,fila_de_producao,blocos_no_tempo,carga_da_etapa,linha_do_tempo,barra_no_tempo,tempo_do_pedido,impacto_do_movimento,mover_na_fila,aviso_de_previsao,tirar_foto_da_fila,virada_da_fila,programado_na_fila}.rb"
+      - "app/models/{movimento_da_fila,foto_da_fila,vez_da_foto,virada_do_pedido}.rb"
+      - "app/jobs/foto_da_fila_job.rb"
       - "app/views/pedidos/_historico_da_programacao.html.erb"
       - "app/helpers/{fila_de_producao,linha_do_tempo,programacao}_helper.rb"
       - "app/models/concerns/avisa_a_fila.rb"
@@ -190,7 +191,7 @@ areas:
       - "app/assets/stylesheets/painel_tempo.css"
   # Painel 2/4a (05/11/2026): the turnos, the calendar and the rhythm.
   calendario:
-    specs: [parametros-producao, painel, painel-programacao]
+    specs: [parametros-producao, painel, painel-programacao, painel-virada]
     arquivos:
       - "app/controllers/{turnos,excecoes_calendario,ritmos_producao}_controller.rb"
       - "app/views/{turnos,ritmos_producao}/**/*"

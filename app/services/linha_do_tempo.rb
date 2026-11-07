@@ -14,9 +14,11 @@
 # (Q6a); the waiting ones by arrival, the delivered latest first.
 #
 # The load of a sector on a day (Q2a): the hours the queue fills over the
-# hours its turnos have — today only from now on, so never over 100% (a
-# turno that fell behind comes with the programação, 3/4). A cliente final
-# sees no load (Q4a): it is the factory's capacity.
+# hours its turnos have — today only from now on, so never over 100%.
+# Painel 3/4b (Q7a): today's is the larger of that and what the day's first
+# photo programmed for today still to do (ProgramadoNaFila) — over the
+# hours left, past 100%: the turno fell behind. A cliente final sees no
+# load (Q4a): it is the factory's capacity.
 #
 # Usage: tempo = LinhaDoTempo.call(painel.linhas, fila: painel.fila, de: Date.current - 2)
 #        tempo.dias.map(&:sem_turno)                    # => [false, true, …] (14)
@@ -36,8 +38,9 @@ class LinhaDoTempo
   Grupo = Struct.new(:chave, :nome, :barras, keyword_init: true)
   Carga = Struct.new(:setor, :celulas, keyword_init: true)
   # estado: :passado, :sem_turno, :parada, :encerrado (today's turnos are
-  # over), :livre, :ok, :alto (85% or more), :cheio.
-  CelulaDaCarga = Struct.new(:data, :estado, :percentual, keyword_init: true)
+  # over), :livre, :ok, :alto (85% or more), :cheio, :estourado (what was
+  # programmed for today doesn't fit the hours left: programadas of livres).
+  CelulaDaCarga = Struct.new(:data, :estado, :percentual, :programadas, :livres, keyword_init: true)
 
   # The window starting that day: 2 days before today when not given.
   def self.inicio_padrao(agora = Time.current)
@@ -46,9 +49,12 @@ class LinhaDoTempo
 
   # linhas: the Painel's top rows (their reposições inside); entregues: the
   # rows delivered inside the window. calendario: the factory's (the queue's).
-  def self.call(linhas, fila:, de:, entregues: [], agora: fila.agora, calendario: CalendarioDeProducao.new, ordem: "chegada", cliente_final: false, setores: SETORES)
-    new(linhas, fila, de, entregues, agora, calendario, ordem, cliente_final, setores)
+  # programado: what the photos programmed (ProgramadoNaFila), nil for none.
+  def self.call(linhas, fila:, de:, entregues: [], agora: fila.agora, calendario: CalendarioDeProducao.new, ordem: "chegada", cliente_final: false, setores: SETORES, programado: nil)
+    new(linhas, fila, de, entregues, agora, calendario, ordem, cliente_final, setores).tap { |tempo| tempo.programado = programado }
   end
+
+  attr_writer :programado
 
   attr_reader :de, :ate, :agora, :ordem
 
@@ -127,7 +133,15 @@ class LinhaDoTempo
     return CelulaDaCarga.new(data: data, estado: :encerrado) unless livres.positive?
 
     percentual = [ (ocupadas(setor, data) / livres * 100).round, 100 ].min
+    programadas = data == agora.to_date ? @programado&.pendentes_do_dia(setor) : nil
+    return celula_estourada(data, programadas, livres) if programadas && programadas > livres + 0.01
+
+    percentual = [ percentual, ((programadas || 0) / livres * 100).round ].max
     CelulaDaCarga.new(data: data, estado: estado_da_carga(percentual), percentual: percentual)
+  end
+
+  def celula_estourada(data, programadas, livres)
+    CelulaDaCarga.new(data: data, estado: :estourado, percentual: (programadas / livres * 100).round, programadas: programadas, livres: livres)
   end
 
   def estado_da_carga(percentual)

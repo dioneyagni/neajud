@@ -22,7 +22,8 @@ const INTERVALO_MS = 3000
 // and order load in a frame, the filters, the sector and the counters
 // apply to its bars too, a sector keeps only its load (Q7a). Painel 3/4a:
 // ↑ ↓ in a sector's queue load the impact window into its dialog; once a
-// move is saved the dialog closes and the page refreshes.
+// move is saved the dialog closes and the page refreshes. Painel 3/4b: a
+// pedido in the virada's warning opens in the grid, under Todos.
 export default class extends Controller {
   static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia", "etapas", "tempo", "gradeTempo", "ordem", "comVisao", "impacto", "posicao"]
   static values = { itensUrl: String, colunas: Array, virada: Number, visao: String }
@@ -114,7 +115,23 @@ export default class extends Controller {
   }
 
   trocarVisao(event) {
-    this.visaoValue = event.currentTarget.dataset.visao
+    this.irParaVisao(event.currentTarget.dataset.visao)
+  }
+
+  abrirDoAviso(event) {
+    const pedido = document.getElementById(`painel_${event.currentTarget.dataset.pedido}`)
+    if (!pedido) return
+    this.setorAtual = ""
+    this.filtroDoContador = ""
+    this.marcarContador()
+    this.irParaVisao("etapas")
+    this.fecharTodos()
+    this.marcarAberto(pedido)
+    pedido.scrollIntoView({ block: "center" })
+  }
+
+  irParaVisao(visao) {
+    this.visaoValue = visao
     const url = new URL(window.location.href)
     this.comVisao(url)
     window.history.replaceState(window.history.state, "", url)

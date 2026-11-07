@@ -181,6 +181,15 @@ main:has(.painel) { max-width: 1480px; }
 .painel-fila-seta { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid #dadce0; border-radius: 6px; background: #fff; color: #1a73e8; text-decoration: none; font-weight: 700; }
 .painel-fila-seta:hover { background: #e8f0fe; }
 .painel-fila-movida { font-size: 11px; color: #a24c00; }
+/* Painel 3/4b: the virada — a stage that came from a turno already over, a
+   turno whose programmed work no longer fits, who came to be late. */
+.painel-fila-veio { font-size: 11px; color: #a50e0e; }
+.painel-fila-turno-carga--estourada { color: #a50e0e; font-weight: 600; }
+.painel-fila-turno-carga--estourada .painel-fila-carga i { background: #d93025; }
+.painel-cel--adiada { box-shadow: inset 3px 0 0 #d93025; }
+.painel-virada { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #fce8e6; color: #a50e0e; font-size: 13px; }
+.painel-virada-pedido { border: 1px solid #f4c7c3; background: #fff; color: #a50e0e; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.painel-virada-pedido:hover { background: #fad2cf; }
 .painel-fila-voltar { font-size: 13px; }
 .painel-impacto-janela { margin: auto; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); border: 0; border-radius: 10px; padding: 0; box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
 .painel-impacto-janela::backdrop { background: rgba(32, 33, 36, .45); }

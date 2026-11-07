@@ -40,14 +40,6 @@ class MoverNaFila
   end
 
   def avisar_os_empurrados
-    @impacto.empurrados.each do |empurrado|
-      next if empurrado.para && empurrado.para.to_date == empurrado.de.to_date
-
-      empurrado.pedido.eventos_pedido.create!(user: @user, tipo: "previsao_mudou", recado: "#{dia(empurrado.de)} → #{empurrado.para ? dia(empurrado.para) : "sem previsão"}")
-    end
-  end
-
-  def dia(momento)
-    Turno.dia_com_semana(momento.to_date)
+    @impacto.empurrados.each { |empurrado| AvisoDePrevisao.call(empurrado.pedido, de: empurrado.de, para: empurrado.para, user: @user) }
   end
 end

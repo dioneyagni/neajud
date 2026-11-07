@@ -1,6 +1,10 @@
-<%# One cell (CelulaDoPainel). locals: celula, coluna %>
-<div class="painel-cel painel-cel--<%= celula.estado %>" data-coluna="<%= coluna %>" data-estado="<%= celula.estado %>"
-     <% if celula.detalhe.present? %>title="<%= celula.detalhe %>"<% end %>>
+<%# One cell (CelulaDoPainel). Painel 3/4b: adiamento, its stages' "veio de ·
+    adiada" (Q3a), joins the detail and marks the cell.
+    locals: celula, coluna, adiamento (optional) %>
+<% adiamento = local_assigns[:adiamento] %>
+<% detalhe = [ celula.detalhe.presence, adiamento ].compact.join(" · ") %>
+<div class="painel-cel painel-cel--<%= celula.estado %><%= " painel-cel--adiada" if adiamento %>" data-coluna="<%= coluna %>" data-estado="<%= celula.estado %>"
+     <% if adiamento %>data-adiada<% end %> <% if detalhe.present? %>title="<%= detalhe %>"<% end %>>
   <% unless celula.estado == :nao_tem %>
     <span class="painel-cel-texto"><%= celula.texto %></span>
     <% if celula.estado == :andamento && celula.percentual %>

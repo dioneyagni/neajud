@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_180000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -361,7 +361,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   create_table "eventos_pedido", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "pedido_id", null: false
-    t.integer "user_id", null: false
+    t.integer "user_id"
     t.string "tipo", null: false
     t.text "recado"
     t.datetime "created_at", null: false
@@ -410,6 +410,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
     t.datetime "updated_at", null: false
     t.index ["molde_id"], name: "index_faixas_de_preco_on_molde_id"
     t.index ["uuid"], name: "index_faixas_de_preco_on_uuid", unique: true
+  end
+
+  create_table "fotos_da_fila", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "turno_id", null: false
+    t.date "data", null: false
+    t.datetime "inicio", null: false
+    t.datetime "fim", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inicio"], name: "index_fotos_da_fila_on_inicio"
+    t.index ["turno_id", "data"], name: "index_fotos_da_fila_on_turno_id_and_data", unique: true
+    t.index ["turno_id"], name: "index_fotos_da_fila_on_turno_id"
+    t.index ["uuid"], name: "index_fotos_da_fila_on_uuid", unique: true
   end
 
   create_table "funcoes", force: :cascade do |t|
@@ -862,6 +876,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
     t.index ["uuid"], name: "index_users_on_uuid", unique: true
   end
 
+  create_table "vezes_da_foto", force: :cascade do |t|
+    t.integer "foto_da_fila_id", null: false
+    t.integer "pedido_id", null: false
+    t.string "etapa", null: false
+    t.string "setor", null: false
+    t.integer "posicao"
+    t.datetime "fim"
+    t.datetime "previsao"
+    t.json "trechos", default: [], null: false
+    t.index ["foto_da_fila_id"], name: "index_vezes_da_foto_on_foto_da_fila_id"
+    t.index ["pedido_id", "etapa"], name: "index_vezes_da_foto_on_pedido_id_and_etapa"
+    t.index ["pedido_id"], name: "index_vezes_da_foto_on_pedido_id"
+  end
+
   create_table "vinculos", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "user_id", null: false
@@ -877,6 +905,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
     t.index ["user_id", "empresa_id"], name: "index_vinculos_on_user_id_and_empresa_id", unique: true
     t.index ["user_id"], name: "index_vinculos_on_user_id"
     t.index ["uuid"], name: "index_vinculos_on_uuid", unique: true
+  end
+
+  create_table "viradas_do_pedido", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "pedido_id", null: false
+    t.string "turno_nome", null: false
+    t.date "data", null: false
+    t.datetime "turno_fim", null: false
+    t.datetime "de", null: false
+    t.datetime "para"
+    t.boolean "passou_a_atrasar", default: false, null: false
+    t.json "nao_terminaram", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pedido_id"], name: "index_viradas_do_pedido_on_pedido_id"
+    t.index ["turno_fim"], name: "index_viradas_do_pedido_on_turno_fim"
+    t.index ["uuid"], name: "index_viradas_do_pedido_on_uuid", unique: true
   end
 
   add_foreign_key "alteracoes_arte", "arquivo_versions"
@@ -925,6 +970,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   add_foreign_key "excecoes_calendario", "turnos"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "faixas_de_preco", "moldes"
+  add_foreign_key "fotos_da_fila", "turnos"
   add_foreign_key "item_pedido_pecas", "arquivos"
   add_foreign_key "item_pedido_pecas", "itens_pedido", column: "item_pedido_id"
   add_foreign_key "item_pedido_pecas", "pecas"
@@ -978,8 +1024,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   add_foreign_key "solicitacoes_aprovacao", "artes"
   add_foreign_key "solicitacoes_aprovacao", "users"
   add_foreign_key "tamanhos", "arquivos"
+  add_foreign_key "vezes_da_foto", "fotos_da_fila", column: "foto_da_fila_id", on_delete: :cascade
+  add_foreign_key "vezes_da_foto", "pedidos"
   add_foreign_key "vinculos", "clients"
   add_foreign_key "vinculos", "empresas"
   add_foreign_key "vinculos", "funcoes"
   add_foreign_key "vinculos", "users"
+  add_foreign_key "viradas_do_pedido", "pedidos"
 end
