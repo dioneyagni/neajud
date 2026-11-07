@@ -49,6 +49,8 @@ RSpec.describe Autorizacao do
       erros = described_class.erros_para_cliente({ "lixeira" => 1, "pedidos" => 1 }, %w[aprovar_arte gerenciar_usuarios])
       expect(erros).to contain_exactly(include("lixeira"), include("gerenciar_usuarios"))
       expect(described_class.erros_para_cliente({ "lixeira" => 0 }, %w[aprovar_arte])).to eq([])
+      # Painel 3/4a: the programação is the factory's.
+      expect(described_class.erros_para_cliente({}, %w[programar_producao])).to eq([ "a client's access can't have programar_producao; it is the team's" ])
     end
 
     # Etapa 2.8 (4b): artes up to editar, the rest only ver; 5/5 opens pedidos

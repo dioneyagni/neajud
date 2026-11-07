@@ -17,6 +17,13 @@
 # A draft or a sent pedido is not in the queue: `se_confirmar` places it
 # after everyone, pushing no one (Q1c).
 #
+# Painel 3/4a (decided 07/11/2026): a person may move a stage in its
+# sector's queue (MovimentoDaFila, the order in force given as `ordens`).
+# Each sector's queue then goes in its own order — first the stages already
+# under way (some line had its baixa, Q6b: no one passes them), then the
+# moved ones where they were put and the others by arrival —, sector by
+# sector, each stage still waiting for the ones it depends on.
+#
 # It reads the whole factory — the pedidos, the calendar, the rhythms — even
 # for a cliente final, whose previsão depends on everyone else's pedidos
 # (like AguardandoMaterial); what a person sees of it is filtered by who
@@ -40,8 +47,12 @@ class FilaDeProducao
   # One stage of one pedido in its sector's queue. fim nil: no previsão,
   # motivo says why (falta: a material is missing). espera: the stage it
   # waits for, when that one ends after now. abertas / total: its lines.
+  # movimento: the MovimentoDaFila that put it where it is (nil: arrival).
+  # linhas, antes (the open stages it waits for), preso (the materials
+  # holding it), ordem and colocada are how the queue builds it.
   Vez = Struct.new(:pedido, :etapa, :setor, :posicao, :carga, :horas, :inicio, :fim, :trechos, :espera,
-                   :motivo, :falta, :abertas, :total, :sem_medida, keyword_init: true) do
+                   :motivo, :falta, :abertas, :total, :sem_medida, :movimento, :linhas, :antes, :preso, :ordem, :colocada,
+                   keyword_init: true) do
     # Some line already had its baixa.
     def iniciada?
       abertas < total
@@ -87,16 +98,20 @@ class FilaDeProducao
   end
 
   # estados: { pedido id => EstadoDasEtapas } already read (the Painel's);
-  # the others are read here. The rest is read when not given (specs).
-  def self.call(agora: Time.current, calendario: CalendarioDeProducao.new, estados: {}, aguardando: nil, ritmos: nil)
-    new(agora, calendario, estados, aguardando, ritmos).tap(&:montar)
+  # the others are read here. ordens: { [pedido id, etapa] => MovimentoDaFila }
+  # in force. The rest is read when not given (specs).
+  def self.call(agora: Time.current, calendario: CalendarioDeProducao.new, estados: {}, aguardando: nil, ritmos: nil, ordens: nil)
+    new(agora, calendario, estados, aguardando, ritmos, ordens).tap(&:montar)
   end
 
-  attr_reader :agora, :ocorrencias
+  # estados: every pedido's stage states it read (a second queue reuses them);
+  # ordens: the moved stages it went by.
+  attr_reader :agora, :ocorrencias, :estados, :calendario, :ordens
 
-  def initialize(agora, calendario, estados, aguardando, ritmos)
+  def initialize(agora, calendario, estados, aguardando, ritmos, ordens = nil)
     @agora = agora
     @calendario = calendario
+    @ordens = ordens || MovimentoDaFila.ordens
     @estados = estados.dup
     @aguardando = aguardando || AguardandoMaterial.call
     @ritmos = (ritmos || RitmoProducao.all.to_a).index_by { |ritmo| [ ritmo.tipo, ritmo.etapa ] }
@@ -111,11 +126,22 @@ class FilaDeProducao
   def montar
     pedidos = Pedido.ativos.where(status: ATIVOS).includes(:client, :reposicao_de, itens_pedido: :arte).to_a
     ler_estados(pedidos)
-    pedidos.sort_by { |pedido| [ pedido.confirmado_em || pedido.created_at, pedido.id ] }.each do |pedido|
-      vezes = planejar(pedido, @estados.fetch(pedido.id), materiais_presos(pedido), @agenda)
-      vezes.each { |vez| entrar_na_fila(vez) }
-      @previsoes[pedido.id] = Previsao.new(pedido: pedido, vezes: vezes, se_confirmar: false)
+    vezes = pedidos.flat_map do |pedido|
+      abertas = abrir(pedido, @estados.fetch(pedido.id), materiais_presos(pedido))
+      @previsoes[pedido.id] = Previsao.new(pedido: pedido, vezes: abertas, se_confirmar: false)
+      abertas
     end
+    agendar(vezes)
+  end
+
+  # The pedidos in the queue.
+  def pedidos
+    @previsoes.values.map(&:pedido)
+  end
+
+  # The aguardando and rhythms it read, for a second queue (the impact of a move).
+  def entradas
+    { agora: agora, calendario: @calendario, estados: @estados, aguardando: @aguardando, ritmos: @ritmos.values }
   end
 
   # Usage: fila.previsao(pedido) # => nil for a pedido not in the queue (a draft)
@@ -131,7 +157,8 @@ class FilaDeProducao
     return Previsao.new(pedido: pedido, vezes: [], motivo: "resolva as pendências para ter a previsão", se_confirmar: true) if pendencias
 
     estados = @estados[pedido.id] ||= EstadoDasEtapas.call(pedido)
-    Previsao.new(pedido: pedido, vezes: planejar(pedido, estados, {}, @agenda.copia), se_confirmar: true)
+    agenda = @agenda.copia
+    Previsao.new(pedido: pedido, vezes: abrir(pedido, estados, {}).each { |vez| colocar(vez, agenda) }, se_confirmar: true)
   end
 
   # The sector's queue: its stages with previsão in order, then the ones without.
@@ -177,34 +204,81 @@ class FilaDeProducao
     vez.fim ? fila.insert(fila.index { |outra| outra.fim.nil? } || fila.size, vez) : fila << vez
   end
 
-  # Its stages with open lines, each placed in its sector's queue. fins:
-  # what each stage is to the ones waiting for it — :feita, or its Vez.
-  def planejar(pedido, estados, presos, agenda)
-    fins = {}
-    EtapasProducao.do_tipo(pedido.tipo, pedido: pedido).filter_map do |etapa|
+  # Its stages with open lines, not placed yet, each knowing the open ones
+  # it waits for (a done one waits for nothing).
+  def abrir(pedido, estados, presos)
+    abertas = {}
+    EtapasProducao.do_tipo(pedido.tipo, pedido: pedido).each_with_index.filter_map do |etapa, indice|
       situacoes = estados.fetch(etapa.chave, {}).values
-      abertas = situacoes.reject { |situacao| situacao.estado == :feita }
-      fins[etapa.chave] = :feita if abertas.empty?
-      next if abertas.empty?
+      linhas = situacoes.reject { |situacao| situacao.estado == :feita }
+      next if linhas.empty?
 
-      vez = Vez.new(pedido: pedido, etapa: etapa, setor: self.class.setor_de(etapa), trechos: [], sem_medida: [], abertas: abertas.size, total: situacoes.size)
-      fins[etapa.chave] = colocar(vez, abertas.map(&:linha), etapa.trava.filter_map { |trava| fins[trava] }.grep(Vez), presos, agenda)
+      abertas[etapa.chave] = Vez.new(pedido: pedido, etapa: etapa, setor: self.class.setor_de(etapa), trechos: [], sem_medida: [],
+                                     abertas: linhas.size, total: situacoes.size, linhas: linhas.map(&:linha), preso: presos[etapa.chave],
+                                     antes: etapa.trava.filter_map { |trava| abertas[trava] }, movimento: @ordens[[ pedido.id, etapa.chave ]]).tap do |vez|
+        vez.ordem = ordem_de(vez, indice)
+      end
     end
   end
 
-  # antes: the open stages it waits for (their Vez).
-  def colocar(vez, linhas, antes, presos, agenda)
-    sem = antes.find { |outra| outra.fim.nil? }
+  # Under way first, in arrival order; then the moved ones as if they had
+  # arrived when they were put, the others by arrival. A stage not moved
+  # itself follows the one it waits for that was (the latest of them, if
+  # several): moving a pedido's Impressão takes its Calandra along.
+  def ordem_de(vez, indice)
+    chegada = vez.pedido.confirmado_em || vez.pedido.created_at
+    return [ 0, chegada, vez.pedido.id, indice ] if vez.iniciada?
+
+    [ 1, vez.movimento&.ordem_em || seguida(vez) || chegada, vez.pedido.id, indice ]
+  end
+
+  def seguida(vez)
+    vez.antes.reject(&:iniciada?).select { |antes| antes.movimento || antes.ordem[1] != (antes.pedido.confirmado_em || antes.pedido.created_at) }.map { |antes| antes.ordem[1] }.max
+  end
+
+  # Each sector's queue in its order, sector by sector: a sector's next
+  # stage goes once the ones it waits for are placed, holding the ones after
+  # it (the strict order).
+  def agendar(vezes)
+    filas = vezes.group_by(&:setor).transform_values { |do_setor| do_setor.sort_by(&:ordem) }
+    until filas.values.all?(&:empty?)
+      colocadas = filas.values.sum { |fila| colocar_as_primeiras(fila) }
+      destravar(filas) if colocadas.zero?
+    end
+  end
+
+  def colocar_as_primeiras(fila)
+    colocadas = 0
+    while (vez = fila.first) && vez.antes.all?(&:colocada)
+      entrar_na_fila(colocar(fila.shift, @agenda))
+      colocadas += 1
+    end
+    colocadas
+  end
+
+  # Every sector's next stage waits for one behind it in its own sector (a
+  # stage moved ahead of the one it waits for): that one goes first.
+  def destravar(filas)
+    vez = filas.values.find(&:any?).first
+    vez = vez.antes.find { |outra| !outra.colocada } until vez.antes.all?(&:colocada)
+    filas[vez.setor].delete(vez)
+    filas[vez.setor].unshift(vez)
+  end
+
+  # Places it after the stages it waits for (their Vez in antes).
+  def colocar(vez, agenda)
+    vez.colocada = true
+    sem = vez.antes.find { |outra| outra.fim.nil? }
     return vez.tap { |v| v.motivo, v.falta = sem.motivo, sem.falta } if sem
-    return vez.tap { |v| v.motivo, v.falta = "previsão quando #{presos[v.etapa.chave].map(&:nome_completo).join(" e ")} entrar", true } if presos.key?(vez.etapa.chave)
+    return vez.tap { |v| v.motivo, v.falta = "previsão quando #{v.preso.map(&:nome_completo).join(" e ")} entrar", true } if vez.preso
 
     ritmo = @ritmos[[ vez.pedido.tipo, vez.etapa.chave ]] || RitmoProducao.new(tipo: vez.pedido.tipo, etapa: vez.etapa.chave)
-    carga = CargaDaEtapa.call(vez.pedido, vez.etapa, linhas, ritmo, anterior: agenda.ultimo_material[vez.setor], memoria: @memoria)
+    carga = CargaDaEtapa.call(vez.pedido, vez.etapa, vez.linhas, ritmo, anterior: agenda.ultimo_material[vez.setor], memoria: @memoria)
     horas = ritmo.horas(carga.valor, @medidas[[ vez.pedido.tipo, vez.etapa.chave ]])
     return vez.tap { |v| v.motivo = "#{v.etapa.nome} (#{Pedido::ROTULOS_DOS_TIPOS[v.pedido.tipo]}) sem ritmo" } unless horas
 
-    vez.espera = antes.select { |outra| outra.fim > agora }.max_by(&:fim)
-    encher(vez, carga, horas, ([ agora ] + antes.map(&:fim)).max, agenda)
+    vez.espera = vez.antes.select { |outra| outra.fim > agora }.max_by(&:fim)
+    encher(vez, carga, horas, ([ agora ] + vez.antes.map(&:fim)).max, agenda)
   end
 
   def encher(vez, carga, horas, pronto, agenda)

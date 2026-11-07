@@ -11,7 +11,8 @@ module FuncoesHelper
     "gerenciar_usuarios" => "Gerenciar usuários",
     "aprovar_arte" => "Enviar e registrar aprovação de arte (função para clientes: aprovar ou pedir alteração)",
     "ver_valores" => "Ver preços e custos (preço por par, custo e margem)",
-    "aprovar_abaixo_do_minimo" => "Aprovar pedido de tecido abaixo da metragem mínima"
+    "aprovar_abaixo_do_minimo" => "Aprovar pedido de tecido abaixo da metragem mínima",
+    "programar_producao" => "Programar a produção (mudar a ordem da fila de um setor)"
   }.freeze
 
   # [label, value] pairs for an área's level select on the Funções grid.

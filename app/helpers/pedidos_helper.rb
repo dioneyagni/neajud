@@ -102,11 +102,14 @@ module PedidosHelper
                         "entregue" => "entregue", "cancelado" => "cancelado" }.freeze
 
   ROTULOS_DE_EVENTO = { "enviado" => "Enviado para a fábrica", "retirado" => "Envio retirado pelo cliente",
-                        "devolvido" => "Devolvido ao cliente" }.freeze
+                        "devolvido" => "Devolvido ao cliente", "previsao_mudou" => "Previsão mudou" }.freeze
 
   # An EventoPedido as the history shows it (Etapa 2.8, 5/5).
   # Usage: rotulo_do_evento(evento) # => "Devolvido ao cliente"
+  #        rotulo_do_evento(mudou) # => "previsão mudou: qui 12/11 → sex 13/11 (reprogramação da fábrica)"
   def rotulo_do_evento(evento)
+    return "previsão mudou: #{evento.recado} (reprogramação da fábrica)" if evento.tipo == "previsao_mudou"
+
     ROTULOS_DE_EVENTO.fetch(evento.tipo)
   end
 

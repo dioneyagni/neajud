@@ -168,6 +168,19 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(ordem.reload.status).to eq("cancelada")
     end
 
+    # Painel 3/4a (Q9a): moving a stage in the queue is its own action.
+    it "the impact window and a move in the queue need programar_producao" do
+      entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[atualizar_producao])
+      get impacto_na_fila_path(setor: "impressao")
+      expect(response).to have_http_status(:forbidden)
+      post movimentos_da_fila_path, params: { setor: "impressao" }
+      expect(response).to have_http_status(:forbidden)
+      entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[programar_producao])
+      get impacto_na_fila_path(setor: "impressao")
+      # Allowed: it answers that nothing was moved there.
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
     it "the Usuários page needs gerenciar_usuarios" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: %w[baixar_producao])
       get usuarios_path

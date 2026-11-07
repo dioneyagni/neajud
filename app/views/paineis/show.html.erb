@@ -102,6 +102,11 @@
   <% end %>
   </div>
 
+  <%# Painel 3/4a: the impact window of a move; permanent, so a live refresh doesn't close it. %>
+  <dialog id="painel_impacto_janela" class="painel-impacto-janela" data-painel-target="impacto" data-turbo-permanent aria-labelledby="titulo-impacto">
+    <turbo-frame id="painel_impacto"></turbo-frame>
+  </dialog>
+
   <div data-painel-target="tempo"<%= " hidden" if @visao == "etapas" %>>
     <%= render "paineis/linha_do_tempo", painel: @painel, de: @de, ordem: @ordem %>
   </div>

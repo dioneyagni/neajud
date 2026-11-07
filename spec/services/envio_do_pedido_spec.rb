@@ -28,6 +28,9 @@ RSpec.describe EnvioDoPedido do
     evento = described_class.devolver(pedido, user: user, recado: " Falta a língua 35 ")
     expect(evento).to be_persisted.and have_attributes(recado: "Falta a língua 35")
     expect(pedido.reload).to have_attributes(status: "rascunho", devolucao_pendente: evento)
+    # Painel 3/4a: a "previsão mudou" after it is not the client's way.
+    pedido.eventos_pedido.create!(user: user, tipo: "previsao_mudou", recado: "qua 04/11 → qui 05/11")
+    expect(pedido.reload.devolucao_pendente).to eq(evento)
     described_class.enviar(pedido, user: user)
     expect(pedido.reload.devolucao_pendente).to be_nil
   end

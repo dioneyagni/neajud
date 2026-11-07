@@ -2,18 +2,24 @@
     05/11/2026), shown instead of the grid when its tab is picked: a dark
     band per day (today in blue), a hatched one for the days skipped
     without turno, a light one per turno with its hours and load, the
-    pedido's piece inside it; the ones without previsão at the end. Only to
-    see: reordering comes with the programação (3/4).
+    pedido's piece inside it; the ones without previsão at the end. Painel
+    3/4a: ↑ ↓ move a stage (the impact window first), the header counts the
+    moved ones and takes them all back to the arrival order.
     locals: fila (FilaDeProducao), setor, nome, linhas ({ pedido id => LinhaDoPainel }) %>
 <% vezes = fila.do_setor(setor) %>
 <% previstas = vezes.select(&:fim) %>
+<% limite = previstas.count(&:iniciada?) + 1 %>
+<% movidas = vezes.count(&:movimento) %>
 <% agora = fila.agora %>
 <section class="painel-fila" data-fila-setor="<%= setor %>" hidden>
   <div class="painel-fila-resumo">
     <strong>Fila da <%= nome %></strong>
     <span><%= pluralize(previstas.size, "pedido", plural: "pedidos") %> · <%= horas_da_fila(previstas.sum(&:horas)) %></span>
     <% if previstas.any? %><span>a fila termina <b><%= momento_da_fila(previstas.last.fim) %></b></span><% end %>
-    <span>ordem: chegada</span>
+    <span>ordem: chegada<%= " · #{pluralize(movidas, "movida", plural: "movidas")}" if movidas.positive? %></span>
+    <% if movidas.positive? && pode_acao?(:programar_producao) %>
+      <%= link_to "voltar tudo à ordem de chegada", impacto_na_fila_path(setor: setor), class: "painel-fila-voltar", data: { turbo_frame: "painel_impacto" } %>
+    <% end %>
   </div>
   <div class="painel-fila-quadro">
     <div class="painel-fila-l painel-fila-cab"><div>#</div><div>Pedido</div><div>O que fazer</div><div>Quantidade</div><div>Horário</div><div>Prazo</div><div>Situação</div></div>
@@ -40,7 +46,7 @@
             <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga >= 95 %>" style="width: <%= carga %>%"></i></span></span>
         </div>
         <% turno.pecas.each do |vez, trecho| %>
-          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id] %>
+          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size %>
         <% end %>
       <% end %>
     <% end %>
@@ -48,7 +54,7 @@
     <% if sem.any? %>
       <div class="painel-fila-sem-previsao"><b>Sem previsão</b><span>algo impede entrar na fila</span></div>
       <% sem.each do |vez| %>
-        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id] %>
+        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size %>
       <% end %>
     <% end %>
     <% if vezes.empty? %><p class="painel-fila-vazia">Nenhum pedido na fila da <%= nome %>.</p><% end %>

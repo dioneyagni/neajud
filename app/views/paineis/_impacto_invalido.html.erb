@@ -1,0 +1,7 @@
+<%# A move that can't be (the stage started, left the queue meanwhile). locals: erro %>
+<turbo-frame id="painel_impacto">
+  <div class="painel-impacto">
+    <p class="painel-impacto-erro" role="alert"><%= erro %></p>
+    <div class="painel-impacto-acoes"><button type="button" class="painel-impacto-cancelar" data-action="painel#fecharImpacto">Fechar</button></div>
+  </div>
+</turbo-frame>

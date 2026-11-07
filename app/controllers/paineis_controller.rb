@@ -16,6 +16,8 @@ class PaineisController < ApplicationController
     @de = inicio_da_janela
     @ordem = LinhaDoTempo::ORDENS.include?(params[:ordem]) ? params[:ordem] : "chegada"
     @painel = PainelDeProducao.call(visiveis(Pedido), entregues: @entregues, cliente_final: cliente_final?, janela: @de..(@de + LinhaDoTempo::DIAS - 1))
+    # Painel 3/4a: each row's "Histórico da programação", read at once (the team's only).
+    @historicos = visiveis(MovimentoDaFila).por_pedido(@painel.linhas.flat_map(&:com_reposicoes).map { |linha| linha.pedido.id })
     # Painel 2/4a: the turno on now, in the header (none for a cliente final).
     @calendario = CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
   end
