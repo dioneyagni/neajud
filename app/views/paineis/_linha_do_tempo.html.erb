@@ -1,0 +1,99 @@
+<%# The Linha do tempo (Painel 2/4c, the prototype approved on 05/11/2026):
+    14 days, each pedido a bar to its previsão, the deadline's ◆, the line
+    of now, the days without turno hatched, the groups, and each sector's
+    load below (none for a cliente final, Q4a). In a frame: ‹ › and the
+    order change only it, the address following (Q3a, Q6a); the filters,
+    the sector and the counters stay in the page.
+    locals: painel (PainelDeProducao::Painel), de, ordem %>
+<% setores = painel.colunas.slice(*LinhaDoTempo::SETORES) %>
+<% tempo = LinhaDoTempo.call(painel.linhas, fila: painel.fila, de: de, entregues: painel.entregues_na_janela, calendario: painel.calendario,
+                             ordem: ordem, cliente_final: cliente_final?, setores: setores.keys) %>
+<% blocos = painel.blocos.flat_map { |bloco| bloco.linhas.map { |linha| [ linha.pedido.id, bloco.chave ] } }.to_h %>
+<turbo-frame id="painel_tempo" data-turbo-action="advance">
+  <div class="painel-tempo" data-painel-tempo-de="<%= de.iso8601 %>">
+    <div class="painel-tempo-nav">
+      <div class="painel-tempo-passos">
+        <%= link_to "‹ 2 semanas", painel_no_tempo(de: de - LinhaDoTempo::DIAS, ordem: ordem), class: "painel-tempo-passo", aria: { label: "Duas semanas antes" } %>
+        <% if de == LinhaDoTempo.inicio_padrao %>
+          <span class="painel-tempo-passo painel-tempo-passo--hoje" aria-disabled="true">Hoje</span>
+        <% else %>
+          <%= link_to "Hoje", painel_no_tempo(de: LinhaDoTempo.inicio_padrao, ordem: ordem), class: "painel-tempo-passo" %>
+        <% end %>
+        <%= link_to "2 semanas ›", painel_no_tempo(de: de + LinhaDoTempo::DIAS, ordem: ordem), class: "painel-tempo-passo", aria: { label: "Duas semanas depois" } %>
+        <span class="painel-tempo-periodo" data-tempo-periodo><%= periodo_da_janela(tempo) %></span>
+      </div>
+      <%= form_with url: painel_path, method: :get, class: "painel-tempo-ordem", data: { painel_target: "ordem" } do %>
+        <%= hidden_field_tag :visao, "tempo", id: nil %>
+        <%= hidden_field_tag :de, de.iso8601, id: nil %>
+        <% if params[:entregues] %><%= hidden_field_tag :entregues, params[:entregues], id: nil %><% end %>
+        <label>Ordem
+          <%= select_tag :ordem, options_for_select({ "chegada (a fila)" => "chegada", "previsão" => "previsao", "prazo" => "prazo" }, ordem),
+                         id: nil, data: { action: "painel#ordenar" } %>
+        </label>
+      <% end %>
+    </div>
+
+    <% if tempo.no_passado? %>
+      <p class="painel-tempo-aviso" data-tempo-passado>Passado: só o registro — quando cada pedido começou e foi entregue. A previsão vale do agora em diante.</p>
+    <% end %>
+
+    <div class="painel-legenda" aria-label="Legenda da linha do tempo">
+      <span><i class="painel-leg painel-tempo-seg--feito"></i>feito até agora</span>
+      <span><i class="painel-leg painel-tempo-seg--previsto"></i>previsto (pela fila)</span>
+      <span><i class="painel-leg painel-tempo-seg--atraso"></i>depois do prazo</span>
+      <span>◆ prazo</span>
+      <span><i class="painel-leg painel-tempo-seg--espera"></i>sem previsão</span>
+      <span><i class="painel-leg painel-tempo-seg--entregue"></i>entregue</span>
+      <span><i class="painel-leg painel-tempo-folga"></i>sem turno</span>
+    </div>
+
+    <div class="painel-tempo-quadro">
+      <div class="painel-tempo-grade" data-painel-target="gradeTempo">
+        <div class="painel-tempo-fundo" aria-hidden="true">
+          <% tempo.dias.each_with_index do |dia, i| %>
+            <i class="painel-tempo-col<%= " painel-tempo-folga" if dia.sem_turno %><%= " painel-tempo-col--hoje" if dia.hoje %>" style="left: <%= (i * 100.0 / LinhaDoTempo::DIAS).round(3) %>%"></i>
+          <% end %>
+          <% if (agora = tempo.agora_em) %><i class="painel-tempo-agora" style="left: <%= agora %>%" data-tempo-agora></i><% end %>
+        </div>
+        <div class="painel-tempo-linha painel-tempo-cab">
+          <div class="painel-tempo-lado">Pedido</div>
+          <div class="painel-tempo-dias">
+            <% tempo.dias.each do |dia| %>
+              <div class="painel-tempo-dia<%= " painel-tempo-dia--hoje" if dia.hoje %>" data-tempo-dia="<%= dia.data.iso8601 %>">
+                <b><%= dia.data.strftime("%d") %></b><span><%= Turno.dia_com_semana(dia.data).split.first %><%= " · hoje" if dia.hoje %><%= " · sem turno" if dia.sem_turno %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <% tempo.grupos.each do |grupo| %>
+          <section class="painel-tempo-grupo" data-tempo-grupo="<%= grupo.chave %>">
+            <div class="painel-tempo-grupo-cab"><span class="painel-bloco-nome painel-bloco-nome--<%= grupo.chave == "em_producao" ? "agora" : grupo.chave %>"><%= grupo.nome %></span></div>
+            <div class="painel-tempo-pedidos">
+              <% grupo.barras.each do |barra| %>
+                <%= render "paineis/barra_no_tempo", barra: barra, bloco: blocos.fetch(barra.linha.pedido.id, "entregues"), fila: painel.fila %>
+              <% end %>
+            </div>
+            <p class="painel-vazio"><%= tempo.depois_da_fila? ? "A fila termina antes deste período." : "Nenhum pedido neste período." %></p>
+          </section>
+        <% end %>
+
+        <% if tempo.cargas.any? %>
+          <section class="painel-tempo-grupo painel-tempo-cargas" data-tempo-cargas>
+            <div class="painel-tempo-grupo-cab"><span class="painel-bloco-nome">Carga por etapa</span> <small>% das horas de turno ocupadas pela fila</small></div>
+            <% tempo.cargas.each do |carga| %>
+              <div class="painel-tempo-linha" data-tempo-carga="<%= carga.setor %>">
+                <div class="painel-tempo-lado"><%= setores.fetch(carga.setor) %></div>
+                <div class="painel-tempo-dias">
+                  <% carga.celulas.each do |celula| %>
+                    <div class="painel-tempo-carga painel-tempo-carga--<%= celula.estado %>" title="<%= dica_da_carga(setores.fetch(carga.setor), celula) %>"><%= texto_da_carga(celula) %></div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </section>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</turbo-frame>

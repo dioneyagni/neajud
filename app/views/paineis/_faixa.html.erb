@@ -1,6 +1,7 @@
 <%# What opens below a pedido (Q3a): % done, start, deadline, the previsão
     (Painel 2/4b), the path of its stages with each one's time in the queue,
-    what holds it, links. locals: linha %>
+    its own timeline (Painel 2/4c, Q5a), what holds it, links. The same in
+    both views. locals: linha, fila (FilaDeProducao) %>
 <% pedido = linha.pedido %>
 <% vezes = linha.previsao ? linha.previsao.vezes.index_by { |vez| vez.etapa.chave } : {} %>
 <div class="painel-faixa-num">
@@ -32,6 +33,7 @@
   <% entrega = linha.celulas["entrega"] %>
   <span class="painel-no painel-cel--<%= entrega.estado %>"><strong>Entrega</strong> <%= entrega.texto %></span>
 </div>
+<%= render "paineis/tempo_do_pedido", tempo: TempoDoPedido.call(linha, fila: fila, cliente_final: cliente_final?), linha: linha %>
 <div class="painel-faixa-info">
   <div class="painel-caixa">
     <h4>Trava</h4>

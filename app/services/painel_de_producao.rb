@@ -11,6 +11,11 @@
 # original or delivered, it is a row of its own. One still gathering pieces
 # (rascunho) is not a row: the original says how many it holds.
 #
+# The Linha do tempo (Painel 2/4c) also gets the pedidos delivered inside
+# its window (janela), apart from the blocks: only the record — when it
+# started and was delivered —, so their stages are not read (measured on
+# 07/11/2026: 4 delivered pedidos' lines took 250 ms).
+#
 # Usage: painel = PainelDeProducao.call(visiveis(Pedido))
 #        painel.blocos.map { |b| [ b.chave, b.linhas.size ] } # => [["agora", 2], ["amanha", 8], …]
 #        painel.fila.do_setor("corte")
@@ -18,16 +23,17 @@ class PainelDeProducao
   ABERTOS = %w[rascunho enviado confirmado em_producao].freeze
   DIAS_DOS_ENTREGUES = 7
 
-  Painel = Struct.new(:blocos, :colunas, :fila, keyword_init: true) do
+  Painel = Struct.new(:blocos, :colunas, :fila, :entregues_na_janela, :calendario, keyword_init: true) do
     def linhas
       blocos.flat_map(&:linhas)
     end
   end
 
   # pedidos: the scope this person sees (visiveis(Pedido)). The queue reads
-  # the whole factory, its calendar too (FilaDeProducao).
-  def self.call(pedidos, entregues: false, cliente_final: false, agora: Time.current, calendario: CalendarioDeProducao.new)
-    new(pedidos, entregues, cliente_final, agora, calendario).call
+  # the whole factory, its calendar too (FilaDeProducao). janela: the
+  # Linha do tempo's days (a Range of dates), nil for none.
+  def self.call(pedidos, entregues: false, cliente_final: false, agora: Time.current, calendario: CalendarioDeProducao.new, janela: nil)
+    new(pedidos, entregues, cliente_final, agora, calendario, janela).call
   end
 
   # The pedidos the Painel shows, out of the visible ones.
@@ -38,9 +44,10 @@ class PainelDeProducao
     abertos.includes(:client, :reposicao_de, :itens_reposicao, itens_pedido: :arte)
   end
 
-  def initialize(pedidos, entregues, cliente_final, agora, calendario)
+  def initialize(pedidos, entregues, cliente_final, agora, calendario, janela = nil)
     @visiveis = pedidos
     @pedidos = self.class.do_painel(pedidos, entregues).to_a
+    @na_janela = janela ? entregues_em(janela) : []
     @entregues = entregues
     @cliente_final = cliente_final
     @agora = agora
@@ -50,7 +57,7 @@ class PainelDeProducao
   def call
     linhas = montar_linhas
     blocos = BlocosNoTempo.call(linhas, agora: @agora, cliente_final: @cliente_final, entregues: @entregues)
-    Painel.new(blocos: blocos, colunas: colunas_usadas(linhas), fila: @fila)
+    Painel.new(blocos: blocos, colunas: colunas_usadas(linhas), fila: @fila, entregues_na_janela: linhas_na_janela, calendario: @calendario)
   end
 
   private
@@ -64,6 +71,16 @@ class PainelDeProducao
     @juntando = pecas_juntando
     @filhas = @pedidos.select { |p| aninhada?(p) }.group_by(&:reposicao_de_id)
     @pedidos.reject { |p| aninhada?(p) }.map { |p| linha_com_reposicoes(p) }
+  end
+
+  # The ones delivered inside the window, each a row of its own.
+  def entregues_em(janela)
+    de, ate = janela.begin.in_time_zone, (janela.end + 1).in_time_zone
+    @visiveis.ativos.where(status: "entregue", entregue_em: de...ate).includes(:client, :reposicao_de, :itens_reposicao, itens_pedido: :arte).to_a
+  end
+
+  def linhas_na_janela
+    @na_janela.map { |pedido| LinhaDoPainel.call(pedido, aguardando: @aguardando, estados: {}, cliente_final: @cliente_final) }
   end
 
   # Every pedido past the draft, its baixas in one query.

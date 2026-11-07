@@ -66,6 +66,46 @@ RSpec.describe "Painel", type: :request do
     expect(Nokogiri::HTML(response.body).css(".painel-linha--item [data-coluna=impressao]").map { |c| c["data-estado"] }).to eq(%w[pode_comecar pode_comecar])
   end
 
+  # Painel 2/4c (Q3a, Q6a): the second view, its window and order in the address.
+  describe "the Linha do tempo" do
+    def pagina(params = {})
+      get painel_path(params)
+      Nokogiri::HTML(response.body)
+    end
+
+    it "shows the view asked for, each pedido a bar, and each sector's load" do
+      turno_o_dia_todo
+      ritmos_do_calcado
+      pedido = pedido_calcado_confirmado
+      html = pagina(visao: "tempo")
+
+      expect([ html.css("[data-painel-target=etapas]").sole.key?("hidden"), html.css("[data-painel-target=tempo]").sole.key?("hidden") ]).to eq([ true, false ])
+      barra = html.css("[data-tempo-grupo=em_producao] #tempo_#{pedido.uuid}").sole
+      expect([ barra["data-bloco"], barra.css("[data-tempo-seg]").map { |s| s["data-tempo-seg"] } ]).to eq([ "agora", %w[feito previsto] ])
+      expect(barra.css(".painel-faixa .painel-tdp [data-tdp-raia]").map { |r| r["data-tdp-raia"] }).to eq(%w[impressao corte estamparia conferencia])
+      expect(html.css("[data-tempo-carga]").map { |c| c["data-tempo-carga"] }).to eq(%w[impressao corte estamparia conferencia])
+      expect(html.css("[data-tempo-dia]").size).to eq(14)
+    end
+
+    it "opens the window and order of the address; a date that isn't one goes back to the default" do
+      html = pagina(visao: "tempo", de: "2026-10-01", ordem: "prazo")
+      expect([ html.css("[data-tempo-dia]").first["data-tempo-dia"], html.css("select[name=ordem] option[selected]").sole["value"] ]).to eq([ "2026-10-01", "prazo" ])
+      expect(html.css("[data-tempo-passado]")).to be_present
+
+      html = pagina(visao: "tempo", de: "ontem", ordem: "qualquer")
+      expect([ html.css("[data-tempo-dia]").first["data-tempo-dia"], html.css("select[name=ordem] option[selected]").sole["value"] ]).to eq([ (Date.current - 2).iso8601, "chegada" ])
+      expect(pagina.css("[data-painel-target=tempo]").sole.key?("hidden")).to be(true)
+    end
+
+    # Its record: a delivered pedido inside the window, linked to its resumo
+    # (its stages are not read, so it has no faixa).
+    it "shows the delivered inside the window, linked to its resumo" do
+      entregue = pedido_calcado_confirmado.tap { |p| p.update_columns(status: "entregue", entregue_em: 1.day.ago) }
+      barra = pagina(visao: "tempo").css("[data-tempo-grupo=entregues] #tempo_#{entregue.uuid}").sole
+      expect([ barra.css("a.painel-tempo-resumo").sole["href"], barra.css(".painel-faixa").size ]).to eq([ resumo_pedido_path(entregue), 0 ])
+    end
+  end
+
   describe "a cliente final" do
     it "sees only his client's pedidos and none of the other's rows" do
       meu = pedido_calcado_confirmado
@@ -93,6 +133,10 @@ RSpec.describe "Painel", type: :request do
       expect(pagina.css(".painel-bloco-pedidos[data-bloco=hoje] > .painel-pedido").map { |p| p["data-uuid"] }).to eq([ meu.uuid ])
       expect(pagina.css("#painel_#{meu.uuid} [data-previsao]").text).to eq("hoje")
       expect(pagina.css(".painel-setores, [data-fila-setor], [data-painel-agora]")).to be_empty
+      # Q4a: his pedidos' bars, by day; the factory's load is not his.
+      expect(pagina.css("[data-tempo-grupo] .painel-tempo-pedido").map { |p| p["data-uuid"] }).to eq([ meu.uuid ])
+      expect(pagina.css("[data-tempo-cargas]")).to be_empty
+      expect(pagina.css("#tempo_#{meu.uuid} .painel-tdp [data-tdp-coluna] span")).to be_empty
     end
   end
 

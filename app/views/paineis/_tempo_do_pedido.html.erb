@@ -1,0 +1,37 @@
+<%# The faixa's timeline of one pedido (Painel 2/4c, Q5a): a lane per stage,
+    a column per turno (a day for a cliente final), the stage's share of
+    each turno filled; now outlined, the turnos past the deadline hatched.
+    Nothing when nothing is ahead in the queue.
+    locals: tempo (TempoDoPedido or nil), linha %>
+<% if tempo %>
+  <div class="painel-tdp" role="group" aria-label="Linha do tempo do pedido">
+    <div class="painel-tdp-topo">
+      <strong>Linha do tempo do pedido</strong>
+      <% if linha.prazo %><span>prazo <%= dia_com_semana(linha.prazo) %></span><% end %>
+      <% if tempo.restantes.positive? %><span>+ <%= pluralize(tempo.restantes, "turno", plural: "turnos") %> depois</span><% end %>
+    </div>
+    <div class="painel-tdp-rolagem">
+      <div class="painel-tdp-grade" style="--tdp-colunas: <%= tempo.colunas.size %>">
+        <div class="painel-tdp-nome"></div>
+        <% tempo.colunas.each do |coluna| %>
+          <div class="painel-tdp-col<%= " painel-tdp-col--agora" if coluna.agora %><%= " painel-tdp-col--prazo" if coluna.depois_do_prazo %>" data-tdp-coluna>
+            <b><%= dia_com_semana(coluna.data) %></b><% if coluna.nome %><span><%= coluna.nome %></span><% end %>
+          </div>
+        <% end %>
+        <% tempo.raias.each do |raia| %>
+          <div class="painel-tdp-nome" data-tdp-raia="<%= raia.etapa.chave %>" data-estado="<%= raia.estado %>"><%= raia.etapa.nome %></div>
+          <% if raia.celulas.empty? %>
+            <div class="painel-tdp-nota painel-tdp-nota--<%= raia.estado %>" style="grid-column: span <%= tempo.colunas.size %>">
+              <%= raia.estado == :feita ? "✓ feita" : motivo_da_vez(raia.vez) %></div>
+          <% else %>
+            <% raia.celulas.each_with_index do |parte, i| %>
+              <div class="painel-tdp-cel<%= " painel-tdp-col--agora" if tempo.colunas[i].agora %><%= " painel-tdp-col--prazo" if tempo.colunas[i].depois_do_prazo %>">
+                <% if parte %><i class="painel-tdp-parte painel-tdp-parte--<%= raia.estado %>" style="width: <%= (parte * 100).round %>%"></i><% end %>
+              </div>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

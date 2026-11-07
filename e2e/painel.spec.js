@@ -8,6 +8,8 @@
 // slow Calandra makes it "vão atrasar", a past delivery date late. On a phone
 // the pedido column stays while the stages scroll. The turnos come from
 // parametros-producao, run before; alone, this spec registers a 24 h one.
+// Painel 2/4c: the Linha do tempo keeps the filter and the sector, moves its
+// window in a frame, opens the same faixa, and refreshes by itself too.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -233,6 +235,86 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     await page.locator(".painel-cont[data-filtro='atrasado']").click();
   });
 
+  // Painel 2/4c: the Linha do tempo, the second view (Q3a–Q7a).
+  function barra() {
+    return page.locator(`#tempo_${ids.pedido}`);
+  }
+
+  await test("The Linha do tempo keeps the filter: the late pedido is a bar done up to now, then past its deadline; the address says the view", async () => {
+    await page.selectOption("[data-painel-target=tipo]", "tecido");
+    await page.locator(".painel-visao[data-visao='tempo']").click();
+    await barra().waitFor();
+    if (!new URL(page.url()).searchParams.get("visao")) throw new Error(`The address doesn't keep the view: ${page.url()}`);
+    if (await page.locator(".painel-quadro").isVisible()) throw new Error("The grid shows with the Linha do tempo");
+    if ((await page.locator("[data-painel-target=tipo]").inputValue()) !== "tecido") throw new Error("The filter was lost");
+    const segs = await barra().locator("[data-tempo-seg]").evaluateAll((ss) => ss.map((s) => s.dataset.tempoSeg).join(","));
+    // Its deadline (10/01) passed: from now on, all of it is late.
+    if (segs !== "feito,atraso") throw new Error(`Its bar: ${segs}`);
+    const rotulo = (await barra().locator("[data-tempo-rotulo]").innerText()).trim();
+    if (!/^\S{3} \d\d\/\d\d · atrasa \d+ dias?$/.test(rotulo)) throw new Error(`Its bar ends saying "${rotulo}"`);
+    if ((await page.locator("[data-tempo-dia]").count()) !== 14) throw new Error("Not 14 days");
+    await page.selectOption("[data-painel-target=tipo]", "calcado");
+    await barra().waitFor({ state: "hidden" });
+    await page.selectOption("[data-painel-target=tipo]", "tecido");
+    await barra().waitFor();
+  });
+
+  await test("‹ › and Hoje move the window in its frame, the address following; the order goes to the address too, the filter stays", async () => {
+    const antes = await page.locator("[data-tempo-periodo]").innerText();
+    await page.evaluate(() => { window.semRecarregar = true });
+    await page.getByRole("link", { name: "Duas semanas depois" }).click();
+    await page.waitForURL(/de=/);
+    await page.waitForFunction((antes) => document.querySelector("[data-tempo-periodo]").innerText !== antes, antes);
+    if (!(await page.evaluate(() => window.semRecarregar))) throw new Error("The page reloaded");
+    if ((await page.locator("[data-painel-target=tipo]").inputValue()) !== "tecido") throw new Error("The filter was lost");
+    await page.getByRole("link", { name: "Hoje" }).click();
+    await page.waitForFunction((antes) => document.querySelector("[data-tempo-periodo]").innerText === antes, antes);
+    await page.selectOption("select[name=ordem]", "prazo");
+    await page.waitForURL(/ordem=prazo/);
+    if (!new URL(page.url()).searchParams.get("visao")) throw new Error("The order lost the view");
+  });
+
+  await test("Its bar opens the same faixa, with the pedido's own timeline; the Estamparia tab keeps only its load", async () => {
+    await barra().locator(".painel-ped-btn").click();
+    await barra().locator(".painel-faixa").waitFor();
+    const raias = await barra().locator(".painel-tdp [data-tdp-raia]").evaluateAll((rs) => rs.map((r) => `${r.dataset.tdpRaia}:${r.dataset.estado}`).join(","));
+    if (raias !== "impressao:feita,calandra:prevista") throw new Error(`Its timeline: ${raias}`);
+    if (!(await barra().locator(".painel-tdp-parte").count())) throw new Error("The Calandra fills no turno");
+    await page.locator(".painel-setor[data-setor='estamparia']").click();
+    const cargas = await page.locator("[data-tempo-carga]:not([hidden])").evaluateAll((cs) => cs.map((c) => c.dataset.tempoCarga).join(","));
+    if (cargas !== "estamparia") throw new Error(`The loads shown: ${cargas}`);
+    if (await barra().isHidden()) throw new Error("In the Estamparia's queue, yet hidden");
+    // Printed: it no longer goes through the Impressão.
+    await page.locator(".painel-setor[data-setor='impressao']").click();
+    await barra().waitFor({ state: "hidden" });
+    await page.locator(".painel-setor[data-setor='']").click();
+    await barra().waitFor();
+  });
+
+  // Q5a: a refresh keeps the view, the window (and order) and the opened faixa.
+  await test("A baixa given elsewhere refreshes the Linha do tempo by itself, keeping the view, the window and the faixa", async () => {
+    const endereco = page.url();
+    if (!/de=.*ordem=prazo|ordem=prazo.*de=/.test(endereco)) throw new Error(`Not on a window of the address: ${endereco}`);
+    await barra().locator(".painel-ped-btn").click();
+    await barra().locator(".painel-faixa").waitFor();
+    await page.evaluate(() => { window.semRecarregar = true });
+    const outra = await page.context().newPage();
+    await outra.goto(`${BASE_URL}/pedidos/${ids.pedido}/resumo`);
+    await Promise.all([
+      page.waitForResponse((r) => new URL(r.url()).pathname === "/painel" && r.request().method() === "GET"),
+      postar(`/pedidos/${ids.pedido}/baixas`, { etapa: "calandra", nivel: "pedido", medida: "23,5", confirmar: "1" }, outra),
+    ]);
+    await outra.close();
+    // Done: only the delivery is left, the bar ends now.
+    await barra().locator("[data-tempo-rotulo]", { hasText: "pronto p/ entregar" }).waitFor();
+    if (!(await page.evaluate(() => window.semRecarregar))) throw new Error("The page reloaded");
+    if (page.url() !== endereco || (await page.locator("[data-painel-target=tempo]").isHidden())) throw new Error(`The view or the window was lost: ${page.url()}`);
+    if (await barra().locator(".painel-faixa").isHidden()) throw new Error("The faixa closed");
+    await page.selectOption("[data-painel-target=tipo]", "");
+    await page.locator(".painel-visao[data-visao='etapas']").click();
+    if (new URL(page.url()).searchParams.get("visao")) throw new Error("Back on Etapas, the address still says the Linha do tempo");
+  });
+
   await test("On a phone the pedido column stays while the stages scroll; the page itself doesn't", async () => {
     await page.setViewportSize({ width: 400, height: 800 });
     await page.goto(`${BASE_URL}/painel`);
@@ -242,6 +324,10 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     await page.locator(".painel-quadro").evaluate((q) => { q.scrollLeft = 300 });
     const depois = await pedido().locator(".painel-ped").boundingBox();
     if (Math.round(antes.x) !== Math.round(depois.x)) throw new Error(`The pedido column moved from ${antes.x} to ${depois.x}`);
+    await page.goto(`${BASE_URL}/painel?visao=tempo`);
+    await barra().waitFor();
+    const noTempo = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (noTempo > 400) throw new Error(`The Linha do tempo scrolls the page sideways (${noTempo}px)`);
     await page.setViewportSize({ width: 1280, height: 720 });
     fs.rmSync(pasta, { recursive: true, force: true });
   });

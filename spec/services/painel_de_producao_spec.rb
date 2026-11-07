@@ -45,6 +45,19 @@ RSpec.describe PainelDeProducao do
     expect(blocos(described_class.call(Pedido.all, entregues: true))["entregues"]).to eq([ entregue.id ])
   end
 
+  # Painel 2/4c: the Linha do tempo's record, apart from the blocks; their
+  # stages are not read (only when it started and was delivered).
+  it "brings the pedidos delivered inside the Linha do tempo's window, of the scope given" do
+    meu = create(:pedido, status: "entregue", entregue_em: Time.zone.parse("2026-10-20 15:00"))
+    create(:pedido, status: "entregue", entregue_em: Time.zone.parse("2026-10-20 15:00"))
+    create(:pedido, status: "entregue", entregue_em: Time.zone.parse("2026-11-03 00:00"))
+    janela = Date.new(2026, 10, 20)..Date.new(2026, 11, 2)
+
+    painel = described_class.call(Pedido.where(id: [ meu.id ] + Pedido.where(entregue_em: Time.zone.parse("2026-11-03 00:00")).ids), janela: janela)
+    expect(painel.entregues_na_janela.map { |l| [ l.pedido.id, l.estados ] }).to eq([ [ meu.id, {} ] ])
+    expect(described_class.call(Pedido.all).entregues_na_janela).to eq([])
+  end
+
   it "shows only the pedidos of the scope given (visiveis)" do
     meu = pedido_calcado_confirmado
     pedido_calcado_confirmado

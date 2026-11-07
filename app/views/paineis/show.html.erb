@@ -4,11 +4,13 @@
     (_fila_do_setor, as in the Fila A mockup). It refreshes itself when the
     queue changes or a turno turns, keeping what was open (Q5a). Filters,
     sectors and counters run in the page (painel_controller.js). A cliente
-    final sees days only: no sectors, queue or turnos (Q4a). %>
+    final sees days only: no sectors, queue or turnos (Q4a). Painel 2/4c:
+    the Linha do tempo, the second view, switched in the page (the address
+    keeps it), its window in a frame of its own (_linha_do_tempo). %>
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
 <% setores = cliente_final? ? {} : @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
 <% linhas_por_pedido = @painel.linhas.flat_map(&:com_reposicoes).index_by { |linha| linha.pedido.id } %>
-<div class="painel" id="painel" data-controller="painel"
+<div class="painel" id="painel" data-controller="painel" data-painel-visao-value="<%= @visao %>"
      data-painel-itens-url-value="<%= itens_do_painel_path("UUID") %>"
      data-painel-colunas-value="<%= @painel.colunas.keys.to_json %>"
      data-painel-virada-value="<%= proxima_virada(@painel.fila) %>">
@@ -17,6 +19,10 @@
   <div class="painel-topo">
     <div class="painel-titulo">
       <h2>Painel</h2>
+      <div class="painel-visoes" role="group" aria-label="Visão">
+        <button type="button" class="painel-visao" data-action="painel#trocarVisao" data-visao="etapas" aria-pressed="<%= @visao == "etapas" %>">Etapas</button>
+        <button type="button" class="painel-visao" data-action="painel#trocarVisao" data-visao="tempo" aria-pressed="<%= @visao == "tempo" %>">Linha do tempo</button>
+      </div>
       <% if (agora = agora_no_painel(@calendario)) %><span class="painel-agora" data-painel-agora><%= agora %></span><% end %>
     </div>
     <div class="painel-contadores" role="group" aria-label="Contadores">
@@ -59,9 +65,11 @@
       </select>
     </label>
     <label><input type="checkbox" data-painel-target="pendencia" data-action="painel#filtrar"> só com pendência</label>
-    <%= link_to(@entregues ? "Ocultar entregues" : "Mostrar entregues (7 dias)", painel_path(entregues: (@entregues ? nil : 1)), class: "painel-entregues-link") %>
+    <%= link_to(@entregues ? "Ocultar entregues" : "Mostrar entregues (7 dias)", painel_path(request.query_parameters.merge("entregues" => (@entregues ? nil : 1)).compact),
+                class: "painel-entregues-link", data: { painel_target: "comVisao" }) %>
   </div>
 
+  <div data-painel-target="etapas"<%= " hidden" if @visao == "tempo" %>>
   <div class="painel-legenda" aria-label="Legenda">
     <% { feita: "feita", andamento: "em andamento", pode_comecar: "pode começar", travada: "travada", pendencia: "pendência", ainda_nao: "ainda não" }.each do |estado, rotulo| %>
       <span><i class="painel-leg painel-cel--<%= estado %>"></i><%= rotulo %></span>
@@ -80,7 +88,7 @@
           <div class="painel-bloco-cab"><span class="painel-bloco-nome painel-bloco-nome--<%= bloco.chave.split(":").first %>"><%= bloco.nome %></span></div>
           <div class="painel-bloco-pedidos" data-painel-target="bloco" data-bloco="<%= bloco.chave %>">
             <% bloco.linhas.each do |linha| %>
-              <%= render "paineis/pedido", linha: linha, colunas: @painel.colunas, bloco: bloco.chave %>
+              <%= render "paineis/pedido", linha: linha, colunas: @painel.colunas, bloco: bloco.chave, fila: @painel.fila %>
             <% end %>
           </div>
           <p class="painel-vazio">Nenhum pedido.</p>
@@ -92,4 +100,9 @@
   <% setores.except("entrega").each do |chave, nome| %>
     <%= render "paineis/fila_do_setor", fila: @painel.fila, setor: chave, nome: nome, linhas: linhas_por_pedido %>
   <% end %>
+  </div>
+
+  <div data-painel-target="tempo"<%= " hidden" if @visao == "etapas" %>>
+    <%= render "paineis/linha_do_tempo", painel: @painel, de: @de, ordem: @ordem %>
+  </div>
 </div>
