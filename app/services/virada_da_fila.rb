@@ -51,24 +51,30 @@ class ViradaDaFila
   end
 
   # The stages the photo before had end in its turno, still open now — the
-  # pedido's own first, then the ones ahead of it in their sector's queue
-  # (the ones that held it): those tell it most. 3/4b2: the whole uuid
-  # ("quem cruzou" marks that pedido's row) and a_frente — only the ones
-  # ahead pushed it; the others merely didn't end either.
+  # pedido's own first, then the ones ahead of it in their sector's queue,
+  # the nearest first (the ones that held it: with a long queue behind, the
+  # first 10 of the whole queue would leave them out — CI, #197), then the
+  # others. 3/4b2: the whole uuid ("quem cruzou" marks that pedido's row)
+  # and a_frente — only the ones ahead pushed it; one behind merely didn't
+  # end either.
   def nao_terminaram_para(pedido)
     lugares = @anterior.vezes.select { |linha| linha.pedido_id == pedido.id && linha.posicao }.group_by(&:setor).transform_values { |l| l.map(&:posicao).max }
-    entradas = nao_terminaram.map { |linha, vez| [ vez, linha.pedido_id != pedido.id && a_frente?(linha, lugares) ] }
+    entradas = nao_terminaram.map { |linha, vez| [ vez, linha.pedido_id == pedido.id ? nil : distancia(linha, lugares) ] }
     proprias, outras = entradas.partition { |vez, _| vez.pedido.id == pedido.id }
-    # partition, not sort_by: Ruby's sort isn't stable, and the stages ahead
-    # would come out of the queue's order (CI, #197).
-    (proprias + outras.partition { |_, frente| frente }.flatten(1)).first(NAO_TERMINARAM).map do |vez, frente|
-      { "pedido" => vez.pedido.uuid, "etapa" => vez.etapa.nome, "veio_de" => @anterior.turno_nome, "a_frente" => frente }
+    frente, resto = outras.partition { |_, longe| longe }
+    # sort_by with the index: Ruby's sort isn't stable.
+    frente = frente.each_with_index.sort_by { |(_, longe), i| [ longe, i ] }.map(&:first)
+    (proprias + frente + resto).first(NAO_TERMINARAM).map do |vez, longe|
+      { "pedido" => vez.pedido.uuid, "etapa" => vez.etapa.nome, "veio_de" => @anterior.turno_nome, "a_frente" => !longe.nil? }
     end
   end
 
-  def a_frente?(linha, lugares)
+  # How many places ahead of the pedido in its sector's queue; nil when not ahead.
+  def distancia(linha, lugares)
     lugar = lugares[linha.setor]
-    lugar.present? && linha.posicao.present? && linha.posicao < lugar
+    return unless lugar && linha.posicao && linha.posicao < lugar
+
+    lugar - linha.posicao
   end
 
   # [VezDaFoto, the stage open now]
