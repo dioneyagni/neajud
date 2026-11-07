@@ -348,8 +348,31 @@ what had been programmed for the turno that just ended.
   (`e2e/support/fotos_da_virada.rb`, `bin/rails runner -e test`) — a spec
   can't wait for a turno to end.
 
-The faixa's dashed "was programmed", the arrows and "quem cruzou" come in
-3/4b2, drawn from these photos.
+## The faixa: what was programmed, and who crossed it (Painel 3/4b2)
+
+Decided 07/11/2026 (Q8a, Q9a in `docs/plano.md`). The team's only
+(`Visibilidade::DA_EQUIPE`); a cliente final's faixa stays as in 2/4c.
+
+- **The first plan** (`PlanoDaEtapa`, Q8a) — the first photo with a
+  previsão for a stage also keeps it apart: when it would end and its pieces
+  in the turnos, with the turno it came from. A later photo never replaces
+  it (a unique index). Photos go after 7 days; the plans stay until **7 days
+  after the delivery** (the Painel's delivered window), then are deleted
+  with the photos (derived data). A stage already in the queue when this
+  came in gets its plan at the next photo.
+- **The faixa's timeline** (`TempoDoPedido`) — the plan **dashed** in the
+  same cells ("era o programado"); the columns start at the plan's first
+  turno even when over (greyed; the last 8 of those); an **arrow** from the
+  turno it was to end in to the one it ends in now, "+2 turnos" (counted
+  over every turno, also the ones not drawn; to the left when earlier).
+- **"Mostrar quem cruzou"** (`CruzamentosDoPedido`, Q9a) — the pedidos that
+  pushed this one and the ones it pushed, each with the cause and the day:
+  by a ↑ (the moved pedido and its `empurrados`) and by a virada (the stages
+  of other pedidos **ahead of it** in their sector's queue that didn't end —
+  `a_frente` in `ViradaDoPedido.nao_terminaram`, which now keeps the whole
+  uuid; a stage behind merely didn't end either). The button marks those
+  pedidos' rows in orange, in both views; again, or closing the faixa,
+  unmarks them.
 
 ## Turnos, calendar and rhythm (Painel 2/4a)
 

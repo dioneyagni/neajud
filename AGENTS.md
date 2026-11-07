@@ -550,7 +550,8 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
   (`remover_parte`), removing a calendar exception (a setting about the
   future, Painel 2/4a), derived data rebuilt by reprocessing (tamanhos, cut
   layers), and the queue's photos past 7 days (`FotoDaFila`, Painel 3/4b —
-  the virada's record, `ViradaDoPedido`, stays).
+  the virada's record, `ViradaDoPedido`, stays) and each stage's first
+  plan 7 days after the delivery (`PlanoDaEtapa`, Painel 3/4b2).
 
 ## Guard: never run bin/e2e with the wrong RAILS_ENV
 

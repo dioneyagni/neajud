@@ -30,6 +30,32 @@ RSpec.describe ProgramacaoHelper, type: :helper do
     expect(helper.previsao_do_impacto(nil)).to eq("sem previsão")
   end
 
+  # 3/4b2 (Q9a): "quem cruzou", the other pedido's number a link.
+  it "says who crossed a pedido and why, by a move or a virada" do
+    m = movimento(motivo: "urgente", empurrados: [ { "pedido_id" => empurrado.id, "de" => Time.current.iso8601, "para" => 1.day.from_now.iso8601 } ])
+    virada = ViradaDoPedido.create!(pedido: empurrado, turno_nome: "Tarde", data: Date.current, turno_fim: 2.hours.from_now, de: Time.current,
+                                    nao_terminaram: [ { "pedido" => movido.uuid, "etapa" => "Impressão", "veio_de" => "Manhã", "a_frente" => true } ])
+    @cruzamentos = CruzamentosDoPedido.call([ movido, empurrado ], historicos: { movido.id => [ m ], empurrado.id => [ m, virada ] },
+                                            viradas: ViradaDoPedido.all, visiveis: Pedido.all)
+    numero = "##{movido.uuid.first(8)}"
+
+    expect(helper.cruzamentos_da_faixa(empurrado).map { |c| Nokogiri::HTML(helper.linha_do_cruzamento(c)).text })
+      .to eq([ "#{numero} empurrou este pedido · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
+               "#{numero} empurrou este pedido · 05/11 · não terminou a Impressão na Manhã" ])
+    outro = "##{empurrado.uuid.first(8)}"
+    expect(helper.cruzamentos_da_faixa(movido).map { |c| Nokogiri::HTML(helper.linha_do_cruzamento(c)).text })
+      .to eq([ "este pedido empurrou o #{outro} · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
+               "este pedido empurrou o #{outro} · 05/11 · a Impressão deste não terminou na Manhã" ])
+    expect(helper.linha_do_cruzamento(helper.cruzamentos_da_faixa(movido).first)).to include("href=\"/pedidos/#{empurrado.uuid}/resumo\"")
+  end
+
+  it "gives the faixa each stage's first plan, none when the Painel read none" do
+    expect(helper.planos_da_faixa(movido)).to eq({})
+    plano = PlanoDaEtapa.create!(pedido: movido, etapa: "impressao", setor: "impressao", turno_nome: "Manhã", data: Date.current)
+    @planos = { movido.id => [ plano ] }
+    expect(helper.planos_da_faixa(movido)).to eq("impressao" => plano)
+  end
+
   it "titles the window by the move" do
     vez = FilaDeProducao::Vez.new(pedido: movido, etapa: EtapasProducao.etapa("tecido", "impressao"))
     titulos = [ [ :posicao, 3, 1 ], [ :chegada, 1, 3 ] ].map { |tipo, de, para| helper.titulo_do_impacto(ImpactoDoMovimento::Impacto.new(tipo: tipo, vez: vez, de: de, para: para, setor: "impressao")) }

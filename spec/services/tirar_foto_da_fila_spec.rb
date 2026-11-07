@@ -56,6 +56,28 @@ RSpec.describe TirarFotoDaFila do
     expect(VezDaFoto.where(foto_da_fila_id: velha.id)).to be_empty
   end
 
+  # Q8a: the faixa's dashed line is each stage's first plan.
+  describe "the plan of each stage" do
+    it "keeps the first photo with a previsão, never a later one" do
+      foto(quarta)
+      foto(quinta)
+      plano = PlanoDaEtapa.find_by(pedido: terceiro, etapa: "impressao")
+
+      expect([ plano.turno_nome, plano.data, plano.setor, plano.fim ]).to eq([ "Manhã", quarta.to_date, "impressao", quarta + 3.hours ])
+      expect(plano.periodos).to eq([ [ quarta + 2.hours, quarta + 3.hours ] ])
+      expect(PlanoDaEtapa.count).to eq(6)
+    end
+
+    it "deletes them 7 days after the delivery, not before" do
+      foto(quarta)
+      primeiro.update_columns(status: "entregue", entregue_em: quinta - 8.days)
+      segundo.update_columns(status: "entregue", entregue_em: quinta - 6.days)
+      foto(quinta)
+
+      expect(PlanoDaEtapa.distinct.pluck(:pedido_id)).to contain_exactly(segundo.id, terceiro.id)
+    end
+  end
+
   describe "the virada" do
     before do
       primeiro.update!(prazo_entrega: quarta.to_date)
@@ -70,10 +92,14 @@ RSpec.describe TirarFotoDaFila do
 
       expect(viradas).to eq([ [ primeiro, "Manhã", quarta + 1.5.hours, quinta.to_date, true ], [ segundo, "Manhã", quarta + 2.5.hours, quinta.to_date, false ],
                               [ terceiro, "Manhã", quarta + 3.5.hours, quinta.to_date, false ] ])
-      expect(ViradaDoPedido.first.nao_terminaram.first).to eq("pedido" => primeiro.uuid.first(8), "etapa" => "Impressão", "veio_de" => "Manhã")
+      expect(ViradaDoPedido.first.nao_terminaram.first).to eq("pedido" => primeiro.uuid, "etapa" => "Impressão", "veio_de" => "Manhã", "a_frente" => false)
       expect(ViradaDoPedido.first.nao_terminaram.size).to eq(6)
       # Each pedido's own stages first.
-      expect(ViradaDoPedido.last.nao_terminaram.first(2).map { |e| [ e["pedido"], e["etapa"] ] }).to eq([ [ terceiro.uuid.first(8), "Impressão" ], [ terceiro.uuid.first(8), "Calandra" ] ])
+      expect(ViradaDoPedido.last.nao_terminaram.first(2).map { |e| [ e["pedido"], e["etapa"] ] }).to eq([ [ terceiro.uuid, "Impressão" ], [ terceiro.uuid, "Calandra" ] ])
+      # 3/4b2: then the ones ahead of it in their queue — the ones that held it.
+      expect(ViradaDoPedido.second.nao_terminaram.map { |e| [ e["pedido"], e["etapa"], e["a_frente"] ] })
+        .to eq([ [ segundo.uuid, "Impressão", false ], [ segundo.uuid, "Calandra", false ], [ primeiro.uuid, "Impressão", true ], [ primeiro.uuid, "Calandra", true ],
+                 [ terceiro.uuid, "Impressão", false ], [ terceiro.uuid, "Calandra", false ] ])
       # Q6a: the cliente final's, from no one.
       expect(EventoPedido.where(tipo: "previsao_mudou").map { |e| [ e.pedido, e.recado, e.user ] }).to include([ primeiro, "qua 04/11 → qui 05/11", nil ])
     end

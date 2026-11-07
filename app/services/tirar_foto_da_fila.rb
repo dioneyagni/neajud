@@ -1,7 +1,8 @@
 # Takes the photo of the turno under way (Painel 3/4b, decided 07/11/2026,
 # Q2a): the whole queue as FilaDeProducao computes it now, then the virada
 # against the photo before (ViradaDaFila), then deletes the photos past 7
-# days. Nothing when no turno is on or it already has its photo — the
+# days. Painel 3/4b2 (Q8a): a stage's first photo with a previsão is also
+# its plan (PlanoDaEtapa), kept until 7 days after the delivery. Nothing when no turno is on or it already has its photo — the
 # unique index settles two runs at once. FotoDaFilaJob calls it every 5
 # minutes; a turno while the server was off has no photo.
 #
@@ -30,6 +31,7 @@ class TirarFotoDaFila
       end
     end
     FotoDaFila.vencidas(@agora).destroy_all
+    PlanoDaEtapa.vencidos(@agora).delete_all
     CanaisAoVivo.avisar_fila
     foto
   rescue ActiveRecord::RecordNotUnique
@@ -43,7 +45,19 @@ class TirarFotoDaFila
       previsao = fila.previsao(pedido)
       previsao.vezes.map { |vez| linha_da_vez(foto, vez, previsao.fim) }
     end
-    VezDaFoto.insert_all(linhas) if linhas.any?
+    return if linhas.empty?
+
+    VezDaFoto.insert_all(linhas)
+    guardar_planos(foto, linhas)
+  end
+
+  # The stages with a previsão that have no plan yet; insert_all skips the
+  # ones the unique index already has.
+  def guardar_planos(foto, linhas)
+    planos = linhas.select { |linha| linha[:fim] }.map do |linha|
+      linha.slice(:pedido_id, :etapa, :setor, :fim, :trechos).merge(turno_nome: foto.turno_nome, data: foto.data)
+    end
+    PlanoDaEtapa.insert_all(planos, unique_by: %i[pedido_id etapa]) if planos.any?
   end
 
   def linha_da_vez(foto, vez, previsao)

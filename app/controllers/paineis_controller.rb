@@ -7,6 +7,7 @@
 # second view, its window and order in the address (Q3a, Q6a). Painel 3/4b:
 # what the photos of the turnos programmed — "veio de · adiada", the load
 # over 100% — and the warning of who came to be late at the virada.
+# Painel 3/4b2: each stage's first plan and who crossed each pedido, in the faixa.
 class PaineisController < ApplicationController
   exige :pedidos, :ver
 
@@ -19,7 +20,10 @@ class PaineisController < ApplicationController
     @ordem = LinhaDoTempo::ORDENS.include?(params[:ordem]) ? params[:ordem] : "chegada"
     @painel = PainelDeProducao.call(visiveis(Pedido), entregues: @entregues, cliente_final: cliente_final?, janela: @de..(@de + LinhaDoTempo::DIAS - 1))
     # Painel 3/4a: each row's "Histórico da programação", read at once (the team's only).
-    @historicos = historicos_da_programacao(@painel.linhas.flat_map(&:com_reposicoes).map { |linha| linha.pedido.id })
+    pedidos = @painel.linhas.flat_map(&:com_reposicoes).map(&:pedido)
+    @historicos = historicos_da_programacao(pedidos.map(&:id))
+    @planos = visiveis(PlanoDaEtapa).where(pedido: pedidos).group_by(&:pedido_id)
+    @cruzamentos = CruzamentosDoPedido.call(pedidos, historicos: @historicos, viradas: visiveis(ViradaDoPedido), visiveis: visiveis(Pedido))
     # Painel 3/4b: the photos (none for a cliente final) and the virada's warning.
     @programado = ProgramadoNaFila.new(visiveis(FotoDaFila), @painel.fila)
     @atrasaram_na_virada = visiveis(ViradaDoPedido).do_turno_de(Time.current).atrasaram

@@ -89,7 +89,7 @@ main:has(.painel) { max-width: 1480px; }
 /* A pedido opened: the others dimmed, its path outlined, the faixa below. */
 /* An opened reposição keeps its original's other rows dimmed, itself lit;
    an opened original keeps its reposições lit. */
-.painel-grade--destaque .painel-pedido:not(.painel-pedido--aberto, .painel-pedido--contem, .painel-pedido--aberto .painel-pedido) { opacity: .35; }
+.painel-grade--destaque .painel-pedido:not(.painel-pedido--aberto, .painel-pedido--contem, .painel-pedido--aberto .painel-pedido, .painel-cruzou) { opacity: .35; }
 .painel-grade--destaque .painel-pedido--contem > :is(.painel-linha, .painel-itens) { opacity: .35; }
 .painel-pedido--aberto > .painel-linha .painel-ped { background: #e8f0fe; }
 .painel-pedido--aberto > .painel-linha { background: #f6f9fe; }
@@ -107,6 +107,9 @@ main:has(.painel) { max-width: 1480px; }
 .painel-seta { color: #80868b; font-size: 18px; }
 .painel-faixa-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .painel-caixa { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+/* Painel 3/4b2: "quem cruzou" — the button and the rows it marks. */
+.painel-cruzou-btn { align-self: flex-start; font: inherit; font-size: 12px; color: #b05a00; background: #fff; border: 1px solid #f6ad6b; border-radius: 12px; padding: 2px 10px; cursor: pointer; }
+.painel-cruzou > .painel-linha, .painel-cruzou > .painel-tempo-linha { background: #fef0e1; box-shadow: inset 3px 0 0 #e8710a; }
 .painel-caixa h4 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; }
 .painel-links { display: flex; gap: 12px; flex-wrap: wrap; }
 

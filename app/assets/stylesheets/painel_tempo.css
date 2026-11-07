@@ -43,7 +43,7 @@
 .painel-tempo-pedido { position: relative; }
 .painel-tempo-pedido > .painel-faixa { z-index: 4; }
 .painel-tempo-comeco { font-size: 11px; color: #5f6368; }
-.painel-tempo-grade--destaque .painel-tempo-pedido:not(.painel-pedido--aberto) > .painel-tempo-linha { opacity: .45; }
+.painel-tempo-grade--destaque .painel-tempo-pedido:not(.painel-pedido--aberto, .painel-cruzou) > .painel-tempo-linha { opacity: .45; }
 
 .painel-tempo-pista { position: relative; min-height: 46px; z-index: 1; }
 .painel-tempo-seg { position: absolute; top: 15px; height: 16px; box-sizing: border-box; }
@@ -87,6 +87,16 @@
 .painel-tdp-nota { padding: 4px 8px; font-size: 12px; color: #5f6368; border-bottom: 1px solid #f1f3f4; }
 .painel-tdp-nota--feita { color: #188038; }
 .painel-tdp-nota--sem_previsao { color: #a24c00; }
+/* Painel 3/4b2: the first plan dashed, the turnos over, the arrow of what slipped. */
+.painel-tdp-cel { position: relative; }
+.painel-tdp-col--passada { background-color: #f8f9fa; color: #9aa0a6; }
+.painel-tdp-plano { position: absolute; left: 3px; top: 3px; bottom: 3px; border: 1.5px dashed #80868b; border-radius: 3px; box-sizing: border-box; pointer-events: none; }
+.painel-tdp-legenda { display: inline-flex; align-items: center; gap: 4px; }
+.painel-tdp-legenda .painel-tdp-plano { position: static; display: inline-block; width: 18px; height: 10px; }
+.painel-tdp-seta { position: relative; z-index: 1; align-self: end; height: 0; margin: 0 16px 3px; border-top: 1.5px solid #e8710a; pointer-events: none; }
+.painel-tdp-seta::after { content: ""; position: absolute; right: -2px; top: -5.5px; border: 4.5px solid transparent; border-left: 6px solid #e8710a; border-right: 0; }
+.painel-tdp-seta--antes::after { right: auto; left: -2px; border-left: 0; border-right: 6px solid #e8710a; }
+.painel-tdp-seta span { position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); font-size: 10px; color: #b05a00; background: #fff; padding: 0 3px; white-space: nowrap; }
 
 @media (max-width: 600px) {
   .painel-tempo-grade { --tempo-lado: 150px; }
