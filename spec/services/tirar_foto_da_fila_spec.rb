@@ -84,6 +84,16 @@ RSpec.describe TirarFotoDaFila do
       segundo.update!(prazo_entrega: quinta.to_date)
     end
 
+    # CI #197: with a long queue ahead, the 10 kept are the nearest ones —
+    # the ones that held it —, not the queue's first.
+    it "keeps the stages ahead of it nearest first" do
+      stub_const("ViradaDaFila::NAO_TERMINARAM", 3)
+      foto(quarta)
+      foto(quinta)
+      expect(ViradaDoPedido.find_by(pedido: terceiro).nao_terminaram.map { |e| [ e["pedido"], e["etapa"], e["a_frente"] ] })
+        .to eq([ [ terceiro.uuid, "Impressão", false ], [ terceiro.uuid, "Calandra", false ], [ segundo.uuid, "Impressão", true ] ])
+    end
+
     # Nothing was done on Wednesday: every previsão went to Thursday.
     it "tells each pedido whose previsão went to a later day, which stages didn't end, and who came to be late" do
       foto(quarta)

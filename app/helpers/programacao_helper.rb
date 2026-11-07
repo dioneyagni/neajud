@@ -80,13 +80,15 @@ module ProgramacaoHelper
     (@cruzamentos || {}).fetch(pedido.id, [])
   end
 
-  # Q9a: who crossed it and why, the other pedido's number as a link.
-  # Usage: linha_do_cruzamento(cruzamento)
-  #        # => "#c210aa12 empurrou este pedido · 05/11 · Dione passou o #c210aa12 à frente na Impressão (2º → 1º) · urgente"
-  def linha_do_cruzamento(cruzamento)
-    numero = link_to("##{cruzamento.outro.uuid.first(8)}", resumo_pedido_path(cruzamento.outro))
-    quem = cruzamento.papel == :empurrou ? safe_join([ numero, " empurrou este pedido" ]) : safe_join([ "este pedido empurrou o ", numero ])
-    safe_join([ quem, cruzamento.quando.strftime("%d/%m"), causa_do_cruzamento(cruzamento) ].compact, " · ")
+  # Q9a: why a pedido crossed this one, one line per crossing, by time
+  # (its lane's tip in the faixa's timeline).
+  # Usage: causas_da_cruzada(cruzada)
+  #        # => "empurrou este pedido · 05/11 · Dione passou o #c210aa12 à frente na Impressão (2º → 1º) · urgente"
+  def causas_da_cruzada(cruzada)
+    cruzada.cruzamentos.map do |cruzamento|
+      quem = cruzamento.papel == :empurrou ? "empurrou este pedido" : "foi empurrado por este pedido"
+      [ quem, cruzamento.quando.strftime("%d/%m"), causa_do_cruzamento(cruzamento) ].join(" · ")
+    end.join("\n")
   end
 
   CargaDoTurno = Struct.new(:ocupadas, :percentual, :estourou, keyword_init: true)
@@ -119,7 +121,7 @@ module ProgramacaoHelper
     end
 
     turno = cruzamento.virada.nao_terminaram.first["veio_de"]
-    cruzamento.papel == :empurrou ? "não terminou a #{cruzamento.etapa} na #{turno}" : "a #{cruzamento.etapa} deste não terminou na #{turno}"
+    cruzamento.papel == :empurrou ? "a #{cruzamento.etapa} dele não terminou na #{turno}" : "a #{cruzamento.etapa} deste não terminou na #{turno}"
   end
 
   def acao_do_movimento(movimento)

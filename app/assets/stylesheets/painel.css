@@ -108,7 +108,7 @@ main:has(.painel) { max-width: 1480px; }
 .painel-faixa-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .painel-caixa { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
 /* Painel 3/4b2: "quem cruzou" — the button and the rows it marks. */
-.painel-cruzou-btn { align-self: flex-start; font: inherit; font-size: 12px; color: #b05a00; background: #fff; border: 1px solid #f6ad6b; border-radius: 12px; padding: 2px 10px; cursor: pointer; }
+.painel-cruzou-btn { font: inherit; font-size: 12px; color: #b05a00; background: #fff; border: 1px solid #f6ad6b; border-radius: 12px; padding: 2px 10px; cursor: pointer; }
 .painel-cruzou > .painel-linha, .painel-cruzou > .painel-tempo-linha { background: #fef0e1; box-shadow: inset 3px 0 0 #e8710a; }
 .painel-caixa h4 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; }
 .painel-links { display: flex; gap: 12px; flex-wrap: wrap; }

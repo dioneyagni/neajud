@@ -5,6 +5,8 @@
     first plan dashed in the same cells, the turnos already over greyed, an
     arrow from the turno it was to end in to the one it ends in now — every
     item placed by row and column, so the arrow lies over the cells.
+    Painel 3/4b3 (Q16a): "mostrar quem cruzou" shows a lane per pedido that
+    crossed it, orange, below its stages.
     locals: tempo (TempoDoPedido or nil), linha %>
 <% if tempo %>
   <div class="painel-tdp" role="group" aria-label="Linha do tempo do pedido">
@@ -13,6 +15,10 @@
       <% if linha.prazo %><span>prazo <%= dia_com_semana(linha.prazo) %></span><% end %>
       <% if tempo.restantes.positive? %><span>+ <%= pluralize(tempo.restantes, "turno", plural: "turnos") %> depois</span><% end %>
       <% if tempo.raias.any? { |raia| raia.planejadas.any? } %><span class="painel-tdp-legenda"><i class="painel-tdp-plano"></i> era o programado</span><% end %>
+      <% if tempo.cruzadas.any? %>
+        <button type="button" class="painel-cruzou-btn" data-action="painel#mostrarCruzou" aria-expanded="false"
+                data-cruzou="<%= tempo.cruzadas.map { |cruzada| cruzada.outro.uuid }.join(" ") %>">mostrar quem cruzou (<%= tempo.cruzadas.size %>)</button>
+      <% end %>
     </div>
     <div class="painel-tdp-rolagem">
       <div class="painel-tdp-grade" style="--tdp-colunas: <%= tempo.colunas.size %>">
@@ -40,6 +46,25 @@
               <div class="painel-tdp-seta<%= " painel-tdp-seta--antes" if seta.turnos.negative? %>" style="grid-area: <%= linha_da_raia %> / <%= de + 2 %> / auto / <%= ate + 3 %>"
                    data-tdp-seta="<%= seta.turnos %>" title="era para terminar <%= pluralize(seta.turnos.abs, "turno", plural: "turnos") %> <%= seta.turnos.positive? ? "antes" : "depois" %>">
                 <span><%= seta.turnos.positive? ? "+" : "−" %><%= pluralize(seta.turnos.abs, "turno", plural: "turnos") %></span>
+              </div>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% tempo.cruzadas.each_with_index do |cruzada, c| %>
+          <% linha_da_raia = tempo.raias.size + c + 2 %>
+          <div class="painel-tdp-nome painel-tdp-nome--cruzada<%= " painel-tdp-primeira-cruzada" if c.zero? %>" style="grid-area: <%= linha_da_raia %> / 1"
+               data-tdp-cruzada="<%= cruzada.outro.uuid %>" title="<%= causas_da_cruzada(cruzada) %>" hidden>
+            <span><%= link_to "##{cruzada.outro.uuid.first(8)}", resumo_pedido_path(cruzada.outro) %> · <%= cruzada.etapas.join(", ") %></span>
+            <small><%= causas_da_cruzada(cruzada).lines.first %></small>
+          </div>
+          <% if cruzada.feita %>
+            <div class="painel-tdp-nota painel-tdp-nota--cruzada<%= " painel-tdp-primeira-cruzada" if c.zero? %>" style="grid-area: <%= linha_da_raia %> / 2 / auto / span <%= tempo.colunas.size %>"
+                 data-tdp-cruzada="<%= cruzada.outro.uuid %>" hidden>✓ feita</div>
+          <% else %>
+            <% cruzada.celulas.each_with_index do |parte, i| %>
+              <div class="painel-tdp-cel<%= classes_da_coluna_do_tempo(tempo.colunas[i]) %><%= " painel-tdp-primeira-cruzada" if c.zero? %>" style="grid-area: <%= linha_da_raia %> / <%= i + 2 %>"
+                   data-tdp-cruzada="<%= cruzada.outro.uuid %>" hidden>
+                <% if parte %><i class="painel-tdp-parte painel-tdp-parte--cruzada" style="width: <%= (parte * 100).round %>%"></i><% end %>
               </div>
             <% end %>
           <% end %>
