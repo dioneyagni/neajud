@@ -59,7 +59,9 @@ class ViradaDaFila
     lugares = @anterior.vezes.select { |linha| linha.pedido_id == pedido.id && linha.posicao }.group_by(&:setor).transform_values { |l| l.map(&:posicao).max }
     entradas = nao_terminaram.map { |linha, vez| [ vez, linha.pedido_id != pedido.id && a_frente?(linha, lugares) ] }
     proprias, outras = entradas.partition { |vez, _| vez.pedido.id == pedido.id }
-    (proprias + outras.sort_by { |_, frente| frente ? 0 : 1 }).first(NAO_TERMINARAM).map do |vez, frente|
+    # partition, not sort_by: Ruby's sort isn't stable, and the stages ahead
+    # would come out of the queue's order (CI, #197).
+    (proprias + outras.partition { |_, frente| frente }.flatten(1)).first(NAO_TERMINARAM).map do |vez, frente|
       { "pedido" => vez.pedido.uuid, "etapa" => vez.etapa.nome, "veio_de" => @anterior.turno_nome, "a_frente" => frente }
     end
   end

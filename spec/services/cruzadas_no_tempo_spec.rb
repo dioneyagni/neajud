@@ -33,6 +33,12 @@ RSpec.describe CruzadasNoTempo do
     expect(cruzadas.map { |c| [ c.outro, c.etapas, c.celulas, c.feita, c.cruzamentos.size ] }).to eq([ [ outro, %w[Impressão Calandra], [ 0.38 ], false, 2 ] ])
   end
 
+  # CI #197: the names came in the crossings' order — Calandra first when its virada was older.
+  it "names the stages in the order of its path, not of the crossings" do
+    ViradaDoPedido.update_all(created_at: quarta - 2.days)
+    expect(cruzadas.sole.etapas).to eq(%w[Impressão Calandra])
+  end
+
   it "says a stage already done, with nothing to draw" do
     RegistrarBaixaService.call(outro, etapa: "impressao", nivel: "pedido", medida: "15,5", confirmar: true)
     RegistrarBaixaService.call(outro, etapa: "calandra", nivel: "pedido", medida: "15,5", confirmar: true)

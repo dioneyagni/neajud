@@ -25,7 +25,7 @@ class CruzadasNoTempo
     pares = @cruzamentos.map { |cruzamento| [ cruzamento, vez_de(cruzamento) ] }
     vezes = pares.filter_map(&:last).uniq
     periodos = vezes.flat_map(&:trechos).map { |trecho| [ trecho.inicio, trecho.fim ] }
-    RaiaCruzada.new(outro: @outro, etapas: pares.map { |cruzamento, vez| nome_da_etapa(cruzamento, vez) }.uniq,
+    RaiaCruzada.new(outro: @outro, etapas: etapas_em_ordem(pares),
                     celulas: @colunas.map { |coluna| coluna.parte(periodos) }, feita: vezes.empty?, cruzamentos: @cruzamentos)
   end
 
@@ -38,6 +38,13 @@ class CruzadasNoTempo
     return @abertas.find { |vez| vez.setor == cruzamento.movimento.setor } if cruzamento.movimento
 
     @abertas.find { |vez| vez.etapa.nome == cruzamento.etapa }
+  end
+
+  # The names in the order of its path (the open ones as the queue has
+  # them, the done ones after), not of the crossings.
+  def etapas_em_ordem(pares)
+    pares.sort_by.with_index { |(_, vez), i| [ vez ? @abertas.index(vez) : @abertas.size, i ] }
+         .map { |cruzamento, vez| nome_da_etapa(cruzamento, vez) }.uniq
   end
 
   # A move's stage done: the sector's name.
