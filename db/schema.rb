@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -747,6 +747,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_180000) do
     t.index ["uuid"], name: "index_pedidos_on_uuid", unique: true
   end
 
+  create_table "planos_da_etapa", force: :cascade do |t|
+    t.integer "pedido_id", null: false
+    t.string "etapa", null: false
+    t.string "setor", null: false
+    t.datetime "fim"
+    t.json "trechos", default: [], null: false
+    t.string "turno_nome", null: false
+    t.date "data", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pedido_id", "etapa"], name: "index_planos_da_etapa_on_pedido_id_and_etapa", unique: true
+    t.index ["pedido_id"], name: "index_planos_da_etapa_on_pedido_id"
+  end
+
   create_table "produtos", force: :cascade do |t|
     t.string "uuid", null: false
     t.string "nome", null: false
@@ -1017,6 +1031,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_180000) do
   add_foreign_key "pedidos", "pedidos", column: "reposicao_de_id"
   add_foreign_key "pedidos", "users", column: "confirmado_por_id"
   add_foreign_key "pedidos", "users", column: "entregue_por_id"
+  add_foreign_key "planos_da_etapa", "pedidos"
   add_foreign_key "referencias", "moldes"
   add_foreign_key "sessions", "users"
   add_foreign_key "solicitacoes_aprovacao", "arquivo_versions"

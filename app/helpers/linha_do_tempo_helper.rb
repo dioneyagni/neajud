@@ -55,6 +55,14 @@ module LinhaDoTempoHelper
     painel_path({ visao: "tempo", de: de.iso8601, ordem: (ordem unless ordem == "chegada"), entregues: params[:entregues] }.compact)
   end
 
+  # The marks of a column of the faixa's timeline (TempoDoPedido::Coluna):
+  # now, past the deadline, already over (3/4b2).
+  # Usage: classes_da_coluna_do_tempo(coluna) # => " painel-tdp-col--agora"
+  def classes_da_coluna_do_tempo(coluna)
+    { agora: "painel-tdp-col--agora", depois_do_prazo: "painel-tdp-col--prazo", passada: "painel-tdp-col--passada" }
+      .filter_map { |marca, classe| " #{classe}" if coluna.public_send(marca) }.join
+  end
+
   private
 
   def rotulo_da_previsao(barra)

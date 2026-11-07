@@ -29,6 +29,12 @@ RSpec.describe LinhaDoTempoHelper, type: :helper do
     expect([ helper.texto_da_carga(hoje), helper.dica_da_carga("Corte", hoje) ]).to eq([ "64%", "Corte · qua 04/11 · 64% das horas de turno que restam hoje" ])
   end
 
+  it "marks a column of the faixa's timeline: now, past the deadline, already over" do
+    coluna = TempoDoPedido::Coluna.new(agora: true, depois_do_prazo: false, passada: false)
+    expect(helper.classes_da_coluna_do_tempo(coluna)).to eq(" painel-tdp-col--agora")
+    expect(helper.classes_da_coluna_do_tempo(TempoDoPedido::Coluna.new(depois_do_prazo: true, passada: true))).to eq(" painel-tdp-col--prazo painel-tdp-col--passada")
+  end
+
   it "builds the window's address, the default order left out" do
     expect(helper.painel_no_tempo(de: Date.new(2026, 11, 2), ordem: "chegada")).to eq("/painel?de=2026-11-02&visao=tempo")
     expect(helper.painel_no_tempo(de: Date.new(2026, 11, 2), ordem: "prazo")).to eq("/painel?de=2026-11-02&ordem=prazo&visao=tempo")

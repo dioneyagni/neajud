@@ -1,7 +1,8 @@
 # How the Painel says the programação (Painel 3/4a): the impact window's
 # title, a previsão in it, and each line of a pedido's "Histórico da
 # programação" (the team's only). Painel 3/4b: a virada in that history,
-# the "veio de · adiada" mark, a turno's load over 100%.
+# the "veio de · adiada" mark, a turno's load over 100%. Painel 3/4b2: the
+# faixa's plans and "quem cruzou".
 module ProgramacaoHelper
   # Usage: titulo_do_impacto(impacto) # => "#c210aa12 · Impressão: 3º → 1º"
   def titulo_do_impacto(impacto)
@@ -68,6 +69,26 @@ module ProgramacaoHelper
     marcas.join("; ").presence
   end
 
+  # The pedido's first plan per stage, read once by the Painel (none for a cliente final).
+  # Usage: planos_da_faixa(pedido)["impressao"].fim
+  def planos_da_faixa(pedido)
+    (@planos || {}).fetch(pedido.id, []).index_by(&:etapa)
+  end
+
+  # Usage: cruzamentos_da_faixa(pedido).size # => 3
+  def cruzamentos_da_faixa(pedido)
+    (@cruzamentos || {}).fetch(pedido.id, [])
+  end
+
+  # Q9a: who crossed it and why, the other pedido's number as a link.
+  # Usage: linha_do_cruzamento(cruzamento)
+  #        # => "#c210aa12 empurrou este pedido · 05/11 · Dione passou o #c210aa12 à frente na Impressão (2º → 1º) · urgente"
+  def linha_do_cruzamento(cruzamento)
+    numero = link_to("##{cruzamento.outro.uuid.first(8)}", resumo_pedido_path(cruzamento.outro))
+    quem = cruzamento.papel == :empurrou ? safe_join([ numero, " empurrou este pedido" ]) : safe_join([ "este pedido empurrou o ", numero ])
+    safe_join([ quem, cruzamento.quando.strftime("%d/%m"), causa_do_cruzamento(cruzamento) ].compact, " · ")
+  end
+
   CargaDoTurno = Struct.new(:ocupadas, :percentual, :estourou, keyword_init: true)
 
   # A turno's load in its sector's queue: what the queue fills there, or what
@@ -89,7 +110,16 @@ module ProgramacaoHelper
   def causa_da_virada(nao_terminaram)
     return "a fila mudou desde o turno anterior" if nao_terminaram.empty?
 
-    "não terminaram na #{nao_terminaram.first["veio_de"]}: #{nao_terminaram.map { |e| "#{e["etapa"]} do ##{e["pedido"]}" }.join(", ")}"
+    "não terminaram na #{nao_terminaram.first["veio_de"]}: #{nao_terminaram.map { |e| "#{e["etapa"]} do ##{e["pedido"].first(8)}" }.join(", ")}"
+  end
+
+  def causa_do_cruzamento(cruzamento)
+    if (movimento = cruzamento.movimento)
+      return [ "#{movimento.user.nome} #{acao_do_movimento(movimento)}", movimento.motivo.presence ].compact.join(" · ")
+    end
+
+    turno = cruzamento.virada.nao_terminaram.first["veio_de"]
+    cruzamento.papel == :empurrou ? "não terminou a #{cruzamento.etapa} na #{turno}" : "a #{cruzamento.etapa} deste não terminou na #{turno}"
   end
 
   def acao_do_movimento(movimento)

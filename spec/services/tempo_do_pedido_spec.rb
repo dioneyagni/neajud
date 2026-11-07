@@ -21,10 +21,16 @@ RSpec.describe TempoDoPedido do
     RitmoProducao.create!(tipo: "tecido", etapa: "calandra", por_hora: calandra) if calandra
   end
 
-  def tempo(cliente_final: false)
+  def tempo(cliente_final: false, planos: {})
     pedido
     fila = FilaDeProducao.call(agora: quarta, aguardando: sem_falta)
-    described_class.call(LinhaDoPainel.call(pedido.reload, aguardando: sem_falta, fila: fila), fila: fila, cliente_final: cliente_final)
+    described_class.call(LinhaDoPainel.call(pedido.reload, aguardando: sem_falta, fila: fila), fila: fila, cliente_final: cliente_final, planos: planos)
+  end
+
+  # The Impressão's first plan: one turno, from inicio.
+  def plano(inicio)
+    PlanoDaEtapa.new(pedido: pedido, etapa: "impressao", setor: "impressao", fim: inicio + 4.hours, turno_nome: "Tarde", data: inicio.to_date,
+                     trechos: [ { "inicio" => inicio.iso8601, "fim" => (inicio + 4.hours).iso8601 } ])
   end
 
   def raias(t)
@@ -49,6 +55,8 @@ RSpec.describe TempoDoPedido do
     RitmoProducao.create!(tipo: "tecido", etapa: "calandra", por_hora: 31)
     RegistrarBaixaService.call(pedido, etapa: "impressao", nivel: "pedido", medida: "15,5", confirmar: true)
     expect(raias(tempo)).to eq([ [ "impressao", :feita, [] ], [ "calandra", :prevista, [ 0.13 ] ] ])
+    # 3/4b2: a stage done has no plan drawn (nil broke the faixa's legend).
+    expect(tempo.raias.map(&:planejadas)).to eq([ [], [] ])
   end
 
   it "draws no more than 24 turnos, saying how many more" do
@@ -60,6 +68,32 @@ RSpec.describe TempoDoPedido do
     ritmos(impressao: 3.1)
     t = tempo(cliente_final: true)
     expect([ t.colunas.map(&:nome), raias(t).first.last ]).to eq([ [ nil ], [ 0.56 ] ])
+  end
+
+  # Q8a: planned for Tuesday's Tarde, it now ends in Wednesday's.
+  it "draws the first plan dashed from its turno already over, with an arrow to where it ends now" do
+    ritmos(impressao: 3.1)
+    t = tempo(planos: { "impressao" => plano(quarta - 19.hours) })
+
+    expect(t.colunas.map { |c| [ c.data.day, c.nome, c.passada ] }).to eq([ [ 3, "Tarde", true ], [ 4, "Manhã", false ], [ 4, "Tarde", false ] ])
+    impressao = t.raias.first
+    expect([ impressao.celulas, impressao.planejadas ]).to eq([ [ nil, 1.0, 0.25 ], [ 1.0, nil, nil ] ])
+    expect(impressao.seta.to_h).to eq(de: 0, para: 2, turnos: 2)
+    expect(t.raias.last.seta).to be_nil
+  end
+
+  it "keeps the last 8 turnos over, the arrow counting them all" do
+    ritmos(impressao: 3.1)
+    t = tempo(planos: { "impressao" => plano(Time.zone.parse("2026-10-21 13:00")) })
+
+    expect([ t.colunas.count(&:passada), t.colunas.size ]).to eq([ 8, 10 ])
+    expect(t.raias.first.seta.to_h).to eq(de: 0, para: 9, turnos: 20)
+  end
+
+  it "has no plan, no arrow, no turno over for a cliente final" do
+    ritmos(impressao: 3.1)
+    t = tempo(cliente_final: true, planos: { "impressao" => plano(quarta - 19.hours) })
+    expect([ t.colunas.size, t.raias.first.planejadas, t.raias.first.seta ]).to eq([ 1, [], nil ])
   end
 
   it "has none when nothing of it is in the queue (no rhythm)" do

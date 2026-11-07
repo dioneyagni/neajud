@@ -18,4 +18,17 @@ class ViradaDoPedido < ApplicationRecord
   # The ones of the turno under way (the photo of the turno it turned to).
   scope :do_turno_de, ->(agora) { where("viradas_do_pedido.turno_fim > ?", agora) }
   scope :atrasaram, -> { where(passou_a_atrasar: true) }
+  # Painel 3/4b2: the viradas that waited for a stage of these pedidos (by
+  # the uuid's first 8 characters: the first records kept only those).
+  # Usage: ViradaDoPedido.esperaram_por([ pedido ])
+  scope :esperaram_por, ->(pedidos) {
+    prefixos = pedidos.map { |pedido| pedido.uuid.first(8) }
+    where("EXISTS (SELECT 1 FROM json_each(viradas_do_pedido.nao_terminaram) WHERE substr(json_extract(json_each.value, '$.pedido'), 1, 8) IN (?))", prefixos)
+  }
+
+  # The stages that didn't end, of that pedido.
+  # Usage: virada.nao_terminaram_de(pedido).map { |e| e["etapa"] } # => ["Impressão"]
+  def nao_terminaram_de(pedido)
+    nao_terminaram.select { |e| e["pedido"].first(8) == pedido.uuid.first(8) }
+  end
 end

@@ -16,6 +16,7 @@ class Pedido < ApplicationRecord
   has_many :movimentos_da_fila, class_name: "MovimentoDaFila", dependent: :destroy
   has_many :vezes_da_foto, class_name: "VezDaFoto", dependent: :delete_all
   has_many :viradas_do_pedido, class_name: "ViradaDoPedido", dependent: :destroy
+  has_many :planos_da_etapa, class_name: "PlanoDaEtapa", dependent: :delete_all
   # Etapa 2.3d2: what it took from the stock when confirmed (SaidaDoPedido).
   has_many :movimentos_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 

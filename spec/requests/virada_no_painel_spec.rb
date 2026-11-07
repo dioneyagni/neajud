@@ -44,6 +44,25 @@ RSpec.describe "A virada no Painel", type: :request do
     expect(html.css("#painel_#{primeiro.uuid} [data-historico-programacao]").text).to include("virada para a Manhã · não terminaram na Manhã: Impressão do ##{primeiro.uuid.first(8)}")
   end
 
+  # 3/4b2 (Q8a, Q9a): the second pedido was to print in Wednesday's Manhã,
+  # held by the first's Impressão, holding the third's.
+  it "draws the faixa's first plan and its arrow, and lists who crossed it" do
+    segundo, terceiro = pedidos.second, pedidos.third
+    get painel_path
+    faixa = html.css("#painel_#{segundo.uuid} > .painel-faixa").sole
+
+    expect(faixa.css("[data-tdp-coluna]").map { |c| [ c.text.squish, c["class"].include?("passada") ] }).to eq([ [ "qua 04/11Manhã", true ], [ "qui 05/11Manhã", false ], [ "sex 06/11Manhã", false ] ])
+    expect(faixa.css("[data-tdp-plano]").map { |p| p["style"] }).to eq([ "width: 25%", "width: 13%" ])
+    expect(faixa.css("[data-tdp-seta]").map { |s| [ s["data-tdp-seta"], s.text.squish ] }).to eq([ [ "1", "+1 turno" ], [ "2", "+2 turnos" ] ])
+
+    botao = faixa.css("[data-quem-cruzou] button").sole
+    expect([ botao.text, botao["data-cruzou"].split.sort ]).to eq([ "mostrar quem cruzou (2)", [ primeiro.uuid, terceiro.uuid ].sort ])
+    linhas = faixa.css("[data-cruzamento]").map(&:text)
+    expect(linhas).to include("##{primeiro.uuid.first(8)} empurrou este pedido · 05/11 · não terminou a Impressão na Manhã",
+                              "este pedido empurrou o ##{terceiro.uuid.first(8)} · 05/11 · a Calandra deste não terminou na Manhã")
+    expect(linhas.size).to eq(4)
+  end
+
   it "shows the cliente final's \"previsão mudou\", from no one, in the pedido's history" do
     get resumo_pedido_path(primeiro)
 
@@ -58,6 +77,6 @@ RSpec.describe "A virada no Painel", type: :request do
     get painel_path
 
     expect(response).to have_http_status(:ok)
-    expect(html.css("[data-painel-virada], [data-fila-veio], [data-adiada], [data-historico-programacao]")).to be_empty
+    expect(html.css("[data-painel-virada], [data-fila-veio], [data-adiada], [data-historico-programacao], [data-quem-cruzou], [data-tdp-plano], [data-tdp-seta]")).to be_empty
   end
 end

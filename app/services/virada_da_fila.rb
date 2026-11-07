@@ -51,13 +51,29 @@ class ViradaDaFila
   end
 
   # The stages the photo before had end in its turno, still open now — the
-  # pedido's own first: the ones that tell it most.
+  # pedido's own first, then the ones ahead of it in their sector's queue
+  # (the ones that held it): those tell it most. 3/4b2: the whole uuid
+  # ("quem cruzou" marks that pedido's row) and a_frente — only the ones
+  # ahead pushed it; the others merely didn't end either.
   def nao_terminaram_para(pedido)
-    proprias, outras = nao_terminaram.partition { |vez| vez.pedido.id == pedido.id }
-    (proprias + outras).first(NAO_TERMINARAM).map { |vez| { "pedido" => vez.pedido.uuid.first(8), "etapa" => vez.etapa.nome, "veio_de" => @anterior.turno_nome } }
+    lugares = @anterior.vezes.select { |linha| linha.pedido_id == pedido.id && linha.posicao }.group_by(&:setor).transform_values { |l| l.map(&:posicao).max }
+    entradas = nao_terminaram.map { |linha, vez| [ vez, linha.pedido_id != pedido.id && a_frente?(linha, lugares) ] }
+    proprias, outras = entradas.partition { |vez, _| vez.pedido.id == pedido.id }
+    (proprias + outras.sort_by { |_, frente| frente ? 0 : 1 }).first(NAO_TERMINARAM).map do |vez, frente|
+      { "pedido" => vez.pedido.uuid, "etapa" => vez.etapa.nome, "veio_de" => @anterior.turno_nome, "a_frente" => frente }
+    end
   end
 
+  def a_frente?(linha, lugares)
+    lugar = lugares[linha.setor]
+    lugar.present? && linha.posicao.present? && linha.posicao < lugar
+  end
+
+  # [VezDaFoto, the stage open now]
   def nao_terminaram
-    @nao_terminaram ||= @anterior.vezes.select(&:terminaria_no_turno?).filter_map { |linha| @abertas[[ linha.pedido_id, linha.etapa ]] }
+    @nao_terminaram ||= @anterior.vezes.select(&:terminaria_no_turno?).filter_map do |linha|
+      vez = @abertas[[ linha.pedido_id, linha.etapa ]]
+      [ linha, vez ] if vez
+    end
   end
 end
