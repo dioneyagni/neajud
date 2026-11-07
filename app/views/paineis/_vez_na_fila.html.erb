@@ -2,7 +2,8 @@
     stage, its time inside the turno, the deadline with the folga, what it
     waits for. trecho nil: no previsão (the reason instead). Painel 3/4a:
     ↑ ↓ open the impact window (who programs the production; not a stage
-    under way, Q6b), a moved one says by whom (Q7c).
+    under way, Q6b), a moved one says by whom (Q7c). Painel 3/4b: one the
+    photo had end in a turno already over says where it came from (Q3a).
     locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go) %>
 <% pedido = vez.pedido %>
 <% primeiro = trecho.nil? || trecho == vez.trechos.first %>
@@ -22,6 +23,9 @@
     <% if pedido.reposicao? %><div class="painel-fila-ref">↻ reposição de #<%= pedido.reposicao_de.uuid.first(8) %></div><% end %>
     <% if (movimento = vez.movimento) && primeiro %>
       <div class="painel-fila-movida" title="<%= movimento.motivo %>" data-fila-movida><%= movimento.para < movimento.de ? "↑" : "↓" %> movida · <%= movimento.user.nome %> <%= movimento.created_at.strftime("%d/%m %H:%M") %></div>
+    <% end %>
+    <% if primeiro && (adiada = texto_do_adiamento(@programado&.adiamento(vez))) %>
+      <div class="painel-fila-veio" data-fila-veio><%= adiada %></div>
     <% end %>
   </div>
   <div>

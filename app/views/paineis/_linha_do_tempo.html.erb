@@ -7,7 +7,7 @@
     locals: painel (PainelDeProducao::Painel), de, ordem %>
 <% setores = painel.colunas.slice(*LinhaDoTempo::SETORES) %>
 <% tempo = LinhaDoTempo.call(painel.linhas, fila: painel.fila, de: de, entregues: painel.entregues_na_janela, calendario: painel.calendario,
-                             ordem: ordem, cliente_final: cliente_final?, setores: setores.keys) %>
+                             ordem: ordem, cliente_final: cliente_final?, setores: setores.keys, programado: @programado) %>
 <% blocos = painel.blocos.flat_map { |bloco| bloco.linhas.map { |linha| [ linha.pedido.id, bloco.chave ] } }.to_h %>
 <turbo-frame id="painel_tempo" data-turbo-action="advance">
   <div class="painel-tempo" data-painel-tempo-de="<%= de.iso8601 %>">

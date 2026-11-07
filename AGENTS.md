@@ -548,8 +548,9 @@ and write an `ExclusaoLog`; `/lixeira` lists them with Restore.
 - Still physical on purpose: removing an item / zeroing a size of a **draft**
   pedido, unlinking a corte from a molde, removing a part from a molde
   (`remover_parte`), removing a calendar exception (a setting about the
-  future, Painel 2/4a), and derived data rebuilt by reprocessing (tamanhos, cut
-  layers).
+  future, Painel 2/4a), derived data rebuilt by reprocessing (tamanhos, cut
+  layers), and the queue's photos past 7 days (`FotoDaFila`, Painel 3/4b —
+  the virada's record, `ViradaDoPedido`, stays).
 
 ## Guard: never run bin/e2e with the wrong RAILS_ENV
 

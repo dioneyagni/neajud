@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/fake_programado_na_fila"
 
 # Painel 2/4c (decided 05–07/11/2026): 14 days, each pedido a bar to its
 # previsão, the groups and their order (Q6a), the days without turno, and
@@ -114,6 +115,19 @@ RSpec.describe LinhaDoTempo do
       expect(celulas(t, "impressao")).to eq([ [ :passado, nil ], [ :passado, nil ], [ :ok, 33 ], [ :ok, 75 ], [ :livre, 0 ], [ :sem_turno, nil ] ])
       expect(celulas(t, "estamparia")[3]).to eq([ :cheio, 100 ])
       expect(celulas(t, "corte").values_at(3, 4)).to eq([ [ :alto, 88 ], [ :parada, nil ] ])
+    end
+
+    # Painel 3/4b (Q7a): today's load is the larger of the queue's and the photo's.
+    it "passes 100% today when what was programmed for today doesn't fit the hours left" do
+      t = tempo([], programado: FakeProgramadoNaFila.new(dia: { "impressao" => 8.0, "corte" => 3.0 }))
+
+      # 8 h programmed for the 6 h left (2 of the Manhã, 4 of the Tarde).
+      celula = t.cargas.find { |c| c.setor == "impressao" }.celulas[2]
+      expect([ celula.estado, celula.percentual, celula.programadas, celula.livres ]).to eq([ :estourado, 133, 8.0, 6.0 ])
+      # The Corte's queue has nothing today; 3 h of the photo's still to do.
+      expect(celulas(t, "corte")[2]).to eq([ :ok, 50 ])
+      # Only today: Thursday stays the queue's.
+      expect(celulas(t, "impressao")[3]).to eq([ :ok, 75 ])
     end
 
     it "says today's turnos are over, and gives a cliente final none" do

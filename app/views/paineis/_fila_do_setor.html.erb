@@ -4,7 +4,9 @@
     without turno, a light one per turno with its hours and load, the
     pedido's piece inside it; the ones without previsão at the end. Painel
     3/4a: ↑ ↓ move a stage (the impact window first), the header counts the
-    moved ones and takes them all back to the arrival order.
+    moved ones and takes them all back to the arrival order. Painel 3/4b:
+    the turno under way's load counts what its photo programmed and is
+    still to do — over the hours left, past 100% (Q7a).
     locals: fila (FilaDeProducao), setor, nome, linhas ({ pedido id => LinhaDoPainel }) %>
 <% vezes = fila.do_setor(setor) %>
 <% previstas = vezes.select(&:fim) %>
@@ -37,13 +39,15 @@
       </div>
       <% turnos.each do |turno| %>
         <% ocorrencia = turno.ocorrencia %>
-        <% carga = turno.livres.positive? ? [ (turno.ocupadas / turno.livres * 100).round, 100 ].min : 100 %>
+        <% carga = carga_do_turno(turno, setor) %>
         <div class="painel-fila-turno" data-fila-turno="<%= ocorrencia.turno.nome %>">
           <span class="painel-fila-turno-nome"><%= ocorrencia.turno.nome %></span>
           <span class="painel-fila-turno-hora"><%= ocorrencia.turno.horario %></span>
           <% if ocorrencia.contem?(agora) %><span class="painel-fila-turno-exec">em execução · agora <%= agora.strftime("%H:%M") %></span><% end %>
-          <span class="painel-fila-turno-carga"><%= horas_da_fila(turno.ocupadas) %> de <%= horas_da_fila(turno.livres) %><%= " livres" if ocorrencia.contem?(agora) %>
-            <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga >= 95 %>" style="width: <%= carga %>%"></i></span></span>
+          <span class="painel-fila-turno-carga<%= " painel-fila-turno-carga--estourada" if carga.estourou %>" data-fila-carga="<%= carga.percentual %>"
+                <% if carga.estourou %>title="o programado para este turno não cabe: <%= horas_da_fila(carga.ocupadas) %> em <%= horas_da_fila(turno.livres) %>"<% end %>>
+            <%= horas_da_fila(carga.ocupadas) %> de <%= horas_da_fila(turno.livres) %><%= " livres" if ocorrencia.contem?(agora) %><%= " · #{carga.percentual}%" if carga.estourou %>
+            <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga.percentual >= 95 %>" style="width: <%= [ carga.percentual, 100 ].min %>%"></i></span></span>
         </div>
         <% turno.pecas.each do |vez, trecho| %>
           <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size %>

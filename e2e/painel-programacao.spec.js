@@ -8,50 +8,13 @@
 // say what it did. "Voltar tudo à ordem de chegada" takes it back. The
 // turnos and rhythms come from parametros-producao and painel, run before;
 // alone, this spec registers a 24 h turno.
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
 const { BASE_URL, runSpec } = require("./support/runner");
-const { uploadFileAndWait } = require("./support/upload");
+const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
 const { waitForText } = require("./support/wait");
 
 runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
-  const U = Date.now();
-  const nomes = { corrida: `corridaprog${U}`, cliente: `Malharia Prog ${U}`, grupo: `Helanca${U}` };
   const ids = {};
-  // Outside the repo: an "e2e-" prefix would be read as part of the name.
-  const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "programacao-"));
-  const original = path.join(pasta, `${nomes.corrida}.tif`);
-
-  async function postar(url, campos) {
-    return page.evaluate(async ({ url, campos }) => {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
-      return (await fetch(url, { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) })).ok;
-    }, { url, campos });
-  }
-
-  async function buscarJson(url) {
-    return page.evaluate(async (url) => (await fetch(url, { headers: { Accept: "application/json" } })).json(), url);
-  }
-
-  // A pedido of the corrida, its fabric chosen, confirmed.
-  async function pedidoConfirmado() {
-    await page.goto(`${BASE_URL}/arquivos`);
-    await page.locator(".stamp-card").filter({ hasText: nomes.corrida }).locator(".btn-add-to-order").click();
-    const modal = page.locator("dialog.add-to-order-dialog[open]");
-    await modal.locator(".add-to-order-metros").fill("12,5");
-    const [resposta] = await Promise.all([
-      page.waitForResponse((r) => r.url().includes("/pedidos/adicionar_item")),
-      modal.locator('button:has-text("Adicionar")').click(),
-    ]);
-    const uuid = (await resposta.json()).pedido_uuid;
-    await page.goto(`${BASE_URL}/pedidos/${uuid}/resumo`);
-    await page.locator("select.pedido-tecido-material").first().selectOption(ids.tecido);
-    await page.locator(".pedido-pendencia--sem_material").waitFor({ state: "detached", timeout: 10000 });
-    await page.locator(".pedido-confirmar").click();
-    await waitForText(page, "Pedido confirmed.");
-    return uuid;
-  }
+  let corrida;
 
   function naFila(uuid) {
     return page.locator(`[data-fila-setor='impressao'] [data-fila-pedido='${uuid}']`).first();
@@ -84,31 +47,9 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
   }
 
   await test("Setup: a client's fabric, his corrida, two pedidos confirmed one after the other; a turno and the tecido's rhythms", async () => {
-    await page.goto(`${BASE_URL}/parametros/edit`);
-    await page.fill("#empresa_preco_impressao_metro_tecido", "15");
-    await page.click('input[type="submit"][value="Save"]');
-    await waitForText(page, "Production parameters saved.");
-    if (!(await postar("/clients", { "client[name]": nomes.cliente, "client[responsible]": "T" }))) throw new Error("Couldn't create the client");
-    ids.cliente = (await buscarJson(`/clients/search?q=${encodeURIComponent(nomes.cliente)}`)).find((c) => c.name === nomes.cliente).id;
-    await postar("/materiais/create_grupo", { "grupo_material[nome]": nomes.grupo });
-    const grupo = (await buscarJson(`/materiais/grupos?q=${nomes.grupo}`)).find((g) => g.nome === nomes.grupo).id;
-    const cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco")?.id || (await postar("/materiais/create_cor", { "cor_material[nome]": "Branco" }), (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco").id);
-    await postar("/materiais", {
-      "movimento_estoque[client_uuid]": ids.cliente, "movimento_estoque[tipo]": "entrada", "movimento_estoque[grupo_material_uuid]": grupo,
-      "movimento_estoque[cor_material_uuid]": cor, "movimento_estoque[largura]": "1.50", "movimento_estoque[gramatura]": "120g", "movimento_estoque[quantidade]": "40",
-    });
-    ids.tecido = (await buscarJson(`/materiais/search?tipo=tecido&q=${nomes.grupo}`))[0]?.id;
-
-    fs.copyFileSync(path.join(__dirname, "..", "spec", "fixtures", "files", "01.tif"), original);
-    await page.goto(`${BASE_URL}/arquivos`);
-    await page.selectOption('[data-upload-target="tipo"]', "corrida");
-    await uploadFileAndWait(page, original);
-    await page.selectOption('[data-upload-target="tipo"]', "calcado");
-    ids.corrida = (await page.locator(".stamp-card").filter({ hasText: nomes.corrida }).getAttribute("id")).replace(/^arquivo_/, "");
-    if (!(await postar(`/arquivos/${ids.corrida}/update_client`, { _method: "patch", client_uuid: ids.cliente }))) throw new Error("Couldn't give the corrida its client");
-
-    ids.primeiro = await pedidoConfirmado();
-    ids.segundo = await pedidoConfirmado();
+    corrida = await prepararCorrida(page, "prog");
+    ids.primeiro = await pedidoDaCorrida(page, corrida);
+    ids.segundo = await pedidoDaCorrida(page, corrida);
     if (ids.primeiro === ids.segundo) throw new Error("Both items went into one pedido");
 
     await page.goto(`${BASE_URL}/parametros/turnos`);
@@ -192,6 +133,6 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
     ]);
     await naFila(ids.segundo).locator("[data-fila-movida]").waitFor({ state: "detached" });
     if ((await posicao(ids.segundo)) <= (await posicao(ids.primeiro))) throw new Error("The second is still ahead");
-    fs.rmSync(pasta, { recursive: true, force: true });
+    limparCorrida(corrida);
   });
 });

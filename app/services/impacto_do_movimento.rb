@@ -122,8 +122,8 @@ class ImpactoDoMovimento
       de, para = fim(@fila, pedido), fim(depois, pedido)
       next unless de && (para.nil? || para > de)
 
-      prazo = pedido.prazo_entrega || pedido.reposicao_de&.prazo_entrega
-      Empurrado.new(pedido: pedido, de: de, para: para, prazo: prazo, passa_a_atrasar: prazo.present? && de.to_date <= prazo && (para.nil? || para.to_date > prazo))
+      prazo = AvisoDePrevisao.prazo(pedido)
+      Empurrado.new(pedido: pedido, de: de, para: para, prazo: prazo, passa_a_atrasar: AvisoDePrevisao.passa_a_atrasar?(prazo, de, para))
     end
     lista.sort_by { |e| [ e.passa_a_atrasar ? 0 : 1, e.de ] }
   end

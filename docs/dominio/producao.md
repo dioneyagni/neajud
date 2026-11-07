@@ -261,8 +261,8 @@ The Painel's second view: *what comes ahead*, by day, only to see.
 
 Decided 07/11/2026 (Q1a–Q7c in `docs/plano.md`, Etapa 2.10). The
 programação keeps **only what a person changes**; the queue goes on being
-computed (`FilaDeProducao`). The turno's snapshot and the virada come in
-3/4b.
+computed (`FilaDeProducao`). The turno's photo and the virada: the next
+section (3/4b1).
 
 - **`MovimentoDaFila`** — a stage moved in its sector's queue: who, when,
   from which place to which, the reason, and the pedidos whose previsão it
@@ -301,6 +301,55 @@ computed (`FilaDeProducao`). The turno's snapshot and the virada come in
   a later day gets an `EventoPedido` "previsao_mudou" — what a cliente
   final reads in its Histórico: "previsão mudou: qui 12/11 → sex 13/11
   (reprogramação da fábrica)", no reason, no other pedido.
+
+## The photo of each turno and the virada (Painel 3/4b1)
+
+Decided 07/11/2026 (Q1a–Q7a of the 3/4b in `docs/plano.md`). The queue is
+still computed from now on — what didn't end in a turno simply goes on in
+the next one, ahead of whatever arrived later (Q4a: the virada changes no
+order; only a ↑ with its impact passes it). What was missing is memory:
+what had been programmed for the turno that just ended.
+
+- **`FotoDaFila`** (Q2a) — at the start of each turno, `FotoDaFilaJob`
+  (every 5 minutes, `config/recurring.yml`) takes the photo of the whole
+  queue (`TirarFotoDaFila`): every stage, its place, when it would end,
+  the pedido's previsão and its pieces in the turnos (`VezDaFoto`). One
+  per turno and day (a unique index); a turno while the server was off has
+  none. **In development the job is scheduled only with `FOTOS_DA_FILA=1`**:
+  it writes to the real data. Photos past **7 days are deleted** (derived
+  data); what stays is the virada's record.
+- **The virada** (`ViradaDaFila`, Q6a) — the new photo against the one
+  before: each pedido whose previsão moved to a **later day** gets a
+  `ViradaDoPedido` (the stages the photo before had end in its turno and
+  still open — its own first, at most 10 —, whether it **came to be late**) and the cliente final's
+  "previsão mudou" (`AvisoDePrevisao`, shared with `MoverNaFila`; the event
+  has no user). What a ↑ already told during the turno is not told again.
+  The team's "Histórico da programação" mixes moves and viradas by time:
+  "virada para a Tarde · não terminaram na Manhã: Impressão do #c210 ·
+  este pedido: qui 12/11 15:30 → sex 13/11 09:00 · passou a atrasar".
+- **"veio de · adiada"** (Q3a, `ProgramadoNaFila`) — a stage the photo of a
+  turno already over had **end in that turno**, still open: "veio de hoje ·
+  Manhã", "· adiada 2 turnos" from the second time (the first such turno
+  and how many, within the 7 days kept). A stage only passing through a
+  turno doesn't count. On the queue's line and in the grid cell's detail.
+- **The warning on top** (Q5a) — during the turno, the pedidos its virada
+  made late: "Na virada para a Tarde, 2 pedidos passaram a atrasar: …";
+  clicking one opens it in the grid. A ↑ that makes someone late is not
+  here: its window already said it.
+- **Load over 100%** (Q7a) — today's load in the Linha do tempo is the
+  larger of the queue's and what the day's first photo programmed for
+  today still to do (per stage, at most what it has left); past the hours
+  left it shows e.g. "130%" in red, "o programado para hoje não cabe: 5,2 h
+  em 4 h". The turno under way's header in a sector's queue does the same
+  with its own photo. Without a photo, the old load (never over 100%).
+- The team's only (`Visibilidade::DA_EQUIPE`): a cliente final sees no
+  warning, mark or virada, only his "previsão mudou".
+- **The E2E** takes the photos through the same service
+  (`e2e/support/fotos_da_virada.rb`, `bin/rails runner -e test`) — a spec
+  can't wait for a turno to end.
+
+The faixa's dashed "was programmed", the arrows and "quem cruzou" come in
+3/4b2, drawn from these photos.
 
 ## Turnos, calendar and rhythm (Painel 2/4a)
 

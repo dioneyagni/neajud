@@ -6,7 +6,9 @@
     sectors and counters run in the page (painel_controller.js). A cliente
     final sees days only: no sectors, queue or turnos (Q4a). Painel 2/4c:
     the Linha do tempo, the second view, switched in the page (the address
-    keeps it), its window in a frame of its own (_linha_do_tempo). %>
+    keeps it), its window in a frame of its own (_linha_do_tempo). Painel
+    3/4b: during a turno, the pedidos its virada made late, on top (Q5a;
+    the team's only — a cliente final has no viradas to see). %>
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
 <% setores = cliente_final? ? {} : @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
 <% linhas_por_pedido = @painel.linhas.flat_map(&:com_reposicoes).index_by { |linha| linha.pedido.id } %>
@@ -38,6 +40,17 @@
       <% end %>
     </div>
   </div>
+
+  <% if @atrasaram_na_virada.any? %>
+    <div class="painel-virada" role="status" data-painel-virada>
+      <strong>Na virada para a <%= @atrasaram_na_virada.first.turno_nome %>, <%= pluralize(@atrasaram_na_virada.size, "pedido passou", plural: "pedidos passaram") %> a atrasar:</strong>
+      <% @atrasaram_na_virada.each do |virada| %>
+        <% pedido = virada.pedido %>
+        <button type="button" class="painel-virada-pedido" data-action="painel#abrirDoAviso" data-pedido="<%= pedido.uuid %>">
+          #<%= pedido.uuid.first(8) %> (prazo <%= dia_com_semana(AvisoDePrevisao.prazo(pedido)) %>, previsão <%= previsao_do_impacto(virada.para) %>)</button>
+      <% end %>
+    </div>
+  <% end %>
 
   <% if setores.any? %>
     <nav class="painel-setores" aria-label="Setor">

@@ -4,7 +4,9 @@
 # row is opened. Painel 2/4b: the blocks in time, the previsão and each
 # sector's queue (FilaDeProducao); the page refreshes itself when the queue
 # changes (CanaisAoVivo.avisar_fila). Painel 2/4c: the Linha do tempo, the
-# second view, its window and order in the address (Q3a, Q6a).
+# second view, its window and order in the address (Q3a, Q6a). Painel 3/4b:
+# what the photos of the turnos programmed — "veio de · adiada", the load
+# over 100% — and the warning of who came to be late at the virada.
 class PaineisController < ApplicationController
   exige :pedidos, :ver
 
@@ -17,7 +19,11 @@ class PaineisController < ApplicationController
     @ordem = LinhaDoTempo::ORDENS.include?(params[:ordem]) ? params[:ordem] : "chegada"
     @painel = PainelDeProducao.call(visiveis(Pedido), entregues: @entregues, cliente_final: cliente_final?, janela: @de..(@de + LinhaDoTempo::DIAS - 1))
     # Painel 3/4a: each row's "Histórico da programação", read at once (the team's only).
-    @historicos = visiveis(MovimentoDaFila).por_pedido(@painel.linhas.flat_map(&:com_reposicoes).map { |linha| linha.pedido.id })
+    @historicos = historicos_da_programacao(@painel.linhas.flat_map(&:com_reposicoes).map { |linha| linha.pedido.id })
+    # Painel 3/4b: the photos (none for a cliente final) and the virada's warning.
+    @programado = ProgramadoNaFila.new(visiveis(FotoDaFila), @painel.fila)
+    @atrasaram_na_virada = visiveis(ViradaDoPedido).do_turno_de(Time.current).atrasaram
+                                                   .where(pedido: visiveis(Pedido).ativos).includes(:pedido).order(:id).to_a
     # Painel 2/4a: the turno on now, in the header (none for a cliente final).
     @calendario = CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
   end
@@ -35,6 +41,13 @@ class PaineisController < ApplicationController
     Date.iso8601(params[:de].to_s)
   rescue Date::Error
     LinhaDoTempo.inicio_padrao
+  end
+
+  # Its moves and its viradas, by time (3/4b).
+  def historicos_da_programacao(ids)
+    movimentos = visiveis(MovimentoDaFila).por_pedido(ids)
+    viradas = visiveis(ViradaDoPedido).where(pedido_id: ids).group_by(&:pedido_id)
+    ids.index_with { |id| (movimentos.fetch(id) + viradas.fetch(id, [])).sort_by(&:created_at) }
   end
 
   def colunas_pedidas

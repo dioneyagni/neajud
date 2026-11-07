@@ -25,7 +25,7 @@
       <% end %>
     </div>
     <% colunas.each_key do |chave| %>
-      <%= render "paineis/celula", celula: linha.celulas.fetch(chave), coluna: chave %>
+      <%= render "paineis/celula", celula: linha.celulas.fetch(chave), coluna: chave, adiamento: adiamento_da_coluna(linha, chave) %>
     <% end %>
     <div class="painel-fim">
       <strong><%= linha.percentual %>%</strong>
