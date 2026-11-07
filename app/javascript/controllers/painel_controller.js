@@ -17,27 +17,34 @@ const INTERVALO_MS = 3000
 // pair as one. Painel 2/4b: a sector's tab shows its numbered queue instead
 // of the grid (Entrega still filters the grid); the page morph-refreshes
 // when the queue changes and when a turno starts or ends, and puts back the
-// tab, the filters, the counter and what was open (Q5a).
+// tab, the filters, the counter and what was open (Q5a). Painel 2/4c: the
+// Linha do tempo, switched in the page (the address keeps it); its window
+// and order load in a frame, the filters, the sector and the counters
+// apply to its bars too, a sector keeps only its load (Q7a).
 export default class extends Controller {
-  static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia"]
-  static values = { itensUrl: String, colunas: Array, virada: Number }
+  static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia", "etapas", "tempo", "gradeTempo", "ordem", "comVisao"]
+  static values = { itensUrl: String, colunas: Array, virada: Number, visao: String }
 
   connect() {
     this.filtroDoContador = ""
     this.setorAtual = ""
     this.aberto = null
+    this.abertoNoTempo = null
     this.itensAbertos = new Set()
     this.ultimaRecarga = 0
     this.boundRecarga = () => this.pedirRecarga()
     this.boundRestaurar = () => this.restaurar()
+    this.boundNovaJanela = () => this.novaJanela()
     document.addEventListener("painel:fila", this.boundRecarga)
     document.addEventListener("turbo:morph", this.boundRestaurar)
+    this.element.addEventListener("turbo:frame-load", this.boundNovaJanela)
     this.aplicar()
   }
 
   disconnect() {
     document.removeEventListener("painel:fila", this.boundRecarga)
     document.removeEventListener("turbo:morph", this.boundRestaurar)
+    this.element.removeEventListener("turbo:frame-load", this.boundNovaJanela)
     clearTimeout(this.recarga)
     clearTimeout(this.timerDaVirada)
   }
@@ -66,10 +73,67 @@ export default class extends Controller {
     this.clienteTarget.value = this.filtros?.cliente ?? ""
     this.pendenciaTarget.checked = this.filtros?.pendencia ?? false
     this.marcarContador()
-    this.mostrarSetor()
+    this.mostrarVisao()
     const aberto = this.aberto && document.getElementById(this.aberto)
     if (aberto) this.marcarAberto(aberto)
+    this.reabrirNoTempo()
     this.itensAbertos.forEach((uuid) => this.carregarItens(document.getElementById(`painel_${uuid}`)))
+  }
+
+  // ‹ › or the order brought another window: filter it, reopen its bar.
+  novaJanela() {
+    this.aplicar()
+    this.reabrirNoTempo()
+  }
+
+  trocarVisao(event) {
+    this.visaoValue = event.currentTarget.dataset.visao
+    const url = new URL(window.location.href)
+    this.comVisao(url)
+    window.history.replaceState(window.history.state, "", url)
+    this.comVisaoTargets.forEach((link) => {
+      const destino = new URL(link.href)
+      this.comVisao(destino)
+      link.href = destino.pathname + destino.search
+    })
+    this.mostrarVisao()
+  }
+
+  comVisao(url) {
+    if (this.visaoValue === "tempo") url.searchParams.set("visao", "tempo")
+    else url.searchParams.delete("visao")
+  }
+
+  mostrarVisao() {
+    const tempo = this.visaoValue === "tempo"
+    this.element.querySelectorAll(".painel-visao").forEach((botao) => botao.setAttribute("aria-pressed", String(botao.dataset.visao === this.visaoValue)))
+    if (this.hasEtapasTarget) this.etapasTarget.hidden = tempo
+    if (this.hasTempoTarget) this.tempoTarget.hidden = !tempo
+    this.mostrarSetor()
+  }
+
+  ordenar() {
+    this.ordemTarget.requestSubmit()
+  }
+
+  abrirNoTempo(event) {
+    const pedido = event.currentTarget.closest(".painel-tempo-pedido")
+    const jaAberto = pedido.classList.contains("painel-pedido--aberto")
+    this.fecharTodos()
+    if (!jaAberto) this.marcarAbertoNoTempo(pedido)
+  }
+
+  marcarAbertoNoTempo(pedido) {
+    this.abertoNoTempo = pedido.id
+    pedido.classList.add("painel-pedido--aberto")
+    pedido.querySelector(".painel-faixa").hidden = false
+    pedido.querySelector(".painel-ped-btn").setAttribute("aria-expanded", "true")
+    this.gradeTempoTarget.classList.add("painel-tempo-grade--destaque")
+  }
+
+  reabrirNoTempo() {
+    const aberto = this.abertoNoTempo && document.getElementById(this.abertoNoTempo)
+    if (aberto && !aberto.hidden) this.marcarAbertoNoTempo(aberto)
   }
 
   abrir(event) {
@@ -146,9 +210,22 @@ export default class extends Controller {
   aplicar() {
     this.pedidos().forEach((pedido) => { pedido.hidden = !this.passa(pedido) })
     this.element.querySelectorAll("[data-fila-pedido]").forEach((linha) => { linha.hidden = !this.passaNosFiltros(linha) })
+    this.aplicarNoTempo()
     // The opened pedido filtered out: nothing would be left undimmed.
-    if (this.element.querySelector(".painel-pedido--aberto:is([hidden], [hidden] *)")) this.fecharTodos()
+    if (this.element.querySelector(".painel-pedido--aberto:is([hidden], .painel-pedido[hidden] *)")) this.fecharTodos()
     this.contar()
+  }
+
+  // A sector keeps the bars that go through it and only its load (Q7a).
+  aplicarNoTempo() {
+    const setor = this.setorAtual
+    this.element.querySelectorAll(".painel-tempo-pedido").forEach((pedido) => {
+      pedido.hidden = !(this.passa(pedido, { ignorarSetor: true }) && (!setor || this.naFila(pedido, setor)))
+    })
+    const cargas = this.element.querySelectorAll("[data-tempo-carga]")
+    cargas.forEach((carga) => { carga.hidden = Boolean(setor) && carga.dataset.tempoCarga !== setor })
+    const secao = this.element.querySelector("[data-tempo-cargas]")
+    if (secao) secao.hidden = Array.from(cargas).every((carga) => carga.hidden)
   }
 
   passa(pedido, { ignorarSetor = false } = {}) {
@@ -213,12 +290,16 @@ export default class extends Controller {
 
   fecharTodos() {
     this.aberto = null
-    this.element.querySelectorAll(".painel-pedido").forEach((pedido) => {
+    this.abertoNoTempo = null
+    this.element.querySelectorAll(".painel-pedido, .painel-tempo-pedido").forEach((pedido) => {
       pedido.classList.remove("painel-pedido--aberto", "painel-pedido--contem")
+      // A delivered bar has no faixa: it links to its resumo.
+      if (!pedido.querySelector(".painel-faixa")) return
       pedido.querySelector(".painel-faixa").hidden = true
       pedido.querySelector(".painel-ped-btn").setAttribute("aria-expanded", "false")
     })
     this.gradeTarget.classList.remove("painel-grade--destaque")
+    if (this.hasGradeTempoTarget) this.gradeTempoTarget.classList.remove("painel-tempo-grade--destaque")
   }
 
   // The top rows: a reposição inside its original is not counted twice.

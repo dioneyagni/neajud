@@ -1,7 +1,7 @@
 <%# A pedido on the Painel: its row, its items (loaded when opened), the
     faixa below it and its reposições under it (themselves, rendered with
     filha: true). locals: linha (LinhaDoPainel), colunas, bloco (its block's
-    key, BlocosNoTempo), filha %>
+    key, BlocosNoTempo), fila (FilaDeProducao, for the faixa's timeline), filha %>
 <% pedido = linha.pedido %>
 <% filha = local_assigns.fetch(:filha, false) %>
 <div class="painel-pedido<%= " painel-pedido--reposicao" if filha %>" id="painel_<%= pedido.uuid %>" data-uuid="<%= pedido.uuid %>" data-bloco="<%= bloco %>"
@@ -40,12 +40,12 @@
   </div>
   <div class="painel-itens" data-painel-itens hidden></div>
   <div class="painel-faixa" hidden>
-    <%= render "paineis/faixa", linha: linha %>
+    <%= render "paineis/faixa", linha: linha, fila: fila %>
   </div>
   <% if linha.reposicoes.any? %>
     <div class="painel-reposicoes">
       <% linha.reposicoes.each do |reposicao| %>
-        <%= render "paineis/pedido", linha: reposicao, colunas: colunas, bloco: bloco, filha: true %>
+        <%= render "paineis/pedido", linha: reposicao, colunas: colunas, bloco: bloco, fila: fila, filha: true %>
       <% end %>
     </div>
   <% end %>

@@ -1,0 +1,43 @@
+<%# A pedido's bar on the Linha do tempo (BarraNoTempo): the same data as its
+    row in Etapas, so the filters, the sector and the counters see it; the
+    button opens the same faixa below it. A delivered one is only the record
+    (its stages are not read): it links to its resumo.
+    locals: barra, bloco (its block in Etapas), fila %>
+<% linha = barra.linha %>
+<% pedido = linha.pedido %>
+<div class="painel-tempo-pedido" id="tempo_<%= pedido.uuid %>" data-uuid="<%= pedido.uuid %>" data-bloco="<%= bloco %>"
+     data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-filas="<%= linha.filas.join(" ") %>"
+     data-pendencia="<%= linha.pendencia? %>" data-atrasado="<%= linha.atrasado? %>" data-vai-atrasar="<%= linha.com_reposicoes.any?(&:vai_atrasar?) %>">
+  <div class="painel-tempo-linha">
+    <div class="painel-tempo-lado">
+      <% if barra.grupo == "entregues" %>
+        <%= link_to resumo_pedido_path(pedido), class: "painel-ped-btn painel-tempo-resumo" do %>
+          <span class="painel-pid">#<%= pedido.uuid.first(8) %> <small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></span>
+          <span class="painel-ref"><%= pedido.client&.name || "sem cliente" %></span>
+        <% end %>
+      <% else %>
+      <button type="button" class="painel-ped-btn" data-action="painel#abrirNoTempo" aria-expanded="false">
+        <span class="painel-pid">#<%= pedido.uuid.first(8) %> <small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></span>
+        <span class="painel-ref"><%= pedido.client&.name || "sem cliente" %><%= " · ↻ #{pluralize(linha.reposicoes.size, "reposição", plural: "reposições")}" if linha.reposicoes.any? %></span>
+        <% if (comeco = comeco_da_barra(barra)) %><span class="painel-tempo-comeco"><%= comeco %></span><% end %>
+      </button>
+      <% end %>
+    </div>
+    <div class="painel-tempo-pista">
+      <% { feito: barra.feito, previsto: barra.previsto, atraso: barra.atraso, espera: barra.espera, se_confirmar: barra.se_confirmar, entregue: barra.entregue }.each do |tipo, pedaco| %>
+        <% if pedaco %><i class="painel-tempo-seg painel-tempo-seg--<%= tipo %>" style="<%= estilo_do_pedaco(pedaco) %>" data-tempo-seg="<%= tipo %>"></i><% end %>
+      <% end %>
+      <% if (prazo = barra.prazo_em) %>
+        <span class="painel-tempo-prazo<%= " painel-tempo-prazo--atrasa" if barra.dias_de_atraso %>" style="left: <%= prazo %>%" title="prazo <%= dia_com_semana(linha.prazo) %>" data-tempo-prazo></span>
+      <% end %>
+      <% fim = barra.fim_em || 0 %>
+      <span class="painel-tempo-rotulo<%= " painel-tempo-rotulo--atrasa" if barra.dias_de_atraso %><%= " painel-tempo-rotulo--antes" if fim > 70 %>"
+            style="<%= fim > 70 ? "right: #{(100 - fim).round(2)}%" : "left: #{fim}%" %>" data-tempo-rotulo><%= rotulo_da_barra(barra) %></span>
+    </div>
+  </div>
+  <% unless barra.grupo == "entregues" %>
+    <div class="painel-faixa" hidden>
+      <%= render "paineis/faixa", linha: linha, fila: fila %>
+    </div>
+  <% end %>
+</div>

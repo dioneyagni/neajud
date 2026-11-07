@@ -213,6 +213,50 @@ queue as in the canvas's "Fila A").
   it reuses the rows' stage states (`estados:`); the page is ~390 ms, most
   of it the stage states and the drafts' pendências, as before.
 
+## The Linha do tempo (Painel 2/4c)
+
+Decided 05–07/11/2026 (Q1c–Q7a in `docs/plano.md`, Etapa 2.10; the
+prototype's "Linha do tempo" in the canvas, inspired by Basecamp's Lineup).
+The Painel's second view: *what comes ahead*, by day, only to see.
+
+- **The switch** "Etapas | Linha do tempo" — in the page, the address
+  keeping it (`?visao=tempo`); the filters, the sector and the counter stay.
+- **The window** (Q3a) — 14 days, from 2 days before today by default;
+  ‹ 2 semanas · Hoje · 2 semanas › change only its frame
+  (`turbo-frame#painel_tempo`, `?de=AAAA-MM-DD`); a date that isn't one goes
+  back to the default. A window wholly past shows only the record; one past
+  the 90 days of the queue says "a fila termina antes".
+- **A bar per pedido** (`LinhaDoTempo`, `BarraNoTempo`) — from its start
+  (the confirmation) to its previsão (`FilaDeProducao`): done up to now,
+  foreseen after, hatched red past the end of the deadline's day; the ◆ of
+  the deadline, the line of now, the days the whole factory doesn't work
+  hatched. The original and its reposições are one bar, ending with the
+  last of them. Groups: **Em produção e na fila**, **Sem previsão** (dashed
+  up to now, the reason said), **Pendentes de início** (a draft's "se
+  confirmar agora" dashed to it), **Entregues** (delivered inside the
+  window: start to delivery, linked to the resumo; their stages are not
+  read — measured 07/11/2026, 4 of them took 250 ms).
+- **Order** (Q6a) — arrival (the queue's) by default, or previsão or
+  deadline (`?ordem=`); the waiting ones by arrival, the delivered latest
+  first.
+- **The load per stage** (Q2a) — a line per sector, each day the hours the
+  queue fills over its turnos' hours: livre · N% · cheio (85% or more
+  stands out); a day without turno empty, a day only that sector stops
+  "parada", the past "·". Today counts only from now on, so it never passes
+  100%: a turno that fell behind ("115% · atrasou") needs the programação
+  stored (3/4). A sector picked keeps only its line (Q7a).
+- **The faixa** — the same as in Etapas, and in both views it now has the
+  pedido's own timeline (`TempoDoPedido`, Q5a): a lane per stage, a column
+  per turno from now to the previsão (24 at most, "+ N turnos depois"), each
+  stage's share of the turno; done stages marked, now outlined, the turnos
+  past the deadline hatched. What was programmed (dashed), the arrows of a
+  virada and "who crossed it" come with 3/4.
+- **A cliente final** (Q4a) — his pedidos' bars by day; no load, no sector,
+  no hours (the faixa's timeline by day).
+- **Not yet**: the company's markers (a collection, the month's closing;
+  "+ Marcador"), decided 07/11/2026 for after the series (Q1c); the
+  calendar's exceptions already show as days without turno.
+
 ## Turnos, calendar and rhythm (Painel 2/4a)
 
 Decided 05/11/2026: what the queue and the previsão (2/4b) run on. All of

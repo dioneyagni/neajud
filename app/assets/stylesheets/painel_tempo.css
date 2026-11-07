@@ -1,0 +1,93 @@
+/* The Painel's Linha do tempo (Painel 2/4c, the prototype approved on
+   05/11/2026): the view switch, 14 days by bar, the deadline's ◆, the line
+   of now, the days without turno hatched, the sectors' load; and the
+   faixa's timeline of one pedido. The pedido column sticks while the days
+   scroll sideways inside the frame on a phone. */
+
+.painel-visoes { display: inline-flex; border: 1px solid #dadce0; border-radius: 8px; overflow: hidden; align-self: flex-start; }
+.painel-visao { font: inherit; border: 0; background: #fff; color: #3c4043; padding: 6px 12px; cursor: pointer; min-height: 32px; }
+.painel-visao + .painel-visao { border-left: 1px solid #dadce0; }
+.painel-visao[aria-pressed="true"] { background: #1a73e8; color: #fff; }
+
+.painel-tempo { display: flex; flex-direction: column; gap: 10px; }
+.painel-tempo-nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.painel-tempo-passos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.painel-tempo-passo { border: 1px solid #dadce0; background: #fff; border-radius: 6px; padding: 5px 10px; color: #3c4043; text-decoration: none; min-height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; }
+.painel-tempo-passo--hoje { color: #9aa0a6; }
+.painel-tempo-periodo { color: #5f6368; font-variant-numeric: tabular-nums; }
+.painel-tempo-ordem label { display: flex; gap: 6px; align-items: center; color: #5f6368; }
+.painel-tempo-ordem select { font: inherit; padding: 5px 8px; border: 1px solid #dadce0; border-radius: 6px; background: #fff; color: #202124; }
+.painel-tempo-aviso { margin: 0; padding: 8px 12px; background: #f1f3f4; border-radius: 6px; color: #3c4043; }
+
+.painel-tempo-quadro { overflow-x: auto; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; }
+.painel-tempo-grade { --tempo-lado: 220px; position: relative; min-width: calc(var(--tempo-lado) + 14 * 52px); }
+.painel-tempo-linha { display: grid; grid-template-columns: var(--tempo-lado) minmax(0, 1fr); border-top: 1px solid #f1f3f4; position: relative; }
+.painel-tempo-lado { position: sticky; left: 0; z-index: 3; background: #fff; padding: 8px 10px; border-right: 1px solid #f1f3f4; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.painel-tempo-cab { border-top: 0; border-bottom: 1px solid #e0e0e0; }
+.painel-tempo-cab .painel-tempo-lado { font-size: 12px; color: #5f6368; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; justify-content: flex-end; }
+.painel-tempo-dias { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); }
+.painel-tempo-dia { padding: 6px 4px; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #5f6368; text-align: center; }
+.painel-tempo-dia b { font-size: 14px; color: #202124; font-variant-numeric: tabular-nums; }
+.painel-tempo-dia--hoje b, .painel-tempo-dia--hoje { color: #1a73e8; }
+
+/* The days' columns and the line of now, behind every row. */
+.painel-tempo-fundo { position: absolute; top: 0; bottom: 0; left: var(--tempo-lado); right: 0; pointer-events: none; z-index: 0; }
+.painel-tempo-col { position: absolute; top: 0; bottom: 0; width: calc(100% / 14); border-left: 1px solid #f1f3f4; box-sizing: border-box; }
+.painel-tempo-col--hoje { background: rgba(26, 115, 232, .05); }
+.painel-tempo-folga { background: repeating-linear-gradient(135deg, #f8f9fa 0 5px, #eef0f2 5px 10px); }
+.painel-tempo-agora { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #1a73e8; }
+
+.painel-tempo-grupo-cab { padding: 12px 12px 4px; background: #f8f9fa; border-top: 1px solid #e0e0e0; position: sticky; left: 0; z-index: 3; width: fit-content; min-width: 100%; box-sizing: border-box; }
+.painel-tempo-grupo-cab small { color: #5f6368; margin-left: 6px; }
+.painel-tempo-pedidos:has(.painel-tempo-pedido:not([hidden])) + .painel-vazio { display: none; }
+.painel-tempo-pedido { position: relative; }
+.painel-tempo-pedido > .painel-faixa { z-index: 4; }
+.painel-tempo-comeco { font-size: 11px; color: #5f6368; }
+.painel-tempo-grade--destaque .painel-tempo-pedido:not(.painel-pedido--aberto) > .painel-tempo-linha { opacity: .45; }
+
+.painel-tempo-pista { position: relative; min-height: 46px; z-index: 1; }
+.painel-tempo-seg { position: absolute; top: 15px; height: 16px; box-sizing: border-box; }
+.painel-tempo-seg--feito { background: #1a73e8; border-radius: 4px 0 0 4px; }
+.painel-tempo-seg--previsto { background: #c6dafc; border: 1.5px solid #1a73e8; border-radius: 0 4px 4px 0; }
+.painel-tempo-seg--atraso { background: repeating-linear-gradient(135deg, #fce8e6 0 4px, #f6aea9 4px 8px); border: 1.5px solid #c5221f; border-radius: 0 4px 4px 0; }
+.painel-tempo-seg--espera, .painel-tempo-seg--se_confirmar { border: 1.5px dashed #f29900; background: #fffaf2; border-radius: 4px; }
+.painel-tempo-seg--se_confirmar { border-color: #1a73e8; background: #f4f8fe; }
+.painel-tempo-seg--entregue { background: #e6f4ea; border: 1.5px solid #81c995; border-radius: 4px; }
+.painel-legenda .painel-tempo-seg--feito, .painel-legenda .painel-tempo-seg--previsto, .painel-legenda .painel-tempo-seg--atraso { border-radius: 4px; }
+.painel-tempo-prazo { position: absolute; top: 16px; width: 10px; height: 10px; margin-left: -5px; background: #188038; transform: rotate(45deg); z-index: 2; }
+.painel-tempo-prazo--atrasa { background: #c5221f; }
+.painel-tempo-rotulo { position: absolute; top: 14px; padding: 0 8px; font-size: 12px; white-space: nowrap; color: #3c4043; background: rgba(255, 255, 255, .85); border-radius: 4px; line-height: 18px; z-index: 2; }
+.painel-tempo-rotulo--atrasa { color: #c5221f; font-weight: 600; }
+
+.painel-tempo-carga { margin: 4px 2px; border-radius: 4px; font-size: 11px; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; z-index: 1; position: relative; }
+.painel-tempo-carga--livre { background: #f1f3f4; color: #5f6368; }
+.painel-tempo-carga--ok { background: #e8f0fe; color: #174ea6; }
+.painel-tempo-carga--alto { background: #feefc3; color: #7a4100; }
+.painel-tempo-carga--cheio { background: #fad2cf; color: #a50e0e; font-weight: 600; }
+.painel-tempo-carga--parada { background: #fce8e6; color: #a50e0e; }
+.painel-tempo-carga--passado, .painel-tempo-carga--encerrado { color: #9aa0a6; }
+
+/* The faixa's timeline of one pedido (Q5a). */
+.painel-tdp { display: flex; flex-direction: column; gap: 6px; }
+.painel-tdp-topo { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; color: #5f6368; font-size: 12px; }
+.painel-tdp-topo strong { color: #202124; font-size: 13px; }
+.painel-tdp-rolagem { overflow-x: auto; max-width: 100%; }
+.painel-tdp-grade { display: grid; grid-template-columns: 120px repeat(var(--tdp-colunas), minmax(64px, 1fr)); width: max-content; min-width: 100%; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; }
+.painel-tdp-col { padding: 4px; font-size: 11px; color: #5f6368; display: flex; flex-direction: column; border-left: 1px solid #f1f3f4; border-bottom: 1px solid #e0e0e0; }
+.painel-tdp-col b { color: #202124; font-weight: 600; }
+.painel-tdp-nome { padding: 4px 8px; font-size: 12px; position: sticky; left: 0; background: #fff; border-bottom: 1px solid #f1f3f4; }
+.painel-tdp-nome[data-estado="feita"] { color: #188038; }
+.painel-tdp-cel { border-left: 1px solid #f1f3f4; border-bottom: 1px solid #f1f3f4; padding: 6px 3px; display: flex; align-items: center; }
+.painel-tdp-col--agora { box-shadow: inset 2px 0 0 #1a73e8; background-color: rgba(26, 115, 232, .05); }
+.painel-tdp-col--prazo { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(197, 34, 31, .08) 5px 10px); }
+.painel-tdp-parte { display: block; height: 12px; border-radius: 3px; background: #c6dafc; border: 1.5px solid #1a73e8; box-sizing: border-box; }
+.painel-tdp-parte--andamento { background: #1a73e8; }
+.painel-tdp-nota { padding: 4px 8px; font-size: 12px; color: #5f6368; border-bottom: 1px solid #f1f3f4; }
+.painel-tdp-nota--feita { color: #188038; }
+.painel-tdp-nota--sem_previsao { color: #a24c00; }
+
+@media (max-width: 600px) {
+  .painel-tempo-grade { --tempo-lado: 150px; }
+}
+.painel-tempo-pedido.painel-pedido--aberto > .painel-tempo-linha .painel-tempo-lado { background: #e8f0fe; }
+.painel-tempo-resumo { color: inherit; text-decoration: none; }
