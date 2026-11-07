@@ -8,7 +8,7 @@
         <li class="pedido-evento pedido-evento--<%= evento.tipo %>">
           <span><%= rotulo_do_evento(evento) %></span>
           <small><%= l evento.created_at, format: "%d/%m/%Y %H:%M" %> · <%= evento.user.nome %></small>
-          <% if evento.recado.present? %><blockquote><%= evento.recado %></blockquote><% end %>
+          <% if evento.recado.present? && evento.tipo != "previsao_mudou" %><blockquote><%= evento.recado %></blockquote><% end %>
         </li>
       <% end %>
     </ul>

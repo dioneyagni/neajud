@@ -149,6 +149,67 @@ RSpec.describe FilaDeProducao do
     expect(f.se_confirmar(rascunho, pendencias: true).sem_previsao).to eq("resolva as pendências para ter a previsão")
   end
 
+  # Painel 3/4a (Q1a, Q6b): the order a person gave, kept as the moment the
+  # stage sorts as if it had arrived; under way first, no one passes it.
+  describe "the order moved by a person" do
+    let(:pessoa) { create(:user) }
+
+    def mover(pedido, etapa, ordem_em)
+      MovimentoDaFila.create!(pedido: pedido, user: pessoa, etapa: etapa, setor: etapa, de: 2, para: 1, ordem_em: ordem_em)
+    end
+
+    def ordem(f, setor = "impressao")
+      f.do_setor(setor).map { |v| [ v.pedido, v.posicao ] }
+    end
+
+    before { ritmos }
+
+    it "puts a moved stage where it was put, the stage after it following, a new arrival behind" do
+      primeiro = tecido(quarta - 2.hours)
+      segundo = tecido(quarta - 1.hour)
+      movimento = mover(segundo, "impressao", primeiro.confirmado_em - 0.001)
+      novo = tecido(quarta - 1.minute)
+      f = fila
+
+      expect(ordem(f)).to eq([ [ segundo, 1 ], [ primeiro, 2 ], [ novo, 3 ] ])
+      expect(horarios(vez(f, segundo, "calandra"))).to eq([ "Wed 09:00–09:30" ])
+      expect([ vez(f, segundo, "impressao").movimento, vez(f, primeiro, "impressao").movimento ]).to eq([ movimento, nil ])
+    end
+
+    it "goes back to the arrival order with its last movement, empty" do
+      primeiro = tecido(quarta - 2.hours)
+      segundo = tecido(quarta - 1.hour)
+      mover(segundo, "impressao", primeiro.confirmado_em - 0.001)
+      MovimentoDaFila.create!(pedido: segundo, user: pessoa, etapa: "impressao", setor: "impressao", de: 1, para: 2)
+      expect(ordem(fila)).to eq([ [ primeiro, 1 ], [ segundo, 2 ] ])
+    end
+
+    it "keeps a stage under way at the head, ahead of earlier arrivals and moved ones" do
+      primeiro = tecido(quarta - 2.hours)
+      comecado = tecido(quarta - 1.hour)
+      movido = tecido(quarta - 30.minutes)
+      RegistrarBaixaService.call(comecado, etapa: "impressao", nivel: "linha", alvo: EstadoDasEtapas.call(comecado)["impressao"].keys.first, medida: "12,5", confirmar: true)
+      mover(movido, "impressao", Time.zone.parse("2000-01-01"))
+      expect(ordem(fila)).to eq([ [ comecado, 1 ], [ movido, 2 ], [ primeiro, 3 ] ])
+    end
+
+    # Not in today's types (each starts in the Impressão), but a stage moved
+    # ahead of the one its own pedido waits for, across two sectors, must not
+    # stall the queue: the one waited for goes first.
+    it "places every stage when two moved ones wait for each other's sector" do
+      ao_contrario = EtapasProducao.do_tipo("tecido").reverse.map { |e| e.dup.tap { |c| c.trava = e.chave == "impressao" ? [ "calandra" ] : [] } }
+      allow(EtapasProducao).to receive(:do_tipo).and_wrap_original { |original, tipo, **opcoes| tipo == "tecido" ? ao_contrario : original.call(tipo, **opcoes) }
+      tecido_antes = tecido(quarta - 2.hours)
+      calcado = pedido_calcado_confirmado.tap { |p| p.update_columns(confirmado_em: quarta - 1.hour) }
+      mover(calcado, "estamparia", Time.zone.parse("2000-01-01"))
+
+      f = fila
+      # The tecido's Calandra, waited for by its Impressão at the head of that queue, goes first.
+      expect(f.do_setor("estamparia").map(&:pedido)).to eq([ tecido_antes, calcado ])
+      expect((f.previsao(calcado).vezes + f.previsao(tecido_antes).vezes).all?(&:colocada)).to be(true)
+    end
+  end
+
   # Painel 2/4a2 A6b: the machine changes material between pedidos in a row.
   it "adds the cutting machine's material change from the pedido before" do
     primeiro = pedido_calcado_confirmado.tap { |p| p.update_columns(confirmado_em: quarta - 2.hours) }

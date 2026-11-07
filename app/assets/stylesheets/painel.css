@@ -173,3 +173,32 @@ main:has(.painel) { max-width: 1480px; }
 .painel-fila-barra { height: 4px; background: #c6dafc; border-radius: 2px; overflow: hidden; margin-top: 4px; }
 .painel-fila-barra i { display: block; height: 100%; background: #1a73e8; }
 .painel-fila-vazia { padding: 12px 14px; color: #5f6368; margin: 0; }
+
+/* Painel 3/4a: moving a stage in its sector's queue — ↑ ↓, the moved badge,
+   the impact window (centred, the ones coming to be late in red). */
+.painel-fila-lugar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.painel-fila-mover { display: inline-flex; gap: 2px; }
+.painel-fila-seta { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid #dadce0; border-radius: 6px; background: #fff; color: #1a73e8; text-decoration: none; font-weight: 700; }
+.painel-fila-seta:hover { background: #e8f0fe; }
+.painel-fila-movida { font-size: 11px; color: #a24c00; }
+.painel-fila-voltar { font-size: 13px; }
+.painel-impacto-janela { margin: auto; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); border: 0; border-radius: 10px; padding: 0; box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.painel-impacto-janela::backdrop { background: rgba(32, 33, 36, .45); }
+.painel-impacto { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.painel-impacto h3 { margin: 0; font-size: 17px; }
+.painel-impacto h4 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #5f6368; }
+.painel-impacto-posicao label { display: flex; gap: 8px; align-items: center; color: #5f6368; }
+.painel-impacto-posicao select, .painel-impacto-form textarea { font: inherit; padding: 6px 8px; border: 1px solid #dadce0; border-radius: 6px; }
+.painel-impacto-movido { margin: 0; padding: 8px 10px; background: #e8f0fe; border-radius: 6px; }
+.painel-impacto-nada { margin: 0; color: #188038; }
+.painel-impacto-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
+.painel-impacto-lista li { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 10px; border: 1px solid #f1f3f4; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.painel-impacto-lista .painel-impacto-atrasa { border-color: #f6aea9; background: #fce8e6; }
+.painel-impacto-atrasa strong { color: #c5221f; }
+.painel-impacto-form { display: flex; flex-direction: column; gap: 6px; }
+.painel-impacto-erro { margin: 0; color: #c5221f; }
+.painel-impacto-acoes { display: flex; justify-content: flex-end; gap: 8px; }
+.painel-impacto-cancelar, .painel-impacto-confirmar { font: inherit; border-radius: 6px; padding: 8px 14px; cursor: pointer; min-height: 40px; }
+.painel-impacto-cancelar { border: 1px solid #dadce0; background: #fff; color: #3c4043; }
+.painel-impacto-confirmar { border: 0; background: #1a73e8; color: #fff; }
+.painel-impacto-confirmar:disabled { background: #c6dafc; cursor: default; }

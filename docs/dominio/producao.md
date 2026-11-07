@@ -169,7 +169,7 @@ queue as in the canvas's "Fila A").
   works (`CalendarioDeProducao#horas`), and a stage starts when the ones it
   waits for (`trava`) end for that pedido. Strict order: a pedido waiting
   for its Impressão also holds the ones after it in the Estamparia
-  (reordering is the programação, 3/4).
+  (reordering is the programação, 3/4a: then the stages under way go first).
 - **No previsão** for a stage, and every stage that waits for it, when:
   - a **material is missing** (Q1c): it holds only the stage that takes it
     from the stock — without fabric the Impressão runs and the Corte
@@ -256,6 +256,51 @@ The Painel's second view: *what comes ahead*, by day, only to see.
 - **Not yet**: the company's markers (a collection, the month's closing;
   "+ Marcador"), decided 07/11/2026 for after the series (Q1c); the
   calendar's exceptions already show as days without turno.
+
+## Moving in the queue (Painel 3/4a)
+
+Decided 07/11/2026 (Q1a–Q7c in `docs/plano.md`, Etapa 2.10). The
+programação keeps **only what a person changes**; the queue goes on being
+computed (`FilaDeProducao`). The turno's snapshot and the virada come in
+3/4b.
+
+- **`MovimentoDaFila`** — a stage moved in its sector's queue: who, when,
+  from which place to which, the reason, and the pedidos whose previsão it
+  made worse (`empurrados`, with before and after). Never deleted: it is the
+  history. A stage's last movement, while the stage is open, gives its
+  order: `ordem_em`, the moment it sorts as if it had arrived — just before
+  the one at the place it was put (going up), just after it (going down) —,
+  so the order holds while others end or arrive; nil is back to its
+  arrival.
+- **The queue** — filled sector by sector, each in its own order: first
+  the stages **under way** (a baixa given, Q6b — no one passes them, they
+  have no ↑↓), then the moved ones and the others by arrival. A stage not
+  moved itself follows the one it waits for that was (moving a pedido's
+  Impressão takes its Calandra along). A stage still waits for the ones it
+  depends on, holding the ones after it (the strict order of 2/4b). Two
+  stages waiting for each other's sector (not in today's types) don't
+  stall it: the one waited for goes first.
+- **↑ ↓** (Q3a) — on each line of a sector's queue, for who has
+  **programar_producao** (a team action in Funções; the dono has it, the
+  "Admin" template too). They open the **impact window**
+  (`ImpactoDoMovimento`): the move of one place, a select to jump to any
+  place after the stages under way, the moved pedido's previsão before →
+  after, and **every pedido whose previsão gets worse**, in any sector
+  (the queue computed again with the move, Q5a), with its deadline and new
+  folga; the ones **coming to be late** in red on top. The reason is
+  required only then. Cancel changes nothing; Confirm saves
+  (`MoverNaFila`, the impact computed again) and the page refreshes itself.
+- **A moved line** (Q7c) — "↑ movida · Dione 05/11 14:20", the reason on
+  hover; its window offers "Voltar à ordem de chegada", and the queue's
+  header "N movidas · voltar tudo à ordem de chegada" (each a move too:
+  impact, reason, history).
+- **History** (Q4) — the team sees each pedido's **"Histórico da
+  programação"** in the faixa and the resumo: its own moves ("passou à
+  frente de 2 pedidos") and the ones that pushed it ("este pedido: qui
+  12/11 15:30 → sex 13/11 09:00"). A pushed pedido whose previsão moved to
+  a later day gets an `EventoPedido` "previsao_mudou" — what a cliente
+  final reads in its Histórico: "previsão mudou: qui 12/11 → sex 13/11
+  (reprogramação da fábrica)", no reason, no other pedido.
 
 ## Turnos, calendar and rhythm (Painel 2/4a)
 

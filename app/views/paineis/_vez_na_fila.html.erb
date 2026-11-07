@@ -1,15 +1,28 @@
 <%# A pedido's piece in a sector's queue: its place, what is left of the
     stage, its time inside the turno, the deadline with the folga, what it
-    waits for. trecho nil: no previsão (the reason instead).
-    locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil) %>
+    waits for. trecho nil: no previsão (the reason instead). Painel 3/4a:
+    ↑ ↓ open the impact window (who programs the production; not a stage
+    under way, Q6b), a moved one says by whom (Q7c).
+    locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go) %>
 <% pedido = vez.pedido %>
 <% primeiro = trecho.nil? || trecho == vez.trechos.first %>
 <div class="painel-fila-l<%= " painel-fila-l--andamento" if vez.iniciada? %>" data-fila-pedido="<%= pedido.uuid %>"
      data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-pendencia="<%= linha&.pendencia? || false %>">
-  <div class="painel-fila-pos"><%= vez.posicao ? "#{vez.posicao}º" : "—" %></div>
+  <div class="painel-fila-lugar">
+    <span class="painel-fila-pos"><%= vez.posicao ? "#{vez.posicao}º" : "—" %></span>
+    <% if primeiro && vez.posicao && !vez.iniciada? && pode_acao?(:programar_producao) %>
+      <span class="painel-fila-mover">
+        <% if vez.posicao > limite %><%= link_to "↑", impacto_na_fila_path(pedido: pedido.uuid, etapa: vez.etapa.chave, posicao: vez.posicao - 1), class: "painel-fila-seta", data: { turbo_frame: "painel_impacto", mover: "subir" }, aria: { label: "Subir na fila" } %><% end %>
+        <% if vez.posicao < total %><%= link_to "↓", impacto_na_fila_path(pedido: pedido.uuid, etapa: vez.etapa.chave, posicao: vez.posicao + 1), class: "painel-fila-seta", data: { turbo_frame: "painel_impacto", mover: "descer" }, aria: { label: "Descer na fila" } %><% end %>
+      </span>
+    <% end %>
+  </div>
   <div>
     <div class="painel-fila-pid"><%= link_to "##{pedido.uuid.first(8)}", resumo_pedido_path(pedido) %> · <%= pedido.client&.name || "sem cliente" %><small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></div>
     <% if pedido.reposicao? %><div class="painel-fila-ref">↻ reposição de #<%= pedido.reposicao_de.uuid.first(8) %></div><% end %>
+    <% if (movimento = vez.movimento) && primeiro %>
+      <div class="painel-fila-movida" title="<%= movimento.motivo %>" data-fila-movida><%= movimento.para < movimento.de ? "↑" : "↓" %> movida · <%= movimento.user.nome %> <%= movimento.created_at.strftime("%d/%m %H:%M") %></div>
+    <% end %>
   </div>
   <div>
     <div><%= vez.iniciada? ? "#{vez.abertas} de #{vez.total} linhas" : pluralize(vez.total, "linha", plural: "linhas") %> · <%= vez.etapa.nome %></div>
@@ -31,7 +44,7 @@
     <% elsif vez.espera && primeiro %>
       <span class="painel-fila-chip painel-fila-chip--espera">espera <%= vez.espera.etapa.nome %> (até <%= momento_da_fila(vez.espera.fim) %>)</span>
     <% elsif vez.iniciada? %>
-      <span class="painel-fila-chip painel-fila-chip--andamento">em andamento</span>
+      <span class="painel-fila-chip painel-fila-chip--andamento">em execução</span>
     <% else %>
       <span class="painel-fila-chip">pode começar</span>
     <% end %>

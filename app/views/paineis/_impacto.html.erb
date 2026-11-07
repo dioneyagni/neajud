@@ -1,0 +1,63 @@
+<%# The impact window of a move in the queue (Painel 3/4a, Q3a, Q5a): the
+    move, a place to jump to, the moved pedido's gain, every pedido whose
+    previsão gets worse — the ones coming to be late in red, on top, which
+    makes the reason required —, Cancel and Confirm. In its frame inside
+    the Painel's dialog. locals: impacto (ImpactoDoMovimento::Impacto), erro, motivo %>
+<% vez = impacto.vez %>
+<turbo-frame id="painel_impacto">
+  <div class="painel-impacto" data-impacto-tipo="<%= impacto.tipo %>">
+    <h3 id="titulo-impacto"><%= titulo_do_impacto(impacto) %></h3>
+
+    <% if impacto.tipo == :posicao %>
+      <%= form_with url: impacto_na_fila_path, method: :get, class: "painel-impacto-posicao", data: { painel_target: "posicao" } do %>
+        <%= hidden_field_tag :pedido, vez.pedido.uuid, id: nil %>
+        <%= hidden_field_tag :etapa, vez.etapa.chave, id: nil %>
+        <label>Posição na fila da <%= LinhaDoPainel::COLUNAS.fetch(impacto.setor) %>
+          <%= select_tag :posicao, options_for_select((impacto.limite..impacto.total).map { |n| [ "#{n}º", n ] }, impacto.para), id: "impacto-posicao", data: { action: "painel#outraPosicao" } %>
+        </label>
+      <% end %>
+      <% if vez.movimento %>
+        <%= link_to "Voltar à ordem de chegada", impacto_na_fila_path(pedido: vez.pedido.uuid, etapa: vez.etapa.chave), class: "painel-impacto-voltar" %>
+      <% end %>
+    <% end %>
+
+    <% impacto.movidos.each do |pedido, (de, para)| %>
+      <p class="painel-impacto-movido" data-impacto-movido="<%= pedido.uuid %>">
+        <b>#<%= pedido.uuid.first(8) %></b> <%= pedido.client&.name %> · previsão <%= previsao_do_impacto(de) %> → <b><%= previsao_do_impacto(para) %></b>
+      </p>
+    <% end %>
+
+    <% if !impacto.muda? %>
+      <p class="painel-impacto-nada">Esta já é a posição dele. Escolha outra.</p>
+    <% elsif impacto.empurrados.empty? %>
+      <p class="painel-impacto-nada" data-impacto-ninguem>Ninguém é empurrado: nenhuma previsão piora.</p>
+    <% else %>
+      <h4><%= pluralize(impacto.empurrados.size, "pedido empurrado", plural: "pedidos empurrados") %></h4>
+      <ul class="painel-impacto-lista">
+        <% impacto.empurrados.each do |empurrado| %>
+          <li class="<%= "painel-impacto-atrasa" if empurrado.passa_a_atrasar %>" data-impacto-empurrado="<%= empurrado.pedido.uuid %>" data-passa-a-atrasar="<%= empurrado.passa_a_atrasar %>"
+              data-de="<%= empurrado.de.to_date.iso8601 %>" data-para="<%= empurrado.para&.to_date&.iso8601 %>">
+            <b>#<%= empurrado.pedido.uuid.first(8) %></b> <%= empurrado.pedido.client&.name %>
+            <span><%= previsao_do_impacto(empurrado.de) %> → <b><%= previsao_do_impacto(empurrado.para) %></b></span>
+            <span><%= empurrado.prazo ? "prazo #{dia_com_semana(empurrado.prazo)}" : "sem prazo" %> <%= selo_da_folga(empurrado.folga) %></span>
+            <% if empurrado.passa_a_atrasar %><strong>passa a atrasar</strong><% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <%= form_with url: movimentos_da_fila_path, class: "painel-impacto-form" do %>
+      <%= hidden_field_tag :pedido, vez&.pedido&.uuid, id: nil %>
+      <%= hidden_field_tag :etapa, vez&.etapa&.chave, id: nil %>
+      <%= hidden_field_tag :posicao, (impacto.para if impacto.tipo == :posicao), id: nil %>
+      <%= hidden_field_tag :setor, (impacto.setor if impacto.tipo == :setor), id: nil %>
+      <label for="impacto-motivo">Motivo<%= impacto.exige_motivo? ? " (obrigatório: alguém passa a atrasar)" : " (opcional)" %></label>
+      <%= text_area_tag :motivo, motivo, id: "impacto-motivo", rows: 2, required: impacto.exige_motivo?, placeholder: "ex.: cliente pediu urgência" %>
+      <% if erro %><p class="painel-impacto-erro" role="alert"><%= erro %></p><% end %>
+      <div class="painel-impacto-acoes">
+        <button type="button" class="painel-impacto-cancelar" data-action="painel#fecharImpacto">Cancelar</button>
+        <%= submit_tag "Confirmar", class: "painel-impacto-confirmar", disabled: !impacto.muda? %>
+      </div>
+    <% end %>
+  </div>
+</turbo-frame>

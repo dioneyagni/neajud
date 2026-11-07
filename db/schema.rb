@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -638,6 +638,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_180000) do
     t.index ["uuid"], name: "index_movimento_estoques_on_uuid", unique: true
   end
 
+  create_table "movimentos_da_fila", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "pedido_id", null: false
+    t.integer "user_id", null: false
+    t.string "etapa", null: false
+    t.string "setor", null: false
+    t.integer "de"
+    t.integer "para"
+    t.datetime "ordem_em"
+    t.text "motivo"
+    t.json "empurrados", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pedido_id", "etapa", "id"], name: "index_movimentos_da_fila_on_pedido_id_and_etapa_and_id"
+    t.index ["pedido_id"], name: "index_movimentos_da_fila_on_pedido_id"
+    t.index ["user_id"], name: "index_movimentos_da_fila_on_user_id"
+    t.index ["uuid"], name: "index_movimentos_da_fila_on_uuid", unique: true
+  end
+
   create_table "ordens_dublagem", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "construcao_id", null: false
@@ -940,6 +959,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_180000) do
   add_foreign_key "movimento_estoques", "pedidos", column: "lancada_na_entrega_id"
   add_foreign_key "movimento_estoques", "users", column: "autorizado_por_id"
   add_foreign_key "movimento_estoques", "users", column: "lancado_por_id"
+  add_foreign_key "movimentos_da_fila", "pedidos"
+  add_foreign_key "movimentos_da_fila", "users"
   add_foreign_key "ordens_dublagem", "clients"
   add_foreign_key "ordens_dublagem", "construcoes"
   add_foreign_key "ordens_dublagem", "users", column: "cancelada_por_id"

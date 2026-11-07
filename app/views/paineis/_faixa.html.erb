@@ -53,6 +53,13 @@
       <% end %>
     </div>
   <% end %>
+  <% historico = cliente_final? ? [] : historico_da_programacao(pedido) %>
+  <% if historico.any? %>
+    <div class="painel-caixa" data-historico-programacao>
+      <h4>Histórico da programação</h4>
+      <% historico.each do |movimento| %><p><%= linha_do_historico(movimento, pedido) %></p><% end %>
+    </div>
+  <% end %>
   <div class="painel-caixa">
     <h4>Links</h4>
     <p class="painel-links">

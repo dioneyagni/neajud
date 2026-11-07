@@ -20,9 +20,11 @@ const INTERVALO_MS = 3000
 // tab, the filters, the counter and what was open (Q5a). Painel 2/4c: the
 // Linha do tempo, switched in the page (the address keeps it); its window
 // and order load in a frame, the filters, the sector and the counters
-// apply to its bars too, a sector keeps only its load (Q7a).
+// apply to its bars too, a sector keeps only its load (Q7a). Painel 3/4a:
+// ↑ ↓ in a sector's queue load the impact window into its dialog; once a
+// move is saved the dialog closes and the page refreshes.
 export default class extends Controller {
-  static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia", "etapas", "tempo", "gradeTempo", "ordem", "comVisao"]
+  static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia", "etapas", "tempo", "gradeTempo", "ordem", "comVisao", "impacto", "posicao"]
   static values = { itensUrl: String, colunas: Array, virada: Number, visao: String }
 
   connect() {
@@ -34,10 +36,12 @@ export default class extends Controller {
     this.ultimaRecarga = 0
     this.boundRecarga = () => this.pedirRecarga()
     this.boundRestaurar = () => this.restaurar()
-    this.boundNovaJanela = () => this.novaJanela()
+    this.boundNovaJanela = (event) => this.novaJanela(event)
+    this.boundFundoDoImpacto = (event) => { if (event.target === this.impactoTarget) this.fecharImpacto() }
     document.addEventListener("painel:fila", this.boundRecarga)
     document.addEventListener("turbo:morph", this.boundRestaurar)
     this.element.addEventListener("turbo:frame-load", this.boundNovaJanela)
+    if (this.hasImpactoTarget) this.impactoTarget.addEventListener("click", this.boundFundoDoImpacto)
     this.aplicar()
   }
 
@@ -45,6 +49,7 @@ export default class extends Controller {
     document.removeEventListener("painel:fila", this.boundRecarga)
     document.removeEventListener("turbo:morph", this.boundRestaurar)
     this.element.removeEventListener("turbo:frame-load", this.boundNovaJanela)
+    if (this.hasImpactoTarget) this.impactoTarget.removeEventListener("click", this.boundFundoDoImpacto)
     clearTimeout(this.recarga)
     clearTimeout(this.timerDaVirada)
   }
@@ -81,9 +86,31 @@ export default class extends Controller {
   }
 
   // ‹ › or the order brought another window: filter it, reopen its bar.
-  novaJanela() {
+  // The impact frame loaded instead: show it, or close it once saved.
+  novaJanela(event) {
+    if (event?.target.id === "painel_impacto") return this.mostrarImpacto(event.target)
     this.aplicar()
     this.reabrirNoTempo()
+  }
+
+  mostrarImpacto(frame) {
+    if (frame.querySelector("[data-impacto-feito]")) {
+      this.fecharImpacto()
+      this.ultimaRecarga = 0
+      this.pedirRecarga()
+      return
+    }
+    if (!this.impactoTarget.open) this.impactoTarget.showModal()
+  }
+
+  fecharImpacto() {
+    if (this.impactoTarget.open) this.impactoTarget.close()
+    this.impactoTarget.querySelector("turbo-frame").innerHTML = ""
+  }
+
+  // Another place picked: the window again with that move.
+  outraPosicao() {
+    this.posicaoTarget.requestSubmit()
   }
 
   trocarVisao(event) {

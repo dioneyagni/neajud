@@ -49,7 +49,7 @@ class Visibilidade
   # Dublagem 5a: the ordens de dublagem are the factory's (a cliente final
   # sees "Aguardando: dublagem" on his pedido).
   # Painel 2/4a: the factory's turnos, calendar and rhythms.
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem Turno ExcecaoCalendario RitmoProducao].freeze
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem Turno ExcecaoCalendario RitmoProducao MovimentoDaFila].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

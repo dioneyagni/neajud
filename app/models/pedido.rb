@@ -13,6 +13,7 @@ class Pedido < ApplicationRecord
   has_many :baixas_producao, class_name: "BaixaProducao", dependent: :destroy
   # Etapa 2.8 (5/5): sent, taken back, returned with a note.
   has_many :eventos_pedido, class_name: "EventoPedido", dependent: :destroy
+  has_many :movimentos_da_fila, class_name: "MovimentoDaFila", dependent: :destroy
   # Etapa 2.3d2: what it took from the stock when confirmed (SaidaDoPedido).
   has_many :movimentos_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 
@@ -134,7 +135,7 @@ class Pedido < ApplicationRecord
   def devolucao_pendente
     return unless status == "rascunho"
 
-    ultimo = eventos_pedido.order(:id).last
+    ultimo = eventos_pedido.where(tipo: EventoPedido::DO_ENVIO).order(:id).last
     ultimo if ultimo&.tipo == "devolvido"
   end
 

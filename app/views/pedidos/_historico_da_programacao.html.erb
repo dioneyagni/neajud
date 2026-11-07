@@ -1,0 +1,12 @@
+<%# The pedido's moves in the queue, its own and the ones that pushed it
+    (Painel 3/4a, Q4): the team's only — a cliente final reads, in the
+    Histórico, just that the previsão changed. locals: pedido %>
+<% historico = cliente_final? ? [] : historico_da_programacao(pedido) %>
+<% if historico.any? %>
+  <section class="pedido-painel-card pedido-eventos" data-historico-programacao>
+    <h3>Histórico da programação</h3>
+    <ul>
+      <% historico.each do |movimento| %><li class="pedido-evento"><span><%= linha_do_historico(movimento, pedido) %></span></li><% end %>
+    </ul>
+  </section>
+<% end %>

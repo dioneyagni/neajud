@@ -190,6 +190,8 @@ Rails.application.routes.draw do
   # expansion (its row alone went with 2/4b: the page refreshes whole).
   get "painel", to: "paineis#show", as: :painel
   get "painel/pedidos/:uuid/itens", to: "paineis#itens", as: :itens_do_painel
+  get "painel/fila/impacto", to: "movimentos_da_fila#impacto", as: :impacto_na_fila
+  post "painel/fila/movimentos", to: "movimentos_da_fila#create", as: :movimentos_da_fila
   # The tecido pedidos' own list (20/10/2026); before resources so "tecido" isn't a uuid.
   get "pedidos/tecido", to: "lista_pedidos_tecido#index", as: :pedidos_tecido
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do
