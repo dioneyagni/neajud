@@ -9,7 +9,8 @@
 // and its resumo tell the virada, the resumo's Histórico the cliente final's
 // "previsão mudou" (Q6a). Painel 3/4b2: a second pedido arrives after it;
 // the faixa draws yesterday's plan dashed with an arrow to today (Q8a), and
-// "mostrar quem cruzou" lists and marks the second one, held by it (Q9a).
+// "mostrar quem cruzou" draws the second one, held by it, as an orange lane
+// in its timeline and marks its rows (Q9a, the form of Q16a — 3/4b3).
 // Runs last: the turnos it trashed stay so.
 const { execFileSync } = require("child_process");
 const path = require("path");
@@ -92,18 +93,23 @@ runSpec("Painel Virada E2E Tests", async ({ page, test }) => {
     if (seta !== "+1 turno") throw new Error(`The arrow says "${seta}"`);
     if (!(await faixa.locator(".painel-tdp-col--passada").count())) throw new Error("Yesterday's turno is not in the timeline");
 
-    const botao = faixa.locator("[data-quem-cruzou] button");
+    const botao = faixa.locator(".painel-tdp-topo .painel-cruzou-btn");
+    const raia = faixa.locator(`.painel-tdp-nome--cruzada[data-tdp-cruzada='${ids.depois}']`);
+    // Q16a: the other pedidos are drawn only when asked ("mostrar quem cruzou").
+    if (await raia.isVisible()) throw new Error("The lane of who crossed it shows before the button");
     await botao.click();
-    await faixa.locator(`[data-cruzamentos] a[href='/pedidos/${ids.depois}/resumo']`).first().waitFor({ state: "visible" });
-    const linha = await faixa.locator("[data-cruzamento]").filter({ hasText: ids.depois.slice(0, 8) }).first().innerText();
-    if (!linha.startsWith(`este pedido empurrou o #${ids.depois.slice(0, 8)} · `) || !linha.includes(`deste não terminou na ${turno}`)) throw new Error(`It says: ${linha}`);
+    await raia.waitFor({ state: "visible" });
+    const nome = await raia.locator("span").innerText();
+    if (!nome.startsWith(`#${ids.depois.slice(0, 8)} · Impressão`)) throw new Error(`The lane says: ${nome}`);
+    if (!(await raia.getAttribute("title")).includes(`foi empurrado por este pedido · `)) throw new Error(`Its tip: ${await raia.getAttribute("title")}`);
+    if (!(await faixa.locator(`[data-tdp-cruzada='${ids.depois}'] .painel-tdp-parte--cruzada`).count())) throw new Error("The lane draws none of its turnos");
     for (const id of [`painel_${ids.depois}`, `tempo_${ids.depois}`]) {
       if (!(await page.locator(`#${id}`).evaluate((e) => e.classList.contains("painel-cruzou")))) throw new Error(`#${id} is not marked`);
     }
     if (!(await botao.innerText()).startsWith("esconder quem cruzou")) throw new Error(`The button says "${await botao.innerText()}"`);
     await botao.click();
     await page.locator(".painel-cruzou").first().waitFor({ state: "detached" });
-    if (!(await faixa.locator("[data-cruzamentos]").isHidden())) throw new Error("The list is still shown");
+    if (await raia.isVisible()) throw new Error("The lane is still shown");
   });
 
   await test("Its faixa and resumo tell the virada; the resumo's Histórico says the previsão changed, from no one", async () => {

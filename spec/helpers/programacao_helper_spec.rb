@@ -30,23 +30,22 @@ RSpec.describe ProgramacaoHelper, type: :helper do
     expect(helper.previsao_do_impacto(nil)).to eq("sem previsão")
   end
 
-  # 3/4b2 (Q9a): "quem cruzou", the other pedido's number a link.
-  it "says who crossed a pedido and why, by a move or a virada" do
+  # 3/4b3 (Q9a): why each pedido crossed this one — its lane's tip.
+  it "says why a pedido crossed this one, by a move or a virada" do
     m = movimento(motivo: "urgente", empurrados: [ { "pedido_id" => empurrado.id, "de" => Time.current.iso8601, "para" => 1.day.from_now.iso8601 } ])
     virada = ViradaDoPedido.create!(pedido: empurrado, turno_nome: "Tarde", data: Date.current, turno_fim: 2.hours.from_now, de: Time.current,
                                     nao_terminaram: [ { "pedido" => movido.uuid, "etapa" => "Impressão", "veio_de" => "Manhã", "a_frente" => true } ])
     @cruzamentos = CruzamentosDoPedido.call([ movido, empurrado ], historicos: { movido.id => [ m ], empurrado.id => [ m, virada ] },
                                             viradas: ViradaDoPedido.all, visiveis: Pedido.all)
+    cruzada = ->(pedido) { CruzadasNoTempo::RaiaCruzada.new(cruzamentos: helper.cruzamentos_da_faixa(pedido)) }
     numero = "##{movido.uuid.first(8)}"
 
-    expect(helper.cruzamentos_da_faixa(empurrado).map { |c| Nokogiri::HTML(helper.linha_do_cruzamento(c)).text })
-      .to eq([ "#{numero} empurrou este pedido · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
-               "#{numero} empurrou este pedido · 05/11 · não terminou a Impressão na Manhã" ])
-    outro = "##{empurrado.uuid.first(8)}"
-    expect(helper.cruzamentos_da_faixa(movido).map { |c| Nokogiri::HTML(helper.linha_do_cruzamento(c)).text })
-      .to eq([ "este pedido empurrou o #{outro} · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
-               "este pedido empurrou o #{outro} · 05/11 · a Impressão deste não terminou na Manhã" ])
-    expect(helper.linha_do_cruzamento(helper.cruzamentos_da_faixa(movido).first)).to include("href=\"/pedidos/#{empurrado.uuid}/resumo\"")
+    expect(helper.causas_da_cruzada(cruzada.(empurrado)).lines(chomp: true))
+      .to eq([ "empurrou este pedido · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
+               "empurrou este pedido · 05/11 · a Impressão dele não terminou na Manhã" ])
+    expect(helper.causas_da_cruzada(cruzada.(movido)).lines(chomp: true))
+      .to eq([ "foi empurrado por este pedido · 05/11 · Dione passou o #{numero} à frente na Impressão (3º → 1º) · urgente",
+               "foi empurrado por este pedido · 05/11 · a Impressão deste não terminou na Manhã" ])
   end
 
   it "gives the faixa each stage's first plan, none when the Painel read none" do

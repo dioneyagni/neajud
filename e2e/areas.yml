@@ -180,7 +180,7 @@ areas:
       - "app/controllers/{paineis,prazos_do_pedido,movimentos_da_fila}_controller.rb"
       - "app/views/paineis/**/*"
       - "app/views/pedidos/_prazo_entrega.html.erb"
-      - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas,fila_de_producao,blocos_no_tempo,carga_da_etapa,linha_do_tempo,barra_no_tempo,tempo_do_pedido,impacto_do_movimento,mover_na_fila,aviso_de_previsao,tirar_foto_da_fila,virada_da_fila,programado_na_fila,cruzamentos_do_pedido}.rb"
+      - "app/services/{painel_de_producao,linha_do_painel,celula_do_painel,caminho_do_pedido,itens_do_painel,estado_das_etapas,fila_de_producao,blocos_no_tempo,carga_da_etapa,linha_do_tempo,barra_no_tempo,tempo_do_pedido,impacto_do_movimento,mover_na_fila,aviso_de_previsao,tirar_foto_da_fila,virada_da_fila,programado_na_fila,cruzamentos_do_pedido,cruzadas_no_tempo}.rb"
       - "app/models/{movimento_da_fila,foto_da_fila,vez_da_foto,virada_do_pedido,plano_da_etapa}.rb"
       - "app/jobs/foto_da_fila_job.rb"
       - "app/views/pedidos/_historico_da_programacao.html.erb"

@@ -365,14 +365,20 @@ Decided 07/11/2026 (Q8a, Q9a in `docs/plano.md`). The team's only
   turno even when over (greyed; the last 8 of those); an **arrow** from the
   turno it was to end in to the one it ends in now, "+2 turnos" (counted
   over every turno, also the ones not drawn; to the left when earlier).
-- **"Mostrar quem cruzou"** (`CruzamentosDoPedido`, Q9a) — the pedidos that
-  pushed this one and the ones it pushed, each with the cause and the day:
-  by a ↑ (the moved pedido and its `empurrados`) and by a virada (the stages
-  of other pedidos **ahead of it** in their sector's queue that didn't end —
-  `a_frente` in `ViradaDoPedido.nao_terminaram`, which now keeps the whole
-  uuid; a stage behind merely didn't end either). The button marks those
-  pedidos' rows in orange, in both views; again, or closing the faixa,
-  unmarks them.
+- **"Mostrar quem cruzou"** (`CruzamentosDoPedido`, Q9a; drawn as Q16a
+  had it in 3/4b3, `CruzadasNoTempo`) — the pedidos that pushed this one
+  and the ones it pushed: by a ↑ (the moved pedido and its `empurrados`) and
+  by a virada (the stages of other pedidos **ahead of it** in their
+  sector's queue that didn't end — `a_frente` in
+  `ViradaDoPedido.nao_terminaram`, which keeps the whole uuid; a stage
+  behind merely didn't end either). The button, on top of the faixa's
+  timeline, shows **a lane per such pedido** below this one's stages:
+  "#c210 · Impressão", its stages where they crossed filling the same
+  turnos in orange (the queue of now; a stage already done says "✓ feita"),
+  the causes with the day on hover. It also marks those pedidos' rows in
+  orange, in both views; again, or closing the faixa, hides it all. A
+  pedido with nothing ahead in the queue has no timeline, so no button: its
+  "Histórico da programação" still tells it.
 
 ## Turnos, calendar and rhythm (Painel 2/4a)
 

@@ -8,6 +8,8 @@
 # (PlanoDaEtapa) drawn dashed, the columns starting at its first turno even
 # when already over (the last 8 of those), and an arrow from the turno it
 # was to end in to the one it ends in now. A cliente final gets no plan.
+# Painel 3/4b3 (the form of Q16a): "mostrar quem cruzou" draws, below its
+# stages, a lane per pedido that crossed it (CruzadasNoTempo).
 #
 # Usage: tempo = TempoDoPedido.call(linha, fila: painel.fila, planos: { "impressao" => plano })
 #        tempo.colunas.map(&:nome)                     # => ["Manhã", "Tarde", "Manhã"]
@@ -25,6 +27,12 @@ class TempoDoPedido
     def horas
       (fim - inicio) / 3600.0
     end
+
+    # The share of the column the pieces ([[inicio, fim]]) fill; nil: none.
+    def parte(periodos)
+      ocupadas = periodos.sum { |de, ate| [ [ ate, fim ].min - [ de, inicio ].max, 0 ].max } / 3600.0
+      ocupadas.positive? ? [ ocupadas / horas, 1.0 ].min.round(2) : nil
+    end
   end
   # estado: :feita, :prevista, :andamento (some line had its baixa), :sem_previsao.
   # celulas: per column, the share of it the stage fills (nil: none);
@@ -36,15 +44,18 @@ class TempoDoPedido
   Seta = Struct.new(:de, :para, :turnos, keyword_init: true)
 
   # nil when the pedido has nothing ahead in the queue.
-  # planos: { etapa chave => PlanoDaEtapa } (the team's).
-  def self.call(linha, fila:, cliente_final: false, planos: {})
+  # planos: { etapa chave => PlanoDaEtapa }, cruzamentos: [CruzamentosDoPedido::Cruzamento]
+  # (the team's; none for a cliente final).
+  def self.call(linha, fila:, cliente_final: false, planos: {}, cruzamentos: [])
     previsao = linha.previsao
     return if previsao.nil? || previsao.vezes.none? { |vez| vez.trechos.any? }
 
-    new(linha, previsao, fila, cliente_final, cliente_final ? {} : planos)
+    new(linha, previsao, fila, cliente_final, cliente_final ? {} : planos).tap do |tempo|
+      tempo.cruzar(cliente_final ? [] : cruzamentos)
+    end
   end
 
-  attr_reader :colunas, :raias, :restantes
+  attr_reader :colunas, :raias, :restantes, :cruzadas
 
   def initialize(linha, previsao, fila, cliente_final, planos)
     @linha, @fila, @cliente_final, @planos = linha, fila, cliente_final, planos
@@ -53,6 +64,12 @@ class TempoDoPedido
     @colunas = todas.first(COLUNAS)
     @restantes = todas.size - @colunas.size
     @raias = linha.caminho.flatten.map { |etapa| raia(etapa) }
+    @cruzadas = []
+  end
+
+  # The lanes of the pedidos that crossed it, in its columns.
+  def cruzar(cruzamentos)
+    @cruzadas = CruzadasNoTempo.call(cruzamentos, colunas: colunas, fila: @fila)
   end
 
   private
@@ -102,14 +119,8 @@ class TempoDoPedido
 
     plano = @planos[etapa.chave]
     periodos = vez.trechos.map { |trecho| [ trecho.inicio, trecho.fim ] }
-    Raia.new(etapa: etapa, estado: vez.iniciada? ? :andamento : :prevista, vez: vez, celulas: colunas.map { |coluna| parte(periodos, coluna) },
-             planejadas: plano ? colunas.map { |coluna| parte(plano.periodos, coluna) } : [], seta: plano && seta(plano.fim, vez.fim))
-  end
-
-  # The share of the column the pieces fill.
-  def parte(periodos, coluna)
-    horas = periodos.sum { |inicio, fim| [ [ fim, coluna.fim ].min - [ inicio, coluna.inicio ].max, 0 ].max } / 3600.0
-    horas.positive? ? [ horas / coluna.horas, 1.0 ].min.round(2) : nil
+    Raia.new(etapa: etapa, estado: vez.iniciada? ? :andamento : :prevista, vez: vez, celulas: colunas.map { |coluna| coluna.parte(periodos) },
+             planejadas: plano ? colunas.map { |coluna| coluna.parte(plano.periodos) } : [], seta: plano && seta(plano.fim, vez.fim))
   end
 
   # nil when it still ends in the turno planned.

@@ -96,6 +96,14 @@
 .painel-tdp-seta { position: relative; z-index: 1; align-self: end; height: 0; margin: 0 16px 3px; border-top: 1.5px solid #e8710a; pointer-events: none; }
 .painel-tdp-seta::after { content: ""; position: absolute; right: -2px; top: -5.5px; border: 4.5px solid transparent; border-left: 6px solid #e8710a; border-right: 0; }
 .painel-tdp-seta--antes::after { right: auto; left: -2px; border-left: 0; border-right: 6px solid #e8710a; }
+/* Painel 3/4b3: the lanes of who crossed it, orange, under a thin line. */
+.painel-tdp-parte--cruzada { background: #fbd3ad; border-color: #e8710a; }
+.painel-tdp-nome--cruzada { color: #b05a00; display: flex; flex-direction: column; }
+.painel-tdp-nome--cruzada small { font-size: 10px; color: #80868b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.painel-tdp-nota--cruzada { color: #b05a00; }
+.painel-tdp-primeira-cruzada { border-top: 1px solid #f6ad6b; }
+.painel-tdp [data-tdp-cruzada][hidden] { display: none; }
+.painel-tdp-topo .painel-cruzou-btn { margin-left: auto; }
 .painel-tdp-seta span { position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); font-size: 10px; color: #b05a00; background: #fff; padding: 0 3px; white-space: nowrap; }
 
 @media (max-width: 600px) {

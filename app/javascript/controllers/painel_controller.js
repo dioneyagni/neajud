@@ -210,13 +210,14 @@ export default class extends Controller {
     pedido.querySelector(".painel-itens-btn")?.setAttribute("aria-expanded", "true")
   }
 
-  // Painel 3/4b2 (Q9a): the faixa's "quem cruzou" — its list, and the rows
-  // of those pedidos marked in both views; again hides them.
+  // Painel 3/4b3 (Q9a, the form of Q16a): "quem cruzou" — the lanes of the
+  // pedidos that crossed it in the faixa's timeline, and their rows marked
+  // in both views; again hides them.
   mostrarCruzou(event) {
     const botao = event.currentTarget
     const mostrar = botao.getAttribute("aria-expanded") !== "true"
     this.desmarcarCruzou()
-    botao.closest("[data-quem-cruzou]").querySelector("[data-cruzamentos]").hidden = !mostrar
+    botao.closest(".painel-tdp").querySelectorAll("[data-tdp-cruzada]").forEach((item) => { item.hidden = !mostrar })
     botao.setAttribute("aria-expanded", String(mostrar))
     botao.textContent = botao.textContent.replace(mostrar ? "mostrar" : "esconder", mostrar ? "esconder" : "mostrar")
     if (!mostrar) return
@@ -353,10 +354,10 @@ export default class extends Controller {
 
   fecharTodos() {
     this.desmarcarCruzou()
-    this.element.querySelectorAll("[data-quem-cruzou] [aria-expanded=true]").forEach((botao) => {
+    this.element.querySelectorAll(".painel-cruzou-btn[aria-expanded=true]").forEach((botao) => {
       botao.setAttribute("aria-expanded", "false")
       botao.textContent = botao.textContent.replace("esconder", "mostrar")
-      botao.closest("[data-quem-cruzou]").querySelector("[data-cruzamentos]").hidden = true
+      botao.closest(".painel-tdp").querySelectorAll("[data-tdp-cruzada]").forEach((item) => { item.hidden = true })
     })
     this.aberto = null
     this.abertoNoTempo = null
