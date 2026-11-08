@@ -37,7 +37,7 @@
   </div>
   <% unless barra.grupo == "entregues" %>
     <div class="painel-faixa" hidden>
-      <%= render "paineis/faixa", linha: linha, fila: fila %>
+      <%= render "paineis/faixa", linha: linha, fila: fila, visao: "tempo" %>
     </div>
   <% end %>
 </div>

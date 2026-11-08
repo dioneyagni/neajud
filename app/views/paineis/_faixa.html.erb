@@ -2,7 +2,10 @@
     (Painel 2/4b), the path of its stages with each one's time in the queue,
     its own timeline (Painel 2/4c, Q5a), what holds it, links. The same in
     both views. Painel 3/4b2: the timeline's first plan, and "quem cruzou"
-    drawn in it (3/4b3; the team's). locals: linha, fila (FilaDeProducao) %>
+    drawn in it (3/4b3; the team's). Entregar pelo Painel (08/11/2026,
+    Q1c): the resumo's "Marcar como entregue", for who may deliver.
+    locals: linha, fila (FilaDeProducao), visao ("etapas" or "tempo": the
+    faixa is in both, its dialog's ids must not repeat) %>
 <% pedido = linha.pedido %>
 <% vezes = linha.previsao ? linha.previsao.vezes.index_by { |vez| vez.etapa.chave } : {} %>
 <div class="painel-faixa-num">
@@ -34,6 +37,11 @@
   <% entrega = linha.celulas["entrega"] %>
   <span class="painel-no painel-cel--<%= entrega.estado %>"><strong>Entrega</strong> <%= entrega.texto %></span>
 </div>
+<% if pode_dar_baixa?(pedido) %>
+  <div class="painel-faixa-entrega" data-faixa-entrega>
+    <%= render "pedidos/entrega", pedido: pedido, campo: "entrega-#{visao}-#{pedido.uuid.first(8)}", no_painel: true %>
+  </div>
+<% end %>
 <%= render "paineis/tempo_do_pedido", tempo: TempoDoPedido.call(linha, fila: fila, cliente_final: cliente_final?, planos: planos_da_faixa(pedido),
                                                                  cruzamentos: cruzamentos_da_faixa(pedido)), linha: linha %>
 <div class="painel-faixa-info">

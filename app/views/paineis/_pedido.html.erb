@@ -25,7 +25,7 @@
       <% end %>
     </div>
     <% colunas.each_key do |chave| %>
-      <%= render "paineis/celula", celula: linha.celulas.fetch(chave), coluna: chave, adiamento: adiamento_da_coluna(linha, chave) %>
+      <%= render "paineis/celula", celula: linha.celulas.fetch(chave), coluna: chave, adiamento: adiamento_da_coluna(linha, chave), pedido: pedido %>
     <% end %>
     <div class="painel-fim">
       <strong><%= linha.percentual %>%</strong>
@@ -40,7 +40,7 @@
   </div>
   <div class="painel-itens" data-painel-itens hidden></div>
   <div class="painel-faixa" hidden>
-    <%= render "paineis/faixa", linha: linha, fila: fila %>
+    <%= render "paineis/faixa", linha: linha, fila: fila, visao: "etapas" %>
   </div>
   <% if linha.reposicoes.any? %>
     <div class="painel-reposicoes">

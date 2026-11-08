@@ -10,6 +10,9 @@ Turbo.StreamActions.painel_fila = function () {
 // At most one refresh every few seconds (Q5a): a pedido's baixas come in a row.
 const INTERVALO_MS = 3000
 
+// How long "#… entregue" stays where its row was (Q3a).
+const AVISO_DE_ENTREGA_MS = 6000
+
 // The Painel (Painel 1/4, decided 04/11/2026): opening a pedido outlines its
 // path and shows its faixa (Q3a), its items load when asked (Q2a), the filters
 // hide rows, the counters count what is on the page. A reposição is a pedido
@@ -23,7 +26,9 @@ const INTERVALO_MS = 3000
 // apply to its bars too, a sector keeps only its load (Q7a). Painel 3/4a:
 // ↑ ↓ in a sector's queue load the impact window into its dialog; once a
 // move is saved the dialog closes and the page refreshes. Painel 3/4b: a
-// pedido in the virada's warning opens in the grid, under Todos.
+// pedido in the virada's warning opens in the grid, under Todos. Entregar
+// pelo Painel (08/11/2026, Q3a): delivered, the page refreshes now and a
+// short warning takes the place of the row (and of its bar) that left.
 export default class extends Controller {
   static targets = ["quadro", "grade", "bloco", "contagem", "tipo", "cliente", "pendencia", "etapas", "tempo", "gradeTempo", "ordem", "comVisao", "impacto", "posicao"]
   static values = { itensUrl: String, colunas: Array, virada: Number, visao: String }
@@ -57,6 +62,7 @@ export default class extends Controller {
     // Painel stopped refreshing by itself (producao-baixas, #197).
     this.recarga = null
     clearTimeout(this.timerDaVirada)
+    clearTimeout(this.timerDoAviso)
   }
 
   // The next turno to start or end refreshes the blocks ("Agora") by itself.
@@ -88,6 +94,58 @@ export default class extends Controller {
     if (aberto) this.marcarAberto(aberto)
     this.reabrirNoTempo()
     this.itensAbertos.forEach((uuid) => this.carregarItens(document.getElementById(`painel_${uuid}`)))
+    this.avisarEntregue()
+  }
+
+  // "entrega:feita" from the faixa or a cell (entrega_controller): where its
+  // row and its bar were, then a refresh now — the broadcast's may be 3 s off.
+  entregue(event) {
+    const uuid = event.detail.pedido
+    const lugares = [ `painel_${uuid}`, `tempo_${uuid}` ].map((id) => document.getElementById(id)).filter(Boolean)
+      .map((elemento) => ({ id: elemento.id, antesDe: elemento.nextElementSibling?.id, em: elemento.parentElement }))
+    this.entregaRecente = { uuid, lugares, ate: Date.now() + AVISO_DE_ENTREGA_MS }
+    // Another pedido opened stays open; its own faixa leaves with its row.
+    if ([ this.aberto, this.abertoNoTempo ].some((id) => lugares.some((lugar) => lugar.id === id))) this.fecharTodos()
+    clearTimeout(this.recarga)
+    this.recarga = null
+    this.ultimaRecarga = 0
+    this.pedirRecarga()
+  }
+
+  // Each morph drops what the server didn't send: put the warning back
+  // until it expires. Still listed (Mostrar entregues): it moved, no warning.
+  avisarEntregue() {
+    const entrega = this.entregaRecente
+    if (!entrega) return
+    if (Date.now() > entrega.ate) return (this.entregaRecente = null)
+    entrega.lugares.forEach((lugar) => {
+      if (document.getElementById(lugar.id) || document.getElementById(`entregue_${lugar.id}`)) return
+      const antes = lugar.antesDe && document.getElementById(lugar.antesDe)
+      const pai = antes ? antes.parentElement : (lugar.em.isConnected ? lugar.em : this.quadroTarget)
+      pai.insertBefore(this.avisoDeEntrega(entrega.uuid, lugar.id), antes || null)
+    })
+    clearTimeout(this.timerDoAviso)
+    this.timerDoAviso = setTimeout(() => this.tirarAvisoDeEntrega(), entrega.ate - Date.now())
+  }
+
+  avisoDeEntrega(uuid, lugar) {
+    const aviso = document.createElement("p")
+    aviso.className = "painel-entregue-aviso"
+    aviso.id = `entregue_${lugar}`
+    aviso.setAttribute("role", "status")
+    aviso.dataset.entregue = uuid
+    const url = new URL(window.location.href)
+    url.searchParams.set("entregues", "1")
+    const link = document.createElement("a")
+    link.href = url.pathname + url.search
+    link.textContent = "ver em Entregues"
+    aviso.append(`#${uuid.slice(0, 8)} entregue · `, link)
+    return aviso
+  }
+
+  tirarAvisoDeEntrega() {
+    this.entregaRecente = null
+    this.element.querySelectorAll(".painel-entregue-aviso").forEach((aviso) => aviso.remove())
   }
 
   // ‹ › or the order brought another window: filter it, reopen its bar.

@@ -380,6 +380,29 @@ Decided 07/11/2026 (Q8a, Q9a in `docs/plano.md`). The team's only
   pedido with nothing ahead in the queue has no timeline, so no button: its
   "Histórico da programação" still tells it.
 
+## Delivering from the Painel
+
+Decided 08/11/2026 (Q1c–Q4a, "Entregar pelo Painel" in `docs/plano.md`).
+The same delivery as the resumo (`pedidos/_entrega`, Stimulus `entrega`,
+`POST /pedidos/:uuid/entregar`, the action "Atualizar produção";
+`pode_dar_baixa?`) — a cliente final never sees it.
+
+- **The faixa** has the resumo's "Marcar como entregue", in both views
+  (the faixa is in each; `visao` keeps their dialogs' ids apart): the open
+  stages come back as an aviso with "Entregar assim mesmo", the material
+  still short opens the falta's dialog.
+- **The "pronto p/ entregar" cell** (every stage done, no reposição open)
+  has an "Entregar" shortcut that asks in the cell first — "Entregar
+  #1234? Sim / Não" (Q2a): cells sit side by side and a delivery is not
+  undone. Its items' cells don't have it.
+- **Delivered** (Q3a), it doesn't reload: `entrega:feita` reaches
+  `painel#entregue`, which refreshes the page at once (the status change's
+  broadcast may wait the 3 s throttle) and puts "#1234 entregue · ver em
+  Entregues" where its row and its bar were, for 6 s (put back after each
+  morph). What was open stays open; the delivered pedido's own faixa
+  closes. With "Mostrar entregues" on, the row just moves to Entregues.
+- One at a time (Q4a): no delivery of several pedidos at once.
+
 ## Turnos, calendar and rhythm (Painel 2/4a)
 
 Decided 05/11/2026: what the queue and the previsão (2/4b) run on. All of

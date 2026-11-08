@@ -16,6 +16,16 @@ module ProducaoCalcado
     pedido.reload
   end
 
+  # Every stage done, nothing missing: the Entrega "pronto p/ entregar".
+  # Usage: pedido = pedido_calcado_pronto # => #<Pedido status="em_producao">
+  def pedido_calcado_pronto(client: create(:client))
+    pedido = pedido_calcado_confirmado(client: client)
+    %w[impressao corte estamparia].each { |etapa| RegistrarBaixaService.call(pedido, etapa: etapa, nivel: "pedido", medida: "20", confirmar: true) }
+    linhas = LinhasDeProducao.call(pedido, EtapasProducao.etapa("calcado", "conferencia")).map(&:chave)
+    RegistrarBaixaService.call(pedido, etapa: "conferencia", nivel: "pedido", medida: "20", contagens: linhas.index_with { "10" })
+    pedido.reload
+  end
+
   # The pedido produced up to the Conferência, which counts `faltam` Laterais
   # fewer (of 10): the whole pedido at once releases the reposição; one line
   # (juntando: true) leaves it gathering, a rascunho. refazer: the stages
