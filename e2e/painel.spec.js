@@ -203,6 +203,27 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
     await page.selectOption("[data-painel-target=tipo]", "");
   });
 
+  // Regression: the controller left and came back (Stimulus keeps the same
+  // instance) with a refresh pending — disconnect cleared its timer but not
+  // its mark, and every later "painel:fila" was ignored: the Painel stopped
+  // refreshing by itself (seen in producao-baixas, #197).
+  await test("Disconnected with a refresh pending and back, the Painel still refreshes by itself", async () => {
+    await page.evaluate(async () => {
+      const microtarefa = () => new Promise((resolve) => queueMicrotask(resolve));
+      document.dispatchEvent(new CustomEvent("painel:fila"));
+      const painel = document.getElementById("painel");
+      const [pai, depois] = [painel.parentNode, painel.nextSibling];
+      painel.remove();
+      await microtarefa();
+      pai.insertBefore(painel, depois);
+      await microtarefa();
+    });
+    await Promise.all([
+      page.waitForResponse((r) => new URL(r.url()).pathname === "/painel" && r.request().method() === "GET", { timeout: 10000 }),
+      page.evaluate(() => document.dispatchEvent(new CustomEvent("painel:fila"))),
+    ]);
+  });
+
   // Q6a: the previsão falls after a deadline that hasn't passed.
   await test("A slow Calandra makes it go past today's deadline: \"vão atrasar\" counts and filters it", async () => {
     await ritmo("calandra", "0,5");

@@ -52,6 +52,10 @@ export default class extends Controller {
     this.element.removeEventListener("turbo:frame-load", this.boundNovaJanela)
     if (this.hasImpactoTarget) this.impactoTarget.removeEventListener("click", this.boundFundoDoImpacto)
     clearTimeout(this.recarga)
+    // Stimulus reconnects this same instance when the element comes back: a
+    // mark left set made pedirRecarga ignore every later "painel:fila" — the
+    // Painel stopped refreshing by itself (producao-baixas, #197).
+    this.recarga = null
     clearTimeout(this.timerDaVirada)
   }
 
