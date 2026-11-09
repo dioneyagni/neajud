@@ -69,25 +69,39 @@ family, after the PIM pattern of families with required attributes:
 
 ## The dublagem network (Dublagem 2/5)
 
-Decided 29/10/2026 (plano Etapa 2.9, D2/D3/D8). `config/dublagens.yml` says
-which groups dub with which: one ligação per pair of `GrupoMaterial` names,
-**in any order** (Oxford–Lona is also Lona under Oxford), with its usual
-ligantes (a group, with `micras: [25, 35]`, `{ min: 35 }` or any), `dubla:
-antes | depois` da estampa, an optional `lado` (only when the rule changes
-with the upper layer's side) and `situacoes`, whose ligantes **replace** the
+Decided 29/10/2026 (plano Etapa 2.9, D2/D3/D8); in the database since
+rede editável 1/2 (09/11/2026, Q1a). It says which groups dub with which:
+one `LigacaoDublagem` per pair of `GrupoMaterial` (the upper group first,
+whose side `lado` names), holding **in either order** (Oxford–Lona is also
+Lona under Oxford), with its usual ligantes (`LiganteDaLigacao`: a group,
+with `micras` [25, 35], `micras_minimo` 35 or any), `dubla: antes | depois`
+da estampa, an optional `lado` (only when the rule changes with the upper
+layer's side) and the ligantes of a `SituacaoDublagem`, which **replace** the
 usual ones in that situação (a subset restricts, others change; a situação
-not listed keeps the usual ones). The situações' names are fixed at the top.
-`a_confirmar` marks what was guessed when it was written.
+not listed keeps the usual ones). `a_confirmar` marks what was guessed.
 
-- `RedeDeDublagens` reads it once and raises on a wrong value, naming the
-  ligação and what was expected. A group **not registered is a warning**,
-  never an error (`avisos`: not registered, neither superfície nor base, no
-  base in the pair), so the test database and a new instance still boot.
-- `ligacao(a, b, lado:)`, `ligantes_na(situacao)`, `ligacoes_de(grupo)` and
-  `Ligante#serve?(material)` are what the construção (3/5) uses.
+- **The initial network** is `db/seeds/rede_de_dublagens.yml`, checked when
+  read (`LeituraDaRedeInicial`: a wrong value raises naming the ligação and
+  what was expected). `bin/rails rede:importar` (`ImportarRedeDeDublagens`)
+  **only adds** what is missing — a ligação (pair in either order, same
+  lado), situação (chave) or group (name) already there is never changed; a
+  missing group is created with the file's `grupos:` roles, asking what a
+  group made in Materiais asks (gramatura). A new instance gets it from `db/seeds.rb`; `bin/e2e` imports it
+  into the test database; RSpec specs that dub get it from
+  `material_de_dublagem` (or call `importar_rede_de_dublagens`).
+- `RedeDeDublagens` reads it once per request or job (`Current`), forgotten
+  when a ligação, ligante or situação is saved. `ligacao(a, b, lado:)`,
+  `ligantes_na(situacao)`, `ligacoes_de(grupo)` and `Ligante#serve?(material)`
+  are what the construção (3/5) uses; a controller passes the visible scopes
+  (`RedeDeDublagens.new(ligacoes: visiveis(LigacaoDublagem), …)`).
+  `avisos(ligacao)`: a group neither superfície nor base, no base in the pair.
+- **The momento is kept** (Q3a): each base layer of a construção keeps when
+  its ligação dubs (`camadas_construcao.dubla`), set on every save while the
+  construção is not in use; one in use keeps the momentos it was made with,
+  so a change to the network never moves a pedido already planned.
 - The page **Rede de dublagens** (`/rede-de-dublagens`, linked from Grupos)
   is read only, estoque: ver and **the team's only** (`exige_equipe`): the
-  ligante is the factory's. A panel to edit it comes after real use.
+  ligante is the factory's. Editing it is rede editável 2/2.
 - E2E: `e2e/rede-de-dublagens.spec.js`.
 
 ## The construção (Dublagem 3/5)
@@ -151,7 +165,7 @@ Decided 03–04/11/2026 (plano Etapa 2.9 D1/D6/D8; the 5/5 split in two: 5a
 dubbing before the estampa, through the stock; 5b the pedido's own stage).
 
 - **Which construções**: `Construcao#dubla_antes?` — every ligação dubs
-  before the estampa (`config/dublagens.yml`, whose antes/depois the factory
+  before the estampa (the network, whose antes/depois the factory
   confirmed on 04/11/2026). Its dublado is made for the stock and may serve
   several pedidos (decision 5a).
 - **At confirmation** (`SaidaDoPedido`): such an item takes **its dublado**

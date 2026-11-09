@@ -653,7 +653,7 @@ Gotchas found while building it:
   every 2s until the state is final (card: swaps itself via turbo-stream; pages:
   reload). The E2E "Without the live connection…" blocks WebSocket to prove it.
 
-## db/seeds.rb is empty on purpose
+## db/seeds.rb is (almost) empty on purpose
 
 No seed data: materials and clients are created through the app, and each E2E
 spec provisions what it needs through the app's own endpoints
@@ -665,6 +665,13 @@ The development database has its own starting groups and materials
 **only adds** what is missing from `db/seeds/desenvolvimento.rb`
 (`SemeadorDeDesenvolvimento`) — an existing group, color or material is never
 changed. It refuses any other environment, and `db:seed` never runs it.
+
+One exception (rede editável 1/2, 09/11/2026): `db/seeds.rb` imports the
+initial dublagem network (`db/seeds/rede_de_dublagens.yml`, `bin/rails
+rede:importar`, only adds) so a new instance starts with it — except in the
+test environment, where `bin/e2e` imports it itself and RSpec specs that dub
+import it per example (`spec/support/construcoes.rb`); see
+`docs/dominio/estoque.md`.
 
 ## Key constraints
 
