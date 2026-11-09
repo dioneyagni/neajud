@@ -167,7 +167,7 @@ Rails.application.routes.draw do
 
   # Dublagem 1/5: each group as a family — roles, printing, attributes asked.
   resources :grupo_materiais, path: "grupos-de-material", only: %i[index edit update]
-  # Dublagem 2/5: the network, read only (config/dublagens.yml).
+  # Dublagem 2/5: the network, read only (in the database since rede editável 1/2).
   get "rede-de-dublagens", to: "rede_de_dublagens#show", as: :rede_de_dublagens
   # Dublagem 3/5: the saved dublados — layers, ligantes, suggested and final price.
   resources :construcoes, only: %i[index new create edit update destroy] do

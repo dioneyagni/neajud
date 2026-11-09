@@ -1,6 +1,6 @@
 # What a construção must obey (Dublagem 3/5, decided 30/10-02/11/2026): 2 to
 # 5 layers, all tecidos; the first a superfície, the others bases; each pair
-# a ligação of config/dublagens.yml, joined by a ligante the network allows
+# a ligação of the dublagem network, joined by a ligante the network allows
 # in the situação — or none while no registered material serves (the cola,
 # until 5/5); a client's layer needs the client, and a client needs a layer
 # of his; never twice the same construção. Each message names the layer and

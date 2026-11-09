@@ -89,6 +89,22 @@ RSpec.describe Construcao do
     expect(montar_construcao([ oxford, "trama" ], [ espuma ], [ helanca ]).momentos_da_dublagem).to eq([ "depois" ])
   end
 
+  # Rede editável 1/2 (Q3a): each layer keeps its momento when saved; a
+  # change to the network moves a construção not in use, never one in use.
+  it "keeps the momentos it was saved with once in use, and follows the network until then" do
+    livre = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).tap(&:save!)
+    em_uso = montar_construcao([ oxford, "avesso" ], [ lona, filme_35 ]).tap(&:save!)
+    MovimentoEstoque.create!(materia_prima: em_uso.materia_prima, tipo: "entrada", quantidade: 10, da_empresa: true)
+    expect(em_uso.camadas.last.dubla).to eq("antes")
+
+    LigacaoDublagem.do_par(oxford.grupo_material, lona.grupo_material).sole.update!(dubla: "depois")
+
+    expect([ livre.reload.momentos_da_dublagem, em_uso.reload.momentos_da_dublagem ]).to eq([ [ "depois" ], [ "antes" ] ])
+    livre.update!(preco_final: 40)
+    em_uso.update!(preco_final: 40)
+    expect([ livre.camadas.last.reload.dubla, em_uso.camadas.last.reload.dubla ]).to eq(%w[depois antes])
+  end
+
   # Dublagem 5a: only a construção dubbed wholly before the estampa is made for the stock.
   it "dubs before the estampa only when every ligação does" do
     expect(montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).dubla_antes?).to be(true)

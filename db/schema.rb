@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -257,6 +257,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
     t.integer "ligante_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "dubla"
     t.index ["construcao_id", "posicao"], name: "index_camadas_construcao_on_construcao_id_and_posicao", unique: true
     t.index ["construcao_id"], name: "index_camadas_construcao_on_construcao_id"
     t.index ["ligante_id"], name: "index_camadas_construcao_on_ligante_id"
@@ -541,6 +542,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
     t.index ["uuid"], name: "index_itens_reposicao_on_uuid", unique: true
   end
 
+  create_table "ligacoes_dublagem", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "grupo_a_id", null: false
+    t.integer "grupo_b_id", null: false
+    t.string "lado"
+    t.string "dubla", null: false
+    t.json "a_confirmar", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grupo_a_id"], name: "index_ligacoes_dublagem_on_grupo_a_id"
+    t.index ["grupo_b_id"], name: "index_ligacoes_dublagem_on_grupo_b_id"
+    t.index ["uuid"], name: "index_ligacoes_dublagem_on_uuid", unique: true
+  end
+
+  create_table "ligantes_da_ligacao", force: :cascade do |t|
+    t.integer "ligacao_dublagem_id", null: false
+    t.integer "situacao_dublagem_id"
+    t.integer "grupo_material_id", null: false
+    t.json "micras"
+    t.integer "micras_minimo"
+    t.integer "posicao", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grupo_material_id"], name: "index_ligantes_da_ligacao_on_grupo_material_id"
+    t.index ["ligacao_dublagem_id"], name: "index_ligantes_da_ligacao_on_ligacao_dublagem_id"
+    t.index ["situacao_dublagem_id"], name: "index_ligantes_da_ligacao_on_situacao_dublagem_id"
+  end
+
   create_table "materia_primas", force: :cascade do |t|
     t.integer "grupo_material_id", null: false
     t.integer "cor_material_id", null: false
@@ -820,6 +849,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "situacoes_dublagem", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "chave", null: false
+    t.string "nome", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["chave"], name: "index_situacoes_dublagem_on_chave", unique: true
+    t.index ["uuid"], name: "index_situacoes_dublagem_on_uuid", unique: true
+  end
+
   create_table "solicitacoes_aprovacao", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arquivo_id", null: false
@@ -1001,6 +1040,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_200000) do
   add_foreign_key "itens_reposicao", "pecas"
   add_foreign_key "itens_reposicao", "pedidos"
   add_foreign_key "itens_reposicao", "tamanhos"
+  add_foreign_key "ligacoes_dublagem", "grupo_materiais", column: "grupo_a_id"
+  add_foreign_key "ligacoes_dublagem", "grupo_materiais", column: "grupo_b_id"
+  add_foreign_key "ligantes_da_ligacao", "grupo_materiais"
+  add_foreign_key "ligantes_da_ligacao", "ligacoes_dublagem", column: "ligacao_dublagem_id"
+  add_foreign_key "ligantes_da_ligacao", "situacoes_dublagem", column: "situacao_dublagem_id"
   add_foreign_key "materia_primas", "cor_materiais"
   add_foreign_key "materia_primas", "grupo_materiais"
   add_foreign_key "modelos", "produtos"

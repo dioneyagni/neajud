@@ -1,7 +1,7 @@
 # What each layer of a construção may be (Dublagem 3/5, decided
 # 30/10-02/11/2026): a superfície from the tecidos whose group goes on the
 # face; under a layer, the tecidos whose group is a base and dubs with it in
-# config/dublagens.yml; between them, the registered ligantes the network
+# the dublagem network; between them, the registered ligantes the network
 # allows in the situação (decision 4). The construção's form lists these, and
 # RegrasDaConstrucao checks a saved one against the same answers.
 #

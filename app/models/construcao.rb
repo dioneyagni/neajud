@@ -7,7 +7,9 @@
 # or the construção's client's (decision 2); with a client, the construção
 # and its dublado are that client's. Everything changes until the dublado is
 # used — a stock movement or a pedido item —, then only the final price
-# (decision 5). The rules come from config/dublagens.yml (RegrasDaConstrucao).
+# (decision 5). The rules come from the dublagem network (RegrasDaConstrucao);
+# each base layer keeps when its ligação dubs, from the network as it was
+# when saved (rede editável 1/2, Q3a).
 #
 # Usage: construcao = Construcao.new(situacao: "tecido_molha", preco_final: 46)
 #        construcao.definir_camadas([ { materia_prima: oxford, lado: "trama" }, { materia_prima: lona, ligante: filme_pu } ])
@@ -38,7 +40,10 @@ class Construcao < ApplicationRecord
   normalizes :situacao, with: ->(situacao) { situacao.presence }
 
   before_validation :montar_dublado
-  validates :situacao, inclusion: { in: ->(_) { RedeDeDublagens.situacoes.keys }, message: "%{value} is not a situação; expected one of #{RedeDeDublagens.situacoes.keys.join(", ")}" }, allow_nil: true
+  before_validation :guardar_momentos
+  # The message reads the situações when it is given: they are in the database.
+  validates :situacao, inclusion: { in: ->(_) { RedeDeDublagens.situacoes.keys },
+                                    message: ->(_, dados) { "#{dados[:value]} is not a situação; expected one of #{RedeDeDublagens.situacoes.keys.join(", ")}" } }, allow_nil: true
   validates :preco_final, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :regras_da_rede
   validate :composicao_fixa_em_uso, on: :update
@@ -69,10 +74,14 @@ class Construcao < ApplicationRecord
   def situacao_rotulo = situacao && RedeDeDublagens.situacoes[situacao]
 
   # When each ligação dubs, against the estampa (D8: "antes" or "depois"),
-  # each once, top to bottom; a pair the network lost is left out.
+  # each once, top to bottom; a pair the network doesn't have is left out.
+  # In use, as each layer kept it when saved (Q3a); otherwise the network's
+  # now, as the next save will keep it.
   # Usage: construcao.momentos_da_dublagem # => ["antes", "depois"]
   def momentos_da_dublagem
-    camadas_em_ordem.select(&:materia_prima).each_cons(2).filter_map { |acima, abaixo| acima.ligacao_com(abaixo.materia_prima)&.dubla }.uniq
+    return camadas_em_ordem.drop(1).filter_map(&:dubla).uniq if em_uso?
+
+    camadas_em_ordem.each_cons(2).filter_map { |acima, abaixo| momento_na_rede(acima, abaixo) }.uniq
   end
 
   # Dublagem 5a: every ligação dubs before the estampa, so its dublado is
@@ -105,6 +114,19 @@ class Construcao < ApplicationRecord
     self.nome = nome_montado
     (self.materia_prima ||= MateriaPrima.new).assign_attributes(tipo: "dublado", grupo_material: superficie_material.grupo_material,
                                                                 cor_material: superficie_material.cor_material, largura: largura_mais_estreita, preco_metro: preco_final)
+  end
+
+  # Rede editável 1/2 (Q3a, 09/11/2026): a construção not in use follows the
+  # network; one in use keeps the momentos it was made with, so a change to
+  # the network never moves a pedido already planned.
+  def guardar_momentos
+    return if em_uso?
+
+    camadas_em_ordem.each_cons(2) { |acima, abaixo| abaixo.dubla = momento_na_rede(acima, abaixo) }
+  end
+
+  def momento_na_rede(acima, abaixo)
+    acima.ligacao_com(abaixo.materia_prima)&.dubla if acima.materia_prima && abaixo.materia_prima
   end
 
   def regras_da_rede

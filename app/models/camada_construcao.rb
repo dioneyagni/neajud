@@ -3,7 +3,9 @@
 # in order. Each says whether it is the empresa's or the construção's
 # client's, and the ligante that joins it to the layer above — none on the
 # superfície, none either where no registered material serves yet (the cola,
-# until 5/5). Addressed by position inside its construção, so no uuid.
+# until 5/5). A base keeps when its ligação dubs (dubla: antes | depois,
+# rede editável 1/2, Q3a; Construcao#guardar_momentos). Addressed by
+# position inside its construção, so no uuid.
 class CamadaConstrucao < ApplicationRecord
   self.table_name = "camadas_construcao"
 
@@ -14,8 +16,10 @@ class CamadaConstrucao < ApplicationRecord
   # Only the superfície has a side; only the layers below it a ligante.
   before_validation { self.lado = nil unless superficie? }
   before_validation { self.ligante = nil if superficie? }
+  before_validation { self.dubla = nil if superficie? }
 
   validates :posicao, inclusion: { in: 1..Construcao::MAXIMO_DE_CAMADAS, message: "%{value} is not a layer position; expected 1 to #{Construcao::MAXIMO_DE_CAMADAS}" }
+  validates :dubla, inclusion: { in: RedeDeDublagens::DUBLA, message: "%{value} is not a momento; expected #{RedeDeDublagens::DUBLA.join(" or ")}" }, allow_nil: true
   validates :lado, inclusion: { in: RedeDeDublagens::LADOS, message: "%{value} is not a side; expected #{RedeDeDublagens::LADOS.join(" or ")}" }, if: :superficie?
 
   def superficie? = posicao == 1

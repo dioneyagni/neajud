@@ -1,14 +1,21 @@
-# The dublagem network (Dublagem 2/5, decided 27-29/10/2026; plano Etapa
-# 2.9, D2/D3/D8): which groups dub with which, with what ligante, and before
-# or after the estampa. Read by RedeDeDublagens, checked when read: a wrong
-# value raises naming it and what was expected. A panel to edit it comes
-# after real use; until then this file is the rule.
+# The initial dublagem network (Dublagem 2/5, decided 27-29/10/2026; plano
+# Etapa 2.9, D2/D3/D8; moved here from config/dublagens.yml when the network
+# went to the database, rede editável 1/2, 09/11/2026, Q8a). The database is
+# the rule now: `bin/rails rede:importar` (ImportarRedeDeDublagens) only adds
+# what is missing — a ligação, situação or group already there is never
+# changed. A new instance gets it from db/seeds.rb; the dev database got it
+# from the migration; bin/e2e imports it into the test database.
+# Checked when read: a wrong value raises naming it and what was expected.
 #
-#   situacoes:   the fixed names a construção's situação takes (D6)
+#   grupos:      the roles of each group the network names, used only when
+#                the group is missing and must be created (superfície,
+#                base, estampavel: sim | ressalvas | nao); it asks what a
+#                group made in Materiais asks (gramatura) — the team
+#                changes that in Grupos
+#   situacoes:   the names a construção's situação takes (D6)
 #   ligacoes:    one per pair of groups (by GrupoMaterial name)
-#     par:       two groups, in any order (Oxford over Lona = Lona under
-#                Oxford); a group not registered is a warning on the page,
-#                never an error, and its ligação doesn't hold until it is
+#     par:       two groups, the upper one first (Oxford over Lona); a
+#                ligação holds in either order
 #     lado:      trama | avesso — the upper layer's side, only when the rule
 #                changes with it; absent, any side
 #     ligantes:  the usual ones — a group (Filme, Filme PU, Cola…), with
@@ -27,6 +34,18 @@
 #
 # Oxford–Cetim holds for the Cetim on either side (the rule doesn't change
 # with it), so it has no lado.
+grupos:
+  Oxford: { superficie: true, base: true, estampavel: sim }
+  Microfibra: { superficie: true, base: true, estampavel: sim }
+  Cetim: { superficie: true, base: true, estampavel: sim }
+  Lona: { superficie: false, base: true, estampavel: nao }
+  EVA: { superficie: false, base: true, estampavel: nao }
+  Espuma: { superficie: false, base: true, estampavel: nao }
+  Helanca: { superficie: false, base: true, estampavel: nao }
+  Filme: { superficie: false, base: false, estampavel: nao }
+  Filme PU: { superficie: false, base: false, estampavel: nao }
+  Cola: { superficie: false, base: false, estampavel: nao }
+
 situacoes:
   vai_frequencia: Vai frequência
   tecido_molha: Tecido molha
