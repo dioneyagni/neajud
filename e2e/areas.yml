@@ -165,17 +165,18 @@ areas:
       - "app/services/{pedido_bloqueios_service,resolucao_do_item,custo_por_par,valores_do_pedido,impressao_pedido_service,producao_pedido_service,dxf_do_tamanho,zip_de_arquivos,zips_temporarios}.rb"
       - "app/javascript/controllers/{add_to_order,pedido_adicionar,pedido_counter,item_pecas,grade_matriz,grade_por_numero}_controller.js"
   producao:
-    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque, painel]
+    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque, painel, painel-entregar]
     arquivos:
       - "app/controllers/baixas_producao_controller.rb"
       - "app/models/{baixa_producao,item_reposicao}.rb"
       - "app/services/{etapas_producao,linhas_de_producao,registrar_baixa_service,desfazer_baixa_service,entregar_pedido_service,acumular_reposicao_service,liberar_reposicao_service,contagem_da_conferencia,andamento_do_pedido}.rb"
       - "app/javascript/controllers/{baixa,entrega}_controller.js"
+      - "app/views/pedidos/_entrega.html.erb"
       - "config/etapas_producao.yml"
   # Painel 1/4 (04/11/2026): pedidos × stages; it reads every stage's state.
   # Painel 2/4b: the queue, the blocks in time and the page refreshing itself.
   painel:
-    specs: [painel, painel-programacao, painel-virada, producao-baixas]
+    specs: [painel, painel-programacao, painel-virada, producao-baixas, painel-entregar]
     arquivos:
       - "app/controllers/{paineis,prazos_do_pedido,movimentos_da_fila}_controller.rb"
       - "app/views/paineis/**/*"

@@ -1,7 +1,10 @@
 <%# One cell (CelulaDoPainel). Painel 3/4b: adiamento, its stages' "veio de ·
     adiada" (Q3a), joins the detail and marks the cell.
-    locals: celula, coluna, adiamento (optional) %>
+    Entregar pelo Painel (08/11/2026, Q1c): a pedido's "pronto p/ entregar"
+    carries the shortcut, for who may deliver (not its items' cells).
+    locals: celula, coluna, adiamento (optional), pedido (optional) %>
 <% adiamento = local_assigns[:adiamento] %>
+<% pedido = local_assigns[:pedido] %>
 <% detalhe = [ celula.detalhe.presence, adiamento ].compact.join(" · ") %>
 <div class="painel-cel painel-cel--<%= celula.estado %><%= " painel-cel--adiada" if adiamento %>" data-coluna="<%= coluna %>" data-estado="<%= celula.estado %>"
      <% if adiamento %>data-adiada<% end %> <% if detalhe.present? %>title="<%= detalhe %>"<% end %>>
@@ -9,6 +12,9 @@
     <span class="painel-cel-texto"><%= celula.texto %></span>
     <% if celula.estado == :andamento && celula.percentual %>
       <span class="painel-barra"><span class="painel-barra-in" style="width: <%= celula.percentual %>%"></span></span>
+    <% end %>
+    <% if pedido && coluna == "entrega" && celula.estado == :pode_comecar && pode_dar_baixa?(pedido) %>
+      <%= render "pedidos/entrega", pedido: pedido, campo: "atalho-#{pedido.uuid.first(8)}", no_painel: true, atalho: true %>
     <% end %>
   <% end %>
 </div>

@@ -1,0 +1,24 @@
+<%# "Marcar como entregue" (Etapa 2.2, 3/3), in the resumo and on the Painel
+    (decided 08/11/2026, Q1c): the faixa's button is the resumo's; the
+    "pronto p/ entregar" cell's shortcut asks first (Q2a: cells sit side by
+    side and a delivery is not undone). On the Painel it doesn't reload: the
+    page refreshes itself, keeping what was open (Q3a, painel#entregue).
+    locals: pedido, campo (a unique id prefix), no_painel (false), atalho (false) %>
+<% no_painel = local_assigns.fetch(:no_painel, false) %>
+<% atalho = local_assigns.fetch(:atalho, false) %>
+<div class="entrega<%= " entrega--atalho" if atalho %>" data-controller="entrega" data-entrega-url-value="<%= entregar_pedido_path(pedido) %>"
+     <% if no_painel %>data-entrega-painel-value="true" data-entrega-pedido-value="<%= pedido.uuid %>"<% end %>>
+  <% if atalho %>
+    <button type="button" class="entrega-atalho" data-entrega-target="atalho" data-action="entrega#perguntar">Entregar</button>
+    <span class="entrega-pergunta" data-entrega-target="pergunta" hidden>Entregar #<%= pedido.uuid.first(8) %>?
+      <button type="button" class="entrega-sim" data-action="entrega#entregar">Sim</button>
+      <button type="button" class="entrega-nao" data-action="entrega#desistir">Não</button>
+    </span>
+  <% else %>
+    <button type="button" class="btn btn-primary entrega-botao" data-action="entrega#entregar">Marcar como entregue</button>
+  <% end %>
+  <p class="baixa-mensagem" data-entrega-target="mensagem" hidden></p>
+  <button type="button" class="btn btn-sm btn-outline entrega-confirmar" data-entrega-target="confirmar" data-action="entrega#confirmar" hidden>Entregar assim mesmo</button>
+  <%= render "pedidos/dialogo_da_falta", controller: "entrega", campo: campo,
+             texto: "Se o material chegou, confirme quanto entrou: a entrada vai para o estoque e o pedido é entregue." %>
+</div>

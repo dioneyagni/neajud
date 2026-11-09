@@ -12,7 +12,7 @@
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
 <% setores = cliente_final? ? {} : @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
 <% linhas_por_pedido = @painel.linhas.flat_map(&:com_reposicoes).index_by { |linha| linha.pedido.id } %>
-<div class="painel" id="painel" data-controller="painel" data-painel-visao-value="<%= @visao %>"
+<div class="painel" id="painel" data-controller="painel" data-action="entrega:feita->painel#entregue" data-painel-visao-value="<%= @visao %>"
      data-painel-itens-url-value="<%= itens_do_painel_path("UUID") %>"
      data-painel-colunas-value="<%= @painel.colunas.keys.to_json %>"
      data-painel-virada-value="<%= proxima_virada(@painel.fila) %>">

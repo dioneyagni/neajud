@@ -140,6 +140,58 @@ RSpec.describe "Painel", type: :request do
     end
   end
 
+  # Entregar pelo Painel (decided 08/11/2026): the resumo's "Marcar como
+  # entregue" in the faixa of both views, and a shortcut in the "pronto p/
+  # entregar" cell that asks first (Q1c, Q2a) — for who may deliver only.
+  describe "delivering" do
+    def entregar_na_pagina(pedido)
+      get painel_path
+      pagina = Nokogiri::HTML(response.body)
+      { faixas: pagina.css("#painel_#{pedido.uuid} > .painel-faixa [data-faixa-entrega], #tempo_#{pedido.uuid} [data-faixa-entrega]").size,
+        atalho: pagina.css("#painel_#{pedido.uuid} > .painel-linha [data-coluna=entrega] .entrega-atalho").size }
+    end
+
+    it "offers the faixa's button in both views and the ready cell's shortcut, asking first" do
+      pedido = pedido_calcado_pronto
+      expect(entregar_na_pagina(pedido)).to eq(faixas: 2, atalho: 1)
+      celula = Nokogiri::HTML(response.body).css("#painel_#{pedido.uuid} > .painel-linha [data-coluna=entrega]").sole
+      expect(celula.css(".entrega-pergunta[hidden]").text.squish).to eq("Entregar ##{pedido.uuid.first(8)}? Sim Não")
+      expect(celula.css("[data-controller=entrega]").sole["data-entrega-pedido-value"]).to eq(pedido.uuid)
+      # The faixa in Etapas and in the Linha do tempo: their dialogs' ids must differ.
+      ids = Nokogiri::HTML(response.body).css("[id]").map { |e| e["id"] }
+      expect(ids).to eq(ids.uniq)
+    end
+
+    # Still in production: only the faixa's button, which warns about the
+    # open stages and delivers anyway when asked (as in the resumo).
+    it "keeps the shortcut for the ready cell only" do
+      expect(entregar_na_pagina(pedido_calcado_confirmado.tap { |p| p.update!(status: "em_producao") })).to eq(faixas: 2, atalho: 0)
+    end
+
+    # The action "Atualizar produção" delivers (pedidos#entregar): without it
+    # neither shows — the server would refuse.
+    it "shows neither without the action to deliver" do
+      pedido = pedido_calcado_pronto
+      entrar_com_funcao(niveis: { "pedidos" => 3 })
+      expect(entregar_na_pagina(pedido)).to eq(faixas: 0, atalho: 0)
+    end
+
+    # A delivered pedido is read only: nothing to deliver again.
+    it "shows neither on a delivered pedido" do
+      pedido = pedido_calcado_pronto
+      pedido.update!(status: "entregue", entregue_em: Time.current)
+      get painel_path, params: { entregues: 1 }
+      expect(Nokogiri::HTML(response.body).css("[data-controller=entrega]")).to be_empty
+    end
+
+    # The cliente final never delivers (the factory does).
+    it "shows neither to a cliente final" do
+      pedido = pedido_calcado_pronto
+      entrar_como_cliente_final(pedido.client)
+      expect(entregar_na_pagina(pedido)).to eq(faixas: 0, atalho: 0)
+    end
+  end
+
   describe "the delivery date" do
     let(:pedido) { pedido_calcado_confirmado }
 

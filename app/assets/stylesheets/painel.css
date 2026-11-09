@@ -214,3 +214,17 @@ main:has(.painel) { max-width: 1480px; }
 .painel-impacto-cancelar { border: 1px solid #dadce0; background: #fff; color: #3c4043; }
 .painel-impacto-confirmar { border: 0; background: #1a73e8; color: #fff; }
 .painel-impacto-confirmar:disabled { background: #c6dafc; cursor: default; }
+
+/* Entregar pelo Painel (08/11/2026): the faixa's button as in the resumo;
+   the "pronto p/ entregar" cell's shortcut asks in the cell (Q2a); the
+   warning left where a delivered row was (Q3a). */
+.painel-faixa-entrega { align-self: flex-start; }
+.entrega--atalho { gap: 3px; }
+.entrega-atalho, .entrega-sim, .entrega-nao { font: inherit; font-size: 11px; border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+.entrega-atalho { align-self: flex-start; background: #1a73e8; color: #fff; border: 0; }
+.entrega-pergunta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-weight: 600; }
+.entrega-pergunta[hidden] { display: none; }
+.entrega-sim { background: #1a73e8; color: #fff; border: 0; }
+.entrega-nao { background: #fff; color: #3c4043; border: 1px solid #80868b; }
+.entrega--atalho .baixa-mensagem { font-size: 11px; margin: 0; }
+.painel-entregue-aviso { position: sticky; left: 0; width: fit-content; margin: 4px 12px; padding: 6px 12px; border-radius: 6px; background: #e6f4ea; color: #137333; font-size: 13px; font-weight: 600; }
