@@ -77,3 +77,153 @@
   font-weight: 600;
   color: #9a3412;
 }
+
+/* Rede editável 2/2a: "a rede mudou" on a construção in use (Q6a). */
+.rede-chip--mudou { background: #fbe9e7; border-color: #e3b2ad; color: #8a1f15; }
+
+.rede-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0;
+}
+
+/* One ligação's page (rede editável 2/2a, canvas "Rede editável — C"): the
+   form card and the side card, stacked on a phone. */
+.ligacao-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.ligacao-colunas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.rede-cartao {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.ligacao-form { flex: 999 1 560px; display: flex; flex-direction: column; gap: 1.1rem; }
+.ligacao-lateral { flex: 1 1 280px; display: flex; flex-direction: column; gap: 0.6rem; }
+.ligacao-lateral h3, .ligacao-secao h3 { margin: 0; font-size: 0.95rem; }
+.ligacao-secao h3 small { font-weight: 400; color: #5f5e5a; }
+
+.ligacao-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ligacao-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+.ligacao-estampa { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+.ligacao-seg {
+  display: inline-flex;
+  border: 1px solid #d3d0c6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ligacao-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ligacao-seg span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.9rem; cursor: pointer; background: #fff; }
+.ligacao-seg input:checked + span { background: #141414; color: #f7f5f0; }
+.ligacao-seg input:focus-visible + span { outline: 2px solid #2f5f96; outline-offset: -2px; }
+
+.ligacao-secao { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; }
+.ligacao-secao p { margin: 0; }
+.ligacao-lista { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.ligacao-ligante {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* min-width: 0, or a select is as wide as its longest group's name. */
+.ligacao-ligante select { flex: 1 1 180px; width: auto; min-width: 0; }
+.ligacao-ligante .ligacao-micras { flex: 0 1 150px; width: auto; min-width: 0; }
+
+.ligacao-situacoes {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  font-size: 0.875rem;
+}
+
+.ligacao-situacao { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.ligacao-situacao p:not([hidden]) { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ligacao-nota { margin: 0; color: #5f5e5a; font-size: 0.875rem; }
+
+.ligacao-confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 0.875rem;
+}
+
+.ligacao-confirmar legend { width: 100%; margin-bottom: 0.3rem; font-size: 0.75rem; color: #5f5e5a; }
+.ligacao-confirmar label { display: inline-flex; gap: 0.35rem; align-items: center; min-height: 32px; }
+
+.ligacao-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.ligacao-lixeira { color: #a3261b; border-color: #e3b2ad; }
+
+.ligacao-uso, .ligacao-historico {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.ligacao-historico { font-size: 0.8125rem; color: #5f5e5a; }
+
+.ligacao-dialogo {
+  max-width: min(520px, calc(100vw - 32px));
+  margin: auto;
+  padding: 1.25rem;
+  border: 1px solid #e2dfd6;
+  border-radius: 12px;
+}
+
+.ligacao-dialogo[open] { display: flex; flex-direction: column; gap: 0.75rem; }
+.ligacao-dialogo::backdrop { background: rgba(0, 0, 0, 0.3); }
+.ligacao-dialogo h3 { font-size: 1.05rem; }
+.ligacao-dialogo p { font-size: 0.875rem; }
+.ligacao-confirmar-lixeira { display: inline; }
+
+/* The construção's line where the network changed (Q6a). */
+.construcao-rede-mudou { display: block; width: 100%; font-size: 0.8125rem; color: #8a1f15; }

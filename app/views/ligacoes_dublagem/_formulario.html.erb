@@ -1,0 +1,103 @@
+<%# A ligação's whole form (rede editável 2/2a, canvas "Rede editável — C"):
+    the groups only when new (Q4a), the upper group's lado, before or after
+    the estampa, the usual ligantes, a situação's only where it changes them,
+    what is still to confirm. Read only without the action (Q7a) or in the
+    trash. The trash's confirmation is a dialog outside the form (AGENTS.md,
+    nested forms). %>
+<% ligantes = @ligacao.ligantes.reject(&:marked_for_destruction?) %>
+<% usuais = ligantes.select { |ligante| ligante.situacao_dublagem.nil? } %>
+<% usuais = [ nil ] if usuais.empty? %>
+<%= form_with model: @ligacao, scope: :ligacao, url: (@ligacao.persisted? ? rede_ligacao_path(@ligacao) : rede_ligacoes_path),
+      class: "rede-cartao ligacao-form", id: "ligacao-form" do %>
+  <fieldset class="ligacao-campos" <%= "disabled" unless @editavel %>>
+    <div class="ligacao-grade">
+      <% if @ligacao.new_record? %>
+        <div>
+          <label class="construcao-rotulo" for="ligacao_grupo_a_uuid">Grupo (o de cima)</label>
+          <%= select_tag "ligacao[grupo_a_uuid]", options_for_select([ [ "— escolha", "" ] ] + @grupos.map { |g| [ g.nome, g.uuid ] }, @ligacao.grupo_a&.uuid),
+                id: "ligacao_grupo_a_uuid", class: "construcao-campo" %>
+        </div>
+        <div>
+          <label class="construcao-rotulo" for="ligacao_grupo_b_uuid">Com</label>
+          <%= select_tag "ligacao[grupo_b_uuid]", options_for_select([ [ "— escolha", "" ] ] + @grupos.map { |g| [ g.nome, g.uuid ] }, @ligacao.grupo_b&.uuid),
+                id: "ligacao_grupo_b_uuid", class: "construcao-campo" %>
+        </div>
+      <% else %>
+        <div><span class="construcao-rotulo">Grupo</span><strong data-grupo-a><%= @ligacao.grupo_a.nome %></strong></div>
+        <div><span class="construcao-rotulo">Com</span><strong data-grupo-b><%= @ligacao.grupo_b.nome %></strong></div>
+      <% end %>
+      <div>
+        <label class="construcao-rotulo" for="ligacao_lado">Lado <%= @ligacao.grupo_a ? "do #{@ligacao.grupo_a.nome}" : "do de cima" %></label>
+        <%= select_tag "ligacao[lado]", options_for_select([ [ "qualquer", "" ] ] + RedeDeDublagens::LADOS.map { |lado| [ lado, lado ] }, @ligacao.lado),
+              id: "ligacao_lado", class: "construcao-campo" %>
+      </div>
+      <fieldset class="ligacao-estampa">
+        <legend class="construcao-rotulo">Estampa</legend>
+        <div class="ligacao-seg">
+          <% RedeDeDublagens::DUBLA.each do |momento| %>
+            <label><input type="radio" name="ligacao[dubla]" value="<%= momento %>" <%= "checked" if @ligacao.dubla == momento %>><span>dubla <%= momento %></span></label>
+          <% end %>
+        </div>
+      </fieldset>
+    </div>
+
+    <section class="ligacao-secao" data-ligantes data-nome="ligacao[ligantes]">
+      <h3>Ligantes</h3>
+      <div class="ligacao-lista" data-lista>
+        <% usuais.each do |ligante| %>
+          <%= render "ligante", nome: "ligacao[ligantes]", ligante: ligante, grupos: @grupos, editavel: @editavel %>
+        <% end %>
+      </div>
+      <% if @editavel %><p><button type="button" class="btn btn-secondary btn-sm" data-action="ligacao#adicionar">+ ligante</button></p><% end %>
+    </section>
+
+    <section class="ligacao-secao">
+      <h3>Por situação <small>só quando muda</small></h3>
+      <div class="ligacao-situacoes">
+        <span>Normal</span><span class="ligacao-nota">os ligantes acima</span>
+        <% @situacoes.each do |situacao| %>
+          <% proprios = ligantes.select { |ligante| ligante.situacao_dublagem == situacao } %>
+          <span><%= situacao.nome %></span>
+          <div class="ligacao-situacao" data-ligantes data-situacao="<%= situacao.chave %>" data-nome="ligacao[situacoes][<%= situacao.chave %>]">
+            <span class="ligacao-nota" data-os-de-cima <%= "hidden" if proprios.any? %>>
+              os ligantes acima
+              <% if @editavel %><button type="button" class="btn btn-secondary btn-sm" data-action="ligacao#mudar">mudar</button><% end %>
+            </span>
+            <div class="ligacao-lista" data-lista>
+              <% proprios.each do |ligante| %>
+                <%= render "ligante", nome: "ligacao[situacoes][#{situacao.chave}]", ligante: ligante, grupos: @grupos, editavel: @editavel %>
+              <% end %>
+            </div>
+            <% if @editavel %>
+              <p data-proprios <%= "hidden" if proprios.empty? %>>
+                <button type="button" class="btn btn-secondary btn-sm" data-action="ligacao#adicionar">+ ligante</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-action="ligacao#voltar">voltar aos de cima</button>
+              </p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <fieldset class="ligacao-confirmar">
+      <legend>A confirmar com a fábrica</legend>
+      <input type="hidden" name="ligacao[a_confirmar][]" value="">
+      <% RedeDeDublagens::ROTULOS_A_CONFIRMAR.each do |campo, rotulo| %>
+        <label><input type="checkbox" name="ligacao[a_confirmar][]" value="<%= campo %>" <%= "checked" if @ligacao.a_confirmar.to_a.include?(campo) %>> <%= rotulo %></label>
+      <% end %>
+    </fieldset>
+  </fieldset>
+
+  <% if @editavel %>
+    <div class="ligacao-botoes">
+      <% if @ligacao.persisted? %>
+        <button type="button" class="btn btn-secondary ligacao-lixeira" data-action="ligacao#abrirLixeira">Mandar para a lixeira</button>
+      <% end %>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  <% end %>
+<% end %>
+
+<template data-ligacao-target="modelo">
+  <%= render "ligante", nome: "", ligante: nil, grupos: @grupos, editavel: true %>
+</template>

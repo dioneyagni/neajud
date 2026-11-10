@@ -1,0 +1,236 @@
+// Rede editável 2/2a (decided 09-10/11/2026, canvas "Rede editável — C"):
+// the team edits the dublagem network, one page per ligação — the form,
+// where it is used and its histórico. "+ Ligação" creates one; a ligação
+// goes to the trash (confirmed on the page) and back from the Lixeira. A
+// construção in use keeps what it was made with and says "a rede mudou".
+// Without "Editar a rede de dublagens" the page is read only.
+//
+// It changes Oxford com Lona and sets it back at the end, so the specs
+// after it find the initial network.
+const { E2E_USUARIO, entrar } = require("./support/sessao");
+const { BASE_URL, runSpec } = require("./support/runner");
+const { waitForText } = require("./support/wait");
+
+runSpec("Rede editável E2E Tests", async ({ page, test }) => {
+  const U = Date.now() % 100000;
+  const gramatura = `${U}g`;
+  const nomes = { oxford: `Oxford-Branco-1.40 m-${gramatura}`, lona: `Lona-Branco-1.40 m-${gramatura}`, filme35: "Filme 35 µm-Branco-1.40 m" };
+  const ids = {};
+  const operador = { nome: `Produção ${U}`, email: `producao${U}@neajud.test`, provisoria: "provisoria-e2e-1", senha: "senha-producao-e2e-1" };
+
+  async function postar(url, campos) {
+    return page.evaluate(async ({ url, campos }) => {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+      const corpo = new URLSearchParams({ authenticity_token: token });
+      for (const [chave, valor] of Object.entries(campos)) [].concat(valor).forEach((v) => corpo.append(chave, v));
+      const resposta = await fetch(url, { method: "POST", body: corpo });
+      return { ok: resposta.ok, url: resposta.url };
+    }, { url, campos });
+  }
+
+  async function buscarJson(url) {
+    return page.evaluate(async (url) => (await fetch(url, { headers: { Accept: "application/json" } })).json(), url);
+  }
+
+  // The groups come from the imported network; the roles and what they ask
+  // as construcoes.spec.js sets them (none given: left as they are).
+  async function grupo(nome, papeis, pede) {
+    await postar("/materiais/create_grupo", { "grupo_material[nome]": nome });
+    const uuid = (await buscarJson(`/materiais/grupos?q=${encodeURIComponent(nome)}`)).find((g) => g.nome === nome).id;
+    if (!papeis) return uuid;
+    const r = await postar(`/grupos-de-material/${uuid}`, {
+      _method: "patch", "grupo_material[superficie]": papeis.superficie ? "1" : "0", "grupo_material[base]": papeis.base ? "1" : "0",
+      "grupo_material[estampavel]": "nao", "pede[]": pede, "obrigatorios[]": pede,
+    });
+    if (!r.ok) throw new Error(`Couldn't set ${nome}'s roles`);
+    return uuid;
+  }
+
+  async function material(grupoUuid, nome, campos, tipo, busca) {
+    const r = await postar("/movimentos", {
+      "movimento_estoque[da_empresa]": "true", "movimento_estoque[tipo]": "entrada", "movimento_estoque[quantidade]": "30",
+      "movimento_estoque[grupo_material_uuid]": grupoUuid, "movimento_estoque[cor_material_uuid]": ids.cor, "movimento_estoque[largura]": "1.40 m", ...campos,
+    });
+    if (!r.ok) throw new Error(`The entry of ${nome} failed`);
+    const encontrado = (await buscarJson(`/materiais/search?q=${encodeURIComponent(busca)}`)).find((m) => m.nome_completo === nome);
+    if (!encontrado) throw new Error(`${nome} wasn't registered`);
+    await postar(`/materiais/${encontrado.id}`, { _method: "patch", "materia_prima[tipo]": tipo, "materia_prima[preco_metro]": "1" });
+    return encontrado.id;
+  }
+
+  async function texto(seletor) {
+    return (await page.locator(seletor).innerText()).replace(/\s+/g, " ");
+  }
+
+  async function abrirLigacao(grupoDeCima, outro) {
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    await page.locator(`.rede-grupo[data-grupo="${grupoDeCima}"] .rede-ligacao[data-par="${grupoDeCima}–${outro}"] a`).click();
+    await page.locator(".ligacao-pagina h2").waitFor();
+  }
+
+  async function salvar(aviso) {
+    await page.locator('#ligacao-form button[type="submit"]').click();
+    await waitForText(page, aviso);
+  }
+
+  await test("Setup: Oxford over Lona with Filme 35 µm, a construção whose dublado is in stock (in use)", async () => {
+    await page.goto(`${BASE_URL}/materiais`);
+    ids.cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco")?.id;
+    if (!ids.cor) {
+      await postar("/materiais/create_cor", { "cor_material[nome]": "Branco" });
+      ids.cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco").id;
+    }
+    const oxford = await grupo("Oxford");
+    const lona = await grupo("Lona", { base: true }, ["gramatura"]);
+    const filme = await grupo("Filme", {}, ["micras"]);
+    const materiais = {
+      oxford: await material(oxford, nomes.oxford, { "movimento_estoque[gramatura]": gramatura }, "tecido", gramatura),
+      lona: await material(lona, nomes.lona, { "movimento_estoque[gramatura]": gramatura }, "tecido", gramatura),
+      filme: await material(filme, nomes.filme35, { "movimento_estoque[micras]": "35" }, "filme", "Filme"),
+    };
+    const criada = await postar("/construcoes", {
+      "construcao[situacao]": "", "construcao[client_uuid]": "", "construcao[preco_final]": "30",
+      "construcao[camadas][0][materia_prima_uuid]": materiais.oxford, "construcao[camadas][0][lado]": "trama", "construcao[camadas][0][do_cliente]": "0",
+      "construcao[camadas][1][materia_prima_uuid]": materiais.lona, "construcao[camadas][1][ligante_uuid]": materiais.filme, "construcao[camadas][1][do_cliente]": "0",
+    });
+    ids.construcao = criada.url.match(/construcoes\/([0-9a-f-]{36})\/edit/)?.[1];
+    if (!ids.construcao) throw new Error(`The construção wasn't saved: ${criada.url}`);
+    // An ordem de dublagem done puts its dublado in stock: in use (Dublagem 5a).
+    await postar("/dublagens", { construcao_uuid: ids.construcao, metros: "5" });
+    await page.goto(`${BASE_URL}/dublagens`);
+    await page.locator(`article[data-ordem][data-construcao="${ids.construcao}"] input[type="submit"][value="Marcar feita"]`).click();
+    await waitForText(page, "feita: entraram");
+  });
+
+  await test("+ Ligação creates Lona com EVA with two ligantes, its histórico saying 'criou'", async () => {
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    await page.locator('a:has-text("+ Ligação")').click();
+    await page.locator("#ligacao_grupo_a_uuid").waitFor();
+    await page.selectOption("#ligacao_grupo_a_uuid", { label: "Lona" });
+    await page.selectOption("#ligacao_grupo_b_uuid", { label: "EVA" });
+    await page.locator('label:has-text("dubla depois")').click();
+    await page.selectOption('[data-ligantes][data-nome="ligacao[ligantes]"] select', { label: "Cola" });
+    await page.locator('[data-nome="ligacao[ligantes]"] button:has-text("+ ligante")').click();
+    const segunda = page.locator('[data-nome="ligacao[ligantes]"] .ligacao-ligante').nth(1);
+    await segunda.locator("select").selectOption({ label: "Filme" });
+    await segunda.locator("input").fill("25 ou 35");
+    await salvar("Lona com EVA: salva.");
+    if ((await texto("[data-historico]")).indexOf("criou") < 0) throw new Error("The histórico doesn't say 'criou'");
+
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    const linha = await texto('.rede-ligacao[data-par="Lona–EVA"]');
+    if (!linha.includes("Cola ou Filme 25 ou 35 µm") || !linha.includes("dubla depois")) throw new Error(`The rede shows ${linha}`);
+  });
+
+  // Decision 2: the pair has no order, so EVA com Lona is the same one.
+  await test("The same pair in the other order is refused, saying it is in the network", async () => {
+    await page.goto(`${BASE_URL}/rede-de-dublagens/ligacoes/new`);
+    await page.selectOption("#ligacao_grupo_a_uuid", { label: "EVA" });
+    await page.selectOption("#ligacao_grupo_b_uuid", { label: "Lona" });
+    await page.selectOption('[data-nome="ligacao[ligantes]"] select', { label: "Cola" });
+    await page.locator('#ligacao-form button[type="submit"]').click();
+    await waitForText(page, "EVA com Lona já está na rede");
+  });
+
+  await test("Editing Oxford com Lona: before → after, a situação back to the usual ligantes, one line in the histórico", async () => {
+    await abrirLigacao("Oxford", "Lona");
+    if ((await page.locator("[data-grupo-a]").innerText()) !== "Oxford") throw new Error("An existing ligação's groups aren't plain text");
+    await page.locator('label:has-text("dubla depois")').click();
+    await page.locator('[data-situacao="tecido_molha"] button:has-text("voltar aos de cima")').click();
+    await page.locator('[data-situacao="vai_frequencia"] button:has-text("mudar")').click();
+    await page.locator('[data-situacao="vai_frequencia"] .ligacao-ligante select').selectOption({ label: "Filme PU" });
+    await salvar("Oxford com Lona: salva.");
+    const historico = await texto("[data-historico]");
+    const esperado = "dubla antes → depois; Tecido molha: Filme PU → os de cima; Vai frequência: os de cima → Filme PU";
+    if (!historico.includes(`${E2E_USUARIO.nome} · ${esperado}`)) throw new Error(`The histórico says ${historico}`);
+    const uso = await texto("[data-uso]");
+    if (!uso.includes("em uso") || !uso.includes("a rede mudou")) throw new Error(`"Onde ela é usada" says ${uso}`);
+  });
+
+  // Q3a/Q6a: in use, the construção keeps "antes" and says the network changed.
+  await test("The construção in use keeps what it was made with and says 'a rede mudou', linking to the ligação", async () => {
+    await page.goto(`${BASE_URL}/construcoes/${ids.construcao}/edit`);
+    const aviso = await texto("[data-rede-mudou]");
+    if (!aviso.includes("a rede mudou: guardou dubla antes; a rede agora diz depois")) throw new Error(`The construção says ${aviso}`);
+    await page.locator('[data-rede-mudou] a:has-text("ver na rede")').click();
+    await page.locator(".ligacao-pagina h2:has-text('Oxford com Lona')").waitFor();
+    await page.goto(`${BASE_URL}/construcoes`);
+    if ((await page.locator(`.construcoes-item:has(a[href="/construcoes/${ids.construcao}/edit"]) .rede-chip--mudou`).count()) !== 1) {
+      throw new Error("The list doesn't mark the construção 'a rede mudou'");
+    }
+  });
+
+  await test("The trash asks on the page: Cancel keeps it, confirming takes it out of the network, the Lixeira restores it", async () => {
+    await abrirLigacao("Lona", "EVA");
+    await page.locator('button.ligacao-lixeira').click();
+    const dialogo = page.locator("dialog.ligacao-dialogo");
+    await dialogo.waitFor();
+    const caixa = await dialogo.boundingBox();
+    const tela = page.viewportSize();
+    const centro = [caixa.x + caixa.width / 2 - tela.width / 2, caixa.y + caixa.height / 2 - tela.height / 2];
+    if (centro.some((d) => Math.abs(d) > 2)) throw new Error(`The dialog isn't centered: off by ${centro}`);
+    if (!(await dialogo.innerText()).includes("Nenhuma construção usa esta ligação")) throw new Error("The dialog doesn't say who uses it");
+    await dialogo.locator('button:has-text("Cancelar")').click();
+    await dialogo.waitFor({ state: "hidden" });
+
+    await page.locator('button.ligacao-lixeira').click();
+    await dialogo.locator('button[type="submit"]:has-text("Mandar para a lixeira")').click();
+    await waitForText(page, "Lona com EVA: foi para a lixeira.");
+    if ((await page.locator('.rede-ligacao[data-par="Lona–EVA"]').count()) !== 0) throw new Error("A trashed ligação is still in the network");
+
+    await page.goto(`${BASE_URL}/lixeira`);
+    const linha = page.locator('[data-tipo="ligacoes_dublagem"] tr:has-text("Lona com EVA")');
+    await linha.locator('button:has-text("Restore")').click();
+    await waitForText(page, "restored");
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    await page.locator('.rede-ligacao[data-par="Lona–EVA"]').waitFor();
+  });
+
+  await test("The ligação's page fits a phone, never scrolling sideways", async () => {
+    await abrirLigacao("Oxford", "Lona");
+    await page.setViewportSize({ width: 390, height: 800 });
+    const larguras = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    if (larguras[0] > larguras[1]) throw new Error(`The page scrolls sideways: ${larguras.join(" > ")}`);
+  });
+
+  // Q7a: Produção sees the estoque but hasn't the action.
+  await test("Without 'Editar a rede de dublagens' the ligação's page is read only, with no + Ligação", async () => {
+    await page.goto(`${BASE_URL}/usuarios/new`);
+    await page.fill('input[name="usuario[nome]"]', operador.nome);
+    await page.fill('input[name="usuario[email_address]"]', operador.email);
+    await page.fill('input[name="usuario[senha_provisoria]"]', operador.provisoria);
+    await page.selectOption('select[name="usuario[funcao_uuid]"]', { label: "Produção" });
+    await page.click('input[type="submit"][value="Add user"]');
+    await waitForText(page, `${operador.nome} added`);
+    await page.click('.header-user button:has-text("Sign out")');
+    await page.waitForURL("**/session/new");
+    await page.fill('input[name="email_address"]', operador.email);
+    await page.fill('input[name="password"]', operador.provisoria);
+    await page.click('input[type="submit"][value="Sign in"]');
+    await page.waitForURL("**/senha/edit");
+    await page.fill('input[name="nova_senha"]', operador.senha);
+    await page.click('input[type="submit"][value="Change password"]');
+    await waitForText(page, "Password changed.");
+
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    if ((await page.locator('a:has-text("+ Ligação")').count()) !== 0) throw new Error("+ Ligação shows without the action");
+    await abrirLigacao("Oxford", "Lona");
+    // isDisabled() only reads form controls, not a fieldset.
+    if ((await page.locator("fieldset.ligacao-campos").getAttribute("disabled")) === null) throw new Error("The form can be edited without the action");
+    if (!(await page.locator('#ligacao-form select[name="ligacao[lado]"]').isDisabled())) throw new Error("The lado can be changed without the action");
+    if ((await page.locator('#ligacao-form button[type="submit"]').count()) !== 0) throw new Error("Salvar shows without the action");
+  });
+
+  await test("Cleanup: the dono sets Oxford com Lona back as the initial network has it", async () => {
+    await page.click('.header-user button:has-text("Sign out")');
+    await page.waitForURL("**/session/new");
+    await entrar(page, BASE_URL);
+    await abrirLigacao("Oxford", "Lona");
+    await page.locator('label:has-text("dubla antes")').click();
+    await page.locator('[data-situacao="vai_frequencia"] button:has-text("voltar aos de cima")').click();
+    await page.locator('[data-situacao="tecido_molha"] button:has-text("mudar")').click();
+    await page.locator('[data-situacao="tecido_molha"] .ligacao-ligante select').selectOption({ label: "Filme PU" });
+    await salvar("Oxford com Lona: salva.");
+  });
+});

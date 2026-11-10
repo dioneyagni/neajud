@@ -12,7 +12,9 @@ class LixeiraController < ApplicationController
     "arquivos" => Arquivo, "pedidos" => Pedido, "clients" => Client,
     "moldes" => Molde, "pecas" => Peca, "funcoes" => Funcao, "construcoes" => Construcao,
     # Painel 2/4a.
-    "turnos" => Turno
+    "turnos" => Turno,
+    # Rede editável 2/2a.
+    "ligacoes_dublagem" => LigacaoDublagem
   }.freeze
 
   def index
@@ -25,7 +27,8 @@ class LixeiraController < ApplicationController
     registro.restaurar!(**autoria)
     redirect_to lixeira_path, notice: "#{registro.model_name.human} \"#{registro.rotulo_lixeira}\" restored."
   rescue ActiveRecord::RecordInvalid => e
-    # A turno that now overlaps another (Turno#restaurar!).
+    # A turno that now overlaps another (Turno#restaurar!), a ligação whose
+    # pair is active again (LigacaoDublagem#restaurar!).
     redirect_to lixeira_path, alert: e.record.errors.full_messages.to_sentence
   end
 

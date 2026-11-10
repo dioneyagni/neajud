@@ -105,6 +105,31 @@ RSpec.describe Construcao do
     expect([ livre.camadas.last.reload.dubla, em_uso.camadas.last.reload.dubla ]).to eq(%w[depois antes])
   end
 
+  # Rede editável 2/2a (Q6a): a construção in use shows where the network is
+  # no longer what it was made with — the momento, the ligante, the ligação
+  # gone — and is not checked against the network, so its price still saves.
+  it "says where the network changed under a construção in use, and still saves its final price" do
+    construcao = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).tap(&:save!)
+    ligacao = LigacaoDublagem.do_par(oxford.grupo_material, lona.grupo_material).sole
+    ligacao.update!(dubla: "depois")
+    expect(construcao.reload.mudancas_da_rede).to eq([])
+
+    construcao.update!(preco_final: 30)
+    MovimentoEstoque.create!(materia_prima: construcao.materia_prima, tipo: "entrada", quantidade: 10, da_empresa: true)
+    ligacao.update!(dubla: "antes")
+    expect(construcao.reload.mudancas_da_rede.map(&:texto)).to eq([ "guardou dubla depois; a rede agora diz antes" ])
+
+    ligacao.update!(dubla: "depois")
+    ligacao.ligantes.find_by!(situacao_dublagem: nil).update!(micras_minimo: 50)
+    expect(construcao.reload.mudancas_da_rede.map(&:texto)).to eq([ "o ligante #{filme_35.nome_completo} não está mais na rede (Filme 50 µm ou mais)" ])
+    expect(construcao.update(preco_final: 40)).to be(true), construcao.errors.full_messages.to_sentence
+
+    ligacao.excluir!(changed_by: "127.0.0.1")
+    mudanca = construcao.reload.mudancas_da_rede.sole
+    expect([ mudanca.posicao, mudanca.texto, mudanca.ligacao_uuid ]).to eq([ 2, "a ligação Oxford e Lona saiu da rede", ligacao.uuid ])
+    expect(construcao.update(preco_final: 41)).to be(true), construcao.errors.full_messages.to_sentence
+  end
+
   # Dublagem 5a: only a construção dubbed wholly before the estampa is made for the stock.
   it "dubs before the estampa only when every ligação does" do
     expect(montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).dubla_antes?).to be(true)

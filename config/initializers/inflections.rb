@@ -12,6 +12,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "dublagem", "dublagens"
   # Painel 2/4a: /parametros/excecoes, the calendar's exceptions.
   inflect.irregular "excecao", "excecoes"
+  # Rede editável 2/2a: /rede-de-dublagens/ligacoes.
+  inflect.irregular "ligacao", "ligacoes"
 end
 
 # These inflection rules are supported but not enabled by default:

@@ -4,6 +4,7 @@
     only the final price changes (decision 5). %>
 <% em_uso = @construcao.em_uso? %>
 <% camadas = @construcao.camadas_em_ordem %>
+<% mudancas = @construcao.mudancas_da_rede.index_by(&:posicao) %>
 <div id="construcao-montagem" class="construcao-montagem">
   <div class="construcao-card construcao-camadas">
     <% if em_uso %>
@@ -31,7 +32,7 @@
 
     <ol class="construcao-pilha">
       <% camadas.each_with_index do |camada, indice| %>
-        <%= render "camada", camada: camada, indice: indice, acima: (camadas[indice - 1] if indice.positive?), em_uso: em_uso, total: camadas.size %>
+        <%= render "camada", camada: camada, indice: indice, acima: (camadas[indice - 1] if indice.positive?), em_uso: em_uso, total: camadas.size, mudanca: mudancas[camada.posicao] %>
       <% end %>
     </ol>
     <% if !em_uso && camadas.size < Construcao::MAXIMO_DE_CAMADAS %>

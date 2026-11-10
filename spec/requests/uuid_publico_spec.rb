@@ -20,7 +20,9 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       # Dublagem 1/5.
       "material group (edit)" => [ -> { GrupoMaterial.create!(nome: "Espuma") }, ->(r) { "/grupos-de-material/#{r}/edit" } ],
       # Dublagem 3/5.
-      "construção (edit)" => [ -> { montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("EVA"), nil ]).tap(&:save!) }, ->(r) { "/construcoes/#{r}/edit" } ]
+      "construção (edit)" => [ -> { montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("EVA"), nil ]).tap(&:save!) }, ->(r) { "/construcoes/#{r}/edit" } ],
+      # Rede editável 2/2a.
+      "ligação of the network" => [ -> { importar_rede_de_dublagens && LigacaoDublagem.first }, ->(r) { "/rede-de-dublagens/ligacoes/#{r}" } ]
     }.each do |nome, (factory, caminho)|
       it "opens a #{nome} by uuid and answers 404 to its integer id" do
         registro = factory.respond_to?(:call) ? instance_exec(&factory) : create(factory)

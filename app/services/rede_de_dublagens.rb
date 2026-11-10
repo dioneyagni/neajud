@@ -37,8 +37,9 @@ class RedeDeDublagens
     end
   end
 
-  # grupos: the pair's GrupoMaterial, in the par's order.
-  Ligacao = Struct.new(:par, :grupos, :lado, :ligantes, :dubla, :situacoes, :a_confirmar, keyword_init: true) do
+  # grupos: the pair's GrupoMaterial, in the par's order; uuid: the
+  # LigacaoDublagem's (nil when read from the initial file).
+  Ligacao = Struct.new(:uuid, :par, :grupos, :lado, :ligantes, :dubla, :situacoes, :a_confirmar, keyword_init: true) do
     # The pair in any order (decision 2); a ligação without lado holds for
     # either side.
     def liga?(grupo_a, grupo_b)
@@ -85,7 +86,8 @@ class RedeDeDublagens
     sem_papel + sem_base
   end
 
-  # ligacoes, situacoes: the scopes to read (the visible ones in a controller).
+  # ligacoes, situacoes: the scopes to read (the visible ones in a controller);
+  # a ligação in the trash is never read (rede editável 2/2a).
   def initialize(ligacoes: LigacaoDublagem.all, situacoes: SituacaoDublagem.all)
     @escopo_das_ligacoes = ligacoes
     @escopo_das_situacoes = situacoes
@@ -109,6 +111,6 @@ class RedeDeDublagens
 
   # In the order they were added.
   def ligacoes
-    @ligacoes ||= @escopo_das_ligacoes.includes(:grupo_a, :grupo_b, ligantes: %i[grupo_material situacao_dublagem]).order(:id).map(&:para_rede).freeze
+    @ligacoes ||= @escopo_das_ligacoes.ativos.includes(:grupo_a, :grupo_b, ligantes: %i[grupo_material situacao_dublagem]).order(:id).map(&:para_rede).freeze
   end
 end
