@@ -1,11 +1,16 @@
 <%# The dublagem network (Dublagem 2/5): one table per group, a row per
     ligação; a situação's column shows its ligantes only where it changes
-    them ("—" keeps the usual ones). %>
+    them ("—" keeps the usual ones). Each ligação opens its own page, and
+    "+ Ligação" a new one (rede editável 2/2a). %>
 <div class="grupos-pagina rede-pagina">
   <div>
     <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › <%= link_to "Grupos", grupo_materiais_path %> › Rede de dublagens</p>
     <h2>Rede de dublagens</h2>
   </div>
+
+  <% if pode_acao?(:editar_rede_de_dublagens) %>
+    <p class="rede-acoes"><%= link_to "+ Ligação", new_rede_ligacao_path, class: "btn btn-primary" %></p>
+  <% end %>
 
   <% ligacoes = @avisos.keys %>
   <p class="rede-contagem">

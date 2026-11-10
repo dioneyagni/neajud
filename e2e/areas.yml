@@ -99,7 +99,7 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens, rede-editavel]
     arquivos:
       - "app/services/{materiais_das_linhas,ajuste_da_baixa,entrada_da_falta}.rb"
       - "app/javascript/controllers/dialogo_da_falta.js"
@@ -131,7 +131,11 @@ areas:
       - "app/assets/stylesheets/rede_de_dublagens.css"
       - "db/seeds/rede_de_dublagens.yml"
       - "app/services/{importar_rede_de_dublagens,leitura_da_rede_inicial}.rb"
-      - "app/models/{ligacao_dublagem,ligante_da_ligacao,situacao_dublagem}.rb"
+      - "app/models/{ligacao_dublagem,ligante_da_ligacao,situacao_dublagem,alteracao_da_rede}.rb"
+      - "app/controllers/ligacoes_dublagem_controller.rb"
+      - "app/views/ligacoes_dublagem/**/*"
+      - "app/services/{salvar_ligacao,mudancas_da_ligacao,uso_da_ligacao}.rb"
+      - "app/javascript/controllers/ligacao_controller.js"
       - "lib/tasks/rede.rake"
       - "app/controllers/construcoes_controller.rb"
       - "app/views/construcoes/**/*"

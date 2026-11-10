@@ -1,0 +1,33 @@
+<%# One ligação's page (rede editável 2/2a, Q4c): the form, where it is used
+    and its histórico, side by side — one under the other on a phone. %>
+<div class="grupos-pagina rede-pagina ligacao-pagina" data-controller="ligacao">
+  <div class="ligacao-topo">
+    <div>
+      <p class="grupos-trilha"><%= link_to "Rede de dublagens", rede_de_dublagens_path %> › <%= @ligacao.grupo_a.nome %></p>
+      <h2><%= @ligacao.nome %> <%= selo_excluido(@ligacao) %></h2>
+    </div>
+    <%= link_to "Voltar à rede", rede_de_dublagens_path, class: "btn btn-secondary" %>
+  </div>
+
+  <div class="ligacao-colunas">
+    <%= render "formulario" %>
+    <%= render "lateral" %>
+  </div>
+
+  <% if @editavel %>
+    <dialog class="ligacao-dialogo" data-ligacao-target="dialogo" aria-labelledby="ligacao-dialogo-titulo">
+      <h3 id="ligacao-dialogo-titulo">Mandar <%= @ligacao.nome %> para a lixeira?</h3>
+      <% if @construcoes.any? %>
+        <p data-aviso-uso><%= pluralize(@construcoes.size, "construção usa", plural: "construções usam") %> esta ligação:
+          <%= @construcoes.map { |construcao| "#{construcao.nome}#{" (em uso)" if construcao.em_uso?}" }.to_sentence %>.</p>
+        <p>As em uso continuam como foram feitas e mostram “a rede mudou”; as sem uso deixam de passar até trocar a camada. Restaurar devolve tudo.</p>
+      <% else %>
+        <p>Nenhuma construção usa esta ligação. Ela fica na Lixeira, de onde pode voltar.</p>
+      <% end %>
+      <div class="ligacao-botoes">
+        <button type="button" class="btn btn-secondary" data-action="ligacao#fecharLixeira">Cancelar</button>
+        <%= button_to "Mandar para a lixeira", rede_ligacao_path(@ligacao), method: :delete, class: "btn btn-primary", form: { class: "ligacao-confirmar-lixeira" } %>
+      </div>
+    </dialog>
+  <% end %>
+</div>

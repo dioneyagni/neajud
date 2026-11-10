@@ -4,7 +4,10 @@
 # in the situação — or none while no registered material serves (the cola,
 # until 5/5); a client's layer needs the client, and a client needs a layer
 # of his; never twice the same construção. Each message names the layer and
-# what was expected.
+# what was expected. A construção in use is not checked against the network
+# (rede editável 2/2a, Q6a): its layers can't change, it keeps the momentos
+# it was made with, and a change to the network must not stop its final
+# price from saving — Construcao#mudancas_da_rede shows what changed.
 #
 # Usage: RegrasDaConstrucao.new(construcao).erros # => ["camada 2: Helanca não é base (grupo Helanca)"]
 class RegrasDaConstrucao
@@ -44,6 +47,8 @@ class RegrasDaConstrucao
   end
 
   def erros_das_ligacoes(camadas)
+    return [] if @construcao.em_uso?
+
     camadas.each_cons(2).flat_map do |acima, abaixo|
       ligacao = @opcoes.ligacao(acima, abaixo.materia_prima)
       next [ "camada #{abaixo.posicao}: #{grupo(acima)} e #{grupo(abaixo)} não dublam — a rede não tem essa ligação" ] unless ligacao

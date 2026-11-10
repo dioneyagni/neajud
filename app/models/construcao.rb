@@ -84,6 +84,18 @@ class Construcao < ApplicationRecord
     camadas_em_ordem.each_cons(2).filter_map { |acima, abaixo| momento_na_rede(acima, abaixo) }.uniq
   end
 
+  # Where the network no longer is what a construção in use was made with
+  # (rede editável 2/2a, Q6a), per layer: the momento it kept is not the
+  # network's now, its ligação is gone (the trash), or its ligante is no
+  # longer one the network allows. Empty when not in use: that one follows
+  # the network.
+  # Usage: construcao.mudancas_da_rede # => [#<MudancaDaRede posicao=2, texto="guardou dubla antes; a rede agora diz depois", ligacao_uuid="…">]
+  def mudancas_da_rede
+    return [] unless em_uso?
+
+    camadas_em_ordem.each_cons(2).filter_map { |acima, abaixo| mudanca_na_rede(acima, abaixo) }
+  end
+
   # Dublagem 5a: every ligação dubs before the estampa, so its dublado is
   # made for the stock by an ordem de dublagem.
   def dubla_antes? = momentos_da_dublagem == [ "antes" ]
@@ -123,6 +135,29 @@ class Construcao < ApplicationRecord
     return if em_uso?
 
     camadas_em_ordem.each_cons(2) { |acima, abaixo| abaixo.dubla = momento_na_rede(acima, abaixo) }
+  end
+
+  MudancaDaRede = Struct.new(:posicao, :texto, :ligacao_uuid, keyword_init: true)
+
+  # The link goes to the ligação, or to the one in the trash when it is gone.
+  def mudanca_na_rede(acima, abaixo)
+    ligacao = acima.ligacao_com(abaixo.materia_prima)
+    texto = texto_da_mudanca(ligacao, acima, abaixo)
+    return unless texto
+
+    grupos = [ acima, abaixo ].map { |camada| camada.materia_prima.grupo_material }
+    MudancaDaRede.new(posicao: abaixo.posicao, texto: texto,
+                      ligacao_uuid: ligacao&.uuid || LigacaoDublagem.excluidos.do_par(*grupos).order(deleted_at: :desc).pick(:uuid))
+  end
+
+  def texto_da_mudanca(ligacao, acima, abaixo)
+    return "a ligação #{acima.materia_prima.grupo_material.nome} e #{abaixo.materia_prima.grupo_material.nome} saiu da rede" unless ligacao
+    return "guardou dubla #{abaixo.dubla}; a rede agora diz #{ligacao.dubla}" if ligacao.dubla != abaixo.dubla
+
+    regra = ligacao.ligantes_na(situacao)
+    return if abaixo.ligante.nil? || regra.any? { |ligante| ligante.serve?(abaixo.ligante) }
+
+    "o ligante #{abaixo.ligante.nome_completo} não está mais na rede (#{regra.map(&:descricao).join(" ou ")})"
   end
 
   def momento_na_rede(acima, abaixo)

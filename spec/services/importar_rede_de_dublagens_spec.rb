@@ -43,6 +43,15 @@ RSpec.describe ImportarRedeDeDublagens do
     expect([ LigacaoDublagem.sole.dubla, SituacaoDublagem.sole.nome, oxford.reload.base, LiganteDaLigacao.count ]).to eq([ "depois", "Molha muito", false, 1 ])
   end
 
+  # Rede editável 2/2a: what the team sent to the trash stays there.
+  it "counts a ligação in the trash as there, never bringing it back" do
+    importar(ligacao)
+    LigacaoDublagem.sole.excluir!(changed_by: "127.0.0.1")
+
+    expect(importar(ligacao)[:existentes]).to include("Oxford–Lona")
+    expect(LigacaoDublagem.sole).to be_excluido
+  end
+
   it "adds a ligação of another lado next to the one for any side" do
     importar(ligacao)
     importar(ligacao("lado" => "avesso", "dubla" => "depois"))

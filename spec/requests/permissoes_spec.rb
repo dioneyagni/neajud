@@ -74,6 +74,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     [ "list the material groups", "estoque", 1, -> { get grupo_materiais_path } ],
     # Dublagem 2/5: the network, read only.
     [ "see the dublagem network", "estoque", 1, -> { get rede_de_dublagens_path } ],
+    # Rede editável 2/2a: a ligação's page, read only without the action.
+    [ "open a ligação of the network", "estoque", 1, -> { importar_rede_de_dublagens && get(rede_ligacao_path(LigacaoDublagem.first)) } ],
     # Dublagem 3/5: the construções.
     [ "list the construções", "estoque", 1, -> { get construcoes_path } ],
     [ "open a new construção's form", "estoque", 2, -> { get new_construcao_path } ],
@@ -179,6 +181,24 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       get impacto_na_fila_path(setor: "impressao")
       # Allowed: it answers that nothing was moved there.
       expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    # Rede editável 2/2a (Q7a): the action alone edits the network — no
+    # estoque level beyond ver; without it the page is read only.
+    it "creating, saving and trashing a ligação need editar_rede_de_dublagens" do
+      importar_rede_de_dublagens
+      ligacao = LigacaoDublagem.first
+      entrar_com_funcao(niveis: { "estoque" => 3 }, acoes: Autorizacao::ACOES - %w[editar_rede_de_dublagens])
+      pedidos = [ -> { get new_rede_ligacao_path }, -> { post rede_ligacoes_path, params: { ligacao: { dubla: "antes" } } },
+                  -> { patch rede_ligacao_path(ligacao), params: { ligacao: { dubla: "depois" } } }, -> { delete rede_ligacao_path(ligacao) } ]
+      expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
+      get rede_ligacao_path(ligacao)
+      expect(Nokogiri::HTML(response.body).at_css("fieldset.ligacao-campos")["disabled"]).not_to be_nil
+      expect(response.body).not_to include("Salvar", "+ Ligação")
+
+      entrar_com_funcao(niveis: { "estoque" => 1 }, acoes: %w[editar_rede_de_dublagens])
+      delete rede_ligacao_path(ligacao)
+      expect(ligacao.reload).to be_excluido
     end
 
     it "the Usuários page needs gerenciar_usuarios" do

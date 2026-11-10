@@ -28,7 +28,7 @@ Rails.application.routes.draw do
   end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes|turnos/ }
+       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes|turnos|ligacoes_dublagem/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do
@@ -169,6 +169,10 @@ Rails.application.routes.draw do
   resources :grupo_materiais, path: "grupos-de-material", only: %i[index edit update]
   # Dublagem 2/5: the network, read only (in the database since rede editável 1/2).
   get "rede-de-dublagens", to: "rede_de_dublagens#show", as: :rede_de_dublagens
+  # Rede editável 2/2a: one page per ligação — create, save, trash.
+  scope "rede-de-dublagens", as: :rede do
+    resources :ligacoes, controller: "ligacoes_dublagem", only: %i[new create show update destroy]
+  end
   # Dublagem 3/5: the saved dublados — layers, ligantes, suggested and final price.
   resources :construcoes, only: %i[index new create edit update destroy] do
     collection { post :montar }

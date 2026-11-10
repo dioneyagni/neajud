@@ -1,7 +1,7 @@
 <%# One ligação's row; avisos from RedeDeDublagens.avisos. %>
 <tr class="rede-ligacao" data-par="<%= ligacao.par.join("–") %>">
   <td>
-    <strong><%= ligacao.par.last %></strong>
+    <strong><%= link_to ligacao.par.last, rede_ligacao_path(ligacao.uuid) %></strong>
     <% if ligacao.lado %><small>lado <%= ligacao.lado %></small><% end %>
   </td>
   <td><%= ligacao.ligantes.map(&:descricao).to_sentence(two_words_connector: " ou ", last_word_connector: " ou ") %></td>

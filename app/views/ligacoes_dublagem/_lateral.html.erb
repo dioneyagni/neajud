@@ -1,0 +1,26 @@
+<%# Where the ligação is used (UsoDaLigacao) and its histórico (Q3a). %>
+<aside class="rede-cartao ligacao-lateral">
+  <h3>Onde ela é usada</h3>
+  <% if @construcoes.empty? %>
+    <p class="ligacao-nota" data-uso>Nenhuma construção usa esta ligação.</p>
+  <% else %>
+    <ul class="ligacao-uso" data-uso>
+      <% @construcoes.each do |construcao| %>
+        <li>
+          <%= link_to construcao.nome, edit_construcao_path(construcao) %>
+          <% if construcao.em_uso? %><span class="rede-chip">em uso</span><% end %>
+          <% if construcao.mudancas_da_rede.any? %><span class="rede-chip rede-chip--mudou">a rede mudou</span><% end %>
+        </li>
+      <% end %>
+    </ul>
+    <p class="ligacao-nota">As em uso continuam como foram feitas e mostram “a rede mudou”. As novas e as sem uso seguem a regra salva aqui.</p>
+  <% end %>
+
+  <h3>Histórico</h3>
+  <ol class="ligacao-historico" data-historico>
+    <% @alteracoes.each do |alteracao| %>
+      <li><%= l(alteracao.created_at, format: "%d/%m %H:%M") %> · <%= alteracao.user&.nome || "sistema" %> · <%= alteracao.texto %></li>
+    <% end %>
+    <% if @alteracoes.empty? %><li class="ligacao-nota">Veio da rede inicial; nada mudou desde então.</li><% end %>
+  </ol>
+</aside>

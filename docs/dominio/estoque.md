@@ -100,9 +100,33 @@ not listed keeps the usual ones). `a_confirmar` marks what was guessed.
   construção is not in use; one in use keeps the momentos it was made with,
   so a change to the network never moves a pedido already planned.
 - The page **Rede de dublagens** (`/rede-de-dublagens`, linked from Grupos)
-  is read only, estoque: ver and **the team's only** (`exige_equipe`): the
-  ligante is the factory's. Editing it is rede editável 2/2.
-- E2E: `e2e/rede-de-dublagens.spec.js`.
+  is estoque: ver and **the team's only** (`exige_equipe`): the ligante is
+  the factory's. Each ligação opens its own page.
+- **Editing it** (rede editável 2/2a, 10/11/2026): one page per ligação
+  (`/rede-de-dublagens/ligacoes/:uuid`, `LigacoesDublagemController`) with
+  the whole form, "Onde ela é usada" (`UsoDaLigacao`: the construções not in
+  the trash whose layers join the pair, by groups — so it works for one in
+  the trash too) and the histórico (`AlteracaoDaRede`, polymorphic: one line
+  per save, the text of what changed written then by `MudancasDaLigacao`;
+  "criou", "mandou para a lixeira", "restaurou"). `SalvarLigacao` saves it:
+  the groups only when new (Q4a), the ligantes rewritten whole, the micras as
+  typed (`LiganteDaLigacao.micras_digitadas`: "25, 35", "35 ou mais", blank
+  = any). "+ Ligação" on the rede opens it empty. Creating, saving and
+  trashing take the action `editar_rede_de_dublagens` alone (Q7a); without
+  it the page is read only. A ligação goes to the trash (`Excluivel`; the
+  page confirms in a dialog naming the construções that use it) and back
+  from the Lixeira — refused while another of the same pair and lado is
+  active. The network never reads one in the trash, and `rede:importar`
+  counts it as there (never brings it back).
+- **"A rede mudou"** (Q6a): `Construcao#mudancas_da_rede`, for a construção
+  in use only — the momento it kept is not the network's, its ligação is in
+  the trash, or its ligante is no longer allowed. Shown on the construção's
+  line (with "ver na rede"), on the list and in "Onde ela é usada".
+  `RegrasDaConstrucao` no longer checks a construção in use against the
+  network (its layers can't change), so its final price always saves.
+- The situações' block (+ Situação, rename, trash) is 2/2b; "Adicionar à
+  rede" from the construção's card comes with 5b1 (Q1a).
+- E2E: `e2e/rede-de-dublagens.spec.js`, `e2e/rede-editavel.spec.js`.
 
 ## The construção (Dublagem 3/5)
 

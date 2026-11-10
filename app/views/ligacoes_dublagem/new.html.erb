@@ -1,0 +1,14 @@
+<%# A new ligação (rede editável 2/2a, Q1a: "+ Ligação" on the rede): the same
+    page, empty, with the two groups to pick. %>
+<div class="grupos-pagina rede-pagina ligacao-pagina" data-controller="ligacao">
+  <div class="ligacao-topo">
+    <div>
+      <p class="grupos-trilha"><%= link_to "Rede de dublagens", rede_de_dublagens_path %> › Nova ligação</p>
+      <h2>Nova ligação</h2>
+    </div>
+    <%= link_to "Voltar à rede", rede_de_dublagens_path, class: "btn btn-secondary" %>
+  </div>
+  <div class="ligacao-colunas">
+    <%= render "formulario" %>
+  </div>
+</div>

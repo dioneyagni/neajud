@@ -18,7 +18,10 @@ class Autorizacao
   # meters (Etapa 2.7b, decided 17/10/2026).
   # programar_producao: move a stage in its sector's queue (Painel 3/4a,
   # Q9a), apart from atualizar_producao.
-  ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores aprovar_abaixo_do_minimo programar_producao].freeze
+  # editar_rede_de_dublagens: create, save and trash the dublagem network's
+  # ligações (rede editável 2/2a, Q2a/Q7a) — no estoque level beyond ver:
+  # the ligante is the factory's.
+  ACOES = %w[baixar_producao atualizar_producao gerenciar_usuarios aprovar_arte ver_valores aprovar_abaixo_do_minimo programar_producao editar_rede_de_dublagens].freeze
   # Never given to a cliente final (Etapa 2.8, 2/5): the trash and the
   # factory's own actions. Costs and margin are never shown to a client; the
   # price per pair reaches him by the visibility's "Valores" (3/5).
@@ -29,7 +32,7 @@ class Autorizacao
   # (5/5) — never confirming, which is the team's.
   NIVEL_MAXIMO_PARA_CLIENTE = { "pedidos" => 2, "clientes" => 1, "artes" => 2, "catalogo" => 1, "estoque" => 1, "lixeira" => 0 }.freeze
   AREAS_DA_EQUIPE = NIVEL_MAXIMO_PARA_CLIENTE.select { |_, nivel| nivel.zero? }.keys.freeze
-  ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores aprovar_abaixo_do_minimo programar_producao].freeze
+  ACOES_DA_EQUIPE = %w[baixar_producao atualizar_producao gerenciar_usuarios ver_valores aprovar_abaixo_do_minimo programar_producao editar_rede_de_dublagens].freeze
 
   # Shape check shared by Funcao#niveis/acoes and Vinculo#acessos_extras.
   # Usage: Autorizacao.erros_da_grade({ "pedidos" => 2 }, []) # => []

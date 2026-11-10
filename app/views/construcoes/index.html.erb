@@ -27,7 +27,10 @@
               <td><%= construcao.situacao_rotulo || "Normal" %></td>
               <td class="num"><%= number_to_currency(PrecoSugeridoDaConstrucao.new(construcao, servico: @servico).total) %></td>
               <td class="num" data-preco-final><%= construcao.preco_final ? number_to_currency(construcao.preco_final) : "—" %></td>
-              <td><% if construcao.em_uso? %><span class="rede-chip">em uso</span><% end %></td>
+              <td>
+                <% if construcao.em_uso? %><span class="rede-chip">em uso</span><% end %>
+                <% if construcao.mudancas_da_rede.any? %><span class="rede-chip rede-chip--mudou">a rede mudou</span><% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>

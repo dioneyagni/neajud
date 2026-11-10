@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -28,6 +28,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.index ["arte_id"], name: "index_alteracoes_arte_on_arte_id"
     t.index ["user_id"], name: "index_alteracoes_arte_on_user_id"
     t.index ["uuid"], name: "index_alteracoes_arte_on_uuid", unique: true
+  end
+
+  create_table "alteracoes_da_rede", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "registro_type", null: false
+    t.integer "registro_id", null: false
+    t.integer "user_id"
+    t.text "texto", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["registro_type", "registro_id"], name: "index_alteracoes_da_rede_on_registro"
+    t.index ["user_id"], name: "index_alteracoes_da_rede_on_user_id"
+    t.index ["uuid"], name: "index_alteracoes_da_rede_on_uuid", unique: true
   end
 
   create_table "aprovacoes_arte", force: :cascade do |t|
@@ -551,6 +564,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.json "a_confirmar", default: [], null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.index ["deleted_at"], name: "index_ligacoes_dublagem_on_deleted_at"
     t.index ["grupo_a_id"], name: "index_ligacoes_dublagem_on_grupo_a_id"
     t.index ["grupo_b_id"], name: "index_ligacoes_dublagem_on_grupo_b_id"
     t.index ["uuid"], name: "index_ligacoes_dublagem_on_uuid", unique: true
@@ -981,6 +999,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   add_foreign_key "alteracoes_arte", "arquivos"
   add_foreign_key "alteracoes_arte", "artes"
   add_foreign_key "alteracoes_arte", "users"
+  add_foreign_key "alteracoes_da_rede", "users"
   add_foreign_key "aprovacoes_arte", "arquivo_versions"
   add_foreign_key "aprovacoes_arte", "arquivos"
   add_foreign_key "aprovacoes_arte", "artes"

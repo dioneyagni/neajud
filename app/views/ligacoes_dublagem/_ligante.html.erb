@@ -1,0 +1,16 @@
+<%# One ligante row of a ligação's form: the group and its micras. nome is
+    the list's field prefix (ligacao[ligantes] or ligacao[situacoes][chave]);
+    ligante is nil in the template ligacao_controller.js copies. %>
+<div class="ligacao-ligante">
+  <select class="construcao-campo" name="<%= nome %>[][grupo_uuid]" data-campo="grupo_uuid" aria-label="Ligante" <%= "disabled" unless editavel %>>
+    <option value="">— grupo</option>
+    <% grupos.each do |grupo| %>
+      <option value="<%= grupo.uuid %>" <%= "selected" if ligante&.grupo_material == grupo %>><%= grupo.nome %></option>
+    <% end %>
+  </select>
+  <input class="construcao-campo ligacao-micras" name="<%= nome %>[][micras]" data-campo="micras" value="<%= ligante&.micras_no_campo %>"
+         placeholder="qualquer µm" aria-label="Micras do ligante" <%= "disabled" unless editavel %>>
+  <% if editavel %>
+    <button type="button" class="btn btn-secondary btn-sm" data-action="ligacao#tirar">Tirar</button>
+  <% end %>
+</div>

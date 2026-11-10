@@ -1,7 +1,8 @@
 <%# One layer and, from the second on, the ligação that joins it to the one
     above: the ligantes the network allows in the situação, dubla antes or
     depois, what is still "a confirmar". A material chosen before the layer
-    above changed stays listed, so the save says what is wrong with it. %>
+    above changed stays listed, so the save says what is wrong with it.
+    mudanca: where the network no longer is what it was made with (in use). %>
 <% campo = "construcao[camadas][#{indice}]" %>
 <% material = camada.materia_prima %>
 <% opcoes = camada.superficie? ? @opcoes.superficies : @opcoes.bases_sob(acima) %>
@@ -30,6 +31,11 @@
         <span class="rede-aviso">não dublam — a rede não tem essa ligação</span>
       <% else %>
         <span>ligação: escolha a camada de cima e esta</span>
+      <% end %>
+      <% if mudanca %>
+        <%# Rede editável 2/2a (Q6a): in use, it keeps what it was made with. %>
+        <span class="construcao-rede-mudou" data-rede-mudou>a rede mudou: <%= mudanca.texto %>
+          <% if mudanca.ligacao_uuid %>· <%= link_to "ver na rede", rede_ligacao_path(mudanca.ligacao_uuid) %><% end %></span>
       <% end %>
     </div>
   <% end %>
