@@ -126,7 +126,20 @@ not listed keeps the usual ones). `a_confirmar` marks what was guessed.
   network (its layers can't change), so its final price always saves.
 - The situações' block (+ Situação, rename, trash) is 2/2b; "Adicionar à
   rede" from the construção's card comes with 5b1 (Q1a).
-- E2E: `e2e/rede-de-dublagens.spec.js`, `e2e/rede-editavel.spec.js`.
+- **The situações** (rede editável 2/2b, 10/11/2026): a card closing the
+  rede's page (`_situacoes`, `SituacoesDublagemController`) lists each with
+  how many ligações it changes and how many construções have it; "+
+  Situação" and renaming in its own row take the same action. The chave
+  comes from the first name (`SituacaoDublagem.chave_para`: "Tecido úmido"
+  → `tecido_umido`, `_2` when taken) and never changes, so a construção
+  keeps its situação. Renaming renames the construções **not in use**
+  (their name, the dublado's, carries it); the ones in use keep theirs
+  (Q1b, `SalvarSituacao`). The histórico is `AlteracaoDaRede` too, shown
+  closed in the card (Q2a). A situação no ligação lists changes nothing and
+  the construção's picker says "ainda não muda nenhuma ligação" (Q3a). **No
+  trash, on purpose** (decided 10/11/2026): one nobody uses changes nothing.
+- E2E: `e2e/rede-de-dublagens.spec.js`, `e2e/rede-editavel.spec.js`,
+  `e2e/rede-situacoes.spec.js` (setup helpers in `e2e/support/dublagem.js`).
 
 ## The construção (Dublagem 3/5)
 

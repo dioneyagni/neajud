@@ -1,7 +1,8 @@
 <%# The construção being built (Dublagem 3/5), as the dublagem canvas draws
     it: the situação, the client, the layers top to bottom with a ligação
     between each two, and the price card. montar replaces it whole. In use,
-    only the final price changes (decision 5). %>
+    only the final price changes (decision 5). A situação no ligação lists says
+    so (rede editável 2/2b, Q3a). %>
 <% em_uso = @construcao.em_uso? %>
 <% camadas = @construcao.camadas_em_ordem %>
 <% mudancas = @construcao.mudancas_da_rede.index_by(&:posicao) %>
@@ -16,6 +17,7 @@
         <label class="construcao-pill">
           <input type="radio" name="construcao[situacao]" value="<%= valor %>" <%= "checked" if @construcao.situacao.to_s == valor %> data-action="change->construcao#montar">
           <%= rotulo %>
+          <% if valor.present? && !RedeDeDublagens.quantas_mudam.key?(valor) %><small class="construcao-nota-situacao" data-nao-muda>ainda não muda nenhuma ligação</small><% end %>
         </label>
       <% end %>
     </fieldset>

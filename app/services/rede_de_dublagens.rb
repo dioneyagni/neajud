@@ -73,7 +73,7 @@ class RedeDeDublagens
   end
 
   class << self
-    delegate :ligacao, :ligacoes_de, :ligacoes, :situacoes, to: :atual
+    delegate :ligacao, :ligacoes_de, :ligacoes, :situacoes, :quantas_mudam, to: :atual
   end
 
   # What the groups' roles contradict, per ligação: a group that is neither
@@ -107,6 +107,13 @@ class RedeDeDublagens
   # Usage: rede.situacoes # => { "vai_frequencia" => "Vai frequência", "tecido_molha" => "Tecido molha" }
   def situacoes
     @situacoes ||= @escopo_das_situacoes.order(:id).to_h { |situacao| [ situacao.chave, situacao.nome ] }.freeze
+  end
+
+  # How many ligações each situação changes (rede editável 2/2b); one no
+  # ligação lists is missing, and changes nothing yet (Q3a).
+  # Usage: rede.quantas_mudam # => { "vai_frequencia" => 4, "tecido_molha" => 1 }
+  def quantas_mudam
+    @quantas_mudam ||= ligacoes.flat_map { |ligacao| ligacao.situacoes.keys }.tally.freeze
   end
 
   # In the order they were added.

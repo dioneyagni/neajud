@@ -26,4 +26,26 @@ async function entrar(page, baseUrl, usuario = E2E_USUARIO) {
   await page.waitForSelector(".header-user", { timeout: 15000 });
 }
 
-module.exports = { E2E_USUARIO, entrar };
+// The dono adds a user of the função with a provisional password, signs
+// out, and the page signs in as that user, changing the password on the way.
+// Usage: await entrarComoNovoUsuario(page, BASE_URL, { nome, email, provisoria, senha }, "Produção")
+async function entrarComoNovoUsuario(page, baseUrl, usuario, funcao) {
+  await page.goto(`${baseUrl}/usuarios/new`);
+  await page.fill('input[name="usuario[nome]"]', usuario.nome);
+  await page.fill('input[name="usuario[email_address]"]', usuario.email);
+  await page.fill('input[name="usuario[senha_provisoria]"]', usuario.provisoria);
+  await page.selectOption('select[name="usuario[funcao_uuid]"]', { label: funcao });
+  await page.click('input[type="submit"][value="Add user"]');
+  await page.getByText(`${usuario.nome} added`).first().waitFor();
+  await page.click('.header-user button:has-text("Sign out")');
+  await page.waitForURL("**/session/new");
+  await page.fill('input[name="email_address"]', usuario.email);
+  await page.fill('input[name="password"]', usuario.provisoria);
+  await page.click('input[type="submit"][value="Sign in"]');
+  await page.waitForURL("**/senha/edit");
+  await page.fill('input[name="nova_senha"]', usuario.senha);
+  await page.click('input[type="submit"][value="Change password"]');
+  await page.getByText("Password changed.").first().waitFor();
+}
+
+module.exports = { E2E_USUARIO, entrar, entrarComoNovoUsuario };

@@ -14,6 +14,8 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.irregular "excecao", "excecoes"
   # Rede editável 2/2a: /rede-de-dublagens/ligacoes.
   inflect.irregular "ligacao", "ligacoes"
+  # Rede editável 2/2b: /rede-de-dublagens/situacoes.
+  inflect.irregular "situacao", "situacoes"
 end
 
 # These inflection rules are supported but not enabled by default:

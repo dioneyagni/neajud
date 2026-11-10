@@ -7,56 +7,15 @@
 //
 // It changes Oxford com Lona and sets it back at the end, so the specs
 // after it find the initial network.
-const { E2E_USUARIO, entrar } = require("./support/sessao");
+const { E2E_USUARIO, entrar, entrarComoNovoUsuario } = require("./support/sessao");
 const { BASE_URL, runSpec } = require("./support/runner");
 const { waitForText } = require("./support/wait");
+const { prepararDublagem, salvarConstrucao, colocarEmUso } = require("./support/dublagem");
 
 runSpec("Rede editável E2E Tests", async ({ page, test }) => {
   const U = Date.now() % 100000;
-  const gramatura = `${U}g`;
-  const nomes = { oxford: `Oxford-Branco-1.40 m-${gramatura}`, lona: `Lona-Branco-1.40 m-${gramatura}`, filme35: "Filme 35 µm-Branco-1.40 m" };
   const ids = {};
   const operador = { nome: `Produção ${U}`, email: `producao${U}@neajud.test`, provisoria: "provisoria-e2e-1", senha: "senha-producao-e2e-1" };
-
-  async function postar(url, campos) {
-    return page.evaluate(async ({ url, campos }) => {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
-      const corpo = new URLSearchParams({ authenticity_token: token });
-      for (const [chave, valor] of Object.entries(campos)) [].concat(valor).forEach((v) => corpo.append(chave, v));
-      const resposta = await fetch(url, { method: "POST", body: corpo });
-      return { ok: resposta.ok, url: resposta.url };
-    }, { url, campos });
-  }
-
-  async function buscarJson(url) {
-    return page.evaluate(async (url) => (await fetch(url, { headers: { Accept: "application/json" } })).json(), url);
-  }
-
-  // The groups come from the imported network; the roles and what they ask
-  // as construcoes.spec.js sets them (none given: left as they are).
-  async function grupo(nome, papeis, pede) {
-    await postar("/materiais/create_grupo", { "grupo_material[nome]": nome });
-    const uuid = (await buscarJson(`/materiais/grupos?q=${encodeURIComponent(nome)}`)).find((g) => g.nome === nome).id;
-    if (!papeis) return uuid;
-    const r = await postar(`/grupos-de-material/${uuid}`, {
-      _method: "patch", "grupo_material[superficie]": papeis.superficie ? "1" : "0", "grupo_material[base]": papeis.base ? "1" : "0",
-      "grupo_material[estampavel]": "nao", "pede[]": pede, "obrigatorios[]": pede,
-    });
-    if (!r.ok) throw new Error(`Couldn't set ${nome}'s roles`);
-    return uuid;
-  }
-
-  async function material(grupoUuid, nome, campos, tipo, busca) {
-    const r = await postar("/movimentos", {
-      "movimento_estoque[da_empresa]": "true", "movimento_estoque[tipo]": "entrada", "movimento_estoque[quantidade]": "30",
-      "movimento_estoque[grupo_material_uuid]": grupoUuid, "movimento_estoque[cor_material_uuid]": ids.cor, "movimento_estoque[largura]": "1.40 m", ...campos,
-    });
-    if (!r.ok) throw new Error(`The entry of ${nome} failed`);
-    const encontrado = (await buscarJson(`/materiais/search?q=${encodeURIComponent(busca)}`)).find((m) => m.nome_completo === nome);
-    if (!encontrado) throw new Error(`${nome} wasn't registered`);
-    await postar(`/materiais/${encontrado.id}`, { _method: "patch", "materia_prima[tipo]": tipo, "materia_prima[preco_metro]": "1" });
-    return encontrado.id;
-  }
 
   async function texto(seletor) {
     return (await page.locator(seletor).innerText()).replace(/\s+/g, " ");
@@ -74,32 +33,9 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
   }
 
   await test("Setup: Oxford over Lona with Filme 35 µm, a construção whose dublado is in stock (in use)", async () => {
-    await page.goto(`${BASE_URL}/materiais`);
-    ids.cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco")?.id;
-    if (!ids.cor) {
-      await postar("/materiais/create_cor", { "cor_material[nome]": "Branco" });
-      ids.cor = (await buscarJson("/materiais/cores")).find((c) => c.nome === "Branco").id;
-    }
-    const oxford = await grupo("Oxford");
-    const lona = await grupo("Lona", { base: true }, ["gramatura"]);
-    const filme = await grupo("Filme", {}, ["micras"]);
-    const materiais = {
-      oxford: await material(oxford, nomes.oxford, { "movimento_estoque[gramatura]": gramatura }, "tecido", gramatura),
-      lona: await material(lona, nomes.lona, { "movimento_estoque[gramatura]": gramatura }, "tecido", gramatura),
-      filme: await material(filme, nomes.filme35, { "movimento_estoque[micras]": "35" }, "filme", "Filme"),
-    };
-    const criada = await postar("/construcoes", {
-      "construcao[situacao]": "", "construcao[client_uuid]": "", "construcao[preco_final]": "30",
-      "construcao[camadas][0][materia_prima_uuid]": materiais.oxford, "construcao[camadas][0][lado]": "trama", "construcao[camadas][0][do_cliente]": "0",
-      "construcao[camadas][1][materia_prima_uuid]": materiais.lona, "construcao[camadas][1][ligante_uuid]": materiais.filme, "construcao[camadas][1][do_cliente]": "0",
-    });
-    ids.construcao = criada.url.match(/construcoes\/([0-9a-f-]{36})\/edit/)?.[1];
-    if (!ids.construcao) throw new Error(`The construção wasn't saved: ${criada.url}`);
-    // An ordem de dublagem done puts its dublado in stock: in use (Dublagem 5a).
-    await postar("/dublagens", { construcao_uuid: ids.construcao, metros: "5" });
-    await page.goto(`${BASE_URL}/dublagens`);
-    await page.locator(`article[data-ordem][data-construcao="${ids.construcao}"] input[type="submit"][value="Marcar feita"]`).click();
-    await waitForText(page, "feita: entraram");
+    const dublagem = await prepararDublagem(page, `${U}g`);
+    ids.construcao = await salvarConstrucao(page, dublagem, { lado: "trama", situacao: "" });
+    await colocarEmUso(page, ids.construcao);
   });
 
   await test("+ Ligação creates Lona com EVA with two ligantes, its histórico saying 'criou'", async () => {
@@ -196,22 +132,7 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
 
   // Q7a: Produção sees the estoque but hasn't the action.
   await test("Without 'Editar a rede de dublagens' the ligação's page is read only, with no + Ligação", async () => {
-    await page.goto(`${BASE_URL}/usuarios/new`);
-    await page.fill('input[name="usuario[nome]"]', operador.nome);
-    await page.fill('input[name="usuario[email_address]"]', operador.email);
-    await page.fill('input[name="usuario[senha_provisoria]"]', operador.provisoria);
-    await page.selectOption('select[name="usuario[funcao_uuid]"]', { label: "Produção" });
-    await page.click('input[type="submit"][value="Add user"]');
-    await waitForText(page, `${operador.nome} added`);
-    await page.click('.header-user button:has-text("Sign out")');
-    await page.waitForURL("**/session/new");
-    await page.fill('input[name="email_address"]', operador.email);
-    await page.fill('input[name="password"]', operador.provisoria);
-    await page.click('input[type="submit"][value="Sign in"]');
-    await page.waitForURL("**/senha/edit");
-    await page.fill('input[name="nova_senha"]', operador.senha);
-    await page.click('input[type="submit"][value="Change password"]');
-    await waitForText(page, "Password changed.");
+    await entrarComoNovoUsuario(page, BASE_URL, operador, "Produção");
 
     await page.goto(`${BASE_URL}/rede-de-dublagens`);
     if ((await page.locator('a:has-text("+ Ligação")').count()) !== 0) throw new Error("+ Ligação shows without the action");

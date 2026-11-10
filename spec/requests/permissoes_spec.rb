@@ -201,6 +201,20 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(ligacao.reload).to be_excluido
     end
 
+    # Rede editável 2/2b: the Situações card takes the same action alone.
+    it "adding and renaming a situação need editar_rede_de_dublagens" do
+      importar_rede_de_dublagens
+      situacao = SituacaoDublagem.first
+      entrar_com_funcao(niveis: { "estoque" => 3 }, acoes: Autorizacao::ACOES - %w[editar_rede_de_dublagens])
+      pedidos = [ -> { post rede_situacoes_path, params: { situacao: { nome: "Nova" } } },
+                  -> { patch rede_situacao_path(situacao), params: { situacao: { nome: "Outra" } } } ]
+      expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
+
+      entrar_com_funcao(niveis: { "estoque" => 1 }, acoes: %w[editar_rede_de_dublagens])
+      patch rede_situacao_path(situacao), params: { situacao: { nome: "Outra" } }
+      expect(situacao.reload.nome).to eq("Outra")
+    end
+
     it "the Usuários page needs gerenciar_usuarios" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: %w[baixar_producao])
       get usuarios_path

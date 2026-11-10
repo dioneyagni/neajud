@@ -1,7 +1,8 @@
 <%# The dublagem network (Dublagem 2/5): one table per group, a row per
     ligação; a situação's column shows its ligantes only where it changes
     them ("—" keeps the usual ones). Each ligação opens its own page, and
-    "+ Ligação" a new one (rede editável 2/2a). %>
+    "+ Ligação" a new one (rede editável 2/2a). The Situações card closes
+    the page (2/2b). %>
 <div class="grupos-pagina rede-pagina">
   <div>
     <p class="grupos-trilha"><%= link_to "Materiais", materiais_path %> › <%= link_to "Grupos", grupo_materiais_path %> › Rede de dublagens</p>
@@ -40,4 +41,6 @@
       </div>
     </section>
   <% end %>
+
+  <%= render "situacoes" %>
 </div>

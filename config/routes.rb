@@ -172,6 +172,8 @@ Rails.application.routes.draw do
   # Rede editável 2/2a: one page per ligação — create, save, trash.
   scope "rede-de-dublagens", as: :rede do
     resources :ligacoes, controller: "ligacoes_dublagem", only: %i[new create show update destroy]
+    # Rede editável 2/2b: the Situações card on the rede's page.
+    resources :situacoes, controller: "situacoes_dublagem", only: %i[create update]
   end
   # Dublagem 3/5: the saved dublados — layers, ligantes, suggested and final price.
   resources :construcoes, only: %i[index new create edit update destroy] do

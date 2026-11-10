@@ -99,7 +99,7 @@ areas:
       - "app/services/{catalogo_oficial,molde_composicao_service}.rb"
       - "app/javascript/controllers/{grade_molde,componentes}_controller.js"
   estoque:
-    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens, rede-editavel]
+    specs: [materiais, movimentos, materiais-do-pedido, saida-do-estoque, ajuste-do-estoque, grupos-de-material, rede-de-dublagens, construcoes, dublagens, rede-editavel, rede-situacoes]
     arquivos:
       - "app/services/{materiais_das_linhas,ajuste_da_baixa,entrada_da_falta}.rb"
       - "app/javascript/controllers/dialogo_da_falta.js"
@@ -136,6 +136,9 @@ areas:
       - "app/views/ligacoes_dublagem/**/*"
       - "app/services/{salvar_ligacao,mudancas_da_ligacao,uso_da_ligacao}.rb"
       - "app/javascript/controllers/ligacao_controller.js"
+      - "app/controllers/situacoes_dublagem_controller.rb"
+      - "app/services/salvar_situacao.rb"
+      - "app/javascript/controllers/situacao_controller.js"
       - "lib/tasks/rede.rake"
       - "app/controllers/construcoes_controller.rb"
       - "app/views/construcoes/**/*"

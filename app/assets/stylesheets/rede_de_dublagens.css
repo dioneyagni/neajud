@@ -227,3 +227,26 @@
 
 /* The construção's line where the network changed (Q6a). */
 .construcao-rede-mudou { display: block; width: 100%; font-size: 0.8125rem; color: #8a1f15; }
+
+/* Rede editável 2/2b: the Situações card, after the tables. */
+.rede-situacoes { display: flex; flex-direction: column; gap: 0.5rem; max-width: 760px; margin: 0; }
+.rede-situacoes h3 { margin: 0; font-size: 1.1rem; }
+.rede-situacoes-lista { margin: 0; padding: 0; list-style: none; }
+.rede-situacao { border-bottom: 1px solid #efede7; }
+
+.rede-situacao-linha:not([hidden]),
+.rede-situacao-nova {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.35rem 0;
+}
+
+.rede-situacao-linha strong { flex: 1 1 180px; min-width: 0; }
+.rede-situacao-linha .construcao-campo,
+.rede-situacao-nova .construcao-campo { flex: 1 1 220px; width: auto; min-width: 0; }
+
+.rede-situacoes-historico { font-size: 0.875rem; }
+.rede-situacoes-historico summary { min-height: 32px; font-weight: 600; cursor: pointer; }
