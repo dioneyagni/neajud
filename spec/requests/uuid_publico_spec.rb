@@ -33,6 +33,16 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       end
     end
 
+    # Rede editável 2/2b: a situação is renamed by its uuid.
+    it "refuses a situação of the network by integer id" do
+      importar_rede_de_dublagens
+      situacao = SituacaoDublagem.first
+      patch "/rede-de-dublagens/situacoes/#{situacao.id}", params: { situacao: { nome: "Outra" } }
+      expect(response).to have_http_status(:not_found)
+      patch "/rede-de-dublagens/situacoes/#{situacao.uuid}", params: { situacao: { nome: "Outra" } }
+      expect(situacao.reload.nome).to eq("Outra")
+    end
+
     # Dublagem 5a: an ordem de dublagem is marked done and cancelled by its uuid.
     it "refuses an ordem de dublagem by integer id" do
       ordem = OrdemDublagem.create!(construcao: montar_construcao([ material_de_dublagem("Oxford"), "trama" ], [ material_de_dublagem("EVA"), nil ]).tap(&:save!), metros: 5)

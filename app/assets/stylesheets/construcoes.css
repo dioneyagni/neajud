@@ -80,6 +80,9 @@
 
 .construcao-pill:has(input:checked) { background: #141414; border-color: #141414; color: #f7f5f0; }
 .construcao-pill input { margin: 0; }
+/* Rede editável 2/2b (Q3a): a situação no ligação lists yet. */
+.construcao-nota-situacao { font-size: 0.75rem; color: #5f5e5a; }
+.construcao-pill:has(input:checked) .construcao-nota-situacao { color: #d8d4c8; }
 
 .construcao-pilha {
   display: flex;

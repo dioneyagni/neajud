@@ -12,5 +12,17 @@ class RedeDeDublagensController < ApplicationController
     @situacoes = rede.situacoes
     @ligacoes_por_grupo = rede.ligacoes.group_by { |ligacao| ligacao.par.first }
     @avisos = rede.ligacoes.index_with { |ligacao| RedeDeDublagens.avisos(ligacao) }
+    preparar_situacoes(rede)
+  end
+
+  private
+
+  # The Situações card (rede editável 2/2b): each with how many ligações it
+  # changes and how many construções have it, and the histórico (Q2a).
+  def preparar_situacoes(rede)
+    @registros_de_situacao = visiveis(SituacaoDublagem).order(:id)
+    @ligacoes_por_situacao = rede.quantas_mudam
+    @construcoes_por_situacao = visiveis(Construcao).ativos.where.not(situacao: nil).group(:situacao).count
+    @alteracoes_de_situacao = visiveis(AlteracaoDaRede).where(registro_type: "SituacaoDublagem").recentes.includes(:user)
   end
 end

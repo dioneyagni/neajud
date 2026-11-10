@@ -1,0 +1,56 @@
+<%# The Situações card (rede editável 2/2b, canvas "2/2b · Rede: bloco
+    Situações"): each situação with how many ligações it changes and how
+    many construções have it, renamed in its own row; "+ Situação"; the
+    histórico, closed (Q2a). Read only without the action. Each row's form
+    stands alone — no form inside another (AGENTS.md, nested forms). %>
+<% editavel = pode_acao?(:editar_rede_de_dublagens) %>
+<section class="rede-cartao rede-situacoes" id="situacoes" aria-labelledby="situacoes-titulo">
+  <h3 id="situacoes-titulo">Situações</h3>
+  <p class="ligacao-nota">Uma situação troca os ligantes das ligações que a citam; cada uma vira uma coluna nas tabelas acima. Onde ela não é citada, valem os ligantes normais.</p>
+
+  <ul class="rede-situacoes-lista">
+    <% @registros_de_situacao.each do |situacao| %>
+      <% ligacoes = @ligacoes_por_situacao.fetch(situacao.chave, 0) %>
+      <% construcoes = @construcoes_por_situacao.fetch(situacao.chave, 0) %>
+      <li class="rede-situacao" data-controller="situacao" data-situacao-linha="<%= situacao.chave %>">
+        <div class="rede-situacao-linha" data-situacao-target="vista">
+          <strong data-nome><%= situacao.nome %></strong>
+          <span class="ligacao-nota" data-uso>
+            <%= ligacoes.zero? ? "ainda não muda nenhuma ligação" : "muda #{pluralize(ligacoes, "ligação", plural: "ligações")}" %>
+            · <%= pluralize(construcoes, "construção", plural: "construções") %>
+          </span>
+          <% if editavel %>
+            <button type="button" class="btn btn-secondary btn-sm" data-action="situacao#renomear">Renomear</button>
+          <% end %>
+        </div>
+        <% if editavel %>
+          <%= form_with url: rede_situacao_path(situacao), method: :patch, scope: :situacao, class: "rede-situacao-linha",
+                html: { hidden: true, "data-situacao-target": "formulario", "aria-label": "Renomear #{situacao.nome}" } do |form| %>
+            <%= form.label :nome, "Novo nome de #{situacao.nome}", for: "situacao_nome_#{situacao.uuid}", class: "visually-hidden" %>
+            <%= form.text_field :nome, value: situacao.nome, id: "situacao_nome_#{situacao.uuid}", class: "construcao-campo", required: true, "data-situacao-target": "campo" %>
+            <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-action="situacao#cancelar">Cancelar</button>
+          <% end %>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
+  <% if editavel %>
+    <%= form_with url: rede_situacoes_path, scope: :situacao, class: "rede-situacao-nova" do |form| %>
+      <%= form.label :nome, "Nome da nova situação", for: "situacao_nome_nova", class: "visually-hidden" %>
+      <%= form.text_field :nome, id: "situacao_nome_nova", class: "construcao-campo", placeholder: "Nome da nova situação", required: true %>
+      <button type="submit" class="btn btn-secondary">+ Situação</button>
+    <% end %>
+  <% end %>
+
+  <details class="rede-situacoes-historico">
+    <summary>Histórico</summary>
+    <ol class="ligacao-historico" data-historico>
+      <% @alteracoes_de_situacao.each do |alteracao| %>
+        <li><%= l(alteracao.created_at, format: "%d/%m %H:%M") %> · <%= alteracao.user&.nome || "sistema" %> · <%= alteracao.texto %></li>
+      <% end %>
+      <% if @alteracoes_de_situacao.empty? %><li class="ligacao-nota">Vieram da rede inicial; nada mudou desde então.</li><% end %>
+    </ol>
+  </details>
+</section>
