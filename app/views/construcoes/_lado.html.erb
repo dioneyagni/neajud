@@ -1,0 +1,54 @@
+<%# Em cima or embaixo of a card (5b1a): an earlier letra as a reference,
+    with × to let it go, or a material — the loose letras and the materials
+    to pick, its Dono and ×, and the Lado on the top layer (the superfície,
+    blue). The top layer has no ×: the chave is built under it. %>
+<% campo = "construcao[dublagens][#{dublagem.indice}][#{qual}]" %>
+<% rotulo = qual == "cima" ? "em cima" : "embaixo" %>
+<% tirar = !em_uso && !(lado.respond_to?(:camada) && lado.camada.posicao == 1) %>
+<% if lado.dublagem? %>
+  <div class="construcao-lado" data-lado="<%= qual %>">
+    <span class="construcao-rotulo"><%= rotulo %></span>
+    <input type="hidden" name="<%= campo %>[escolha]" value="dublagem:<%= lado.indice %>">
+    <span class="construcao-ref"><span class="construcao-letra"><%= lado.letra %></span><%= lado.lados.map(&:nome).join(" / ") %></span>
+    <% if tirar %>
+      <button type="button" class="construcao-tirar" data-action="construcao#montar" data-acao="tirar-<%= dublagem.indice %>-<%= qual %>" aria-label="Soltar a <%= lado.letra %>">×</button>
+    <% end %>
+  </div>
+<% else %>
+  <% camada = lado.camada %>
+  <% superficie = camada.posicao == 1 %>
+  <% id = "dublagem-#{dublagem.indice}-#{qual}" %>
+  <% opcoes = (superficie ? @opcoes.superficies : @opcoes.bases) | [ camada.materia_prima ].compact %>
+  <% soltas = chave.pecas.select(&:dublagem?) - [ dublagem.raiz ] %>
+  <div class="construcao-lado <%= "construcao-lado--superficie" if superficie %>" data-lado="<%= qual %>">
+    <label class="construcao-rotulo" for="<%= id %>"><%= rotulo %><%= " · superfície" if superficie %></label>
+    <select name="<%= campo %>[escolha]" id="<%= id %>" class="construcao-campo construcao-material" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+      <option value="">— escolha</option>
+      <% if soltas.any? %>
+        <optgroup label="Letras soltas">
+          <% soltas.each do |solta| %><option value="dublagem:<%= solta.indice %>"><%= solta.letra %> · <%= solta.lados.map(&:nome).join(" / ") %></option><% end %>
+        </optgroup>
+      <% end %>
+      <optgroup label="Materiais">
+        <% opcoes.each do |opcao| %>
+          <option value="<%= opcao.uuid %>" <%= "selected" if opcao == camada.materia_prima %>><%= opcao.nome_completo %></option>
+        <% end %>
+      </optgroup>
+    </select>
+    <% if superficie %>
+      <select name="<%= campo %>[lado]" class="construcao-campo construcao-lado-tecido" aria-label="Lado do tecido de cima" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+        <% RedeDeDublagens::LADOS.each do |opcao| %>
+          <option value="<%= opcao %>" <%= "selected" if camada.lado == opcao %>><%= opcao.capitalize %></option>
+        <% end %>
+      </select>
+    <% end %>
+    <select name="<%= campo %>[do_cliente]" class="construcao-campo construcao-dono" aria-label="Dono do material <%= rotulo %> da <%= dublagem.letra %>" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+      <option value="0">Empresa</option>
+      <option value="1" <%= "selected" if camada.do_cliente %>>Cliente</option>
+    </select>
+    <% if tirar %>
+      <button type="button" class="construcao-tirar" data-action="construcao#montar" data-acao="tirar-<%= dublagem.indice %>-<%= qual %>"
+              aria-label="Tirar <%= camada.materia_prima&.nome_da_camada || "o material" %> da <%= dublagem.letra %>">×</button>
+    <% end %>
+  </div>
+<% end %>

@@ -37,7 +37,7 @@ RSpec.describe Construcao do
 
     construcao.definir_camadas([ { materia_prima: oxford, lado: "trama" } ])
     expect(construcao.save).to be(false)
-    expect(construcao.errors.full_messages).to include(a_string_matching(/1 camada\(s\); esperado de 2 a 5/))
+    expect(construcao.errors.full_messages).to include(a_string_matching(/1 camada\(s\); esperado de 2 a 8/))
 
     construcao.reload.definir_camadas([ { materia_prima: oxford, lado: "trama" }, { materia_prima: eva, ligante: material_de_dublagem("Filme", tipo: "filme", micras: 25) } ])
     construcao.save!

@@ -130,6 +130,12 @@
              value="<%= @empresa.preco_servico_dublagem && number_with_precision(@empresa.preco_servico_dublagem, precision: 2, separator: ",") %>">
       <small>A construção de três camadas tem duas ligações. Blank = not set (the suggested price says it is missing).</small>
     </div>
+    <%# Dublagem 5b1a (Q2d, Q3c): lowering it is refused while a construção has more. %>
+    <div class="client-field">
+      <label for="empresa_maximo_de_camadas">Máximo de camadas por construção</label>
+      <input type="number" min="2" step="1" name="empresa[maximo_de_camadas]" id="empresa_maximo_de_camadas" value="<%= @empresa.maximo_de_camadas %>">
+      <small>2 ou mais. Não baixa enquanto uma construção ativa tiver mais camadas.</small>
+    </div>
   </fieldset>
   <%= form.submit "Save", class: "btn btn-primary" %>
 <% end %>

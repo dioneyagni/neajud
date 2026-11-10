@@ -3,10 +3,14 @@
 # —, each ligação's ligante at its price per meter and the empresa's service
 # value per ligação. A price not set is a line marked "sem preço" that adds
 # nothing, so the panel says what is missing instead of a wrong total.
+# Dublagem 5b1a: each dublagem of the chave has its own price — its sides
+# (a material, or the earlier letter at its price), its ligante and the
+# service —, so the last one's is the total.
 #
 # Usage: preco = PrecoSugeridoDaConstrucao.new(construcao, servico: Empresa.atual.preco_servico_dublagem)
 #        preco.linhas.map(&:rotulo) # => ["Oxford-Preto-1.40 m-100g", "Lona-Branco-1.40 m", "Filme 35 µm-…", "Serviço × 1 ligação"]
 #        preco.total # => 31.5
+#        preco.linhas_da_dublagem(dub_c).map(&:rotulo) # => ["DUB-B", "Napa Preto", "ligante", "serviço"]
 class PrecoSugeridoDaConstrucao
   SEM_PRECO = "sem preço".freeze
 
@@ -27,6 +31,13 @@ class PrecoSugeridoDaConstrucao
 
   def total = linhas.sum { |linha| linha.valor || 0 }
 
+  # A dublagem's own lines, as the canvas's card lists them.
+  def linhas_da_dublagem(dublagem)
+    dublagem.lados.map { |lado| linha_do_lado(lado) } + [ linha_do_ligante_da(dublagem.juncao), linha_com_preco("serviço", @servico) ]
+  end
+
+  def total_da_dublagem(dublagem) = linhas_da_dublagem(dublagem).sum { |linha| linha.valor || 0 }
+
   # The lines that should have a price and don't.
   def sem_preco = linhas.select { |linha| linha.nota == SEM_PRECO }
 
@@ -46,6 +57,23 @@ class PrecoSugeridoDaConstrucao
     return Linha.new(rotulo: "Ligante da #{ligacao}", nota: "sem ligante") unless camada.ligante
 
     linha_com_preco("#{camada.ligante.nome_completo} (#{ligacao})", camada.ligante.preco_metro)
+  end
+
+  def linha_do_lado(lado)
+    return Linha.new(rotulo: lado.letra, valor: total_da_dublagem(lado)) if lado.dublagem?
+
+    camada = lado.camada
+    return Linha.new(rotulo: lado.nome, nota: "do cliente") if camada.do_cliente
+    return Linha.new(rotulo: lado.nome, nota: "a escolher") unless camada.materia_prima
+
+    linha_com_preco(lado.nome, camada.materia_prima.preco_metro)
+  end
+
+  # No ligante shows "—" (the canvas): none chosen, or none registered serves.
+  def linha_do_ligante_da(camada)
+    return Linha.new(rotulo: "ligante", nota: "—") unless camada.ligante
+
+    linha_com_preco(camada.ligante.nome_da_camada, camada.ligante.preco_metro)
   end
 
   def linha_do_servico

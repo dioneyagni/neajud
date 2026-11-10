@@ -1,0 +1,42 @@
+<%# One dublagem of the chave (5b1a, the canvas's card): its letra and
+    momento against the Calandra, em cima and embaixo (a material or an
+    earlier letra), the ligante the network allows in the situação — a pair
+    the network doesn't have in red —, its price as a small table and what it
+    waits for. The last one, closed, shows the dublado's cut.
+    mudanca: where the network no longer is what it was made with (in use). %>
+<% campo = "construcao[dublagens][#{dublagem.indice}]" %>
+<% segue = chave.segue(dublagem) %>
+<% saida = segue.any? ? "no-#{dublagem.indice}-#{segue.first}" : ("no-#{dublagem.mae.indice}" if dublagem.mae) %>
+<% final = chave.final.equal?(dublagem) %>
+<article class="construcao-dublagem" data-no="no-<%= dublagem.indice %>" data-saida="<%= saida %>" data-dublagem="<%= dublagem.letra %>">
+  <% unless dublagem.mae %><input type="hidden" name="<%= campo %>[posicao]" value="<%= dublagem.camadas.first.posicao %>"><% end %>
+  <div class="construcao-dublagem-topo">
+    <span class="construcao-letra"><%= dublagem.letra %></span>
+    <span class="construcao-dublagem-nome"><%= dublagem.lados.map(&:nome).join(" / ") %></span>
+    <span class="rede-chip rede-chip--<%= dublagem.momento_real %>" data-momento><%= dublagem.momento_real %> da Calandra</span>
+  </div>
+  <%= render "lado", lado: dublagem.cima, qual: "cima", dublagem: dublagem, chave: chave, em_uso: em_uso %>
+  <%= render "ligante", dublagem: dublagem, campo: campo, em_uso: em_uso, mudanca: mudanca %>
+  <%= render "lado", lado: dublagem.baixo, qual: "baixo", dublagem: dublagem, chave: chave, em_uso: em_uso %>
+  <table class="construcao-mini" data-preco-da-dublagem>
+    <tbody>
+      <% @preco.linhas_da_dublagem(dublagem).each do |linha| %>
+        <tr><td><%= linha.rotulo %></td><td><%= linha.valor ? number_to_currency(linha.valor) : linha.nota %></td></tr>
+      <% end %>
+      <tr class="construcao-mini-total"><td>por metro</td><td data-total-da-dublagem><%= number_to_currency(@preco.total_da_dublagem(dublagem)) %></td></tr>
+    </tbody>
+  </table>
+  <% if final %>
+    <div class="construcao-produto" data-produto>
+      <%# Q5a: every layer the same height — the register keeps no thickness. %>
+      <div class="construcao-corte" aria-label="Corte: <%= dublagem.camadas.map { |camada| camada.materia_prima&.nome_da_camada }.join(", ") %>">
+        <% dublagem.camadas.each do |camada| %><span class="<%= "construcao-corte-superficie" if camada.superficie? %>"></span><% end %>
+      </div>
+      <div class="construcao-produto-texto">
+        <strong><%= dublagem.camadas.map { |camada| camada.materia_prima&.nome_da_camada }.join(" / ") %></strong>
+        <small><%= @construcao.largura_mais_estreita %> (a camada mais estreita) · <%= @construcao.dubla_antes? ? "feito no estoque: toda antes da estampa" : "feito no pedido: tem dublagem depois da Calandra" %></small>
+      </div>
+    </div>
+  <% end %>
+  <p class="construcao-dublagem-texto" data-texto><%= texto_da_dublagem(dublagem, @construcao.situacao) %></p>
+</article>

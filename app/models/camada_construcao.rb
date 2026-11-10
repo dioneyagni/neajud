@@ -4,8 +4,10 @@
 # client's, and the ligante that joins it to the layer above — none on the
 # superfície, none either where no registered material serves yet (the cola,
 # until 5/5). A base keeps when its ligação dubs (dubla: antes | depois,
-# rede editável 1/2, Q3a; Construcao#guardar_momentos). Addressed by
-# position inside its construção, so no uuid.
+# rede editável 1/2, Q3a; Construcao#guardar_momentos) and in which
+# dublagem of the chave it is joined to the layer above (ordem_da_dublagem,
+# Dublagem 5b1a; ChaveDaConstrucao). Addressed by position inside its
+# construção, so no uuid.
 class CamadaConstrucao < ApplicationRecord
   self.table_name = "camadas_construcao"
 
@@ -17,8 +19,11 @@ class CamadaConstrucao < ApplicationRecord
   before_validation { self.lado = nil unless superficie? }
   before_validation { self.ligante = nil if superficie? }
   before_validation { self.dubla = nil if superficie? }
+  before_validation { self.ordem_da_dublagem = nil if superficie? }
 
-  validates :posicao, inclusion: { in: 1..Construcao::MAXIMO_DE_CAMADAS, message: "%{value} is not a layer position; expected 1 to #{Construcao::MAXIMO_DE_CAMADAS}" }
+  # The limit of layers is Parâmetros' and RegrasDaConstrucao's (5b1a).
+  validates :posicao, numericality: { only_integer: true, greater_than: 0, message: "%{value} is not a layer position; expected 1 or more" }
+  validates :ordem_da_dublagem, numericality: { only_integer: true, greater_than: 0, message: "%{value} is not a dublagem of the chave; expected 1 or more" }, allow_nil: true
   validates :dubla, inclusion: { in: RedeDeDublagens::DUBLA, message: "%{value} is not a momento; expected #{RedeDeDublagens::DUBLA.join(" or ")}" }, allow_nil: true
   validates :lado, inclusion: { in: RedeDeDublagens::LADOS, message: "%{value} is not a side; expected #{RedeDeDublagens::LADOS.join(" or ")}" }, if: :superficie?
 
@@ -32,5 +37,7 @@ class CamadaConstrucao < ApplicationRecord
   end
 
   # What makes two layers the same, for the duplicate construção check.
-  def identidade = [ posicao, materia_prima_id, do_cliente, lado, ligante_id ]
+  # The chave too (5b1a): the same layers dubbed in another order are
+  # another roteiro.
+  def identidade = [ posicao, materia_prima_id, do_cliente, lado, ligante_id, ordem_da_dublagem ]
 end

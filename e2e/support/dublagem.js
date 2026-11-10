@@ -63,9 +63,10 @@ async function salvarConstrucao(page, { ids }, { lado, situacao }) {
     const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
     return (await fetch("/construcoes", { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) })).url;
   }, {
+    // Dublagem 5b1a: one card of the chave.
     "construcao[situacao]": situacao, "construcao[client_uuid]": "", "construcao[preco_final]": "30",
-    "construcao[camadas][0][materia_prima_uuid]": ids.oxford, "construcao[camadas][0][lado]": lado, "construcao[camadas][0][do_cliente]": "0",
-    "construcao[camadas][1][materia_prima_uuid]": ids.lona, "construcao[camadas][1][ligante_uuid]": ids.filme, "construcao[camadas][1][do_cliente]": "0",
+    "construcao[dublagens][0][cima][escolha]": ids.oxford, "construcao[dublagens][0][cima][lado]": lado, "construcao[dublagens][0][cima][do_cliente]": "0",
+    "construcao[dublagens][0][baixo][escolha]": ids.lona, "construcao[dublagens][0][ligante_uuid]": ids.filme, "construcao[dublagens][0][baixo][do_cliente]": "0",
   });
   const uuid = url.match(/construcoes\/([0-9a-f-]{36})\/edit/)?.[1];
   if (!uuid) throw new Error(`The construção wasn't saved: ${url}`);

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_202113) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -271,6 +271,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "dubla"
+    t.integer "ordem_da_dublagem"
     t.index ["construcao_id", "posicao"], name: "index_camadas_construcao_on_construcao_id_and_posicao", unique: true
     t.index ["construcao_id"], name: "index_camadas_construcao_on_construcao_id"
     t.index ["ligante_id"], name: "index_camadas_construcao_on_ligante_id"
@@ -367,6 +368,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.decimal "metragem_minima_tecido", precision: 8, scale: 1
     t.integer "filme_dtf_padrao_id"
     t.decimal "preco_servico_dublagem", precision: 10, scale: 2
+    t.integer "maximo_de_camadas", default: 8, null: false
     t.index ["filme_dtf_padrao_id"], name: "index_empresas_on_filme_dtf_padrao_id"
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true

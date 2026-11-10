@@ -89,8 +89,9 @@ runSpec("Dublagens E2E Tests", async ({ page, test }) => {
     const lona = await material(await grupo("Lona", { base: true }, ["gramatura"]), nomes.lona, "5", { "movimento_estoque[gramatura]": gramatura }, "tecido", "10");
     const filme = await material(await grupo("Filme", {}, ["micras"]), "Filme 35 µm-Bege-1.40 m", "30", { "movimento_estoque[micras]": "35" }, "filme", "3");
     const salva = await postar("/construcoes", {
-      "construcao[situacao]": "", "construcao[preco_final]": "46", "construcao[camadas][0][materia_prima_uuid]": oxford, "construcao[camadas][0][lado]": "trama",
-      "construcao[camadas][1][materia_prima_uuid]": lona, "construcao[camadas][1][ligante_uuid]": filme,
+      // Dublagem 5b1a: one card of the chave, Oxford over Lona.
+      "construcao[situacao]": "", "construcao[preco_final]": "46", "construcao[dublagens][0][cima][escolha]": oxford, "construcao[dublagens][0][cima][lado]": "trama",
+      "construcao[dublagens][0][baixo][escolha]": lona, "construcao[dublagens][0][ligante_uuid]": filme,
     });
     ids.construcao = salva?.match(/construcoes\/([^/]+)\/edit/)?.[1];
     if (!ids.construcao) throw new Error(`The construção wasn't saved (${salva})`);

@@ -17,6 +17,12 @@ class OpcoesDaConstrucao
     tecidos.select { |material| material.grupo_material.superficie }
   end
 
+  # Every base (5b1a): a card lists them all, and a pair the network
+  # doesn't have shows in red on it (to add from there in 5b1b).
+  def bases
+    tecidos.select { |material| material.grupo_material.base }
+  end
+
   # The bases that dub under a layer; none while it has no material.
   def bases_sob(camada_acima)
     return [] unless camada_acima&.materia_prima

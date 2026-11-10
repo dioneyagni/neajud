@@ -1,0 +1,8 @@
+<%# A letra passing through a column on its way to the card that uses it
+    (5b1a; the canvas's dashed "segue" card). %>
+<% proxima = coluna + 1 < dublagem.mae.coluna ? "no-#{dublagem.indice}-#{coluna + 1}" : "no-#{dublagem.mae.indice}" %>
+<div class="construcao-segue" data-no="no-<%= dublagem.indice %>-<%= coluna %>" data-saida="<%= proxima %>" data-segue="<%= dublagem.letra %>">
+  <span class="construcao-letra"><%= dublagem.letra %></span>
+  <span class="construcao-segue-nome"><%= dublagem.lados.map(&:nome).join(" / ") %><br><small>pronto na <%= dublagem.coluna %>ª dublagem, segue para a <%= dublagem.mae.coluna %>ª</small></span>
+  <span class="construcao-segue-preco"><%= number_to_currency(preco.total_da_dublagem(dublagem)) %></span>
+</div>
