@@ -22,6 +22,17 @@ RSpec.describe SalvarLigacao do
     expect(RedeDeDublagens.ligacao("EVA", "Lona").dubla).to eq("depois")
   end
 
+  # Dublagem 5b1b: "Adicionar à rede" on a construção's card says so.
+  it "says in the histórico when it was made from a construção, and refuses an unknown origem" do
+    ligacao = LigacaoDublagem.new
+    dados = { grupo_a_uuid: grupo.("Lona").uuid, grupo_b_uuid: grupo.("EVA").uuid, dubla: "depois", ligantes: [ { grupo_uuid: grupo.("Cola").uuid } ] }
+
+    expect(described_class.new(ligacao, dados, grupos: GrupoMaterial.all, situacoes: SituacaoDublagem.all, user: usuario, origem: "construcao").call).to be(true)
+    expect(ligacao.alteracoes.sole.texto).to eq("criou a partir da construção")
+    expect { described_class.new(LigacaoDublagem.new, dados, grupos: GrupoMaterial.all, situacoes: SituacaoDublagem.all, user: usuario, origem: "pedido") }
+      .to raise_error(ArgumentError, /origem "pedido" is not known/)
+  end
+
   # Q4a: the groups are chosen only when it is new.
   it "edits what changed into one histórico line, never the groups" do
     ligacao = LigacaoDublagem.do_par(grupo.("Oxford"), grupo.("Lona")).sole

@@ -230,6 +230,35 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     await page.locator("p.alert", { hasText: "o máximo de camadas não baixa para 3: Oxford Branco / Oxford Branco / Espuma Branco / Helanca Branco-1.40 m (4)" }).waitFor();
   });
 
+  // Dublagem 5b1b (Q1b, Q2a): a pair the network doesn't have is added from
+  // its card — momento and ligante group, lado any, "a confirmar" — and the
+  // card is built again with it. Trashed at the end: the network stays as
+  // the specs after this one expect it.
+  await test("Adds a pair to the network from its card: the card gets the ligação, the rede says where it came from", async () => {
+    await page.goto(`${BASE_URL}/construcoes/new`);
+    await escolher("#dublagem-0-cima", nomes.oxford);
+    await escolher("#dublagem-0-baixo", nomes.helanca);
+    const caixa = page.locator('[data-dublagem="DUB-A"] [data-falta-rede]');
+    await caixa.locator("[data-rede-momento]").selectOption("antes");
+    await caixa.locator("[data-rede-ligante]").selectOption({ label: "Filme PU" });
+    await montando(() => caixa.locator("button.construcao-adicionar-rede").click());
+
+    const liga = page.locator('[data-dublagem="DUB-A"] [data-ligacao]');
+    if (!(await liga.innerText()).includes("a confirmar")) throw new Error(`The card shows ${await liga.innerText()}`);
+    const ligantes = await opcoes('[data-dublagem="DUB-A"] .construcao-ligante');
+    if (ligantes.join("|") !== nomes.pu) throw new Error(`The card offers ${ligantes}: expected Filme PU's materials`);
+    if ((await page.locator("[data-momento]").innerText()) !== "antes da Calandra") throw new Error("Not antes da Calandra");
+
+    await liga.locator("[data-ver-na-rede]").click();
+    await page.locator("[data-historico]").waitFor();
+    if (!(await page.locator("[data-historico]").innerText()).includes("criou a partir da construção")) throw new Error("The histórico doesn't say where it came from");
+    const marcados = await page.locator('.ligacao-confirmar input[type="checkbox"]:checked').evaluateAll((cs) => cs.map((c) => c.value).sort());
+    if (marcados.join("|") !== "dubla|ligantes") throw new Error(`A confirmar: ${marcados}`);
+    await page.locator("button.ligacao-lixeira").click();
+    await page.locator('dialog.ligacao-dialogo button[type="submit"]:has-text("Mandar para a lixeira")').click();
+    await waitForText(page, "foi para a lixeira.");
+  });
+
   // Each change of the item's form saves and Turbo renders the pedido again,
   // swapping the body: mark the old one and wait for the new.
   async function salvarItem(acao) {

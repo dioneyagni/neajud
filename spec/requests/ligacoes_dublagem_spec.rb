@@ -46,6 +46,22 @@ RSpec.describe "Ligações da rede de dublagens", type: :request do
     expect(Nokogiri::HTML(response.body).at_css(".rede-grupo[data-grupo=Lona] a[href='#{rede_ligacao_path(nova)}']").text).to eq("EVA")
   end
 
+  # Dublagem 5b1b: "Adicionar à rede" on a construção's card, as JSON.
+  it "creates a ligação from a construção's card as JSON, and answers why it can't" do
+    importar_rede_de_dublagens
+    dados = { origem: "construcao", ligacao: { grupo_a_uuid: grupo.("Espuma").uuid, grupo_b_uuid: grupo.("Lona").uuid, dubla: "depois",
+                                                ligantes: [ { grupo_uuid: grupo.("Cola").uuid } ], a_confirmar: %w[dubla ligantes] } }
+
+    post rede_ligacoes_path, params: dados, as: :json
+    nova = LigacaoDublagem.order(:id).last
+    expect(response.parsed_body).to eq("ok" => true, "id" => nova.uuid)
+    expect([ nova.nome, nova.lado, nova.a_confirmar, nova.alteracoes.sole.texto ]).to eq([ "Espuma com Lona", nil, %w[dubla ligantes], "criou a partir da construção" ])
+
+    post rede_ligacoes_path, params: dados, as: :json
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.parsed_body).to eq("ok" => false, "error" => "Espuma com Lona já está na rede; cada par entra uma vez com o mesmo lado, em qualquer ordem")
+  end
+
   it "refuses a save it can't read, showing what was typed and why" do
     importar_rede_de_dublagens
     patch rede_ligacao_path(ligacao), params: { ligacao: { dubla: "antes", ligantes: [ { grupo_uuid: grupo.("Filme").uuid, micras: "trinta" } ] } }

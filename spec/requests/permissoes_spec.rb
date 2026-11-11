@@ -192,6 +192,9 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       pedidos = [ -> { get new_rede_ligacao_path }, -> { post rede_ligacoes_path, params: { ligacao: { dubla: "antes" } } },
                   -> { patch rede_ligacao_path(ligacao), params: { ligacao: { dubla: "depois" } } }, -> { delete rede_ligacao_path(ligacao) } ]
       expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
+      # Dublagem 5b1b: "Adicionar à rede" from a construção's card too.
+      post rede_ligacoes_path, params: { origem: "construcao", ligacao: { dubla: "antes" } }, as: :json
+      expect([ response.status, response.parsed_body["ok"] ]).to eq([ 403, false ])
       get rede_ligacao_path(ligacao)
       expect(Nokogiri::HTML(response.body).at_css("fieldset.ligacao-campos")["disabled"]).not_to be_nil
       expect(response.body).not_to include("Salvar", "+ Ligação")

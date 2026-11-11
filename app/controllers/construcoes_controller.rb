@@ -90,6 +90,14 @@ class ConstrucoesController < ApplicationController
     @opcoes = OpcoesDaConstrucao.new(visiveis(MateriaPrima))
     @preco = PrecoSugeridoDaConstrucao.new(@construcao, servico: Empresa.atual&.preco_servico_dublagem)
     @clientes = visiveis(Client).ativos.order(:name)
+    @grupos_de_ligante = grupos_de_ligante if pode_acao?(:editar_rede_de_dublagens)
+  end
+
+  # Dublagem 5b1b (Q1b): what "Adicionar à rede" offers — the groups the
+  # network already joins with, and those of the registered ligantes.
+  def grupos_de_ligante
+    grupos = visiveis(GrupoMaterial)
+    grupos.where(id: visiveis(LiganteDaLigacao).select(:grupo_material_id)).or(grupos.where(id: visiveis(MateriaPrima).ligantes.select(:grupo_material_id))).order(:nome)
   end
 
   def recusar(tela)

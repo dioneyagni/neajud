@@ -92,6 +92,24 @@ RSpec.describe "Construções", type: :request do
     expect(flash[:alert]).to include("a chave não fechou: falta juntar DUB-A e DUB-B")
   end
 
+  # Dublagem 5b1b: a pair the network doesn't have offers "Adicionar à
+  # rede" — the ligante groups only (Q1b) — to whoever edits the network; a
+  # pair it has links to its page.
+  it "offers to add a pair to the network on its card, only with the action" do
+    espuma = material_de_dublagem("Espuma", densidade: "TC4")
+    post montar_construcoes_path, params: formulario(card(oxford, lona, filme_35), card("dublagem:0", espuma)), as: :turbo_stream
+
+    caixa = html.at_css('[data-dublagem="DUB-B"] [data-falta-rede]')
+    expect(caixa.css("[data-rede-ligante] option").map(&:text)).to eq([ "Cola", "Filme", "Filme PU" ])
+    expect(caixa.at_css("button.construcao-adicionar-rede")["data-grupo-a"]).to eq(lona.grupo_material.uuid)
+    expect(caixa.css("select").map { |campo| campo["name"] }.compact).to be_empty
+    expect(html.at_css('[data-dublagem="DUB-A"] [data-ver-na-rede]')["href"]).to eq(rede_ligacao_path(LigacaoDublagem.do_par(oxford.grupo_material, lona.grupo_material).sole))
+
+    entrar_com_funcao(niveis: { "estoque" => 2 })
+    post montar_construcoes_path, params: formulario(card(oxford, lona, filme_35), card("dublagem:0", espuma)), as: :turbo_stream
+    expect(html.at_css("[data-falta-rede]").text.squish).to eq("Lona + Espuma não estão na rede. Peça a quem edita a rede de dublagens.")
+  end
+
   it "answers what is wrong, keeping the form" do
     helanca = material_de_dublagem("Helanca")
 

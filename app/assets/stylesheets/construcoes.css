@@ -226,6 +226,24 @@
 }
 
 .construcao-falta-rede a { color: inherit; }
+/* Dublagem 5b1b: "Adicionar à rede" inside the red box (the canvas). */
+.construcao-falta-rede { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.construcao-falta-rede b { width: 100%; }
+.construcao-falta-rede .construcao-campo { width: auto; min-height: 32px; font-size: 0.75rem; }
+.construcao-adicionar-rede {
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 1px solid #8a1c12;
+  border-radius: 8px;
+  background: #fff;
+  color: #8a1c12;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.construcao-erro-rede:empty { display: none; }
+.construcao-erro-rede { width: 100%; font-weight: 600; }
+.construcao-ver-na-rede { font-size: 0.75rem; }
 
 .construcao-mini { width: 100%; border-collapse: collapse; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .construcao-mini td { padding: 2px 0; color: #5f5e5a; border-top: 1px solid #f1efe8; }

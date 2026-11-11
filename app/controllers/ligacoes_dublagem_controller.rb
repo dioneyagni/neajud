@@ -2,7 +2,9 @@
 # decided 09-10/11/2026, Q4c, canvas "Rede editável — C"): the whole form,
 # where it is used and its histórico. Seeing it is the rede's (estoque: ver,
 # the team); creating, saving and trashing take the "Editar a rede de
-# dublagens" action alone (Q7a) — without it the form is read only.
+# dublagens" action alone (Q7a) — without it the form is read only. A
+# construção's card creates one too, as JSON (Dublagem 5b1b, "Adicionar à
+# rede"), its histórico saying so.
 class LigacoesDublagemController < ApplicationController
   exige :estoque, :ver
   exige_equipe
@@ -23,9 +25,15 @@ class LigacoesDublagemController < ApplicationController
 
   # Usage: POST /rede-de-dublagens/ligacoes, ligacao[grupo_a_uuid|grupo_b_uuid|lado|dubla|a_confirmar[]],
   #        ligacao[ligantes][][grupo_uuid|micras], ligacao[situacoes][<chave>][][grupo_uuid|micras]
+  #        As JSON (5b1b, origem=construcao): { ok: true, id: <uuid> } or { ok: false, error: "…" }
   def create
     @ligacao = visiveis(LigacaoDublagem).new
-    salvar(:new)
+    return salvar(:new) unless request.format.json?
+
+    salva = SalvarLigacao.new(@ligacao, dados_do_formulario, origem: params[:origem], **contexto_do_salvar).call
+    return render json: { ok: true, id: @ligacao.uuid } if salva
+
+    render json: { ok: false, error: @ligacao.errors.full_messages.to_sentence }, status: :unprocessable_content
   end
 
   def update
@@ -48,13 +56,15 @@ class LigacoesDublagemController < ApplicationController
   end
 
   def salvar(tela)
-    salvo = SalvarLigacao.new(@ligacao, dados_do_formulario, grupos: visiveis(GrupoMaterial), situacoes: visiveis(SituacaoDublagem), user: Current.user).call
+    salvo = SalvarLigacao.new(@ligacao, dados_do_formulario, **contexto_do_salvar).call
     return redirect_to rede_ligacao_path(@ligacao), notice: "#{@ligacao.nome}: salva." if salvo
 
     preparar_pagina
     flash.now[:alert] = @ligacao.errors.full_messages.to_sentence
     render tela, status: :unprocessable_content
   end
+
+  def contexto_do_salvar = { grupos: visiveis(GrupoMaterial), situacoes: visiveis(SituacaoDublagem), user: Current.user }
 
   def dados_do_formulario
     linha = %i[grupo_uuid micras]
