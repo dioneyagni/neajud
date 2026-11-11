@@ -19,12 +19,27 @@
 #        linha.celulas["corte"].texto # => "3/8"
 #        linha.previsao.fim           # => Thu, 12 Nov 2026 15:30
 class LinhaDoPainel
+  # Dublagem 5b1c2 (Q1a, 11/11/2026): the Dublagem by the Impressão, which it
+  # runs alongside, the Dublagem final after the Estamparia (the Calandra).
   COLUNAS = { "arquivos" => "Arquivos", "comercial" => "Comercial", "material" => "Material", "impressao" => "Impressão",
-              "corte" => "Corte", "estamparia" => "Estamparia", "conferencia" => "Conferência", "entrega" => "Entrega" }.freeze
+              "dublagem" => "Dublagem", "corte" => "Corte", "estamparia" => "Estamparia", "dublagem_final" => "Dublagem final",
+              "conferencia" => "Conferência", "entrega" => "Entrega" }.freeze
   # A stage shown in another stage's column.
   COLUNA_DA_ETAPA = { "calandra" => "estamparia" }.freeze
+  # A column whose stage is in another column's sector — its queue, its
+  # load and its stops (5b1c2, Q2a: one dublagem machine).
+  SETOR_DA_ETAPA = { "dublagem_final" => "dublagem" }.freeze
   # The pendências that are about files (the rest are the Comercial's).
   DOS_ARQUIVOS = %i[arquivo_excluido sem_corte sem_arquivo sem_lado sem_medida nao_cabe nao_cabe_em_pe nao_cabe_girada].freeze
+
+  # The sectors, in the chaves' order, that a Painel's used columns have: a
+  # column whose stage is another sector's (the Dublagem final) brings that
+  # one (5b1c2, Q2a).
+  # Usage: LinhaDoPainel.setores_usados(painel.colunas, %w[impressao dublagem]) # => { "dublagem" => "Dublagem" }
+  def self.setores_usados(colunas, chaves)
+    usados = colunas.keys.map { |coluna| SETOR_DA_ETAPA.fetch(coluna, coluna) }
+    COLUNAS.slice(*chaves).select { |chave, _| usados.include?(chave) }
+  end
 
   # The states that put a pedido in a sector's queue.
   NA_FILA = %i[pode_comecar andamento travada pendencia].freeze
@@ -128,7 +143,8 @@ class LinhaDoPainel
   # The sectors whose queue it is in, its reposições' too.
   # Usage: linha.filas # => ["impressao", "entrega"]
   def filas
-    com_reposicoes.flat_map { |linha| linha.celulas.select { |_, c| NA_FILA.include?(c.estado) }.keys }.uniq
+    colunas = com_reposicoes.flat_map { |linha| linha.celulas.select { |_, c| NA_FILA.include?(c.estado) }.keys }
+    colunas.map { |coluna| SETOR_DA_ETAPA.fetch(coluna, coluna) }.uniq
   end
 
   # Usage: linha.pecas_da_reposicao # => 80 (0 when it is not a reposição)
@@ -140,8 +156,7 @@ class LinhaDoPainel
   # Usage: linha.trava # => "Estamparia espera Corte"
   def trava
     presa = celulas.find { |_, c| %i[pendencia travada].include?(c.estado) }
-    # Dublagem 5b1c1: the Dublagem stages have no column until 5b1c2.
-    presa && "#{COLUNAS.fetch(presa.first) { EtapasProducao.etapa(pedido.tipo, presa.first).nome }}: #{presa.last.detalhe || presa.last.texto}"
+    presa && "#{COLUNAS.fetch(presa.first)}: #{presa.last.detalhe || presa.last.texto}"
   end
 
   # The stages in steps (CaminhoDoPedido), each with its column; one it

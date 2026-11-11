@@ -309,7 +309,8 @@ export default class extends Controller {
     this.quadroTarget.hidden = Boolean(fila)
     this.gradeTarget.dataset.setor = this.setorAtual
     this.gradeTarget.querySelectorAll(".painel-cab [data-coluna]").forEach((coluna) => {
-      coluna.classList.toggle("painel-coluna--ativa", coluna.dataset.coluna === this.setorAtual)
+      // The Dublagem's tab lights both its columns (5b1c2).
+      coluna.classList.toggle("painel-coluna--ativa", coluna.dataset.setor === this.setorAtual)
     })
     this.aplicar()
   }

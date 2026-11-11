@@ -5,7 +5,7 @@
     order change only it, the address following (Q3a, Q6a); the filters,
     the sector and the counters stay in the page.
     locals: painel (PainelDeProducao::Painel), de, ordem %>
-<% setores = painel.colunas.slice(*LinhaDoTempo::SETORES) %>
+<% setores = LinhaDoPainel.setores_usados(painel.colunas, LinhaDoTempo::SETORES) %>
 <% tempo = LinhaDoTempo.call(painel.linhas, fila: painel.fila, de: de, entregues: painel.entregues_na_janela, calendario: painel.calendario,
                              ordem: ordem, cliente_final: cliente_final?, setores: setores.keys, programado: @programado) %>
 <% blocos = painel.blocos.flat_map { |bloco| bloco.linhas.map { |linha| [ linha.pedido.id, bloco.chave ] } }.to_h %>

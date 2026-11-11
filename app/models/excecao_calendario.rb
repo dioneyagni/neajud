@@ -28,10 +28,13 @@ class ExcecaoCalendario < ApplicationRecord
 
   scope :do_ano, ->(ano) { where(data: Date.new(ano, 1, 1)..Date.new(ano, 12, 31)) }
 
-  # Every stage key of config/etapas_producao.yml, with its name.
-  # Usage: ExcecaoCalendario.etapas # => { "impressao" => "Impressão", "corte" => "Corte", … }
+  # Every stage key of config/etapas_producao.yml, with its name; a stage
+  # in another's sector stops with it (5b1c2, Q2a: one dublagem machine), so
+  # the Dublagem final is not offered and the Dublagem says it stops both.
+  # Usage: ExcecaoCalendario.etapas # => { "impressao" => "Impressão", "dublagem" => "Dublagem (as duas etapas)", … }
   def self.etapas
-    EtapasProducao.todas.values.flatten.to_h { |etapa| [ etapa.chave, etapa.nome ] }
+    etapas = EtapasProducao.todas.values.flatten.reject { |etapa| LinhaDoPainel::SETOR_DA_ETAPA.key?(etapa.chave) }
+    etapas.to_h { |etapa| [ etapa.chave, LinhaDoPainel::SETOR_DA_ETAPA.value?(etapa.chave) ? "#{etapa.nome} (as duas etapas)" : etapa.nome ] }
   end
 
   def da_fabrica?
@@ -39,11 +42,12 @@ class ExcecaoCalendario < ApplicationRecord
   end
 
   # Does it stop this occurrence (CalendarioDeProducao::Ocorrencia) for the
-  # stage? nil etapa asks about the whole factory.
+  # stage? nil etapa asks about the whole factory. The Dublagem's stops the
+  # Dublagem final too, its sector's (5b1c2).
   def para?(ocorrencia, chave_da_etapa = nil)
     return false unless ocorrencia.data == data && (turno_id.nil? || turno_id == ocorrencia.turno.id)
 
-    da_fabrica? || etapa == chave_da_etapa.to_s
+    da_fabrica? || [ chave_da_etapa.to_s, LinhaDoPainel::SETOR_DA_ETAPA[chave_da_etapa.to_s] ].include?(etapa)
   end
 
   # Usage: excecao.abrangencia # => "Calandra · Tarde" / "toda a fábrica · dia inteiro"

@@ -28,7 +28,8 @@ class LinhaDoTempo
   DIAS = 14
   ANTES = 2
   ORDENS = %w[chegada previsao prazo].freeze
-  SETORES = %w[impressao corte estamparia conferencia].freeze
+  # Dublagem 5b1c2 (Q2a): one line for both dublagem stages.
+  SETORES = %w[impressao corte estamparia dublagem conferencia].freeze
   GRUPOS = { "em_producao" => "Em produção e na fila", "sem_previsao" => "Sem previsão",
              "pendentes" => "Pendentes de início", "entregues" => "Entregues" }.freeze
   # A pedido without previsão or deadline sorts after the others.

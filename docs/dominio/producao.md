@@ -414,6 +414,35 @@ The same delivery as the resumo (`pedidos/_entrega`, Stimulus `entrega`,
   closes. With "Mostrar entregues" on, the row just moves to Entregues.
 - One at a time (Q4a): no delivery of several pedidos at once.
 
+## The Dublagem in the Painel and the queue (Dublagem 5b1c2)
+
+Decided 11/11/2026 (canvas Painel, "5b1c2 · Dublagem no Painel e na fila").
+
+- **Two columns** (Q1a): **Dublagem** after the Impressão (it runs
+  alongside), **Dublagem final** after the Estamparia (the Calandra) —
+  `LinhaDoPainel::COLUNAS`. Each cell counts its letras and says what it
+  waits for; a view with no pedido dubbed in the pedido hides both, like any
+  column no row uses.
+- **One sector** (Q2a: one machine): `LinhaDoPainel::SETOR_DA_ETAPA` puts the
+  Dublagem final in the Dublagem's sector — `FilaDeProducao.setor_de`, the
+  pedido's `filas`, one **Dublagem** tab (its count, both columns lit), one
+  line in the Linha do tempo's load (`LinhaDoTempo::SETORES`,
+  `LinhaDoPainel.setores_usados`). The calendar offers **"Dublagem (as duas
+  etapas)"**: one stop stops both (`ExcecaoCalendario.etapas`, `#para?`).
+  The rhythm stays one per stage.
+- **Its order** (Q3b): in `FilaDeProducao::SETORES_PELO_PRONTO` a stage
+  waiting for another sector midway (the Dublagem final, the Calandra)
+  never holds the ones behind it: among the front ones whose stages waited
+  for are placed, the one that may start first goes, arrival (or a move)
+  breaking ties; stages under way still go first. Other sectors keep the
+  strict order.
+- **The queue's row** (Q4): a dublagem's lines are letras, each named with
+  its pedido, the piece's label at the machine — `3 letras · Dublagem:
+  #7674gj44|DUB-A, …`, started `1 de 3 letras · …: falta #7674gj44|DUB-C`, a
+  letra in two items `×2` (`FilaDeProducaoHelper#o_que_fazer_na_fila`).
+- Specs: `spec/services/painel_da_dublagem_spec.rb`; E2E
+  `e2e/dublagem-no-pedido.spec.js`.
+
 ## Turnos, calendar and rhythm (Painel 2/4a)
 
 Decided 05/11/2026: what the queue and the previsão (2/4b) run on. All of
