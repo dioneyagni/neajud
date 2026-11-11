@@ -36,6 +36,12 @@
 class FilaDeProducao
   HORIZONTE = 90.days
   ATIVOS = %w[confirmado em_producao].freeze
+  # Dublagem 5b1c2 (Q3b, 11/11/2026): the sectors whose queue holds a stage
+  # waiting for another sector midway (the Dublagem final, the Calandra):
+  # it never holds the ones behind it — among those whose stages waited
+  # for are placed, the one that may start first goes, the order breaking
+  # ties.
+  SETORES_PELO_PRONTO = %w[dublagem].freeze
 
   # A stage's piece inside one turno.
   Trecho = Struct.new(:ocorrencia, :inicio, :fim, keyword_init: true) do
@@ -183,9 +189,10 @@ class FilaDeProducao
     end
   end
 
-  # The Painel's column a stage is in.
+  # The sector whose queue a stage is in: its Painel column, but the
+  # Dublagem final's is the Dublagem's (5b1c2, Q2a: one machine).
   def self.setor_de(etapa)
-    LinhaDoPainel::COLUNA_DA_ETAPA.fetch(etapa.chave, etapa.chave)
+    LinhaDoPainel::SETOR_DA_ETAPA.fetch(etapa.chave) { LinhaDoPainel::COLUNA_DA_ETAPA.fetch(etapa.chave, etapa.chave) }
   end
 
   private
@@ -248,6 +255,8 @@ class FilaDeProducao
   end
 
   def colocar_as_primeiras(fila)
+    return colocar_pelo_pronto(fila) if SETORES_PELO_PRONTO.include?(fila.first&.setor)
+
     colocadas = 0
     while (vez = fila.first) && vez.antes.all?(&:colocada)
       entrar_na_fila(colocar(fila.shift, @agenda))
@@ -255,6 +264,25 @@ class FilaDeProducao
     end
     colocadas
   end
+
+  def colocar_pelo_pronto(fila)
+    colocadas = 0
+    while (indice = proxima_pronta(fila))
+      entrar_na_fila(colocar(fila.delete_at(indice), @agenda))
+      colocadas += 1
+    end
+    colocadas
+  end
+
+  # The index of the one to place next: among the front ones whose stages
+  # waited for are placed (when they end is known), the earliest start; nil
+  # when the first still waits for one not placed.
+  def proxima_pronta(fila)
+    conhecidas = fila.take_while { |vez| vez.antes.all?(&:colocada) }
+    conhecidas.each_index.min_by { |indice| [ [ @agenda.livre[conhecidas[indice].setor], pronto(conhecidas[indice]) ].max, indice ] }
+  end
+
+  def pronto(vez) = ([ agora ] + vez.antes.filter_map(&:fim)).max
 
   # Every sector's next stage waits for one behind it in its own sector (a
   # stage moved ahead of the one it waits for): that one goes first.
@@ -278,7 +306,7 @@ class FilaDeProducao
     return vez.tap { |v| v.motivo = "#{v.etapa.nome} (#{Pedido::ROTULOS_DOS_TIPOS[v.pedido.tipo]}) sem ritmo" } unless horas
 
     vez.espera = vez.antes.select { |outra| outra.fim > agora }.max_by(&:fim)
-    encher(vez, carga, horas, ([ agora ] + vez.antes.map(&:fim)).max, agenda)
+    encher(vez, carga, horas, pronto(vez), agenda)
   end
 
   def encher(vez, carga, horas, pronto, agenda)

@@ -10,7 +10,7 @@
     3/4b: during a turno, the pedidos its virada made late, on top (Q5a;
     the team's only — a cliente final has no viradas to see). %>
 <% turbo_refreshes_with method: :morph, scroll: :preserve %>
-<% setores = cliente_final? ? {} : @painel.colunas.slice(*%w[impressao corte estamparia conferencia entrega]) %>
+<% setores = cliente_final? ? {} : LinhaDoPainel.setores_usados(@painel.colunas, %w[impressao corte estamparia dublagem conferencia entrega]) %>
 <% linhas_por_pedido = @painel.linhas.flat_map(&:com_reposicoes).index_by { |linha| linha.pedido.id } %>
 <div class="painel" id="painel" data-controller="painel" data-action="entrega:feita->painel#entregue" data-painel-visao-value="<%= @visao %>"
      data-painel-itens-url-value="<%= itens_do_painel_path("UUID") %>"
@@ -93,7 +93,7 @@
     <div class="painel-grade" data-painel-target="grade" style="--painel-colunas: <%= @painel.colunas.size %>">
       <div class="painel-linha painel-cab">
         <div class="painel-ped">Pedido</div>
-        <% @painel.colunas.each do |chave, nome| %><div data-coluna="<%= chave %>"><%= nome %></div><% end %>
+        <% @painel.colunas.each do |chave, nome| %><div data-coluna="<%= chave %>" data-setor="<%= LinhaDoPainel::SETOR_DA_ETAPA.fetch(chave, chave) %>"><%= nome %></div><% end %>
         <div>Andamento</div>
       </div>
       <% @painel.blocos.each do |bloco| %>

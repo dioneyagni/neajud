@@ -68,8 +68,7 @@ RSpec.describe "Dublagem no pedido" do
     expect(DesfazerBaixaService.call(da_b, user: create(:user))).to eq("Undo Dublagem's baixa of these lines first: it waited for this one.")
   end
 
-  # Their columns and queue are 5b1c2's: until then the Painel and the
-  # queue go on, the Calandra's cell naming what it waits for.
+  # Their columns and queue: spec/services/painel_da_dublagem_spec.rb (5b1c2).
   it "keeps the Painel and the queue working, the Calandra's cell naming what it waits for" do
     painel = -> { PainelDeProducao.call(Pedido.where(id: pedido.id)) }
     expect(painel.().linhas.sole.celulas["estamparia"].texto).to eq("espera Impressão")
@@ -78,6 +77,5 @@ RSpec.describe "Dublagem no pedido" do
     linha = painel.().linhas.sole
     expect(linha.celulas["estamparia"].texto).to eq("espera DUB-A")
     expect(linha.caminho.flatten.map(&:chave)).to include("dublagem", "dublagem_final")
-    expect(painel.().colunas.keys).not_to include("dublagem")
   end
 end

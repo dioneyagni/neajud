@@ -29,7 +29,7 @@
     <% end %>
   </div>
   <div>
-    <div><%= vez.iniciada? ? "#{vez.abertas} de #{vez.total} linhas" : pluralize(vez.total, "linha", plural: "linhas") %> · <%= vez.etapa.nome %></div>
+    <div data-fila-o-que><%= o_que_fazer_na_fila(vez) %></div>
     <% if vez.iniciada? %><div class="painel-fila-barra"><i style="width: <%= ((vez.total - vez.abertas) * 100.0 / vez.total).round %>%"></i></div><% end %>
   </div>
   <div class="painel-fila-num"><%= carga_da_vez(vez) if vez.carga %></div>

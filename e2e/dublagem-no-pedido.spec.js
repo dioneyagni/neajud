@@ -3,7 +3,10 @@
 // over Oxford with filme (DUB-A, before the Calandra: the estampa goes on
 // it), then DUB-A over Espuma with cola (DUB-B, after). Confirmed, the
 // pedido has Dublagem and Dublagem final, a line per item × letra; the
-// Calandra waits for the paper and DUB-A, DUB-B for the Calandra.
+// Calandra waits for the paper and DUB-A, DUB-B for the Calandra. 5b1c2
+// (canvas "5b1c2 · Dublagem no Painel e na fila"): the Painel has the
+// Dublagem and Dublagem final columns and one Dublagem tab whose queue
+// names each letra with its pedido.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -86,6 +89,23 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
     await etapa("impressao");
     const abas = await page.locator(".etapas-nav-link").evaluateAll((ls) => ls.map((l) => l.dataset.etapa));
     if (abas.join("|") !== "impressao|dublagem|calandra|dublagem_final") throw new Error(`The stages are ${abas}`);
+  });
+
+  await test("The Painel shows both columns, and the Dublagem tab lists the letras with the pedido", async () => {
+    await page.goto(`${BASE_URL}/painel`);
+    const colunas = await page.locator(".painel-cab [data-coluna]").evaluateAll((cs) => cs.map((c) => c.dataset.coluna));
+    const ordem = ["impressao", "dublagem", "estamparia", "dublagem_final"].map((c) => colunas.indexOf(c));
+    if (ordem.some((i) => i < 0) || ordem.join() !== [...ordem].sort((a, b) => a - b).join()) throw new Error(`The columns are ${colunas}`);
+    if (await page.locator('.painel-setor[data-setor="dublagem_final"]').count()) throw new Error("The Dublagem final has a tab of its own");
+
+    await page.locator('.painel-setor[data-setor="dublagem"]').click();
+    const fila = page.locator('[data-fila-setor="dublagem"]');
+    await fila.waitFor();
+    const curto = ids.pedido.slice(0, 8);
+    const letras = await fila.locator(`[data-fila-pedido="${ids.pedido}"] .painel-fila-letra`).allInnerTexts();
+    if (letras.join("|") !== `#${curto}|DUB-A|#${curto}|DUB-B`) throw new Error(`The queue lists ${letras}`);
+    const marcadas = await page.locator('.painel-cab .painel-coluna--ativa').evaluateAll((cs) => cs.map((c) => c.dataset.coluna));
+    if (marcadas.join("|") !== "dublagem|dublagem_final") throw new Error(`The tab lights ${marcadas}`);
   });
 
   await test("Each line waits for what its letra needs, and takes its baixa once that is done", async () => {

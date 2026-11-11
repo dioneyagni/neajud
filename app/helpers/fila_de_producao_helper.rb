@@ -14,6 +14,20 @@ module FilaDeProducaoHelper
     tag.span(texto, class: "painel-folga painel-folga--#{nivel}", data: { folga: folga })
   end
 
+  # What a stage asks in its queue: its open lines of the total — a
+  # dublagem's are letras, each named with the pedido, the piece's label at
+  # the machine (5b1c2, Q4: "#7674gj44|DUB-A"); started, the ones left.
+  # Usage: o_que_fazer_na_fila(vez) # => "1 de 3 letras · Dublagem: falta #7674gj44|DUB-C", "8 linhas · Corte"
+  def o_que_fazer_na_fila(vez)
+    letras = vez.linhas.filter_map { |linha| linha.dublagem&.letra }
+    palavra = letras.any? && letras.size == vez.linhas.size ? "letra" : "linha"
+    quantas = vez.iniciada? ? "#{vez.abertas} de #{vez.total} #{palavra.pluralize(vez.total)}" : pluralize(vez.total, palavra)
+    return "#{quantas} · #{vez.etapa.nome}" unless palavra == "letra"
+
+    codigos = letras.tally.map { |letra, vezes| tag.span("##{vez.pedido.uuid.first(8)}|#{letra}#{" ×#{vezes}" if vezes > 1}", class: "painel-fila-letra", data: { letra: letra }) }
+    safe_join([ "#{quantas} · #{vez.etapa.nome}: #{"falta " if vez.iniciada?}", safe_join(codigos, ", ") ])
+  end
+
   # Usage: momento_da_fila(Time.zone.parse("2026-11-12 15:30")) # => "qui 12/11 15:30" ("hoje 15:30", "amanhã 09:00")
   def momento_da_fila(momento)
     data = momento.to_date

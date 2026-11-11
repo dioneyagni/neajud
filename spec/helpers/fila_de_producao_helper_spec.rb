@@ -16,6 +16,20 @@ RSpec.describe FilaDeProducaoHelper, type: :helper do
     helper.instance_variable_set(:@cliente_final, true)
   end
 
+  # Dublagem 5b1c2 (Q4): a dublagem's lines are letras, each with its pedido
+  # — the piece's label at the machine —, a letra in two items once.
+  it "says what a stage asks in its queue, a dublagem's letras named with the pedido" do
+    pedido = Pedido.new(uuid: "7674gj44-0000-0000-0000-000000000000")
+    dublagem = EtapasProducao.etapa("tecido", "dublagem", pedido: nil)
+    letra = ->(nome) { LinhasDeProducao::Linha.new(dublagem: Struct.new(:letra).new(nome)) }
+    vez = ->(etapa, linhas, total) { FilaDeProducao::Vez.new(pedido: pedido, etapa: etapa, linhas: linhas, abertas: linhas.size, total: total) }
+
+    expect(helper.o_que_fazer_na_fila(vez.(dublagem, [ letra.("DUB-A"), letra.("DUB-B"), letra.("DUB-A") ], 3)))
+      .to eq("3 letras · Dublagem: <span class=\"painel-fila-letra\" data-letra=\"DUB-A\">#7674gj44|DUB-A ×2</span>, <span class=\"painel-fila-letra\" data-letra=\"DUB-B\">#7674gj44|DUB-B</span>")
+    expect(Nokogiri::HTML.fragment(helper.o_que_fazer_na_fila(vez.(dublagem, [ letra.("DUB-C") ], 3))).text).to eq("1 de 3 letras · Dublagem: falta #7674gj44|DUB-C")
+    expect(helper.o_que_fazer_na_fila(vez.(etapa, Array.new(8) { LinhasDeProducao::Linha.new }, 8))).to eq("8 linhas · Corte")
+  end
+
   it "colors the folga: late in red, on the day or 1 day in orange, more in green" do
     selos = [ -2, 0, 1, 3 ].map { |folga| Nokogiri::HTML.fragment(helper.selo_da_folga(folga)).at("span") }
     expect(selos.map { |selo| [ selo["class"], selo.text ] })

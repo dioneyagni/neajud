@@ -118,6 +118,8 @@ main:has(.painel) { max-width: 1480px; }
 .painel-grade[data-setor="impressao"] [data-coluna="impressao"],
 .painel-grade[data-setor="corte"] [data-coluna="corte"],
 .painel-grade[data-setor="estamparia"] [data-coluna="estamparia"],
+.painel-grade[data-setor="dublagem"] [data-coluna="dublagem"],
+.painel-grade[data-setor="dublagem"] [data-coluna="dublagem_final"],
 .painel-grade[data-setor="conferencia"] [data-coluna="conferencia"],
 .painel-grade[data-setor="entrega"] [data-coluna="entrega"] { opacity: 1; }
 .painel-cab [data-coluna].painel-coluna--ativa { color: #174ea6; background: #e8f0fe; }
@@ -228,3 +230,6 @@ main:has(.painel) { max-width: 1480px; }
 .entrega-nao { background: #fff; color: #3c4043; border: 1px solid #80868b; }
 .entrega--atalho .baixa-mensagem { font-size: 11px; margin: 0; }
 .painel-entregue-aviso { position: sticky; left: 0; width: fit-content; margin: 4px 12px; padding: 6px 12px; border-radius: 6px; background: #e6f4ea; color: #137333; font-size: 13px; font-weight: 600; }
+
+/* 5b1c2 (Q4): a dublagem's letra in the queue, with its pedido. */
+.painel-fila-letra { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; background: #f1f3f4; border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
