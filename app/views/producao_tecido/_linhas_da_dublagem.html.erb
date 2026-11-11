@@ -21,6 +21,8 @@
           <td data-rotulo="Construção"><%= cliente_final? ? item.construcao.nome : link_to(item.construcao.nome, edit_construcao_path(item.construcao)) %></td>
           <td class="corte-total" data-rotulo="Metros"><strong><%= metros(linha.esperado) %></strong></td>
           <td class="etapa-situacao" data-rotulo="<%= @etapa.nome %>">
+            <%# 5b1c3 (Q2a): its material missing, the baixa asks for the entry. %>
+            <% if (falta = aguardando_da_letra(@pedido, linha)) && @situacoes[linha.chave]&.estado != :feita %><p class="producao-aguarda-material" data-falta-da-letra><%= falta %></p><% end %>
             <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[linha.chave] %>
           </td>
         </tr>

@@ -161,10 +161,18 @@ Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
   (`ComponentesDaDublagem`, as an ordem of 5a) — never the superfície
   alone. The Dublagem stages' baixa takes nothing (Q2a; the loss of each
   dublagem is for later); the Calandra's still adjusts the superfície.
-- Not yet: the Painel's Dublagem columns, the "Dublagem" queue and its
-  rhythm (5b1c2 — until then the Painel only names it, "espera DUB-A", and
-  the queue has no rhythm for it), and blocking only the letra whose
-  material is missing (5b1c3).
+- **In the Painel and the queue** (5b1c2): its two columns and one
+  Dublagem sector — `docs/dominio/producao.md`.
+- **A missing layer or ligante** (5b1c3, decided 11/11/2026): holds only
+  the letras that take it (`MateriaisDaLetra`: the layers a letra joins
+  itself and its ligante) and the ones waiting for them (Q1a). The held
+  letra's line says "aguarda <material> · faltam N m" and its baixa asks
+  for the entry, as a stock stage's (Q2a, `RegistrarBaixaService`
+  `lancar_o_que_falta`, `EntradaDaFalta`); its baixa still adjusts no
+  stock. In the queue the stage goes with the free letras, the held ones
+  named ("DUB-B, DUB-C aguardam Espuma"), and the pedido says "previsão
+  quando Espuma entrar" until it comes (Q3a); the Impressão and the
+  Calandra run.
 - E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…"),
   `e2e/dublagem-no-pedido.spec.js`.
 

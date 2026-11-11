@@ -32,6 +32,16 @@ module AguardandoMaterialHelper
     faltas.sum(&:metros) if faltas.any?
   end
 
+  # What a dublagem line's letra waits for (Dublagem 5b1c3, Q2a): a
+  # material it takes missing for the pedido; nil when none. A cliente final
+  # sees the meters only of his own fabric (materiais_que_faltam).
+  # Usage: aguardando_da_letra(pedido, linha) # => "aguarda Espuma TC4 Branco-1.40 m da empresa · faltam 10 m"
+  def aguardando_da_letra(pedido, linha)
+    partes = MateriaisDaLetra.call(linha).to_set { |parte| [ parte.materia_prima, parte.client ] }
+    faltas = aguardando_material.do_pedido(pedido).select { |falta| partes.include?([ falta.materia_prima, falta.client ]) }
+    "aguarda #{materiais_que_faltam(faltas)}" if faltas.any?
+  end
+
   # The pedidos list's badge (Dublagem 5a).
   # Usage: rotulo_do_aguardando(pedido) # => "aguardando dublagem", "aguardando material" or nil
   def rotulo_do_aguardando(pedido)

@@ -56,12 +56,19 @@ class FilaDeProducao
   # movimento: the MovimentoDaFila that put it where it is (nil: arrival).
   # linhas, antes (the open stages it waits for), preso (the materials
   # holding it), ordem and colocada are how the queue builds it.
+  # retidas: a dublagem's open lines a missing material holds (5b1c3, Q3a) —
+  # the stage goes with the free ones (linhas); retidas_por: those materials.
   Vez = Struct.new(:pedido, :etapa, :setor, :posicao, :carga, :horas, :inicio, :fim, :trechos, :espera,
                    :motivo, :falta, :abertas, :total, :sem_medida, :movimento, :linhas, :antes, :preso, :ordem, :colocada,
-                   keyword_init: true) do
+                   :retidas, :retidas_por, keyword_init: true) do
     # Some line already had its baixa.
     def iniciada?
       abertas < total
+    end
+
+    # Usage: vez.motivo_das_retidas # => "previsão quando Espuma TC4 Branco-1.40 m entrar"
+    def motivo_das_retidas
+      "previsão quando #{retidas_por.map(&:nome_completo).join(" e ")} entrar" if retidas.present?
     end
   end
 
@@ -69,14 +76,15 @@ class FilaDeProducao
   # with pendências).
   Previsao = Struct.new(:pedido, :vezes, :motivo, :se_confirmar, keyword_init: true) do
     # When its last stage ends; nil when some stage has no previsão.
+    # A letra held by a missing material leaves it without one too (5b1c3).
     def fim
-      return if vezes.empty? || vezes.any? { |vez| vez.fim.nil? }
+      return if vezes.empty? || vezes.any? { |vez| vez.fim.nil? || vez.retidas.present? }
 
       vezes.map(&:fim).max
     end
 
     def sem_previsao
-      self[:motivo] || vezes.find { |vez| vez.fim.nil? }&.motivo
+      self[:motivo] || vezes.find { |vez| vez.fim.nil? }&.motivo || vezes.filter_map(&:motivo_das_retidas).first
     end
 
     # Every stage done: only the delivery is left.
@@ -133,7 +141,8 @@ class FilaDeProducao
     pedidos = Pedido.ativos.where(status: ATIVOS).includes(:client, :reposicao_de, itens_pedido: :arte).to_a
     ler_estados(pedidos)
     vezes = pedidos.flat_map do |pedido|
-      abertas = abrir(pedido, @estados.fetch(pedido.id), materiais_presos(pedido))
+      presas = letras_presas(pedido)
+      abertas = abrir(pedido, @estados.fetch(pedido.id), materiais_presos(pedido, presas), presas)
       @previsoes[pedido.id] = Previsao.new(pedido: pedido, vezes: abertas, se_confirmar: false)
       abertas
     end
@@ -213,19 +222,35 @@ class FilaDeProducao
 
   # Its stages with open lines, not placed yet, each knowing the open ones
   # it waits for (a done one waits for nothing).
-  def abrir(pedido, estados, presos)
+  # presas: the dublagem lines a missing material holds (5b1c3, Q3a): the
+  # stage goes with the free ones; all held, it is held by those materials.
+  def abrir(pedido, estados, presos, presas = {})
     abertas = {}
     EtapasProducao.do_tipo(pedido.tipo, pedido: pedido).each_with_index.filter_map do |etapa, indice|
       situacoes = estados.fetch(etapa.chave, {}).values
-      linhas = situacoes.reject { |situacao| situacao.estado == :feita }
+      linhas = situacoes.reject { |situacao| situacao.estado == :feita }.map(&:linha)
       next if linhas.empty?
 
+      retidas, livres = linhas.partition { |linha| presas.key?(linha.chave) }
+      retidas_por = retidas.flat_map { |linha| presas[linha.chave] }.uniq
+      preso = livres.empty? ? (presos[etapa.chave] || []) | retidas_por : presos[etapa.chave]
       abertas[etapa.chave] = Vez.new(pedido: pedido, etapa: etapa, setor: self.class.setor_de(etapa), trechos: [], sem_medida: [],
-                                     abertas: linhas.size, total: situacoes.size, linhas: linhas.map(&:linha), preso: presos[etapa.chave],
+                                     abertas: linhas.size, total: situacoes.size, linhas: livres.presence || retidas, preso: preso.presence,
+                                     retidas: (retidas if livres.any?), retidas_por: retidas_por,
                                      antes: etapa.trava.filter_map { |trava| abertas[trava] }, movimento: @ordens[[ pedido.id, etapa.chave ]]).tap do |vez|
         vez.ordem = ordem_de(vez, indice)
       end
     end
+  end
+
+  # The pedido's open dublagem lines a missing material holds (MateriaisDaLetra).
+  def letras_presas(pedido)
+    faltas = @aguardando.do_pedido(pedido)
+    return {} if faltas.empty?
+
+    estados = @estados.fetch(pedido.id)
+    linhas = LinhasDeProducao::MOMENTO_DA_ETAPA.keys.flat_map { |chave| estados.fetch(chave, {}).values }
+    MateriaisDaLetra.presas(linhas.reject { |situacao| situacao.estado == :feita }.map(&:linha), faltas)
   end
 
   # Under way first, in arrival order; then the moved ones as if they had
@@ -340,11 +365,16 @@ class FilaDeProducao
   end
 
   # The stage each missing material holds (Q1c): the one that takes it from
-  # the stock; one no stage takes (a dublagem's) holds the first.
-  def materiais_presos(pedido)
+  # the stock; one only letras take holds those letras (5b1c3, Q1a: presas),
+  # one nothing takes (a dublado of 5a) the first stage.
+  def materiais_presos(pedido, presas = {})
     etapas = EtapasProducao.do_tipo(pedido.tipo, pedido: pedido)
+    das_letras = presas.values.flatten.to_set
     @aguardando.do_pedido(pedido).each_with_object({}) do |falta, presos|
-      etapa = etapas.find { |e| materiais_da(pedido, e).include?(falta.materia_prima) } || etapas.first
+      etapa = etapas.find { |e| materiais_da(pedido, e).include?(falta.materia_prima) }
+      next if etapa.nil? && das_letras.include?(falta.materia_prima)
+
+      etapa ||= etapas.first
       (presos[etapa.chave] ||= []) << falta.materia_prima
     end
   end

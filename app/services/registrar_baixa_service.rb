@@ -109,8 +109,11 @@ class RegistrarBaixaService
 
   # Adjusted, the material these lines take still missing: launched with
   # the baixa, or everything undone and asked for (:falta_material / :erro).
+  # Dublagem 5b1c3 (Q2a): a letra's baixa adjusts no stock, but its
+  # materials missing still ask for the entry.
   def lancar_o_que_falta(baixa)
-    faltas = EntradaDaFalta.faltas(@pedido, MateriaisDasLinhas.call(@pedido, @etapa, linhas))
+    partes = MateriaisDasLinhas.call(@pedido, @etapa, linhas) + linhas.select(&:dublagem).flat_map { |linha| MateriaisDaLetra.call(linha) }
+    faltas = EntradaDaFalta.faltas(@pedido, partes)
     return if faltas.empty?
 
     erro = @entradas && EntradaDaFalta.call(faltas, origem: { lancada_na_baixa: baixa }, entradas: @entradas, user: @autoria[:user], autorizador: @autorizador)

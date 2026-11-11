@@ -30,6 +30,7 @@
   </div>
   <div>
     <div data-fila-o-que><%= o_que_fazer_na_fila(vez) %></div>
+    <% if (retidas = aviso_das_retidas(vez)) %><div class="painel-fila-retidas" data-fila-retidas><%= retidas %></div><% end %>
     <% if vez.iniciada? %><div class="painel-fila-barra"><i style="width: <%= ((vez.total - vez.abertas) * 100.0 / vez.total).round %>%"></i></div><% end %>
   </div>
   <div class="painel-fila-num"><%= carga_da_vez(vez) if vez.carga %></div>
