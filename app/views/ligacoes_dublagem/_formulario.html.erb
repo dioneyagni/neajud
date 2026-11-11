@@ -33,11 +33,15 @@
       </div>
       <fieldset class="ligacao-estampa">
         <legend class="construcao-rotulo">Estampa</legend>
-        <div class="ligacao-seg">
+        <div class="ligacao-marcas">
+          <%# 11/11/2026 (Q1a): both may be marked; each construção then picks one. %>
+          <input type="hidden" name="ligacao[dubla][]" value="">
+          <% momentos = RedeDeDublagens.momentos_de(@ligacao.dubla) %>
           <% RedeDeDublagens::DUBLA.each do |momento| %>
-            <label><input type="radio" name="ligacao[dubla]" value="<%= momento %>" <%= "checked" if @ligacao.dubla == momento %>><span>dubla <%= momento %></span></label>
+            <label><input type="checkbox" name="ligacao[dubla][]" value="<%= momento %>" <%= "checked" if momentos.include?(momento) %>><span>dubla <%= momento %></span></label>
           <% end %>
         </div>
+        <small class="ligacao-nota">marque pelo menos um · os dois: cada construção escolhe</small>
       </fieldset>
     </div>
 

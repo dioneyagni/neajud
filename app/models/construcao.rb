@@ -142,6 +142,7 @@ class Construcao < ApplicationRecord
     return if em_uso?
 
     camadas_em_ordem.each_cons(2) { |acima, abaixo| abaixo.dubla = momento_na_rede(acima, abaixo) }
+    chave.dublagens.each { |dublagem| dublagem.juncao.dubla = dublagem.momento_real if dublagem.ligacao&.escolhe? }
   end
 
   MudancaDaRede = Struct.new(:posicao, :texto, :ligacao_uuid, keyword_init: true)
@@ -159,7 +160,7 @@ class Construcao < ApplicationRecord
 
   def texto_da_mudanca(ligacao, acima, abaixo)
     return "a ligação #{acima.materia_prima.grupo_material.nome} e #{abaixo.materia_prima.grupo_material.nome} saiu da rede" unless ligacao
-    return "guardou dubla #{abaixo.dubla}; a rede agora diz #{ligacao.dubla}" if ligacao.dubla != abaixo.dubla
+    return "guardou dubla #{abaixo.dubla}; a rede agora diz #{ligacao.dubla}" unless ligacao.permite?(abaixo.dubla)
 
     regra = ligacao.ligantes_na(situacao)
     return if abaixo.ligante.nil? || regra.any? { |ligante| ligante.serve?(abaixo.ligante) }
@@ -167,8 +168,13 @@ class Construcao < ApplicationRecord
     "o ligante #{abaixo.ligante.nome_completo} não está mais na rede (#{regra.map(&:descricao).join(" ou ")})"
   end
 
+  # A ligação allowing both (11/11/2026, Q1a): the one the card picked,
+  # "antes" until it picks.
   def momento_na_rede(acima, abaixo)
-    acima.ligacao_com(abaixo.materia_prima)&.dubla if acima.materia_prima && abaixo.materia_prima
+    ligacao = acima.ligacao_com(abaixo.materia_prima) if acima.materia_prima && abaixo.materia_prima
+    return ligacao&.dubla unless ligacao&.escolhe?
+
+    ligacao.permite?(abaixo.dubla) ? abaixo.dubla : "antes"
   end
 
   def regras_da_rede

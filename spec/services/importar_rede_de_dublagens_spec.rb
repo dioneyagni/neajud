@@ -58,6 +58,12 @@ RSpec.describe ImportarRedeDeDublagens do
     expect(LigacaoDublagem.order(:id).pluck(:lado, :dubla)).to eq([ [ nil, "antes" ], [ "avesso", "depois" ] ])
   end
 
+  # 11/11/2026 (Q1a): the file may allow both momentos.
+  it "imports a ligação that dubs antes e depois" do
+    importar(ligacao("dubla" => "antes e depois"))
+    expect(LigacaoDublagem.sole.dubla).to eq("antes e depois")
+  end
+
   it "refuses a group neither registered nor in grupos, writing nothing" do
     expect { importar(ligacao, grupos: papeis.except("Lona")) }.to raise_error(described_class::Invalida, /group "Lona" is not registered and not in grupos/)
     expect([ GrupoMaterial.count, LigacaoDublagem.count, SituacaoDublagem.count ]).to eq([ 0, 0, 0 ])

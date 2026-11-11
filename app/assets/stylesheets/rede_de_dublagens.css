@@ -138,17 +138,18 @@
 
 .ligacao-estampa { margin: 0; padding: 0; border: 0; min-width: 0; }
 
-.ligacao-seg {
+/* 11/11/2026 (Q1a): the estampa's momentos are checkboxes — both may be marked. */
+.ligacao-marcas {
   display: inline-flex;
+  flex-wrap: wrap;
   border: 1px solid #d3d0c6;
   border-radius: 10px;
   overflow: hidden;
 }
 
-.ligacao-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.ligacao-seg span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.9rem; cursor: pointer; background: #fff; }
-.ligacao-seg input:checked + span { background: #141414; color: #f7f5f0; }
-.ligacao-seg input:focus-visible + span { outline: 2px solid #2f5f96; outline-offset: -2px; }
+.ligacao-marcas label { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0 0.9rem; cursor: pointer; background: #fff; }
+.ligacao-marcas label + label { border-left: 1px solid #d3d0c6; }
+.ligacao-marcas input { margin: 0; }
 
 .ligacao-secao { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; }
 .ligacao-secao p { margin: 0; }

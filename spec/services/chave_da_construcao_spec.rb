@@ -63,6 +63,21 @@ RSpec.describe ChaveDaConstrucao do
     expect(conflito.dublagens.map { |dublagem| [ dublagem.letra, dublagem.momento_real, dublagem.conflito? ] }).to eq([ [ "DUB-A", "depois", false ], [ "DUB-B", "depois", true ] ])
   end
 
+  # 11/11/2026 (Q1a/Q2a): a ligação allowing both — the card picks, "antes"
+  # until it does; once the letra with the superfície is after, so is the
+  # one joining it, with no conflict.
+  it "lets a ligação allowing both follow the card's pick, or the letra it joins" do
+    grupos = GrupoMaterial.where(nome: %w[Oxford Lona Espuma]).index_by(&:nome)
+    LigacaoDublagem.do_par(grupos["Oxford"], grupos["Lona"]).sole.update!(dubla: "antes e depois")
+    LigacaoDublagem.do_par(grupos["Lona"], grupos["Espuma"]).sole.update!(dubla: "antes e depois")
+    construcao = construcao_com([ oxford, lona, espuma ], [ 1, 2 ])
+    leitura = -> { described_class.new(construcao).dublagens.map { |dublagem| [ dublagem.letra, dublagem.momento_real, dublagem.escolhe_momento?, dublagem.momento_obrigado?, dublagem.conflito? ] } }
+
+    expect(leitura.()).to eq([ [ "DUB-A", "antes", true, false, false ], [ "DUB-B", "antes", true, false, false ] ])
+    construcao.camadas_em_ordem.second.dubla = "depois"
+    expect(leitura.()).to eq([ [ "DUB-A", "depois", true, false, false ], [ "DUB-B", "depois", false, true, false ] ])
+  end
+
   it "keeps the pieces not joined yet apart, and says where a layer is" do
     aberta = described_class.new(construcao_com([ oxford, lona, espuma, helanca ], [ 1, nil, 1 ]))
 

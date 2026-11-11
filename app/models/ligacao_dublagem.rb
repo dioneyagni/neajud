@@ -21,7 +21,8 @@ class LigacaoDublagem < ApplicationRecord
   scope :do_par, ->(grupo_a, grupo_b) { where(grupo_a: grupo_a, grupo_b: grupo_b).or(where(grupo_a: grupo_b, grupo_b: grupo_a)) }
 
   validates :lado, inclusion: { in: RedeDeDublagens::LADOS, message: "%{value} is not a side; expected #{RedeDeDublagens::LADOS.join(" or ")}" }, allow_nil: true
-  validates :dubla, inclusion: { in: RedeDeDublagens::DUBLA, message: "%{value} is not a momento; expected #{RedeDeDublagens::DUBLA.join(" or ")}" }
+  validates :dubla, presence: { message: "marque antes, depois ou os dois" }
+  validates :dubla, inclusion: { in: RedeDeDublagens::DUBLA_DA_LIGACAO, message: "%{value} is not a momento; expected #{RedeDeDublagens::DUBLA_DA_LIGACAO.join(", ")}" }, allow_nil: true
   validate :a_confirmar_conhecido
   validate :par_unico
 

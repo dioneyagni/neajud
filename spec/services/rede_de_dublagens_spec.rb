@@ -16,6 +16,16 @@ RSpec.describe RedeDeDublagens do
     expect(described_class.ligacao("Lona", "EVA")).to be_nil
   end
 
+  # 11/11/2026 (Q1a): a ligação may allow both momentos.
+  it "reads a ligação's momentos, both when it allows antes e depois" do
+    LigacaoDublagem.do_par(GrupoMaterial.find_by!(nome: "Oxford"), GrupoMaterial.find_by!(nome: "Lona")).sole.update!(dubla: "antes e depois")
+    ligacao = described_class.ligacao("Oxford", "Lona")
+
+    expect([ ligacao.momentos, ligacao.escolhe?, ligacao.permite?("depois") ]).to eq([ %w[antes depois], true, true ])
+    expect(described_class.ligacao("Oxford", "EVA")).to have_attributes(momentos: [ "antes" ], escolhe?: false)
+    expect([ described_class.dubla_de(%w[depois antes]), described_class.dubla_de([ "", "depois" ]), described_class.dubla_de([ "" ]) ]).to eq([ "antes e depois", "depois", nil ])
+  end
+
   it "lists a group's ligações and the other group of each" do
     expect(described_class.ligacoes_de("Espuma").map { |l| l.outro("Espuma") }).to contain_exactly("Oxford", "Helanca")
   end

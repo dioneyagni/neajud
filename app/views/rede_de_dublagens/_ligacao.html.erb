@@ -10,7 +10,7 @@
       <%= ligacao.situacoes.key?(situacao) ? ligacao.situacoes[situacao].map(&:descricao).join(" ou ") : "—" %>
     </td>
   <% end %>
-  <td><span class="rede-chip rede-chip--<%= ligacao.dubla %>">dubla <%= ligacao.dubla %></span></td>
+  <td><% ligacao.momentos.each do |momento| %><span class="rede-chip rede-chip--<%= momento %>">dubla <%= momento %></span> <% end %></td>
   <td class="rede-marcas">
     <% if ligacao.a_confirmar? %>
       <span class="rede-chip rede-chip--confirmar">a confirmar: <%= RedeDeDublagens::ROTULOS_A_CONFIRMAR.values_at(*ligacao.a_confirmar).join(", ") %></span>

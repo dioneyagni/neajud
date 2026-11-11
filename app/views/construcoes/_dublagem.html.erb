@@ -13,7 +13,20 @@
   <div class="construcao-dublagem-topo">
     <span class="construcao-letra"><%= dublagem.letra %></span>
     <span class="construcao-dublagem-nome"><%= dublagem.lados.map(&:nome).join(" / ") %></span>
-    <span class="rede-chip rede-chip--<%= dublagem.momento_real %>" data-momento><%= dublagem.momento_real %> da Calandra</span>
+    <% if dublagem.escolhe_momento? %>
+      <%# 11/11/2026 (Q2a): the ligação allows both, the card picks — "antes" until it does. %>
+      <fieldset class="construcao-momento" data-momento="<%= dublagem.momento_real %>" data-escolhe-momento>
+        <legend class="construcao-momento-rotulo">Momento da <%= dublagem.letra %></legend>
+        <% RedeDeDublagens::DUBLA.each do |momento| %>
+          <label class="construcao-momento-opcao construcao-momento-opcao--<%= momento %>">
+            <input type="radio" name="<%= campo %>[dubla]" value="<%= momento %>" <%= "checked" if dublagem.momento_real == momento %> data-action="change->construcao#montar"><span><%= momento %></span>
+          </label>
+        <% end %>
+        <span class="construcao-momento-fim">da Calandra</span>
+      </fieldset>
+    <% else %>
+      <span class="rede-chip rede-chip--<%= dublagem.momento_real %>" data-momento="<%= dublagem.momento_real %>"><%= dublagem.momento_real %> da Calandra<% if dublagem.momento_obrigado? && dublagem.ligacao.escolhe? && !em_uso %> · a <%= dublagem.letra_com_superficie.letra %> já é depois<% end %></span>
+    <% end %>
   </div>
   <%= render "lado", lado: dublagem.cima, qual: "cima", dublagem: dublagem, chave: chave, em_uso: em_uso %>
   <%= render "ligante", dublagem: dublagem, campo: campo, em_uso: em_uso, mudanca: mudanca %>

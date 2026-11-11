@@ -6,7 +6,7 @@
 # no line. origem "construcao": made from a construção's card (Dublagem
 # 5b1b), and the histórico says so.
 #
-# dados: { grupo_a_uuid:, grupo_b_uuid:, lado:, dubla:, a_confirmar: [],
+# dados: { grupo_a_uuid:, grupo_b_uuid:, lado:, dubla: ["antes", "depois"] (or one, a string too), a_confirmar: [],
 #          ligantes: [{ grupo_uuid:, micras: "25, 35" }],
 #          situacoes: { "tecido_molha" => [{ grupo_uuid:, micras: }] } }
 # grupos, situacoes: the visible scopes to look them up in.
@@ -43,7 +43,7 @@ class SalvarLigacao
 
   def aplicar
     aplicar_grupos if @ligacao.new_record?
-    @ligacao.assign_attributes(lado: @dados[:lado].presence, dubla: @dados[:dubla], a_confirmar: Array(@dados[:a_confirmar]).compact_blank.uniq)
+    @ligacao.assign_attributes(lado: @dados[:lado].presence, dubla: RedeDeDublagens.dubla_de(@dados[:dubla]), a_confirmar: Array(@dados[:a_confirmar]).compact_blank.uniq)
     @ligacao.ligantes.each(&:mark_for_destruction)
     linhas = linhas_dos_ligantes
     @erros << "escolha ao menos um ligante" if linhas.none? { |_, situacao| situacao.nil? }

@@ -33,6 +33,7 @@
         <select class="construcao-campo" aria-label="Momento da ligação nova da <%= dublagem.letra %>" data-rede-momento>
           <option value="depois">depois da estampa</option>
           <option value="antes">antes da estampa</option>
+          <option value="antes e depois">antes ou depois da estampa</option>
         </select>
         <select class="construcao-campo" aria-label="Ligante da ligação nova da <%= dublagem.letra %>" data-rede-ligante>
           <% @grupos_de_ligante.each do |grupo| %><option value="<%= grupo.uuid %>"><%= grupo.nome %></option><% end %>

@@ -140,8 +140,22 @@ class ChaveDaConstrucao
       acima_da_juncao.ligacao_com(juncao.materia_prima)
     end
 
-    # The network's antes/depois da estampa — in use, as the layer kept it.
-    def momento_da_rede = @chave.em_uso ? juncao.dubla : ligacao&.dubla
+    # The network's antes/depois da estampa — in use, as the layer kept it;
+    # a ligação allowing both, the one the card picked ("antes" until then).
+    def momento_da_rede
+      return juncao.dubla if @chave.em_uso
+      return ligacao&.dubla unless ligacao&.escolhe?
+
+      ligacao.permite?(juncao.dubla) ? juncao.dubla : "antes"
+    end
+
+    # The card picks antes or depois (Q2a): the ligação allows both, the
+    # superfície is in it and nothing forces it.
+    def escolhe_momento? = !@chave.em_uso && superficie? && ligacao&.escolhe? && !momento_obrigado?
+
+    # The letra with the superfície it joins already dubs after: so does it.
+    # Usage: dub_b.momento_obrigado? # => true ("a DUB-A já é depois")
+    def momento_obrigado? = superficie? && ligacao&.permite?("depois") && letra_com_superficie&.momento_real == "depois"
 
     # Against the Calandra (5b, Q5a): without the superfície it is made
     # before, in parallel with the Impressão; with it, after when its pair
@@ -156,7 +170,8 @@ class ChaveDaConstrucao
     def letra_com_superficie = letras_usadas.find(&:superficie?)
 
     # A pair dubbed before the estampa onto a piece already dubbed after it.
-    def conflito? = superficie? && momento_da_rede == "antes" && letra_com_superficie&.momento_real == "depois"
+    # Not when the ligação also allows after (11/11/2026): it follows.
+    def conflito? = superficie? && momento_da_rede == "antes" && letra_com_superficie&.momento_real == "depois" && !momento_obrigado?
 
     # The estampa goes on it: the last dublagem with the superfície before
     # the Calandra.
