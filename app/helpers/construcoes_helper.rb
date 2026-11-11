@@ -11,6 +11,14 @@ module ConstrucoesHelper
     partes.compact.join(" · ")
   end
 
+  # Dublagem 5b1c1: an item's letras by the stage that makes them.
+  # Usage: letras_no_pedido(item) # => "DUB-A, DUB-B, DUB-C (Dublagem) · DUB-D (Dublagem final)"
+  def letras_no_pedido(item)
+    item.letras_da_dublagem.group_by(&:momento_real).sort.map do |momento, letras|
+      "#{letras.map(&:letra).join(", ")} (#{momento == "antes" ? "Dublagem" : "Dublagem final"})"
+    end.join(" · ")
+  end
+
   # The superfície's letra still before the Calandra is the Calandra's to
   # wait for: it prints on it.
   def espera_da_dublagem(dublagem)

@@ -30,7 +30,9 @@
 </div>
 <%= render "pedidos/etapa_andamento", pedido: @pedido, etapa: @etapa, situacoes: @situacoes %>
 
-<% if @linhas.any? %>
+<% if @etapa.linhas == "dublagem" %>
+  <%= render "producao_tecido/linhas_da_dublagem" %>
+<% elsif @linhas.any? %>
   <table class="clients-table corte-tabela producao-blocos producao-tecido-tabela">
     <thead>
       <tr>

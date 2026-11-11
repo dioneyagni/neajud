@@ -140,7 +140,8 @@ class LinhaDoPainel
   # Usage: linha.trava # => "Estamparia espera Corte"
   def trava
     presa = celulas.find { |_, c| %i[pendencia travada].include?(c.estado) }
-    presa && "#{COLUNAS.fetch(presa.first)}: #{presa.last.detalhe || presa.last.texto}"
+    # Dublagem 5b1c1: the Dublagem stages have no column until 5b1c2.
+    presa && "#{COLUNAS.fetch(presa.first) { EtapasProducao.etapa(pedido.tipo, presa.first).nome }}: #{presa.last.detalhe || presa.last.texto}"
   end
 
   # The stages in steps (CaminhoDoPedido), each with its column; one it

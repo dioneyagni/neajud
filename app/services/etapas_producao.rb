@@ -10,14 +10,15 @@ class EtapasProducao
   ARQUIVO = Rails.root.join("config", "etapas_producao.yml")
   MEDIDAS = %w[metragem quantidade].freeze
   ESPERADOS = %w[papel tecido pecas filme metros].freeze
-  LINHAS = %w[impressao corte dtf tecido].freeze
+  LINHAS = %w[impressao corte dtf tecido dublagem].freeze
   NIVEIS = %w[linha referencia pedido].freeze
   # What a metragem stage takes from the stock (Etapa 2.3e): the pedido's
   # paper or film, or each line's fabric.
   MATERIAIS = %w[impressao linha].freeze
   # What a stage's `quando` may ask of the pedido (Etapa 2.6b2, decided
   # 15/10/2026: the DTF's Corte only when it is delivered cut).
-  QUANDO = { "entrega" => Pedido::ENTREGAS }.freeze
+  # Dublagem 5b1c1: the tecido's Dublagem stages when an item is dubbed in it.
+  QUANDO = { "entrega" => Pedido::ENTREGAS, "dublagem" => Pedido::DUBLAGENS }.freeze
   # What a stage's rhythm counts when it is not its baixa's measure (Painel
   # 2/4a2, decided 06/11/2026): papel — the meters of paper of its lines (the
   # calçado's Estamparia, counted in pieces); maquina_de_corte — the cutting

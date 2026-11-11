@@ -46,6 +46,22 @@ module Construcoes
     construcao
   end
 
+  # Dublagem 5b1c1: the canvas's chave with this network's groups — DUB-A
+  # Oxford/Oxford and DUB-B Espuma/Helanca in the 1st dublagem, DUB-C =
+  # DUB-B with Espuma in the 2nd, DUB-D = DUB-A with DUB-C in the 3rd
+  # (Oxford–Espuma dubs after the estampa): dubbed in the pedido.
+  # Usage: construcao = construcao_dublada_no_pedido
+  def construcao_dublada_no_pedido(preco_final: 90)
+    oxford = material_de_dublagem("Oxford", preco: 20)
+    espuma = material_de_dublagem("Espuma", densidade: "TC4")
+    construcao = Construcao.new(preco_final: preco_final)
+    construcao.definir_camadas([ { materia_prima: oxford, lado: "trama" },
+                                 { materia_prima: oxford, ligante: material_de_dublagem("Filme", tipo: "filme", micras: 35), ordem_da_dublagem: 1 },
+                                 { materia_prima: espuma, ordem_da_dublagem: 3 }, { materia_prima: material_de_dublagem("Helanca"), ordem_da_dublagem: 1 },
+                                 { materia_prima: espuma, ordem_da_dublagem: 2 } ])
+    construcao.tap(&:save!)
+  end
+
   # Dublagem 5a: a confirmed tecido pedido whose corrida is dubbed into the
   # construção, its stock out taken (the dublado, from the construção's owner).
   # Usage: pedido = pedido_dublado_confirmado(construcao, metros: 10)

@@ -211,15 +211,10 @@ class RegistrarBaixaService
   def estado_da(linha)
     return [ :feita ] if feitas(@etapa.chave).include?(linha.chave)
 
-    # A reposição's line may skip printing or cutting again (09/10/2026).
-    travas = @etapa.trava - Array(linha.dispensa)
-    esperando = travas.find { |trava| !feitas(trava).include?(chave_na(trava, linha)) && chave_na(trava, linha) }
-    esperando ? [ :aguardando, EtapasProducao.etapa(@pedido.tipo, esperando).nome ] : [ :aberta ]
-  end
-
-  # The line's key in a locking stage: its Corte line, or itself.
-  def chave_na(trava, linha)
-    EtapasProducao.etapa(@pedido.tipo, trava).linhas == "corte" ? linha.corte_chave : linha.chave
+    # A reposição's line may skip printing or cutting again (09/10/2026);
+    # a dublagem line waits line by line (5b1c1): LinhasDeProducao::Linha#esperas.
+    esperando = linha.esperas(@etapa, @pedido.tipo).find { |espera| espera.chave && !feitas(espera.etapa).include?(espera.chave) }
+    esperando ? [ :aguardando, esperando.nome ] : [ :aberta ]
   end
 
   def baixas_por_chave

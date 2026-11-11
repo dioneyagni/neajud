@@ -52,16 +52,20 @@ RSpec.describe EtapasProducao do
     it "raises naming a wrong condition" do
       errado = { "dtf" => [ { "chave" => "corte", "nome" => "Corte", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "dtf", "niveis" => %w[linha], "quando" => { "entrega" => "dobrada", "cor" => "azul" } } ] }
       expect { described_class.send(:ler, errado) }.to raise_error(described_class::Invalida,
-        'dtf/corte: quando entrega "dobrada" is not one of rolo, cortada; quando "cor" is not one of entrega')
+        'dtf/corte: quando entrega "dobrada" is not one of rolo, cortada; quando "cor" is not one of entrega, dublagem')
     end
   end
 
   # Etapa 2.7c (decided 19/10/2026): the paper printed, then the Calandra
   # onto the fabric after the line's paper — both the item's meters.
-  it "reads the tecido's Impressão and Calandra" do
+  # Dublagem 5b1c1: the Dublagem stages only when an item is dubbed in it.
+  it "reads the tecido's Impressão and Calandra, and the Dublagem stages of a pedido dubbed in it" do
     expect(described_class.do_tipo("tecido").map { |e| [ e.chave, e.medida, e.esperado, e.linhas, e.niveis, e.trava ] }).to eq([
-      [ "impressao", "metragem", "metros", "tecido", %w[linha pedido], [] ], [ "calandra", "metragem", "metros", "tecido", %w[linha pedido], %w[impressao] ]
+      [ "impressao", "metragem", "metros", "tecido", %w[linha pedido], [] ], [ "dublagem", "metragem", "metros", "dublagem", %w[linha pedido], [] ],
+      [ "calandra", "metragem", "metros", "tecido", %w[linha pedido], %w[impressao dublagem] ],
+      [ "dublagem_final", "metragem", "metros", "dublagem", %w[linha pedido], %w[calandra dublagem] ]
     ])
+    expect(described_class.do_tipo("tecido", pedido: build(:pedido, tipo: "tecido")).map(&:chave)).to eq(%w[impressao calandra])
   end
 
   it "counts a calçado stage's quantity in pieces" do
@@ -72,7 +76,7 @@ RSpec.describe EtapasProducao do
   it "says which stages adjust the stock, and of what" do
     materiais = %w[calcado dtf tecido].to_h { |tipo| [ tipo, described_class.do_tipo(tipo).to_h { |e| [ e.chave, e.material ] } ] }
     expect(materiais).to eq("calcado" => { "impressao" => "impressao", "corte" => "linha", "estamparia" => nil, "conferencia" => nil },
-                            "dtf" => { "impressao" => "impressao", "corte" => nil }, "tecido" => { "impressao" => "impressao", "calandra" => "linha" })
+                            "dtf" => { "impressao" => "impressao", "corte" => nil }, "tecido" => { "impressao" => "impressao", "dublagem" => nil, "calandra" => "linha", "dublagem_final" => nil })
     expect(described_class.etapa("calcado", "corte").ajusta_estoque?).to be(true)
     errado = { "calcado" => [ { "chave" => "estamparia", "nome" => "E", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "impressao", "niveis" => %w[linha], "material" => "papel" },
                               { "chave" => "conferencia", "nome" => "C", "medida" => "quantidade", "esperado" => "pecas", "linhas" => "impressao", "niveis" => %w[linha], "material" => "linha" } ] }

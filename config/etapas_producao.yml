@@ -10,15 +10,18 @@
 #            pecas (the pieces of the lines; a DTF line's printed units),
 #            metros (a tecido item's meters)
 #   linhas:  whose lines — impressao (arte × part × size × side), corte
-#            (part × DXF size × material), dtf (etiqueta × size) or tecido
-#            (arte × fabric: the item)
+#            (part × DXF size × material), dtf (etiqueta × size), tecido
+#            (arte × fabric: the item) or dublagem (item × letra of its
+#            construção's chave, Dublagem 5b1c1)
 #   niveis:  where a baixa may be given — linha, referencia (the arte), pedido
 #   trava:   stages that must have the line's baixa first (no stamping without
 #            paper printed and pieces cut). A part "não corta" skips corte.
 #   reposicao: a baixa with fewer pieces than expected makes a reposição
 #            sub-pedido of the missing ones (Etapa 2.2, 4/4)
 #   quando:  the stage exists only for pedidos with these values (Etapa
-#            2.6b2: the DTF's Corte only when delivered cut)
+#            2.6b2: the DTF's Corte only when delivered cut; Dublagem
+#            5b1c1: the tecido's Dublagem stages only when an item is dubbed
+#            in the pedido)
 #   material: what its metragem takes from the stock, adjusted by the baixa
 #            (Etapa 2.3e) — impressao (the pedido's paper or DTF film) or
 #            linha (each line's fabric); none: the stock is not touched
@@ -82,6 +85,14 @@ dtf:
 # Etapa 2.7c (decided 19/10/2026): a line per item (arte × fabric); the
 # paper printed, then the Calandra transfers it onto the fabric — both in
 # meters, the item's meters expected. No Conferência or reposição yet.
+# Dublagem 5b1c1 (decided 11/11/2026; plano 2.9, 5b Q5a–Q8a): an item whose
+# construção has a dublagem after the Calandra is dubbed in the pedido — a
+# line per item × letra, the letras before the Calandra in Dublagem (in
+# parallel with the Impressão), the ones after in Dublagem final. Each line
+# waits for what its letra joins and the Calandra for the letra the estampa
+# goes on (LinhasDeProducao's espera; the trava below is for the path and
+# the queue). Their baixa takes nothing from the stock (Q2a): the
+# confirmation took each layer and ligante.
 tecido:
   - chave: impressao
     nome: Impressão
@@ -90,6 +101,14 @@ tecido:
     linhas: tecido
     material: impressao
     niveis: [linha, pedido]
+  - chave: dublagem
+    nome: Dublagem
+    medida: metragem
+    esperado: metros
+    linhas: dublagem
+    niveis: [linha, pedido]
+    quando:
+      dublagem: no_pedido
   - chave: calandra
     nome: Calandra
     medida: metragem
@@ -97,4 +116,13 @@ tecido:
     linhas: tecido
     material: linha
     niveis: [linha, pedido]
-    trava: [impressao]
+    trava: [impressao, dublagem]
+  - chave: dublagem_final
+    nome: Dublagem final
+    medida: metragem
+    esperado: metros
+    linhas: dublagem
+    niveis: [linha, pedido]
+    trava: [calandra, dublagem]
+    quando:
+      dublagem: no_pedido
