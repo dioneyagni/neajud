@@ -3,7 +3,9 @@
 // where it is used and its histórico. "+ Ligação" creates one; a ligação
 // goes to the trash (confirmed on the page) and back from the Lixeira. A
 // construção in use keeps what it was made with and says "a rede mudou".
-// Without "Editar a rede de dublagens" the page is read only.
+// Without "Editar a rede de dublagens" the page is read only. Since
+// 11/11/2026 (Q1a/Q2a, canvas "Estampa: dubla antes e depois") the Estampa
+// is two checkboxes: marking both, a construção picks on its card.
 //
 // It changes Oxford com Lona and sets it back at the end, so the specs
 // after it find the initial network.
@@ -34,6 +36,7 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
 
   await test("Setup: Oxford over Lona with Filme 35 µm, a construção whose dublado is in stock (in use)", async () => {
     const dublagem = await prepararDublagem(page, `${U}g`);
+    ids.dublagem = dublagem;
     ids.construcao = await salvarConstrucao(page, dublagem, { lado: "trama", situacao: "" });
     await colocarEmUso(page, ids.construcao);
   });
@@ -44,6 +47,8 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
     await page.locator("#ligacao_grupo_a_uuid").waitFor();
     await page.selectOption("#ligacao_grupo_a_uuid", { label: "Lona" });
     await page.selectOption("#ligacao_grupo_b_uuid", { label: "EVA" });
+    // A new one starts with antes marked: only depois.
+    await page.locator('label:has-text("dubla antes")').click();
     await page.locator('label:has-text("dubla depois")').click();
     await page.selectOption('[data-ligantes][data-nome="ligacao[ligantes]"] select', { label: "Cola" });
     await page.locator('[data-nome="ligacao[ligantes]"] button:has-text("+ ligante")').click();
@@ -71,6 +76,7 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
   await test("Editing Oxford com Lona: before → after, a situação back to the usual ligantes, one line in the histórico", async () => {
     await abrirLigacao("Oxford", "Lona");
     if ((await page.locator("[data-grupo-a]").innerText()) !== "Oxford") throw new Error("An existing ligação's groups aren't plain text");
+    await page.locator('label:has-text("dubla antes")').click();
     await page.locator('label:has-text("dubla depois")').click();
     await page.locator('[data-situacao="tecido_molha"] button:has-text("voltar aos de cima")').click();
     await page.locator('[data-situacao="vai_frequencia"] button:has-text("mudar")').click();
@@ -94,6 +100,34 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
     if ((await page.locator(`.construcoes-item:has(a[href="/construcoes/${ids.construcao}/edit"]) .rede-chip--mudou`).count()) !== 1) {
       throw new Error("The list doesn't mark the construção 'a rede mudou'");
     }
+  });
+
+  await test("Marking both momentos: the rede shows both, the construção in use no longer differs, a new one picks depois on its card", async () => {
+    await abrirLigacao("Oxford", "Lona");
+    await page.locator('label:has-text("dubla antes")').click();
+    await salvar("Oxford com Lona: salva.");
+    const historico = await texto("[data-historico]");
+    if (!historico.includes("dubla depois → antes e depois")) throw new Error(`The histórico says ${historico}`);
+    await page.goto(`${BASE_URL}/rede-de-dublagens`);
+    const chips = await page.locator('.rede-grupo[data-grupo="Oxford"] .rede-ligacao[data-par="Oxford–Lona"] .rede-chip--antes, .rede-grupo[data-grupo="Oxford"] .rede-ligacao[data-par="Oxford–Lona"] .rede-chip--depois').allInnerTexts();
+    if (chips.join("|") !== "dubla antes|dubla depois") throw new Error(`The rede shows ${chips}`);
+
+    // Q1a: it kept antes, which the network allows again — nothing to warn.
+    await page.goto(`${BASE_URL}/construcoes/${ids.construcao}/edit`);
+    if ((await page.locator("[data-rede-mudou]").count()) !== 0) throw new Error(`The construção in use says ${await texto("[data-rede-mudou]")}`);
+
+    // Q2a: the card's chip picks, antes until it does.
+    const nova = await salvarConstrucao(page, ids.dublagem, { lado: "avesso", situacao: "" });
+    await page.goto(`${BASE_URL}/construcoes/${nova}/edit`);
+    const momento = page.locator("[data-escolhe-momento]");
+    if ((await momento.getAttribute("data-momento")) !== "antes") throw new Error("The picker doesn't start at antes");
+    await page.locator("#construcao-montagem").evaluate((bloco) => { bloco.dataset.antigo = "1"; });
+    await Promise.all([page.waitForResponse((r) => r.url().includes("/construcoes/montar") && r.ok()), momento.locator('label:has-text("depois")').click()]);
+    await page.locator("#construcao-montagem:not([data-antigo]) [data-escolhe-momento][data-momento=depois]").waitFor();
+    if (!(await texto("[data-produto]")).includes("feito no pedido")) throw new Error(`The product says ${await texto("[data-produto]")}`);
+    await page.locator(".construcao-salvar").click();
+    await waitForText(page, ": salva.");
+    if (!(await page.locator('[data-escolhe-momento] input[value="depois"]').isChecked())) throw new Error("The pick wasn't saved");
   });
 
   await test("The trash asks on the page: Cancel keeps it, confirming takes it out of the network, the Lixeira restores it", async () => {
@@ -148,7 +182,8 @@ runSpec("Rede editável E2E Tests", async ({ page, test }) => {
     await page.waitForURL("**/session/new");
     await entrar(page, BASE_URL);
     await abrirLigacao("Oxford", "Lona");
-    await page.locator('label:has-text("dubla antes")').click();
+    // Both are marked: only antes again.
+    await page.locator('label:has-text("dubla depois")').click();
     await page.locator('[data-situacao="vai_frequencia"] button:has-text("voltar aos de cima")').click();
     await page.locator('[data-situacao="tecido_molha"] button:has-text("mudar")').click();
     await page.locator('[data-situacao="tecido_molha"] .ligacao-ligante select').selectOption({ label: "Filme PU" });

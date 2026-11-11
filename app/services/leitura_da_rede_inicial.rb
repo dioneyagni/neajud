@@ -59,7 +59,7 @@ class LeituraDaRedeInicial
   def erros_da_ligacao(dados, situacoes)
     (dados.keys - CAMPOS).map { |campo| "unknown field #{campo.inspect}; expected some of #{CAMPOS.join(", ")}" } +
       erros_do_par(dados["par"]) +
-      erros_de_valor("lado", dados["lado"], RedeDeDublagens::LADOS, opcional: true) + erros_de_valor("dubla", dados["dubla"], RedeDeDublagens::DUBLA) +
+      erros_de_valor("lado", dados["lado"], RedeDeDublagens::LADOS, opcional: true) + erros_de_valor("dubla", dados["dubla"], RedeDeDublagens::DUBLA_DA_LIGACAO) +
       erros_dos_ligantes("ligantes", dados["ligantes"]) +
       erros_das_situacoes(dados["situacoes"], situacoes) +
       (Array(dados["a_confirmar"]) - RedeDeDublagens::A_CONFIRMAR).map { |campo| "a_confirmar #{campo.inspect} is not one of #{RedeDeDublagens::A_CONFIRMAR.join(", ")}" }

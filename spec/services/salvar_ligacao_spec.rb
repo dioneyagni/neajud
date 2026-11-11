@@ -45,6 +45,18 @@ RSpec.describe SalvarLigacao do
                                                 "Tecido molha: Filme PU → os de cima; a confirmar: situações → nenhum")
   end
 
+  # 11/11/2026 (Q1a): the page's checkboxes, and 5b1b's card's one string.
+  it "keeps both momentos marked as antes e depois, from the page's list or the card's string" do
+    ligacao = LigacaoDublagem.do_par(grupo.("Oxford"), grupo.("Lona")).sole
+    ligantes = [ { grupo_uuid: grupo.("Filme").uuid, micras: "35 ou mais" } ]
+
+    expect(salvar.(ligacao, { dubla: [ "", "depois", "antes" ], ligantes: ligantes })).to be(true)
+    expect(RedeDeDublagens.ligacao("Oxford", "Lona")).to have_attributes(dubla: "antes e depois", momentos: %w[antes depois])
+    nova = LigacaoDublagem.new
+    expect(salvar.(nova, { grupo_a_uuid: grupo.("Lona").uuid, grupo_b_uuid: grupo.("EVA").uuid, dubla: "antes e depois", ligantes: ligantes })).to be(true)
+    expect(nova.reload.dubla).to eq("antes e depois")
+  end
+
   it "writes no line when nothing changed" do
     ligacao = LigacaoDublagem.do_par(grupo.("Oxford"), grupo.("EVA")).sole
     dados = { lado: "", dubla: "antes", a_confirmar: [ "situacoes" ], ligantes: [ { grupo_uuid: grupo.("Filme").uuid, micras: "25" } ],
@@ -58,6 +70,8 @@ RSpec.describe SalvarLigacao do
     nova = LigacaoDublagem.new
     expect(salvar.(nova, { dubla: "antes", ligantes: [ { grupo_uuid: grupo.("Filme").uuid, micras: "muito" } ] })).to be(false)
     expect(nova.errors.full_messages).to include("escolha os dois grupos", a_string_including('micras "muito" de Filme: esperado vazio (qualquer)'))
+    expect(salvar.(nova, { dubla: [ "" ], ligantes: [] })).to be(false)
+    expect(nova.errors.full_messages).to include("Dubla marque antes, depois ou os dois")
 
     repetida = LigacaoDublagem.new
     expect(salvar.(repetida, { grupo_a_uuid: grupo.("Lona").uuid, grupo_b_uuid: grupo.("Oxford").uuid, dubla: "antes", ligantes: [] })).to be(false)

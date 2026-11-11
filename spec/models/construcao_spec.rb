@@ -105,6 +105,25 @@ RSpec.describe Construcao do
     expect([ livre.camadas.last.reload.dubla, em_uso.camadas.last.reload.dubla ]).to eq(%w[depois antes])
   end
 
+  # 11/11/2026 (Q1a): a ligação allowing both keeps the card's pick when
+  # saved, "antes" until it picks; once in use, the network marking both
+  # still allows what it kept — no "a rede mudou".
+  it "keeps the momento the card picked where the ligação allows both" do
+    ligacao = LigacaoDublagem.do_par(oxford.grupo_material, lona.grupo_material).sole
+    ligacao.update!(dubla: "antes e depois")
+    construcao = montar_construcao([ oxford, "trama" ], [ lona, filme_35 ]).tap(&:save!)
+    expect([ construcao.camadas.last.dubla, construcao.dubla_antes? ]).to eq([ "antes", true ])
+
+    construcao.camadas_em_ordem.last.dubla = "depois"
+    construcao.save!
+    expect([ construcao.reload.camadas.last.dubla, construcao.dubla_antes? ]).to eq([ "depois", false ])
+
+    MovimentoEstoque.create!(materia_prima: construcao.materia_prima, tipo: "entrada", quantidade: 10, da_empresa: true)
+    expect(construcao.reload.mudancas_da_rede).to eq([])
+    ligacao.update!(dubla: "antes")
+    expect(construcao.reload.mudancas_da_rede.map(&:texto)).to eq([ "guardou dubla depois; a rede agora diz antes" ])
+  end
+
   # Rede editável 2/2a (Q6a): a construção in use shows where the network is
   # no longer what it was made with — the momento, the ligante, the ligação
   # gone — and is not checked against the network, so its price still saves.

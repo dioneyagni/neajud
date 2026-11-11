@@ -20,7 +20,8 @@ RSpec.describe "Ligações da rede de dublagens", type: :request do
     get rede_ligacao_path(ligacao)
     html = Nokogiri::HTML(response.body)
     expect(html.at_css("h2").text.squish).to eq("Oxford com Lona")
-    expect(html.at_css("input[name='ligacao[dubla]'][value=depois]")["checked"]).not_to be_nil
+    expect(html.at_css("input[name='ligacao[dubla][]'][value=depois]")["checked"]).not_to be_nil
+    expect(html.at_css("input[name='ligacao[dubla][]'][value=antes]")["checked"]).to be_nil
     expect(html.at_css("input[name='ligacao[ligantes][][micras]']")["value"]).to eq("35 ou mais")
     expect(html.at_css("[data-uso]").text.squish).to include(construcao.nome, "em uso", "a rede mudou")
     expect(html.at_css("[data-historico]").text.squish).to include("#{@usuario_logado.nome} · dubla antes → depois; Tecido molha: Filme PU → os de cima; a confirmar: situações → nenhum")
@@ -30,6 +31,24 @@ RSpec.describe "Ligações da rede de dublagens", type: :request do
     expect(Nokogiri::HTML(response.body).at_css("[data-rede-mudou]").text.squish).to include("a rede mudou: guardou dubla antes; a rede agora diz depois", "ver na rede")
     get construcoes_path
     expect(response.body).to include("a rede mudou")
+  end
+
+  # 11/11/2026 (Q1a): both may be marked; none is refused.
+  it "marks both momentos, shows both in the network's list and refuses none" do
+    importar_rede_de_dublagens
+    linha = { ligantes: [ { grupo_uuid: grupo.("Filme").uuid, micras: "35 ou mais" } ] }
+    patch rede_ligacao_path(ligacao), params: { ligacao: linha.merge(dubla: [ "", "antes", "depois" ]) }
+
+    expect(ligacao.reload.dubla).to eq("antes e depois")
+    expect(ligacao.alteracoes.first.texto).to start_with("dubla antes → antes e depois")
+    get rede_de_dublagens_path
+    estampa = Nokogiri::HTML(response.body).at_css(".rede-grupo[data-grupo=Oxford] tr[data-par='Oxford–Lona']").css(".rede-chip--antes, .rede-chip--depois")
+    expect(estampa.map(&:text)).to eq([ "dubla antes", "dubla depois" ])
+
+    patch rede_ligacao_path(ligacao), params: { ligacao: linha.merge(dubla: [ "" ]) }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("marque antes, depois ou os dois")
+    expect(ligacao.reload.dubla).to eq("antes e depois")
   end
 
   it "creates a ligação from + Ligação, the group it came from picked first" do

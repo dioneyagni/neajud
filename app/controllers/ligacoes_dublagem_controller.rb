@@ -69,7 +69,7 @@ class LigacoesDublagemController < ApplicationController
   def dados_do_formulario
     linha = %i[grupo_uuid micras]
     chaves = visiveis(SituacaoDublagem).pluck(:chave)
-    params.require(:ligacao).permit(:grupo_a_uuid, :grupo_b_uuid, :lado, :dubla, a_confirmar: [], ligantes: linha,
+    params.require(:ligacao).permit(:grupo_a_uuid, :grupo_b_uuid, :lado, :dubla, dubla: [], a_confirmar: [], ligantes: linha,
                                     situacoes: chaves.index_with { linha }).to_h
   end
 

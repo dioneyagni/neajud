@@ -7,7 +7,7 @@ module ConstrucoesHelper
   def texto_da_dublagem(dublagem, situacao)
     partes = [ ("a estampa vai aqui" if dublagem.recebe_estampa?), espera_da_dublagem(dublagem) ]
     partes << (dublagem.letras_usadas.any? ? "sem a superfície" : "sem a superfície, corre em paralelo") unless dublagem.superficie?
-    partes << "pela rede: #{dublagem.ligacao.ligantes_na(situacao).map(&:descricao).join(" ou ")}, #{dublagem.momento_da_rede} da estampa" if dublagem.ligacao
+    partes << "pela rede: #{dublagem.ligacao.ligantes_na(situacao).map(&:descricao).join(" ou ")}, #{dublagem.ligacao.momentos.join(" ou ")} da estampa" if dublagem.ligacao
     partes.compact.join(" · ")
   end
 

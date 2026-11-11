@@ -82,7 +82,7 @@ class ConstrucoesController < ApplicationController
   def cards_do_formulario(dados)
     lado = %i[escolha do_cliente lado]
     # Not fetch(:dublagens, {}): Parameters#fetch turns the default into unpermitted params.
-    permitidos = dados.permit(dublagens: [ :ligante_uuid, :posicao, { cima: lado, baixo: lado } ])[:dublagens]
+    permitidos = dados.permit(dublagens: [ :ligante_uuid, :posicao, :dubla, { cima: lado, baixo: lado } ])[:dublagens]
     (permitidos || {}).to_h.sort_by { |indice, _| indice.to_i }.map(&:last)
   end
 

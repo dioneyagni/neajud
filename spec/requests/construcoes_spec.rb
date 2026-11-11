@@ -49,6 +49,22 @@ RSpec.describe "Construções", type: :request do
     expect(html.at_css("[data-sugerido]").text).to eq("$37.00")
   end
 
+  # 11/11/2026 (Q2a): where the ligação allows both, the card's chip picks.
+  it "shows the momento picker where the ligação allows both, and saves the pick" do
+    LigacaoDublagem.do_par(oxford.grupo_material, lona.grupo_material).sole.update!(dubla: "antes e depois")
+
+    post montar_construcoes_path, params: formulario(card(oxford, lona, filme_35)), as: :turbo_stream
+    expect(html.css("[data-escolhe-momento] input[name='construcao[dublagens][0][dubla]']").map { |radio| [ radio["value"], !radio["checked"].nil? ] })
+      .to eq([ [ "antes", true ], [ "depois", false ] ])
+    expect(html.at_css("[data-texto]").text).to eq("a estampa vai aqui · pela rede: Filme 35 µm ou mais, antes ou depois da estampa")
+
+    post construcoes_path, params: formulario(card(oxford, lona, filme_35).merge(dubla: "depois"), preco_final: "40")
+    construcao = Construcao.order(:id).last
+    expect([ construcao.camadas_em_ordem.last.dubla, construcao.dubla_antes? ]).to eq([ "depois", false ])
+    get edit_construcao_path(construcao)
+    expect(html.at_css("[data-escolhe-momento] input[value=depois]")["checked"]).not_to be_nil
+  end
+
   # Q6a: "+ Juntar" adds an empty card; a letra chosen on a side goes into it,
   # and × lets it go again (the card, then empty, goes away).
   it "adds a card, joins a letra into it and lets it go on montar" do

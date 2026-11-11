@@ -11,7 +11,13 @@
 #        RedeDeDublagens.new(ligacoes: visiveis(LigacaoDublagem), situacoes: visiveis(SituacaoDublagem)).ligacoes
 class RedeDeDublagens
   LADOS = %w[trama avesso].freeze
+  # A junction's momento against the estampa (D8) — what a construção's
+  # layer keeps.
   DUBLA = %w[antes depois].freeze
+  # A ligação may allow both (11/11/2026, Q1a): each construção then picks
+  # one on its card.
+  ANTES_E_DEPOIS = "antes e depois"
+  DUBLA_DA_LIGACAO = [ *DUBLA, ANTES_E_DEPOIS ].freeze
   A_CONFIRMAR = %w[ligantes dubla situacoes lado].freeze
   ROTULOS_A_CONFIRMAR = { "ligantes" => "ligantes", "dubla" => "antes/depois", "situacoes" => "situações", "lado" => "lado" }.freeze
 
@@ -58,9 +64,28 @@ class RedeDeDublagens
       par[1 - indice]
     end
 
+    # Usage: ligacao.momentos # => ["antes"], ["antes", "depois"]
+    def momentos = RedeDeDublagens.momentos_de(dubla)
+
+    def permite?(momento) = momentos.include?(momento)
+
+    # Both momentos: the construção picks one.
+    def escolhe? = momentos.size > 1
+
     def a_confirmar?(campo = nil)
       campo ? a_confirmar.include?(campo.to_s) : a_confirmar.any?
     end
+  end
+
+  # Usage: RedeDeDublagens.momentos_de("antes e depois") # => ["antes", "depois"]
+  def self.momentos_de(dubla) = dubla == ANTES_E_DEPOIS ? DUBLA : [ dubla ].compact
+
+  # The page's checkboxes as the ligação keeps them; nil when none. The
+  # construção's card sends one string, "antes e depois" too (5b1b).
+  # Usage: RedeDeDublagens.dubla_de(%w[depois antes]) # => "antes e depois"
+  def self.dubla_de(momentos)
+    marcados = DUBLA & Array(momentos).flat_map { |momento| momentos_de(momento) }
+    marcados.size > 1 ? ANTES_E_DEPOIS : marcados.first
   end
 
   # The network of this request or job, read once.

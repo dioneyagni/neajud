@@ -15,11 +15,12 @@
 # Usage: MontagemDaChave.new(cards, acao: params[:acao], materiais: visiveis(MateriaPrima)).camadas
 #        # => [{ materia_prima: oxford, lado: "trama", do_cliente: false, ligante: nil, ordem_da_dublagem: nil }, …]
 class MontagemDaChave
-  Card = Struct.new(:cima, :baixo, :ligante, :mae, :posicao, keyword_init: true)
+  Card = Struct.new(:cima, :baixo, :ligante, :mae, :posicao, :dubla, keyword_init: true)
   LADOS = %i[cima baixo].freeze
 
   # cards: the form's cards in order, each a Hash with "cima", "baixo"
-  # ("escolha", "do_cliente", "lado"), "ligante_uuid" and "posicao".
+  # ("escolha", "do_cliente", "lado"), "ligante_uuid", "posicao" and "dubla"
+  # (the momento picked where the ligação allows both, 11/11/2026).
   def initialize(cards, acao:, materiais:)
     @dados = cards
     @acao = acao.to_s
@@ -39,7 +40,7 @@ class MontagemDaChave
   private
 
   def ler
-    cards = @dados.map { |dados| Card.new(ligante: material(dados["ligante_uuid"]), posicao: dados["posicao"].presence&.to_i) }
+    cards = @dados.map { |dados| Card.new(ligante: material(dados["ligante_uuid"]), posicao: dados["posicao"].presence&.to_i, dubla: dados["dubla"].presence) }
     @dados.each_with_index do |dados, indice|
       LADOS.each { |lado| cards[indice][lado] = lado_do_card(dados[lado.to_s] || {}, cards, indice) }
     end
@@ -113,6 +114,8 @@ class MontagemDaChave
     cima = achatar(no.cima)
     baixo = achatar(no.baixo)
     baixo[0] = baixo[0].merge(ligante: no.ligante, ordem_da_dublagem: coluna(no))
+    # Only when the card picked one: a construção in use sends none and keeps its own.
+    baixo[0][:dubla] = no.dubla if no.dubla
     cima + baixo
   end
 

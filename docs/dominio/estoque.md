@@ -239,6 +239,22 @@ normal) and the `preco_final`. 2 layers to Parâmetros' maximum (5b1a; it was
   and its histórico says "criou a partir da construção" (`SalvarLigacao`
   `origem:`). Without the action the box says to ask whoever edits the
   network. Every card with a ligação links "ver na rede".
+- **Antes e depois** (decided 11/11/2026, Q1a/Q2a; canvas "Estampa: dubla
+  antes e depois"): a ligação may allow **both** momentos — the page's
+  Estampa is two checkboxes, at least one (`ligacoes_dublagem.dubla` =
+  `antes`, `depois` or `antes e depois`, `RedeDeDublagens::DUBLA_DA_LIGACAO`,
+  `.dubla_de`, `Ligacao#momentos`/`#permite?`/`#escolhe?`; the initial YAML
+  takes `dubla: antes e depois`; 5b1b's box offers "antes ou depois"). On
+  the construção, a card **with the superfície** whose ligação allows both
+  turns its chip into a picker `[antes | depois] da Calandra`
+  (`cards[i][dubla]`, `ChaveDaConstrucao::Dublagem#escolhe_momento?`),
+  "antes" until it picks; once the letra with the superfície it joins is
+  already after, it is after too, the chip saying why ("a DUB-A já é
+  depois", `#momento_obrigado?`), and that is no conflict. A card without
+  the superfície runs before, as always. The layer keeps the momento
+  (`Construcao#guardar_momentos` stores each such junction's
+  `momento_real`); in use, "a rede mudou" shows only when the network no
+  longer allows what it kept.
 - **The limit of layers** is Parâmetros' (`empresas.maximo_de_camadas`,
   8 to start, at least 2; Q2d); lowering it is refused while a construção
   not in the trash has more, naming it (`Empresa.construcoes_acima_de`, Q3c).

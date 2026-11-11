@@ -304,3 +304,27 @@
 }
 
 .construcao-excluir { margin-top: 0.5rem; }
+
+/* 11/11/2026 (Q2a): where the ligação allows both, the card's chip picks
+   antes or depois da Calandra. */
+.construcao-momento {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 1px solid #d3d0c6;
+  border-radius: 999px;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.construcao-momento-rotulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.construcao-momento-opcao { position: relative; display: inline-flex; cursor: pointer; }
+.construcao-momento-opcao input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.construcao-momento-opcao span { display: inline-flex; align-items: center; min-height: 1.75rem; padding: 0 0.6rem; color: #5f5e5a; background: #fff; }
+.construcao-momento-opcao--antes input:checked + span { background: #e6eef8; color: #1d3f66; }
+.construcao-momento-opcao--depois input:checked + span { background: #fbf1e0; color: #7a4500; }
+.construcao-momento-opcao input:focus-visible + span { outline: 2px solid #2f5f96; outline-offset: -2px; }
+.construcao-momento-fim { padding: 0 0.6rem 0 0.25rem; color: #5f5e5a; font-weight: 400; }

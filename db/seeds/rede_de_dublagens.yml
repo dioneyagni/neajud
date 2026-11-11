@@ -21,8 +21,9 @@
 #     ligantes:  the usual ones — a group (Filme, Filme PU, Cola…), with
 #                micras: [25, 35] (any of these) or { min: 35 }; no micras,
 #                any material of the group
-#     dubla:     antes | depois da estampa (D8): before, the dublado may go
-#                to the stock and gather pedidos; after, it is the pedido's
+#     dubla:     antes | depois | antes e depois da estampa (D8): before,
+#                the dublado may go to the stock and gather pedidos; after,
+#                it is the pedido's; both, each construção picks one
 #     situacoes: the ligantes in a situação, in place of the usual ones (to
 #                restrict, list some of them; to change, list others); a
 #                situação not listed keeps the usual ones

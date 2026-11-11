@@ -51,6 +51,16 @@ RSpec.describe MontagemDaChave do
     expect(resumo(camadas(soltos)).map(&:first)).to eq([ "Oxford", "Lona", nil, "Espuma", "Helanca", "EVA" ])
   end
 
+  # 11/11/2026 (Q2a): the momento a card picked goes to its junction; a card
+  # that picked none sends none, so a construção in use keeps its own.
+  it "takes the momento a card picked to the layer it joins" do
+    escolhidos = [ cards[0].merge("dubla" => "depois"), *cards.drop(1) ]
+    lista = camadas(escolhidos)
+
+    expect(lista.second[:dubla]).to eq("depois")
+    expect(lista.drop(2).map { |camada| camada.key?(:dubla) }).to all(be(false))
+  end
+
   it "adds an empty card at the end" do
     expect(resumo(camadas(acao: "nova")).last(2)).to eq([ [ nil, nil ], [ nil, 1 ] ])
   end
