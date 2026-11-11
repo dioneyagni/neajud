@@ -3,7 +3,8 @@
 # ligantes and a situação's in their place, what is still to confirm — and
 # a line in its histórico saying what changed (Q3a), "criou" for a new one.
 # The ligantes are rewritten whole, in the page's order. Nothing changed,
-# no line.
+# no line. origem "construcao": made from a construção's card (Dublagem
+# 5b1b), and the histórico says so.
 #
 # dados: { grupo_a_uuid:, grupo_b_uuid:, lado:, dubla:, a_confirmar: [],
 #          ligantes: [{ grupo_uuid:, micras: "25, 35" }],
@@ -12,12 +13,15 @@
 #
 # Usage: SalvarLigacao.new(ligacao, dados, grupos: visiveis(GrupoMaterial), situacoes: visiveis(SituacaoDublagem), user: Current.user).call # => true
 class SalvarLigacao
-  def initialize(ligacao, dados, grupos:, situacoes:, user:)
+  CRIACOES = { nil => "criou", "construcao" => "criou a partir da construção" }.freeze
+
+  def initialize(ligacao, dados, grupos:, situacoes:, user:, origem: nil)
     @ligacao = ligacao
     @dados = dados.to_h.with_indifferent_access
     @grupos = grupos
     @situacoes = situacoes
     @user = user
+    @criacao = CRIACOES.fetch(origem.presence) { raise ArgumentError, "origem #{origem.inspect} is not known; expected one of #{CRIACOES.keys.compact.join(", ")} or none" }
     @erros = []
   end
 
@@ -29,7 +33,7 @@ class SalvarLigacao
 
     LigacaoDublagem.transaction do
       @ligacao.save!
-      texto = antes ? MudancasDaLigacao.new(antes, @ligacao.reload.resumo).texto : "criou"
+      texto = antes ? MudancasDaLigacao.new(antes, @ligacao.reload.resumo).texto : @criacao
       @ligacao.alteracoes.create!(texto: texto, user: @user) if texto.present?
     end
     true

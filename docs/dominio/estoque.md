@@ -125,7 +125,7 @@ not listed keeps the usual ones). `a_confirmar` marks what was guessed.
   `RegrasDaConstrucao` no longer checks a construção in use against the
   network (its layers can't change), so its final price always saves.
 - The situações' block (+ Situação, rename, trash) is 2/2b; "Adicionar à
-  rede" from the construção's card comes with 5b1b (Q1a, 5b1 Q1c).
+  rede" from the construção's card is 5b1b (below, "The construção").
 - **The situações** (rede editável 2/2b, 10/11/2026): a card closing the
   rede's page (`_situacoes`, `SituacoesDublagemController`) lists each with
   how many ligações it changes and how many construções have it; "+
@@ -227,6 +227,18 @@ normal) and the `preco_final`. 2 layers to Parâmetros' maximum (5b1a; it was
   every layer the same height (Q5a), its width and whether it is made in
   the stock or in the pedido. The lines between the cards are
   `chave_controller.js`; on a phone the chave scrolls inside its card.
+- **"Adicionar à rede"** (Dublagem 5b1b, decided 11/11/2026): the red box
+  of a pair the network doesn't have offers, to whoever has
+  `editar_rede_de_dublagens`, the momento (antes/depois da estampa) and a
+  **ligante group** (Q1b: the groups the network joins with and those of the
+  registered ligantes, any micras), lado any. Its fields have no name, so
+  the construção's form never sends them: `construcao_controller.js` posts
+  `POST /rede-de-dublagens/ligacoes` as JSON (`origem=construcao`; `{ ok, id }`
+  or `{ ok: false, error }` shown inside the box) and builds the form again.
+  The ligação is born with the momento and the ligantes **a confirmar** (Q2a)
+  and its histórico says "criou a partir da construção" (`SalvarLigacao`
+  `origem:`). Without the action the box says to ask whoever edits the
+  network. Every card with a ligação links "ver na rede".
 - **The limit of layers** is Parâmetros' (`empresas.maximo_de_camadas`,
   8 to start, at least 2; Q2d); lowering it is refused while a construção
   not in the trash has more, naming it (`Empresa.construcoes_acima_de`, Q3c).

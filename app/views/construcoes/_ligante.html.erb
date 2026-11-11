@@ -1,8 +1,10 @@
 <%# Between em cima and embaixo (5b1a): the ligantes the network allows in
     the situação for the junction's two layers and what is still "a
-    confirmar"; a pair the network doesn't have in red (its "Adicionar à
-    rede" comes with 5b1b; until then, "+ Ligação" on the rede). In use, where
-    the network changed since (rede editável 2/2a, Q6a). %>
+    confirmar", "ver na rede"; a pair the network doesn't have in red, with
+    "Adicionar à rede" for whoever edits it (5b1b: momento and ligante group,
+    lado any; its fields have no name, so the construção's form never sends
+    them — construcao_controller.js posts them). In use, where the network
+    changed since (rede editável 2/2a, Q6a). %>
 <% ligacao = dublagem.ligacao %>
 <% acima = dublagem.acima_da_juncao.materia_prima %>
 <% abaixo = dublagem.juncao.materia_prima %>
@@ -22,9 +24,26 @@
       <span class="construcao-ligante-pendente" data-ligante-pendente><%= regra %> — a escolher na 5/5</span>
     <% end %>
     <% if ligacao.a_confirmar? %><span class="rede-chip rede-chip--confirmar">a confirmar</span><% end %>
+    <%= link_to "ver na rede", rede_ligacao_path(ligacao.uuid), class: "construcao-ver-na-rede", data: { ver_na_rede: true } %>
   <% elsif acima && abaixo %>
-    <p class="construcao-falta-rede" data-falta-rede><b><%= acima.grupo_material.nome %> + <%= abaixo.grupo_material.nome %> não estão na rede.</b>
-      Crie a ligação em <%= link_to "Rede de dublagens", rede_de_dublagens_path %>.</p>
+    <div class="construcao-falta-rede" data-falta-rede>
+      <b><%= acima.grupo_material.nome %> + <%= abaixo.grupo_material.nome %> não estão na rede.</b>
+      <% if @grupos_de_ligante && !em_uso %>
+        Criar a ligação:
+        <select class="construcao-campo" aria-label="Momento da ligação nova da <%= dublagem.letra %>" data-rede-momento>
+          <option value="depois">depois da estampa</option>
+          <option value="antes">antes da estampa</option>
+        </select>
+        <select class="construcao-campo" aria-label="Ligante da ligação nova da <%= dublagem.letra %>" data-rede-ligante>
+          <% @grupos_de_ligante.each do |grupo| %><option value="<%= grupo.uuid %>"><%= grupo.nome %></option><% end %>
+        </select>
+        <button type="button" class="construcao-adicionar-rede" data-action="construcao#adicionarARede"
+                data-grupo-a="<%= acima.grupo_material.uuid %>" data-grupo-b="<%= abaixo.grupo_material.uuid %>" data-url="<%= rede_ligacoes_path %>">Adicionar à rede</button>
+        <span class="construcao-erro-rede" data-erro-rede role="alert"></span>
+      <% else %>
+        Peça a quem edita a rede de dublagens.
+      <% end %>
+    </div>
   <% else %>
     <span>ligante: escolha em cima e embaixo</span>
   <% end %>
