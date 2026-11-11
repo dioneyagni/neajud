@@ -1,7 +1,8 @@
 # The construções (Dublagem 3/5, decided 30/10-02/11/2026; plano Etapa 2.9
 # D6/D7): the list, and the form of the dublagem canvas — the situação, the
-# layers top to bottom with whose each is, a ligante between each two, the
-# suggested price and the final one. Every change in the form asks `montar`
+# chave of dublagens (5b1a: each card a material or an earlier letra above
+# and below, with its ligante; MontagemDaChave), the suggested price and the
+# final one. Every change in the form asks `montar`
 # for the form again (each layer's options from the network, the price),
 # nothing saved. The team's only: the ligante is the factory's (as the rede).
 class ConstrucoesController < ApplicationController
@@ -18,12 +19,13 @@ class ConstrucoesController < ApplicationController
 
   def new
     @construcao = visiveis(Construcao).new
-    @construcao.definir_camadas([ { lado: "trama" }, {} ])
+    @construcao.definir_camadas([ { lado: "trama" }, { ordem_da_dublagem: 1 } ])
     preparar_montagem
   end
 
   # Usage: POST /construcoes, construcao[situacao|client_uuid|preco_final],
-  #        construcao[camadas][0][materia_prima_uuid|lado|do_cliente|ligante_uuid]
+  #        construcao[dublagens][0][cima|baixo][escolha|do_cliente|lado], construcao[dublagens][0][ligante_uuid|posicao]
+  #        (escolha: a material's uuid or "dublagem:<card>")
   def create
     @construcao = visiveis(Construcao).new
     aplicar_formulario(@construcao)
@@ -47,7 +49,7 @@ class ConstrucoesController < ApplicationController
   end
 
   # The form again, as typed, with each layer's options and the price —
-  # nothing saved. acao: "adicionar" a layer, or "remover-N".
+  # nothing saved. acao: "nova" (an empty card) or "tirar-<card>-cima|baixo".
   # Usage: POST /construcoes/montar (the form's fields; construcao_uuid when editing)
   def montar
     @construcao = params[:construcao_uuid].present? ? construcao_por_uuid(params[:construcao_uuid]) : visiveis(Construcao).new
@@ -72,31 +74,16 @@ class ConstrucoesController < ApplicationController
   def aplicar_formulario(construcao)
     dados = params.require(:construcao)
     construcao.assign_attributes(situacao: dados[:situacao], client_uuid: dados[:client_uuid], preco_final: decimal_digitado(dados[:preco_final]))
-    construcao.definir_camadas(camadas_com_acao(camadas_do_formulario(dados)))
+    construcao.definir_camadas(MontagemDaChave.new(cards_do_formulario(dados), acao: params[:acao], materiais: visiveis(MateriaPrima)).camadas)
   end
 
-  # The layers in the form's order, each material looked up by uuid; an
-  # unknown or blank one stays empty for RegrasDaConstrucao to point out.
-  def camadas_do_formulario(dados)
-    # Not fetch(:camadas, {}): Parameters#fetch turns the default into unpermitted params.
-    permitidas = dados.permit(camadas: %i[materia_prima_uuid lado do_cliente ligante_uuid])[:camadas]
-    linhas = (permitidas || {}).to_h.sort_by { |indice, _| indice.to_i }.map(&:last)
-    linhas.map do |linha|
-      { materia_prima: material_por_uuid(linha["materia_prima_uuid"]), lado: linha["lado"], do_cliente: linha["do_cliente"] == "1",
-        ligante: material_por_uuid(linha["ligante_uuid"]) }
-    end
-  end
-
-  def camadas_com_acao(camadas)
-    acao = params[:acao].to_s
-    return camadas + [ {} ] if acao == "adicionar" && camadas.size < Construcao::MAXIMO_DE_CAMADAS
-
-    removida = acao.delete_prefix("remover-").to_i if acao.start_with?("remover-")
-    removida && removida > 1 ? camadas.reject.with_index(1) { |_, posicao| posicao == removida } : camadas
-  end
-
-  def material_por_uuid(uuid)
-    uuid.presence && visiveis(MateriaPrima).find_by(uuid: uuid)
+  # The cards in the form's order; an unknown or blank material stays empty
+  # for RegrasDaConstrucao to point out.
+  def cards_do_formulario(dados)
+    lado = %i[escolha do_cliente lado]
+    # Not fetch(:dublagens, {}): Parameters#fetch turns the default into unpermitted params.
+    permitidos = dados.permit(dublagens: [ :ligante_uuid, :posicao, { cima: lado, baixo: lado } ])[:dublagens]
+    (permitidos || {}).to_h.sort_by { |indice, _| indice.to_i }.map(&:last)
   end
 
   def preparar_montagem

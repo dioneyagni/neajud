@@ -4,7 +4,10 @@
 // situação; the suggested price adds the empresa's layers, the ligante and
 // the service per ligação; saved, it is a "Dublado" material. Dublagem 4/5:
 // a corrida printed on the Oxford is dubbed into it from the pedido's item,
-// its dublado charged at the final price.
+// its dublado charged at the final price. Dublagem 5b1a (decided
+// 10/11/2026, canvas "4 · Construção em dublagens"): the form is a chave —
+// a column per dublagem, a card per letra (DUB-A…), each with a material or
+// an earlier letra above and below; the limit of layers is Parâmetros'.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -19,6 +22,7 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
   const nomes = {
     oxford: `Oxford-Branco-1.40 m-${gramatura}`, lona: `Lona-Branco-1.40 m-${gramatura}`,
     filme25: "Filme 25 µm-Branco-1.40 m", filme35: "Filme 35 µm-Branco-1.40 m", pu: "Filme PU 100 µm-Branco-1.40 m",
+    espuma: `Espuma-Branco-1.40 m-${gramatura}`, helanca: `Helanca-Branco-1.40 m-${gramatura}`,
   };
   const ids = {};
 
@@ -110,16 +114,17 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     await page.locator("a.materiais-construcoes-link").click();
     await page.locator(".construcoes-pagina h2").waitFor();
     await page.locator('a[href="/construcoes/new"]').click();
-    await page.locator("#camada-0-material").waitFor();
+    await page.locator("#dublagem-0-cima").waitFor();
     // Lona is only a base: never offered on the face.
-    if ((await opcoes("#camada-0-material")).includes(nomes.lona)) throw new Error("Lona is offered as superfície");
+    if ((await opcoes("#dublagem-0-cima")).includes(nomes.lona)) throw new Error("Lona is offered as superfície");
 
-    await escolher("#camada-0-material", nomes.oxford);
-    await escolher("#camada-1-material", nomes.lona);
+    await escolher("#dublagem-0-cima", nomes.oxford);
+    await escolher("#dublagem-0-baixo", nomes.lona);
     // Oxford–Lona asks for filme of 35 µm or more: the 25 µm never shows.
     const normal = await opcoes(".construcao-ligante");
     if (normal.join("|") !== nomes.filme35) throw new Error(`Normal offers ${normal}`);
-    if (!(await page.locator("[data-ligacao]").innerText()).includes("dubla antes da estampa")) throw new Error("No 'dubla antes'");
+    if ((await page.locator("[data-momento]").innerText()) !== "antes da Calandra") throw new Error("No 'antes da Calandra'");
+    if (!(await page.locator("[data-texto]").innerText()).includes("a estampa vai aqui")) throw new Error("No 'a estampa vai aqui'");
 
     await montando(() => page.locator('input[name="construcao[situacao]"][value="tecido_molha"]').check());
     const molha = await opcoes(".construcao-ligante");
@@ -131,15 +136,16 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     if (sugerido !== "$37.00") throw new Error(`Suggested ${sugerido}; expected Oxford 20 + Lona 10 + Filme 3 + serviço 4`);
   });
 
-  await test("Adds a layer, refuses it empty, removes it and saves the construção as a Dublado", async () => {
-    await montando(() => page.locator('button[data-acao="adicionar"]').click());
+  await test("Adds a pair, refuses it empty, takes it out and saves the construção as a Dublado", async () => {
+    await montando(() => page.locator("button.construcao-chave-mais").click());
     await page.fill("#construcao_preco_final", "46,00");
     await page.locator(".construcao-salvar").click();
     // The flash, not the text: montar's list already said it before saving.
-    await page.locator("p.alert", { hasText: "camada 3: escolha o material" }).waitFor();
+    await page.locator("p.alert", { hasText: "DUB-B, em cima: escolha o material" }).waitFor();
 
-    await montando(() => page.locator('button[data-acao="remover-3"]').click());
-    if ((await page.locator(".construcao-item").count()) !== 2) throw new Error("The third layer wasn't removed");
+    // Both sides empty: its × takes the whole card out.
+    await montando(() => page.locator('[data-dublagem="DUB-B"] button[data-acao="tirar-1-cima"]').click());
+    if ((await page.locator("[data-dublagem]").count()) !== 1) throw new Error("The empty pair wasn't taken out");
     await page.locator(".construcao-salvar").click();
     const nome = `Oxford Branco / Lona Branco-1.40 m`;
     await waitForText(page, `${nome}: salva.`);
@@ -153,6 +159,75 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     await material.locator("a.material-construcao-link").click();
     await page.locator("#construcao-montagem").waitFor();
     ids.construcao = page.url();
+  });
+
+  // The canvas's chave with this network's groups: DUB-A Oxford/Oxford and
+  // DUB-B Espuma/Helanca in the 1st dublagem, DUB-C = DUB-B with Espuma in
+  // the 2nd, DUB-D = DUB-A with DUB-C in the 3rd — DUB-A "segue" through
+  // the 2nd. Oxford–Espuma dubs after the estampa: DUB-D after the Calandra.
+  await test("Builds a chave of four dublagens: columns, letras, the 'segue', the momentos and the prices", async () => {
+    const espuma = await grupo("Espuma");
+    const helanca = await grupo("Helanca");
+    await page.goto(`${BASE_URL}/materiais`);
+    await material(espuma, nomes.espuma, { "movimento_estoque[gramatura]": gramatura }, "tecido", "18", gramatura);
+    await material(helanca, nomes.helanca, { "movimento_estoque[gramatura]": gramatura }, "tecido", "9", gramatura);
+    await page.goto(`${BASE_URL}/construcoes/new`);
+    await escolher("#dublagem-0-cima", nomes.oxford);
+    await escolher("#dublagem-0-baixo", nomes.oxford);
+    await escolher(".construcao-ligante", nomes.filme35);
+
+    await montando(() => page.locator("button.construcao-chave-mais").click());
+    await escolher("#dublagem-1-cima", nomes.espuma);
+    await escolher("#dublagem-1-baixo", nomes.lona);
+    // A pair the network doesn't have: in red on its card (5b1b adds it from there).
+    if (!(await page.locator('[data-dublagem="DUB-B"] [data-falta-rede]').innerText()).startsWith("Espuma + Lona não estão na rede.")) throw new Error("No red pair");
+    await escolher("#dublagem-1-baixo", nomes.helanca);
+
+    // "+ Juntar" adds an empty card; it sits in the 1st column until it
+    // uses a letra (Q4a), so find it by its empty sides.
+    async function juntar(cima, baixo) {
+      await montando(() => page.locator("button[data-juntar]").click());
+      const vazio = page.locator('[data-dublagem]:has(.construcao-dublagem-nome:text-is("material a escolher / material a escolher"))');
+      const indice = (await vazio.locator("select.construcao-material").first().getAttribute("id")).match(/dublagem-(\d+)-/)[1];
+      await escolher(`#dublagem-${indice}-cima`, cima);
+      const agora = await page.locator(`[data-dublagem]:has(.construcao-ref:has-text("${cima.split(" · ")[0]}")) select.construcao-material`).getAttribute("id");
+      await escolher(`#${agora}`, baixo);
+    }
+    await juntar("DUB-B · Espuma Branco / Helanca Branco", nomes.espuma);
+    // The letras are named by column, top to bottom: once the new card holds
+    // DUB-A it sits above DUB-B / Espuma in the 2nd column, which turns DUB-D.
+    await juntar("DUB-A · Oxford Branco / Oxford Branco", "DUB-D · DUB-B / Espuma Branco");
+
+    const cards = await page.locator("[data-dublagem]").evaluateAll((cs) => cs.map((c) => [c.closest("[data-coluna]").dataset.coluna, c.dataset.dublagem, c.querySelector("[data-momento]").textContent]));
+    const esperado = [["1", "DUB-A", "antes da Calandra"], ["1", "DUB-B", "antes da Calandra"], ["2", "DUB-C", "antes da Calandra"], ["3", "DUB-D", "depois da Calandra"]];
+    if (JSON.stringify(cards) !== JSON.stringify(esperado)) throw new Error(`The chave is ${JSON.stringify(cards)}`);
+    if ((await page.locator('[data-coluna="2"] [data-segue="DUB-A"]').count()) !== 1) throw new Error("DUB-A doesn't 'segue' through the 2nd dublagem");
+    if ((await page.locator('[data-dublagem="DUB-D"] [data-texto]').innerText()) !== "espera a Calandra + DUB-C · pela rede: Cola, depois da estampa") throw new Error("DUB-D's text");
+    if ((await page.locator("[data-ordem]").innerText()) !== "De cima para baixo, sai da chave: Oxford Branco · Oxford Branco · Espuma Branco · Helanca Branco · Espuma Branco") throw new Error("The order");
+    // Each letra's price adds the earlier one's: the last is the suggested.
+    const final = (await page.locator('[data-dublagem="DUB-D"] [data-total-da-dublagem]').innerText()).trim();
+    if (final !== (await page.locator("[data-sugerido]").innerText()).trim()) throw new Error(`DUB-D ${final} isn't the suggested`);
+    if ((await page.locator(".construcao-chave-fios path").count()) !== 4) throw new Error("The lines between the cards");
+    if (!(await page.locator("[data-produto]").innerText()).includes("feito no pedido: tem dublagem depois da Calandra")) throw new Error("No cut");
+
+    // Without DUB-C's Espuma, DUB-C gives way to DUB-B.
+    await montando(() => page.locator('[data-dublagem="DUB-C"] button[aria-label^="Tirar Espuma"]').click());
+    const depois = await page.locator("[data-dublagem]").evaluateAll((cs) => cs.map((c) => `${c.dataset.dublagem}=${c.querySelector(".construcao-dublagem-nome").textContent}`));
+    if (depois.join("|") !== "DUB-A=Oxford Branco / Oxford Branco|DUB-B=Espuma Branco / Helanca Branco|DUB-C=DUB-A / DUB-B") throw new Error(`After taking it out: ${depois}`);
+    await page.fill("#construcao_preco_final", "90,00");
+    await page.locator(".construcao-salvar").click();
+    await waitForText(page, "Oxford Branco / Oxford Branco / Espuma Branco / Helanca Branco-1.40 m: salva.");
+    if ((await page.locator("[data-dublagem]").count()) !== 3) throw new Error("The saved chave changed");
+    ids.chave = page.url();
+  });
+
+  // Q3c: refused while an active construção has more layers, naming it.
+  await test("Parâmetros refuses a most layers below an active construção", async () => {
+    await page.goto(`${BASE_URL}/parametros/edit`);
+    if ((await page.inputValue("#empresa_maximo_de_camadas")) !== "8") throw new Error("Doesn't start at 8");
+    await page.fill("#empresa_maximo_de_camadas", "3");
+    await page.locator('form input[type="submit"][value="Save"]').click();
+    await page.locator("p.alert", { hasText: "o máximo de camadas não baixa para 3: Oxford Branco / Oxford Branco / Espuma Branco / Helanca Branco-1.40 m (4)" }).waitFor();
   });
 
   // Each change of the item's form saves and Turbo renders the pedido again,
@@ -191,6 +266,12 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     const total = (await page.locator("#valores-tecido .pedido-valores-total").innerText()).trim();
     if (total !== "R$ 122,00") throw new Error(`Total ${total}; expected 2 m × (Impressão 15 + dublado 46)`);
     if (!(await page.locator("[data-dublagem]").innerText()).includes("dubla antes da estampa")) throw new Error("No 'dubla antes'");
+
+    // Dubbed into an item, it is in use: the chave is read only.
+    await page.goto(ids.construcao);
+    await page.locator("[data-em-uso]").waitFor();
+    if ((await page.locator("button[data-juntar], .construcao-tirar").count()) !== 0) throw new Error("The chave changes in use");
+    if (!(await page.locator("#dublagem-0-cima").isDisabled())) throw new Error("Its materials change in use");
   });
 
   await test("Another superfície lets go of the construção, saying so", async () => {
@@ -211,12 +292,14 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     await page.locator('.lixeira-grupo[data-tipo="construcoes"]').waitFor();
   });
 
+  // The chave scrolls inside its card; the page never sideways.
   await test("The form fits a phone, never scrolling sideways", async () => {
-    await page.goto(`${BASE_URL}/construcoes/new`);
-    await escolher("#camada-0-material", nomes.oxford);
+    await page.goto(ids.chave);
     await page.setViewportSize({ width: 390, height: 800 });
     const larguras = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+    const chave = await page.locator(".construcao-chave").evaluate((c) => [c.scrollWidth, c.clientWidth]);
     await page.setViewportSize({ width: 1280, height: 800 });
     if (larguras[0] > larguras[1]) throw new Error(`The page scrolls sideways: ${larguras.join(" > ")}`);
+    if (chave[0] <= chave[1]) throw new Error("The chave doesn't scroll inside its card");
   });
 });

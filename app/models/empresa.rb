@@ -25,6 +25,10 @@ class Empresa < ApplicationRecord
   validates :preco_impressao_metro_tecido, :metragem_minima_tecido, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   # Dublagem 3/5 (D7): the service charged per ligação of a construção.
   validates :preco_servico_dublagem, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  # Dublagem 5b1a (Q2d): how many layers a construção may have; below 2
+  # there is no dublagem.
+  validates :maximo_de_camadas, numericality: { only_integer: true, greater_than_or_equal_to: 2 }
+  validate :maximo_de_camadas_cabe_nas_construcoes, if: :will_save_change_to_maximo_de_camadas?
   validates :espacamento_dtf_mm, numericality: { greater_than_or_equal_to: 0, less_than: 1000 }
   validate :margens_cabem_no_filme
   # Etapa 2.6b1: every DTF size's fit follows the film.
@@ -70,7 +74,24 @@ class Empresa < ApplicationRecord
     !custo_impressao_metro.nil? && !custo_corte_peca.nil?
   end
 
+  # The construções not in the trash with more layers than a limit — what
+  # stops lowering it (Dublagem 5b1a, Q3c).
+  # Usage: Empresa.construcoes_acima_de(6).map(&:nome) # => ["Oxford Preto / … / Napa-1.40 m"]
+  def self.construcoes_acima_de(limite)
+    Construcao.ativos.where(id: CamadaConstrucao.group(:construcao_id).having("COUNT(*) > ?", limite).select(:construcao_id)).order(:nome)
+  end
+
   private
+
+  def maximo_de_camadas_cabe_nas_construcoes
+    return unless maximo_de_camadas.is_a?(Integer)
+
+    maiores = self.class.construcoes_acima_de(maximo_de_camadas)
+    return if maiores.empty?
+
+    lista = maiores.includes(:camadas).map { |construcao| "#{construcao.nome} (#{construcao.camadas.size})" }
+    errors.add(:base, "o máximo de camadas não baixa para #{maximo_de_camadas}: #{lista.to_sentence(two_words_connector: " e ", last_word_connector: " e ")} #{lista.one? ? "tem" : "têm"} mais; mande para a lixeira ou deixe o máximo maior")
+  end
 
   def papel_padrao_e_papel
     return if papel_padrao.nil? || papel_padrao.tipo == "papel"

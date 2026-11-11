@@ -125,7 +125,7 @@ not listed keeps the usual ones). `a_confirmar` marks what was guessed.
   `RegrasDaConstrucao` no longer checks a construção in use against the
   network (its layers can't change), so its final price always saves.
 - The situações' block (+ Situação, rename, trash) is 2/2b; "Adicionar à
-  rede" from the construção's card comes with 5b1 (Q1a).
+  rede" from the construção's card comes with 5b1b (Q1a, 5b1 Q1c).
 - **The situações** (rede editável 2/2b, 10/11/2026): a card closing the
   rede's page (`_situacoes`, `SituacoesDublagemController`) lists each with
   how many ligações it changes and how many construções have it; "+
@@ -148,7 +148,8 @@ dublado: its `CamadaConstrucao` rows, top to bottom — position 1 the
 superfície with its `lado` (trama | avesso), then the bases —, each
 `do_cliente` or the empresa's, each base with the `ligante` (a material) that
 joins it to the layer above; the `situacao` (one of the network's, blank =
-normal) and the `preco_final`. 2 to 5 layers.
+normal) and the `preco_final`. 2 layers to Parâmetros' maximum (5b1a; it was
+5).
 
 - **Its own material** (decision 1): saving it creates or updates a
   `MateriaPrima` of tipo **dublado** — the superfície's group and color, the
@@ -194,6 +195,41 @@ normal) and the `preco_final`. 2 to 5 layers.
   for the construções dubbed before the estampa: "The ordens de dublagem
   (Dublagem 5a)" below. Not yet: dubbing after the estampa (or in parallel
   with the Impressão) as the pedido's own stage, and the cola's measure (5b).
+- **The chave of dublagens** (Dublagem 5b1a, decided 10/11/2026; canvas
+  "4 · Construção em dublagens"): each junction of two neighbouring layers
+  is one dublagem, and the base layer under it keeps in which one
+  (`camadas_construcao.ordem_da_dublagem`; the construções made before were
+  dubbed top to bottom, one layer per dublagem, and kept that).
+  `ChaveDaConstrucao` reads the layers as the chave: each dublagem joins a
+  material or an earlier letra above and below, sits one column after the
+  latest letra it uses (Q4a) and is named DUB-A, DUB-B… by column, top to
+  bottom; a letra skipping columns shows a "segue" card. Its momento
+  against the Calandra (`momento_real`, 5b Q5a): without the superfície it
+  runs with the Impressão whatever the network says; with it, after the
+  Calandra once its pair (or the letra holding the superfície) dubs after
+  the estampa — and a pair dubbed before the estampa onto a letra already
+  after it is refused. `recebe_estampa?` marks where the Calandra prints.
+- **The form** sends the cards (`construcao[dublagens][i][cima|baixo][escolha]`:
+  a material's uuid or `dublagem:<i>`, the card's place in the form — never
+  the letra, which changes with the chave), the ligante and, standing alone,
+  its top layer's posicao; `MontagemDaChave` reads them back as layers.
+  "+ Par de materiais" and "+ Juntar" add an empty card (Q6a); × on a
+  material inside another card gives the card's place to its other side
+  (without the Napa, DUB-C's place is DUB-B's), on a card standing alone
+  empties the side (gone once both are empty), and a letra let go keeps its
+  place. Every base is listed: a pair the network doesn't have shows in red
+  on its card ("Adicionar à rede" from there is 5b1b). It saves only when the
+  chave closes in one letra ("a chave não fechou: falta juntar…"); the
+  messages name the letra ("DUB-C: Cofrê e Napa não dublam…"). Each card
+  prices itself (`PrecoSugeridoDaConstrucao#linhas_da_dublagem`: its sides —
+  an earlier letra at its price —, the ligante, the service), so the last
+  letra's price is the suggested; the final card shows the dublado's cut,
+  every layer the same height (Q5a), its width and whether it is made in
+  the stock or in the pedido. The lines between the cards are
+  `chave_controller.js`; on a phone the chave scrolls inside its card.
+- **The limit of layers** is Parâmetros' (`empresas.maximo_de_camadas`,
+  8 to start, at least 2; Q2d); lowering it is refused while a construção
+  not in the trash has more, naming it (`Empresa.construcoes_acima_de`, Q3c).
 - E2E: `e2e/construcoes.spec.js`.
 
 ## The ordens de dublagem (Dublagem 5a)

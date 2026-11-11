@@ -1,0 +1,36 @@
+<%# Between em cima and embaixo (5b1a): the ligantes the network allows in
+    the situação for the junction's two layers and what is still "a
+    confirmar"; a pair the network doesn't have in red (its "Adicionar à
+    rede" comes with 5b1b; until then, "+ Ligação" on the rede). In use, where
+    the network changed since (rede editável 2/2a, Q6a). %>
+<% ligacao = dublagem.ligacao %>
+<% acima = dublagem.acima_da_juncao.materia_prima %>
+<% abaixo = dublagem.juncao.materia_prima %>
+<div class="construcao-liga" data-ligacao>
+  <% if ligacao %>
+    <% ligantes = @opcoes.ligantes(ligacao, @construcao.situacao) | [ dublagem.juncao.ligante ].compact %>
+    <% regra = ligacao.ligantes_na(@construcao.situacao).map(&:descricao).to_sentence(two_words_connector: " ou ", last_word_connector: " ou ") %>
+    <span>ligante</span>
+    <% if ligantes.any? %>
+      <select name="<%= campo %>[ligante_uuid]" class="construcao-campo construcao-ligante" aria-label="Ligante da <%= dublagem.letra %>" data-action="change->construcao#montar" <%= "disabled" if em_uso %>>
+        <option value="">— <%= regra %></option>
+        <% ligantes.each do |ligante| %>
+          <option value="<%= ligante.uuid %>" <%= "selected" if ligante == dublagem.juncao.ligante %>><%= ligante.nome_completo %></option>
+        <% end %>
+      </select>
+    <% else %>
+      <span class="construcao-ligante-pendente" data-ligante-pendente><%= regra %> — a escolher na 5/5</span>
+    <% end %>
+    <% if ligacao.a_confirmar? %><span class="rede-chip rede-chip--confirmar">a confirmar</span><% end %>
+  <% elsif acima && abaixo %>
+    <p class="construcao-falta-rede" data-falta-rede><b><%= acima.grupo_material.nome %> + <%= abaixo.grupo_material.nome %> não estão na rede.</b>
+      Crie a ligação em <%= link_to "Rede de dublagens", rede_de_dublagens_path %>.</p>
+  <% else %>
+    <span>ligante: escolha em cima e embaixo</span>
+  <% end %>
+  <% if mudanca %>
+    <%# Rede editável 2/2a (Q6a): in use, it keeps what it was made with. %>
+    <span class="construcao-rede-mudou" data-rede-mudou>a rede mudou: <%= mudanca.texto %>
+      <% if mudanca.ligacao_uuid %>· <%= link_to "ver na rede", rede_ligacao_path(mudanca.ligacao_uuid) %><% end %></span>
+  <% end %>
+</div>

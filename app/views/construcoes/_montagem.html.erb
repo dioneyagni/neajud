@@ -1,15 +1,19 @@
 <%# The construção being built (Dublagem 3/5), as the dublagem canvas draws
-    it: the situação, the client, the layers top to bottom with a ligação
-    between each two, and the price card. montar replaces it whole. In use,
-    only the final price changes (decision 5). A situação no ligação lists says
-    so (rede editável 2/2b, Q3a). %>
+    it: the situação, the client, the chave of dublagens (5b1a, "4 ·
+    Construção em dublagens": a column per dublagem, a card per letra, the
+    "segue" cards of a letra skipping columns) and the price card. montar
+    replaces it whole. In use, only the final price changes (decision 5). A
+    situação no ligação lists says so (rede editável 2/2b, Q3a). %>
 <% em_uso = @construcao.em_uso? %>
+<% chave = @construcao.chave %>
 <% camadas = @construcao.camadas_em_ordem %>
 <% mudancas = @construcao.mudancas_da_rede.index_by(&:posicao) %>
+<% maximo = Construcao.maximo_de_camadas %>
 <div id="construcao-montagem" class="construcao-montagem">
   <div class="construcao-card construcao-camadas">
+    <p class="construcao-ordem" data-ordem>De cima para baixo, sai da chave: <%= camadas.map { |camada| camada.materia_prima&.nome_da_camada || "—" }.join(" · ") %></p>
     <% if em_uso %>
-      <p class="construcao-em-uso" data-em-uso>Já está em uso (estoque ou pedido): as camadas ficam como estão e só o preço final muda. Para outra composição, crie outra construção.</p>
+      <p class="construcao-em-uso" data-em-uso>Já está em uso (estoque ou pedido): a chave fica como está e só o preço final muda. Para outra composição, crie outra construção.</p>
     <% end %>
     <fieldset class="construcao-situacoes" <%= "disabled" if em_uso %>>
       <legend class="construcao-rotulo">Situação (escolhe os ligantes)</legend>
@@ -32,47 +36,58 @@
       </select>
     </div>
 
-    <ol class="construcao-pilha">
-      <% camadas.each_with_index do |camada, indice| %>
-        <%= render "camada", camada: camada, indice: indice, acima: (camadas[indice - 1] if indice.positive?), em_uso: em_uso, total: camadas.size, mudanca: mudancas[camada.posicao] %>
-      <% end %>
-    </ol>
-    <% if !em_uso && camadas.size < Construcao::MAXIMO_DE_CAMADAS %>
+    <div class="construcao-chave" data-controller="chave" data-chave>
+      <div class="construcao-chave-colunas" data-chave-target="colunas" style="--colunas: <%= chave.colunas %>">
+        <svg class="construcao-chave-fios" data-chave-target="fios" aria-hidden="true"></svg>
+        <% (1..chave.colunas).each do |coluna| %>
+          <div class="construcao-chave-coluna" data-coluna="<%= coluna %>">
+            <span class="construcao-chave-titulo"><%= coluna %>ª dublagem<%= " · materiais" if coluna == 1 %><%= " · final" if coluna == chave.colunas && chave.fechada? && coluna > 1 %></span>
+            <% itens = chave.dublagens.select { |dublagem| dublagem.coluna == coluna }.map { |dublagem| [ dublagem, nil ] } +
+                       chave.dublagens.select { |dublagem| chave.segue(dublagem).include?(coluna) }.map { |dublagem| [ dublagem, coluna ] } %>
+            <% itens.sort_by { |dublagem, _| dublagem.camadas.first.posicao }.each do |dublagem, segue| %>
+              <% if segue %>
+                <%= render "segue", dublagem: dublagem, coluna: coluna, chave: chave, preco: @preco %>
+              <% else %>
+                <%= render "dublagem", dublagem: dublagem, chave: chave, em_uso: em_uso, mudanca: mudancas[dublagem.juncao.posicao] %>
+              <% end %>
+            <% end %>
+            <% if coluna == 1 && !em_uso && camadas.size + 2 <= maximo %>
+              <button type="button" class="btn btn-secondary construcao-chave-mais" data-action="construcao#montar" data-acao="nova">+ Par de materiais</button>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <% unless em_uso %>
       <p class="construcao-mais">
-        <button type="button" class="btn btn-secondary" data-action="construcao#montar" data-acao="adicionar" <%= "disabled" unless camadas.last&.materia_prima %>>+ Camada</button>
-        <small>até <%= Construcao::MAXIMO_DE_CAMADAS %>; cada lista mostra só o que liga com a camada de cima</small>
+        <button type="button" class="btn btn-secondary" data-action="construcao#montar" data-acao="nova" data-juntar>+ Juntar</button>
+        <small>até <%= maximo %> camadas (Parâmetros). Em cima e embaixo, uma letra solta ou um material; o × solta a letra ou tira o material, e a chave se refaz.</small>
       </p>
     <% end %>
   </div>
 
   <div class="construcao-card construcao-preco" data-preco>
-    <h3>Preço por metro</h3>
-    <dl class="construcao-linhas">
-      <% @preco.linhas.each do |linha| %>
-        <div class="construcao-linha" data-linha="<%= linha.rotulo %>">
-          <dt><%= linha.rotulo %><% if linha.nota %> <small>(<%= linha.nota %>)</small><% end %></dt>
-          <dd><%= linha.valor ? number_to_currency(linha.valor) : "—" %></dd>
-        </div>
-      <% end %>
-      <div class="construcao-linha construcao-linha--total">
-        <dt>Sugerido</dt>
-        <dd data-sugerido><%= number_to_currency(@preco.total) %></dd>
-      </div>
-    </dl>
-    <% if @preco.sem_preco.any? %>
-      <p class="construcao-sem-preco">Sem preço: <%= @preco.sem_preco.map(&:rotulo).to_sentence(two_words_connector: " e ", last_word_connector: " e ") %>. O sugerido não conta <%= @preco.sem_preco.one? ? "esse" : "esses" %>.</p>
-    <% end %>
+    <div class="construcao-sugerido">
+      <span class="construcao-rotulo">Sugerido por metro</span>
+      <strong data-sugerido><%= number_to_currency(@preco.total) %></strong>
+      <small><%= chave.final ? "o preço da #{chave.final.letra}" : "a chave ainda não fechou" %>: cada dublagem soma as suas camadas da empresa, o ligante e o serviço</small>
+    </div>
     <div>
       <label class="construcao-rotulo" for="construcao_preco_final">Preço final por metro (R$)</label>
       <input type="text" inputmode="decimal" name="construcao[preco_final]" id="construcao_preco_final" class="construcao-campo"
              value="<%= @construcao.preco_final && number_with_precision(@construcao.preco_final, precision: 2, separator: ",") %>">
     </div>
-    <p class="construcao-destino">O dublado vai para o estoque <%= @construcao.client ? "de #{@construcao.client.name}" : "da empresa" %>.</p>
-    <% if @problemas.present? %>
-      <ul class="construcao-problemas" data-problemas>
-        <% @problemas.each do |problema| %><li><%= problema %></li><% end %>
-      </ul>
-    <% end %>
     <%= submit_tag "Salvar construção", class: "btn btn-primary construcao-salvar" %>
+    <div class="construcao-preco-notas">
+      <% if @preco.sem_preco.any? %>
+        <p class="construcao-sem-preco">Sem preço: <%= @preco.sem_preco.map(&:rotulo).to_sentence(two_words_connector: " e ", last_word_connector: " e ") %>. O sugerido não conta <%= @preco.sem_preco.one? ? "esse" : "esses" %>.</p>
+      <% end %>
+      <p class="construcao-destino">O dublado vai para o estoque <%= @construcao.client ? "de #{@construcao.client.name}" : "da empresa" %>.</p>
+      <% if @problemas.present? %>
+        <ul class="construcao-problemas" data-problemas>
+          <% @problemas.each do |problema| %><li><%= problema %></li><% end %>
+        </ul>
+      <% end %>
+    </div>
   </div>
 </div>

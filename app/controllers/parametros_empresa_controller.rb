@@ -17,7 +17,7 @@ class ParametrosEmpresaController < ApplicationController
   #   Etapa 2.6a: empresa[largura_filme_dtf_mm|margem_filme_dtf_mm|espacamento_dtf_mm|fileiras_extras_dtf],
   #   Etapa 2.6c: empresa[preco_metro_dtf|preco_corte_dtf|cobranca_dtf|cobrar_excedente_dtf],
   #   Etapa 2.7b: empresa[preco_impressao_metro_tecido|metragem_minima_tecido],
-  #   Dublagem 3/5: empresa[preco_servico_dublagem])
+  #   Dublagem 3/5: empresa[preco_servico_dublagem], 5b1a: empresa[maximo_de_camadas])
   def update
     @empresa = Empresa.atual
     return redirect_to edit_parametros_path, notice: "Production parameters saved." if @empresa.update(parametros)
@@ -33,7 +33,8 @@ class ParametrosEmpresaController < ApplicationController
                                             :custo_impressao_metro, :custo_corte_peca,
                                             :largura_filme_dtf_mm, :margem_filme_dtf_mm, :espacamento_dtf_mm, :fileiras_extras_dtf,
                                             :preco_metro_dtf, :preco_corte_dtf, :cobranca_dtf, :cobrar_excedente_dtf,
-                                            :preco_impressao_metro_tecido, :metragem_minima_tecido, :preco_servico_dublagem)
+                                            :preco_impressao_metro_tecido, :metragem_minima_tecido, :preco_servico_dublagem,
+                                            :maximo_de_camadas)
     papel = dados.delete(:papel_padrao_uuid)
     dados[:papel_padrao] = visiveis(MateriaPrima).papeis.find_by(uuid: papel) if papel
     # Etapa 2.3d1: the DTF film too.

@@ -1,4 +1,5 @@
 require "rails_helper"
+require_relative "../support/construcoes"
 
 RSpec.describe Empresa do
   it "allows only one empresa per instance and names the existing one" do
@@ -57,5 +58,31 @@ RSpec.describe Empresa do
     expect(empresa.custos_definidos?).to be(true)
     empresa.custo_corte_peca = -1
     expect(empresa).not_to be_valid
+  end
+
+  # Dublagem 5b1a (Q2d, Q3c): 8 layers to start, at least 2; lowering it is
+  # refused while an active construção has more, naming it.
+  describe "the most layers of a construção" do
+    let(:empresa) { Empresa.atual || create(:empresa) }
+
+    def construcao_de(camadas)
+      oxford = material_de_dublagem("Oxford")
+      filme = material_de_dublagem("Filme", tipo: "filme", micras: 35)
+      montar_construcao([ oxford, "trama" ], *([ [ oxford, filme ] ] * (camadas - 1))).tap(&:save!)
+    end
+
+    it "starts at 8 and is never below 2" do
+      expect(empresa.maximo_de_camadas).to eq(8)
+      expect(empresa.update(maximo_de_camadas: 1)).to be(false)
+    end
+
+    it "refuses to go below an active construção, until it is in the trash" do
+      construcao = construcao_de(3)
+
+      expect(empresa.update(maximo_de_camadas: 2)).to be(false)
+      expect(empresa.errors[:base].first).to eq("o máximo de camadas não baixa para 2: #{construcao.nome} (3) tem mais; mande para a lixeira ou deixe o máximo maior")
+      construcao.excluir!(changed_by: "127.0.0.1")
+      expect(empresa.reload.update(maximo_de_camadas: 2)).to be(true)
+    end
   end
 end

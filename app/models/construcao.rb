@@ -15,8 +15,6 @@
 #        construcao.definir_camadas([ { materia_prima: oxford, lado: "trama" }, { materia_prima: lona, ligante: filme_pu } ])
 #        construcao.save # => creates the dublado "Oxford Preto / Lona Branco-1.40 m (Tecido molha)"
 class Construcao < ApplicationRecord
-  MAXIMO_DE_CAMADAS = 5
-
   include GeraUuid
   include Excluivel
   include ReferenciaAtiva
@@ -48,13 +46,19 @@ class Construcao < ApplicationRecord
   validate :regras_da_rede
   validate :composicao_fixa_em_uso, on: :update
 
+  # The most layers a construção may have: Parâmetros' (Dublagem 5b1a, Q2d).
+  # Usage: Construcao.maximo_de_camadas # => 8
+  def self.maximo_de_camadas = Empresa.atual&.maximo_de_camadas || Empresa.column_defaults["maximo_de_camadas"]
+
   # Sets the layers by position, keeping the rows already there (only what
-  # changed is saved); positions past the list are removed.
+  # changed is saved); positions past the list are removed. A base without
+  # ordem_da_dublagem given is dubbed in order, top to bottom, as every
+  # construção was before the chave (5b1a); the form always gives it.
   # Usage: construcao.definir_camadas([ { materia_prima: oxford, lado: "avesso" }, { materia_prima: eva, ligante: filme_25 } ])
   def definir_camadas(lista)
     lista.each.with_index(1) do |dados, posicao|
       camada = camadas.find { |existente| existente.posicao == posicao } || camadas.build(posicao: posicao)
-      camada.assign_attributes(dados)
+      camada.assign_attributes({ ordem_da_dublagem: (posicao - 1 if posicao > 1) }.merge(dados))
     end
     camadas.each { |camada| camada.mark_for_destruction if camada.posicao > lista.size }
   end
@@ -63,6 +67,9 @@ class Construcao < ApplicationRecord
   def camadas_em_ordem = camadas.reject(&:marked_for_destruction?).sort_by(&:posicao)
 
   def superficie = camadas_em_ordem.first
+
+  # Its dublagens as a chave (5b1a), read from the layers as they are now.
+  def chave = ChaveDaConstrucao.new(self)
 
   # Usage: construcao.ligacoes # => 2 (three layers)
   def ligacoes = [ camadas_em_ordem.size - 1, 0 ].max
