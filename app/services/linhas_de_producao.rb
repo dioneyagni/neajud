@@ -8,7 +8,14 @@
 #     key "<item>/<size>/<file>"; expected the film's meters or the units
 #     printed (excess included: it is printed and cut too);
 #   tecido lines (Etapa 2.7c): the item (arte × fabric), key
-#     "<item>/<file>"; expected the item's meters (paper and fabric alike).
+#     "<item>/<file>"; expected the item's meters (paper and fabric alike);
+#   dublagem lines (Dublagem 5b1c1): item × letra of its construção's chave,
+#     key "<item>/<junction's posicao>" (a construção in use never changes);
+#     the Dublagem stage the letras before the Calandra, Dublagem final the
+#     ones after; expected the item's meters.
+# A line's espera (5b1c1) says what it waits for, line by line — a letra
+# for the ones it joins, the Calandra for the letra the estampa goes on —
+# in place of the stage's trava (Linha#esperas).
 # Keys are made of uuids (nothing integer leaves the server). Lines with a
 # pendência (no file, no DXF) are left out: they can't be produced, and a
 # confirmed pedido has none.
@@ -18,8 +25,29 @@ class LinhasDeProducao
   # dispensa: stages this line skips — a reposição's line not printed again
   # (Etapa 2.2, 4/4); its Estamparia doesn't wait for them.
   # encaixe: a DTF line's fit on the film (EncaixeDoPedidoDtf::Linha).
+  # dublagem: the letra (ChaveDaConstrucao::Dublagem) of a dublagem line.
+  # espera: the Esperas in place of the stage's trava; nil = the trava.
   Linha = Struct.new(:chave, :referencia, :item, :peca, :tamanho, :arquivo, :lado, :materia_prima,
-                     :pecas, :esperado, :corte_chave, :origem, :dispensa, :encaixe, keyword_init: true)
+                     :pecas, :esperado, :corte_chave, :origem, :dispensa, :encaixe, :dublagem, :espera, keyword_init: true) do
+    # What it waits for in the stage: its espera, or each trava's line —
+    # its Corte line, or itself — less the stages it skips (a reposição's).
+    # Usage: linha.esperas(etapa, "calcado").map(&:nome) # => ["Impressão", "Corte"]
+    def esperas(etapa, tipo)
+      return espera if espera
+
+      (etapa.trava - Array(dispensa)).map do |trava|
+        outra = EtapasProducao.etapa(tipo, trava)
+        Espera.new(etapa: trava, chave: outra.linhas == "corte" ? corte_chave : chave, nome: outra.nome)
+      end
+    end
+  end
+
+  # One line waited for: its stage, its key (nil = nothing to wait for) and
+  # what the page calls it ("Impressão", "DUB-B").
+  Espera = Struct.new(:etapa, :chave, :nome, keyword_init: true)
+
+  # Which letras each Dublagem stage makes (5b Q7a).
+  MOMENTO_DA_ETAPA = { "dublagem" => "antes", "dublagem_final" => "depois" }.freeze
 
   # largura_papel_mm: the pedido's paper unless given (Etapa 2.3d1).
   # memoria: a Hash shared by the calls of one pedido (EstadoDasEtapas,
@@ -47,6 +75,12 @@ class LinhasDeProducao
     [ encaixe.item.uuid, encaixe.grade.tamanho_nome, encaixe.arquivo.uuid ].join("/")
   end
 
+  # The key of a dublagem line (5b1c1): its item and the letra's junction.
+  # Usage: LinhasDeProducao.chave_da_dublagem(item, dub_c) # => "<item>/4"
+  def self.chave_da_dublagem(item, dublagem)
+    [ item.uuid, dublagem.juncao.posicao ].join("/")
+  end
+
   # The key of a tecido line (Etapa 2.7c): its item and file.
   # Usage: LinhasDeProducao.chave_do_tecido(item) # => "<item>/<file>"
   def self.chave_do_tecido(item)
@@ -65,6 +99,7 @@ class LinhasDeProducao
     when "corte" then linhas_do_corte
     when "dtf" then linhas_do_dtf
     when "tecido" then linhas_do_tecido
+    when "dublagem" then linhas_da_dublagem
     else linhas_da_impressao
     end
   end
@@ -111,8 +146,44 @@ class LinhasDeProducao
            .select { |item| item.materia_prima && item.metros.to_f.positive? && item.largura_efetiva_mm }
            .map do |item|
       Linha.new(chave: self.class.chave_do_tecido(item), referencia: item.uuid, item: item, arquivo: item.arquivo,
-                materia_prima: item.material_da_producao, dispensa: [], esperado: item.metros.to_f)
+                materia_prima: item.material_da_producao, dispensa: [], esperado: item.metros.to_f, espera: espera_da_calandra(item))
     end
+  end
+
+  # 5b1c1: an item dubbed in the pedido is printed on the letra the estampa
+  # goes on, so its Calandra waits for that one too; any other item's only
+  # for its paper — also in a pedido without the Dublagem stage, which its
+  # trava names for the path and the queue.
+  def espera_da_calandra(item)
+    return unless @etapa.chave == "calandra"
+
+    impressao = Espera.new(etapa: "impressao", chave: self.class.chave_do_tecido(item), nome: "Impressão")
+    estampa = item.letras_da_dublagem.find(&:recebe_estampa?)
+    [ impressao, (Espera.new(etapa: "dublagem", chave: self.class.chave_da_dublagem(item, estampa), nome: estampa.letra) if estampa) ].compact
+  end
+
+  # 5b1c1: an item × letra, waiting for the letras it joins — and, after
+  # the Calandra, for the item's Calandra when it holds the superfície
+  # still printed on before (ConstrucoesHelper#espera_da_dublagem's rule).
+  def linhas_da_dublagem
+    momento = MOMENTO_DA_ETAPA.fetch(@etapa.chave)
+    linhas_do_tecido.flat_map do |tecido|
+      tecido.item.letras_da_dublagem.select { |dublagem| dublagem.momento_real == momento }.map { |dublagem| da_dublagem(tecido, dublagem) }
+    end
+  end
+
+  def da_dublagem(tecido, dublagem)
+    item = tecido.item
+    Linha.new(chave: self.class.chave_da_dublagem(item, dublagem), referencia: item.uuid, item: item, arquivo: item.arquivo, dublagem: dublagem,
+              dispensa: [], esperado: tecido.esperado, espera: espera_da_letra(item, dublagem))
+  end
+
+  # The Calandra waited for already waited for the letra it printed on.
+  def espera_da_letra(item, dublagem)
+    calandra = dublagem.momento_real == "depois" && dublagem.letra_com_superficie&.momento_real != "depois"
+    usadas = calandra ? dublagem.letras_usadas - [ dublagem.letra_com_superficie ] : dublagem.letras_usadas
+    letras = usadas.map { |usada| Espera.new(etapa: MOMENTO_DA_ETAPA.key(usada.momento_real), chave: self.class.chave_da_dublagem(item, usada), nome: usada.letra) }
+    calandra ? [ Espera.new(etapa: "calandra", chave: self.class.chave_do_tecido(item), nome: "Calandra") ] + letras : letras
   end
 
   # Pieces when the stage counts them, else the metragem the block gives.

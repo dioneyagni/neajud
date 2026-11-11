@@ -43,6 +43,14 @@ module ConstrucaoDoItem
   # keeps the superfície until 5b.
   def dublado_do_estoque? = construcao.present? && construcao.dubla_antes?
 
+  # Dublagem 5b1c1 (5b Q6a): with a dublagem after the Calandra, every letra
+  # is made in the pedido (its Dublagem stages), none comes from the stock.
+  def dublado_no_pedido? = construcao.present? && !construcao.dubla_antes?
+
+  # The construção's letras this item is dubbed through, in the chave's
+  # order. Usage: item.letras_da_dublagem.map(&:letra) # => ["DUB-A", "DUB-B"]
+  def letras_da_dublagem = dublado_no_pedido? ? construcao.chave.dublagens : []
+
   # What the stock out and the Calandra take: the dublado, or the superfície.
   def material_da_producao = dublado_do_estoque? ? construcao.materia_prima : materia_prima
 

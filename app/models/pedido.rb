@@ -33,6 +33,8 @@ class Pedido < ApplicationRecord
   # A DTF pedido is delivered on the roll or cut (Etapa 2.6b1); the Corte
   # stage only exists for cortada (2.6b2).
   ENTREGAS = %w[rolo cortada].freeze
+  # Dublagem 5b1c1: is an item dubbed in the pedido (#dublagem)?
+  DUBLAGENS = %w[no_pedido nenhuma].freeze
   # The cycle (Etapa 2.2, 3/3; decided 07/10/2026): rascunho → confirmado →
   # em_producao (on its first baixa, by itself) → entregue ("Marcar como
   # entregue"). cancelado: accepted, not used by any screen yet.
@@ -92,6 +94,13 @@ class Pedido < ApplicationRecord
   # Usage: pedido.tecido? # => true for a pedido of corridas and cores lisas
   def tecido?
     tipo == "tecido"
+  end
+
+  # Dublagem 5b1c1: "no_pedido" when an item's construção dubs after the
+  # Calandra — the pedido then has the Dublagem stages (etapas_producao.yml
+  # `quando`). Usage: pedido.dublagem # => "nenhuma"
+  def dublagem
+    itens_pedido.any?(&:dublado_no_pedido?) ? "no_pedido" : "nenhuma"
   end
 
   # A work without corte's pedido is its client's, whatever its artes'

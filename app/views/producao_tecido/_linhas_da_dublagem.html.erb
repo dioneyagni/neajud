@@ -1,0 +1,32 @@
+<%# Dublagem 5b1c1: the Dublagem or Dublagem final of a tecido pedido — a
+    line per item × letra (what it joins, its construção, the item's
+    meters) with its baixa; a letra waiting for another, or for the
+    Calandra, says so (RegistrarBaixaService). Under 600px each line is a
+    block (CSS .producao-blocos). %>
+<% if @linhas.any? %>
+  <table class="clients-table corte-tabela producao-blocos producao-tecido-tabela producao-dublagem-tabela">
+    <thead>
+      <tr><th>Arte</th><th>Letra</th><th>Construção</th><th>Metros</th><th class="etapa-situacao"><%= @etapa.nome %></th></tr>
+    </thead>
+    <tbody>
+      <% @linhas.each do |linha| %>
+        <% item = linha.item %>
+        <tr class="producao-tecido-linha" data-arte="<%= item.arte.titulo %>" data-letra="<%= linha.dublagem.letra %>">
+          <td class="producao-tecido-arte">
+            <%= miniatura_do_arquivo(linha.arquivo, classe: "impressao-thumb") %>
+            <%= link_to item.arte.titulo.presence || linha.arquivo.filename, linha.arquivo %>
+          </td>
+          <td data-rotulo="Letra"><span class="construcao-letra"><%= linha.dublagem.letra %></span> <%= linha.dublagem.lados.map(&:nome).join(" / ") %></td>
+          <%# The construção's page is the team's (its layers). %>
+          <td data-rotulo="Construção"><%= cliente_final? ? item.construcao.nome : link_to(item.construcao.nome, edit_construcao_path(item.construcao)) %></td>
+          <td class="corte-total" data-rotulo="Metros"><strong><%= metros(linha.esperado) %></strong></td>
+          <td class="etapa-situacao" data-rotulo="<%= @etapa.nome %>">
+            <%= render "pedidos/situacao_baixa", pedido: @pedido, etapa: @etapa, situacao: @situacoes[linha.chave] %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="gallery-empty">Nenhuma letra para esta etapa neste pedido.</p>
+<% end %>

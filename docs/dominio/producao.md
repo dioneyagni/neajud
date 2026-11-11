@@ -65,6 +65,17 @@ from the files themselves. Done (1/3 to 4/4):
   and takes the pedido back to confirmado when the last one goes.
   `AndamentoDoPedido` gives each stage's lines done/total for the panel and
   the list (filtered by `?status=`).
+- **Waiting line by line (Dublagem 5b1c1, decided 11/11/2026)**: a line
+  may carry its own `espera` (`LinhasDeProducao::Linha#esperas`: the stage,
+  the key and the name of each line it waits for), in place of the stage's
+  `trava` — which still gives the path and the queue's order. The tecido's
+  Calandra always waits line by line (its paper, and the letra the estampa
+  goes on when the item is dubbed in the pedido), and so do the Dublagem
+  stages' lines (a letra for the ones it joins, in the same stage too;
+  after the Calandra, for the item's Calandra). `RegistrarBaixaService` says
+  "aguardando DUB-B" and `DesfazerBaixaService` refuses to undo a baixa a
+  done line waited for, in any stage. The tecido's stages:
+  `docs/dominio/tecido.md`, "The item's construção".
 - **Stock (Etapa 2.3e)**: a stage with `material:` adjusts the stock by its
   baixa's real metragem, one measure per material when the lines take
   several — `docs/dominio/estoque.md`. When the material is missing in the

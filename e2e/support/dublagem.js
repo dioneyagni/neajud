@@ -5,6 +5,7 @@
 // the construção is then in use.
 //
 // Usage: const dublagem = await prepararDublagem(page, `${U}g`);
+//        const espuma = await material(page, cor, await grupo(page, "Espuma"), nome, campos, "tecido", busca);
 //        const uuid = await salvarConstrucao(page, dublagem, { lado: "trama", situacao: "" });
 //        await colocarEmUso(page, uuid);
 const { BASE_URL } = require("./runner");
@@ -80,4 +81,4 @@ async function colocarEmUso(page, construcao) {
   await waitForText(page, "feita: entraram");
 }
 
-module.exports = { prepararDublagem, salvarConstrucao, colocarEmUso };
+module.exports = { prepararDublagem, salvarConstrucao, colocarEmUso, grupo, material };

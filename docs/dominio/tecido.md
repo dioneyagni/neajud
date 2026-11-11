@@ -142,10 +142,31 @@ Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
 - Production (Dublagem 5a): an item dubbed **before** the estampa takes
   its dublado from the stock at confirmation and is printed on it at the
   Calandra, whose line says "aguardando dublagem: N m" while the dublado is
-  missing (`docs/dominio/estoque.md`, "The ordens de dublagem"). One dubbed
-  after the estampa still goes on the superfície until 5b, and the item
-  tells the team.
-- E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…").
+  missing (`docs/dominio/estoque.md`, "The ordens de dublagem").
+- **Dubbed in the pedido** (Dublagem 5b1c1, decided 11/11/2026; 5b Q6a–Q8a):
+  an item whose construção has a dublagem after the Calandra
+  (`ItemPedido#dublado_no_pedido?`) makes **every letra** in the pedido —
+  none comes from the stock. The pedido then has (`Pedido#dublagem`
+  "no_pedido", the stages' `quando`) **Dublagem** (the letras before the
+  Calandra, in parallel with the Impressão) and **Dublagem final** (after
+  it), a line per item × letra (`LinhasDeProducao` "dublagem", key
+  `<item>/<junction's posicao>`, the item's meters; `producao_tecido`
+  `_linhas_da_dublagem`). Each line waits for the letras it joins; the
+  Calandra for the paper and the letra the estampa goes on; a letra after
+  the Calandra for the item's Calandra (`docs/dominio/producao.md`,
+  "Waiting line by line"). The item reads "dublado no pedido: DUB-A, DUB-B
+  (Dublagem) · DUB-C (Dublagem final)".
+- **Its stock** (Q8a): the confirmation takes 1 m a meter of **each layer**,
+  from its owner, and of **each ligante**, the empresa's
+  (`ComponentesDaDublagem`, as an ordem of 5a) — never the superfície
+  alone. The Dublagem stages' baixa takes nothing (Q2a; the loss of each
+  dublagem is for later); the Calandra's still adjusts the superfície.
+- Not yet: the Painel's Dublagem columns, the "Dublagem" queue and its
+  rhythm (5b1c2 — until then the Painel only names it, "espera DUB-A", and
+  the queue has no rhythm for it), and blocking only the letra whose
+  material is missing (5b1c3).
+- E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…"),
+  `e2e/dublagem-no-pedido.spec.js`.
 
 ## The tecido pedidos' list and "Repetir pedido"
 

@@ -176,7 +176,7 @@ areas:
       - "app/services/{pedido_bloqueios_service,resolucao_do_item,custo_por_par,valores_do_pedido,impressao_pedido_service,producao_pedido_service,dxf_do_tamanho,zip_de_arquivos,zips_temporarios}.rb"
       - "app/javascript/controllers/{add_to_order,pedido_adicionar,pedido_counter,item_pecas,grade_matriz,grade_por_numero}_controller.js"
   producao:
-    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque, painel, painel-entregar]
+    specs: [producao-baixas, producao-dtf, producao-tecido, ajuste-do-estoque, painel, painel-entregar, dublagem-no-pedido]
     arquivos:
       - "app/controllers/baixas_producao_controller.rb"
       - "app/models/{baixa_producao,item_reposicao}.rb"
@@ -220,12 +220,13 @@ areas:
       - "app/controllers/precos_da_etiqueta_controller.rb"
       - "app/controllers/concerns/{producao_sem_corte,ajustes_do_pedido_sem_corte}.rb"
   tecido:
-    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido, construcoes, dublagens]
+    specs: [pedido-tecido, precos-tecido, producao-tecido, cor-lisa, ajuste-do-estoque, pedidos-tecido, construcoes, dublagens, dublagem-no-pedido]
     arquivos:
       - "app/javascript/controllers/repetir_metros_controller.js"
       - "app/views/pedidos/_amostra_da_arte.html.erb"
       - "**/*tecido*"
       - "app/models/concerns/construcao_do_item.rb"
+      - "app/helpers/construcoes_helper.rb"
       - "**/*tecido*/**/*"
       - "app/services/dono_do_tecido.rb"
       - "app/services/{compactacao_de_arquivo,bloco_photoshop_do_tiff,copia_da_versao,bloqueios_do_cliente_do_pedido,busca_de_obras}.rb"

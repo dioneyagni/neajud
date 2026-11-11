@@ -8,6 +8,8 @@
 #   tecido  — each item's meters, of its fabric (the item's owner) and of
 #     the paper; Dublagem 5a: of its dublado instead when it dubs before
 #     the estampa (the construção's owner; ItemPedido#material_da_producao);
+#     5b1c1: of each layer and ligante when it is dubbed in the pedido (5b
+#     Q8a, ComponentesDaDublagem: 1 m a meter, the layer's owner);
 #   DTF     — the film's meters of the fit written at confirmation.
 # A line without material or metragem takes nothing and comes back as a
 # warning; it never blocks. Only once per pedido (decided 20/10/2026: pedidos
@@ -67,7 +69,16 @@ class SaidaDoPedido
 
   def do_tecido_dos_itens
     LinhasDeProducao.call(@pedido, EtapasProducao.etapa("tecido", "calandra")).each do |linha|
+      next somar_componentes(linha) if linha.item.dublado_no_pedido?
+
       somar_do_dono(linha.materia_prima, linha.item.dono_na_producao, linha.esperado)
+    end
+  end
+
+  # The superfície is one of the layers: never counted twice.
+  def somar_componentes(linha)
+    ComponentesDaDublagem.new(linha.item.construcao).each do |componente|
+      somar_do_dono(componente.materia_prima, componente.client ? "cliente" : "empresa", linha.esperado * componente.por_metro)
     end
   end
 
