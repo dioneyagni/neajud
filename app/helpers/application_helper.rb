@@ -38,6 +38,22 @@ module ApplicationHelper
     "#{number_with_precision(valor, precision: 2, separator: ",", delimiter: ".", strip_insignificant_zeros: true)} m"
   end
 
+  # A stock quantity in its material's unit (Dublagem 5b2a, Q1a): meters,
+  # or kg to the gram for a group counted in kg (the cola).
+  # Usage: quantidade_do_material(12.5, oxford) # => "12,5 m"
+  #        quantidade_do_material(0.48, cola)   # => "0,48 kg"
+  def quantidade_do_material(valor, material)
+    return metros(valor) unless material&.em_kg?
+
+    "#{number_with_precision(valor, precision: 3, separator: ",", delimiter: ".", strip_insignificant_zeros: true)} kg"
+  end
+
+  # A price per its material's unit, as number_to_currency writes it (the
+  # stock pages). Usage: preco_da_unidade(18, cola) # => "$18.00/kg"
+  def preco_da_unidade(valor, material)
+    "#{number_to_currency(valor)}/#{material&.unidade || "m"}"
+  end
+
   # Prices and costs (Etapa 2.4); "—" when unknown.
   # Usage: reais(1234.5) # => "R$ 1.234,50"
   def reais(valor)

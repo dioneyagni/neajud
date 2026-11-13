@@ -16,7 +16,8 @@
   <% end %>
 </div>
 
-<%# Stock summary (Etapa 2.3, decided 09/10/2026): in meters, the empresa's
+<%# Stock summary (Etapa 2.3, decided 09/10/2026): in meters (in kg for a
+    group counted in kg, Dublagem 5b2a), the empresa's
     own stock and each client's material kept here; each material's type and
     sale price per meter (an entry's value is what it cost). %>
 <div class="materiais-tabela-wrap">
@@ -24,7 +25,7 @@
     <thead>
       <tr>
         <th>Material</th>
-        <th>Type · sale price / m</th>
+        <th>Type · sale price / m or kg</th>
         <th class="num">Empresa</th>
         <th>Clients</th>
         <th class="num">Total</th>
@@ -43,26 +44,26 @@
           <td>
             <%# Dublagem 3/5: a dublado's type and price are its construção's. %>
             <% if mp.dublado? %>
-              Dublado<%= " · #{number_to_currency(mp.preco_metro)}/m" if mp.preco_metro %>
+              Dublado<%= " · #{preco_da_unidade(mp.preco_metro, mp)}" if mp.preco_metro %>
               <% if mp.construcao && !cliente_final? %><%= link_to "construção", edit_construcao_path(mp.construcao), class: "material-construcao-link" %><% end %>
             <% elsif pode?(:estoque, :editar) %>
               <%= form_with model: mp, url: material_path(mp), method: :patch, class: "material-edicao", id: "material-#{mp.uuid}" do |f| %>
                 <%= f.select :tipo, MateriaPrima::ROTULOS_DOS_TIPOS.except("dublado").map { |t, rotulo| [ rotulo, t ] }, {}, id: "material-#{mp.uuid}-tipo", "aria-label": "Type of #{mp.nome_completo}" %>
                 <%= f.text_field :preco_metro, value: (number_with_precision(mp.preco_metro, precision: 2, separator: ",") if mp.preco_metro),
-                      placeholder: "R$ / m", inputmode: "decimal", id: "material-#{mp.uuid}-preco", "aria-label": "Sale price per meter of #{mp.nome_completo}" %>
+                      placeholder: "R$ / #{mp.unidade}", inputmode: "decimal", id: "material-#{mp.uuid}-preco", "aria-label": "Sale price per #{mp.em_kg? ? "kg" : "meter"} of #{mp.nome_completo}" %>
                 <%= f.submit "Save", class: "btn btn-sm btn-secondary" %>
               <% end %>
             <% else %>
-              <%= MateriaPrima::ROTULOS_DOS_TIPOS[mp.tipo] %><%= " · #{number_to_currency(mp.preco_metro)}/m" if mp.preco_metro %>
+              <%= MateriaPrima::ROTULOS_DOS_TIPOS[mp.tipo] %><%= " · #{preco_da_unidade(mp.preco_metro, mp)}" if mp.preco_metro %>
             <% end %>
           </td>
-          <td class="num" data-saldo="empresa"><%= metros(@saldos.empresa(mp)) %></td>
+          <td class="num" data-saldo="empresa"><%= quantidade_do_material(@saldos.empresa(mp), mp) %></td>
           <td class="materiais-clientes">
             <% @saldos.por_cliente(mp).each do |cliente, saldo| %>
-              <span data-cliente="<%= cliente.name %>"><%= cliente.name %>: <%= metros(saldo) %></span>
+              <span data-cliente="<%= cliente.name %>"><%= cliente.name %>: <%= quantidade_do_material(saldo, mp) %></span>
             <% end %>
           </td>
-          <td class="num" data-saldo="total"><%= metros(@saldos.total(mp)) %></td>
+          <td class="num" data-saldo="total"><%= quantidade_do_material(@saldos.total(mp), mp) %></td>
         </tr>
       <% end %>
       <% if @materiais.empty? %>

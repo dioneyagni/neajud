@@ -16,7 +16,7 @@
         <th>Type</th>
         <th>Qty</th>
         <th>Pedido</th>
-        <th>Cost / m</th>
+        <th>Unit cost</th>
         <th>Total</th>
       </tr>
     </thead>
@@ -27,7 +27,7 @@
           <td><%= m.dono %></td>
           <td><%= m.materia_prima.nome_completo %></td>
           <td><%= m.tipo == "entrada" ? "In" : "Out" %></td>
-          <td><%= metros(m.quantidade) %></td>
+          <td><%= quantidade_do_material(m.quantidade, m.materia_prima) %></td>
           <td data-pedido="<%= m.pedido&.uuid %>">
             <% if m.pedido %>
               <%= link_to "##{m.pedido.uuid.first(8)}", resumo_pedido_path(m.pedido) %>
@@ -41,7 +41,7 @@
               <span class="movimento-dublagem" data-ordem-dublagem="<%= m.ordem_dublagem.uuid %>"><%= cliente_final? ? "Dublagem ##{m.ordem_dublagem.uuid.first(8)}" : link_to("Dublagem ##{m.ordem_dublagem.uuid.first(8)}", dublagens_path) %></span>
             <% end %>
           </td>
-          <td><%= number_to_currency(m.valor) if m.valor %></td>
+          <td><%= preco_da_unidade(m.valor, m.materia_prima) if m.valor %></td>
           <td><%= number_to_currency(m.valor_total) if m.valor %></td>
         </tr>
       <% end %>

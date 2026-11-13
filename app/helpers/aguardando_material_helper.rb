@@ -60,7 +60,7 @@ module AguardandoMaterialHelper
     return if faltas.empty?
 
     pedidos = faltas.map(&:pedido_id).uniq.size
-    "Aguardando: #{pedidos} #{pedidos == 1 ? "pedido" : "pedidos"} · faltam #{metros(faltas.sum(&:metros))}"
+    "Aguardando: #{pedidos} #{pedidos == 1 ? "pedido" : "pedidos"} · faltam #{quantidade_do_material(faltas.sum(&:metros), material)}"
   end
 
   private
@@ -69,7 +69,7 @@ module AguardandoMaterialHelper
     proprias = faltas_visiveis(faltas)
     return "material" if proprias.empty?
 
-    proprias.map { |falta| "#{falta.materia_prima.nome_completo} #{falta.client ? "do cliente" : "da empresa"} · faltam #{metros(falta.metros)}" }.join("; ")
+    proprias.map { |falta| "#{falta.materia_prima.nome_completo} #{falta.client ? "do cliente" : "da empresa"} · faltam #{quantidade_do_material(falta.metros, falta.materia_prima)}" }.join("; ")
   end
 
   def dublagens_que_faltam(faltas)

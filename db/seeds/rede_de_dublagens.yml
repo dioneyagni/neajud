@@ -11,7 +11,8 @@
 #                the group is missing and must be created (superfície,
 #                base, estampavel: sim | ressalvas | nao); it asks what a
 #                group made in Materiais asks (gramatura) — the team
-#                changes that in Grupos
+#                changes that in Grupos; optionally unidade (m | kg,
+#                Dublagem 5b2a) and atributos ({ consumo_g_m2: true })
 #   situacoes:   the names a construção's situação takes (D6)
 #   ligacoes:    one per pair of groups (by GrupoMaterial name)
 #     par:       two groups, the upper one first (Oxford over Lona); a
@@ -45,7 +46,8 @@ grupos:
   Helanca: { superficie: false, base: true, estampavel: nao }
   Filme: { superficie: false, base: false, estampavel: nao }
   Filme PU: { superficie: false, base: false, estampavel: nao }
-  Cola: { superficie: false, base: false, estampavel: nao }
+  # Dublagem 5b2a: counted in kg, its consumption in g/m² required.
+  Cola: { superficie: false, base: false, estampavel: nao, unidade: kg, atributos: { consumo_g_m2: true } }
 
 situacoes:
   vai_frequencia: Vai frequência

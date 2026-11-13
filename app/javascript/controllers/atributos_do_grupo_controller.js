@@ -8,8 +8,11 @@ import { Controller } from "@hotwired/stimulus"
 //          data-action="group-select:escolhido->atributos-do-grupo#mostrar">
 // with the group's hidden input as target "grupo" (data-atributos) and each
 // field as target "campo" (data-atributo="densidade").
+// Dublagem 5b2a: a group counted in kg (data-unidade="kg", the cola) hides
+// the width (target "largura") and says kg where the quantity and the cost
+// are typed (targets "unidade", the text "m" or "kg").
 export default class extends Controller {
-  static targets = ["grupo", "campo"]
+  static targets = ["grupo", "campo", "largura", "unidade"]
 
   connect() {
     this.mostrar()
@@ -24,5 +27,15 @@ export default class extends Controller {
       campo.querySelectorAll("input").forEach(input => { input.disabled = !pede })
       campo.querySelector(".atributo-obrigatorio")?.toggleAttribute("hidden", !atributos[nome])
     })
+    this.mostrarUnidade(this.grupoTarget.dataset.unidade || "m")
+  }
+
+  mostrarUnidade(unidade) {
+    const emKg = unidade === "kg"
+    this.larguraTargets.forEach(campo => {
+      campo.hidden = emKg
+      campo.querySelectorAll("input").forEach(input => { input.disabled = emKg })
+    })
+    this.unidadeTargets.forEach(texto => { texto.textContent = emKg ? "kg" : "meter" + (texto.dataset.plural ? "s" : "") })
   }
 }
