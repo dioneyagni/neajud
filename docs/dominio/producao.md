@@ -440,6 +440,14 @@ Decided 11/11/2026 (canvas Painel, "5b1c2 · Dublagem no Painel e na fila").
   its pedido, the piece's label at the machine — `3 letras · Dublagem:
   #7674gj44|DUB-A, …`, started `1 de 3 letras · …: falta #7674gj44|DUB-C`, a
   letra in two items `×2` (`FilaDeProducaoHelper#o_que_fazer_na_fila`).
+- **A missing material** (5b1c3, Q1a–Q3a): it holds only the letras that
+  take it and the ones waiting for them (`MateriaisDaLetra.presas`;
+  `FilaDeProducao#letras_presas`): the stage's `Vez` goes with the free
+  letras (`linhas`), the held ones in `retidas` (the row: "DUB-B, DUB-C
+  aguardam …", `aviso_das_retidas`), all held it is `preso`; the
+  `Previsao` has no `fim` while a letra is held ("previsão quando …
+  entrar"). A material only letras take no longer holds the pedido's first
+  stage (`materiais_presos`). Specs: `spec/services/falta_da_letra_spec.rb`.
 - Specs: `spec/services/painel_da_dublagem_spec.rb`; E2E
   `e2e/dublagem-no-pedido.spec.js`.
 

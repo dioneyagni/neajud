@@ -29,4 +29,23 @@ RSpec.describe "Dublagem no pedido", type: :request do
     get producao_tecido_pedido_path(pedido, etapa: "dublagem_final")
     expect(html.at_css("tr[data-letra]").text.squish).to include("DUB-D", "DUB-A / DUB-C")
   end
+
+  # 5b1c3 (Q2a/Q3a): the Espuma missing, DUB-B and DUB-C say so on the
+  # stage's page; the Painel's Dublagem queue goes with DUB-A, saying which wait.
+  it "says on a held letra's line what it waits for, and the queue which letras wait" do
+    espuma = construcao.camadas_em_ordem.third.materia_prima
+    ComponentesDaDublagem.new(construcao).reject { |componente| componente.materia_prima == espuma }.each do |componente|
+      MovimentoEstoque.create!(materia_prima: componente.materia_prima, client: componente.client, da_empresa: componente.client.nil?, tipo: "entrada", quantidade: 10 * componente.por_metro)
+    end
+    sem_espuma = pedido_dublado_confirmado(construcao, metros: 10, estoque: false)
+
+    get producao_tecido_pedido_path(sem_espuma, etapa: "dublagem")
+    avisos = html.css("tr[data-letra]").to_h { |linha| [ linha["data-letra"], linha.at_css("[data-falta-da-letra]")&.text ] }
+    expect(avisos).to eq("DUB-A" => nil, "DUB-B" => "aguarda #{espuma.nome_completo} da empresa · faltam 20 m", "DUB-C" => "aguarda #{espuma.nome_completo} da empresa · faltam 20 m")
+
+    get painel_path
+    vez = html.at_css("[data-fila-setor=dublagem] [data-fila-pedido='#{sem_espuma.uuid}']")
+    expect(vez.at_css("[data-fila-o-que]").text).to eq("1 letra · Dublagem: ##{sem_espuma.uuid.first(8)}|DUB-A")
+    expect(vez.at_css("[data-fila-retidas]").text).to eq("DUB-B, DUB-C aguardam #{espuma.nome_completo}")
+  end
 end

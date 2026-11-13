@@ -21,11 +21,22 @@ module FilaDeProducaoHelper
   def o_que_fazer_na_fila(vez)
     letras = vez.linhas.filter_map { |linha| linha.dublagem&.letra }
     palavra = letras.any? && letras.size == vez.linhas.size ? "letra" : "linha"
-    quantas = vez.iniciada? ? "#{vez.abertas} de #{vez.total} #{palavra.pluralize(vez.total)}" : pluralize(vez.total, palavra)
+    # 5b1c3 (Q3a): not started, it counts the letras it goes with — the free ones.
+    quantas = vez.iniciada? ? "#{vez.abertas} de #{vez.total} #{palavra.pluralize(vez.total)}" : pluralize(vez.linhas.size, palavra)
     return "#{quantas} · #{vez.etapa.nome}" unless palavra == "letra"
 
     codigos = letras.tally.map { |letra, vezes| tag.span("##{vez.pedido.uuid.first(8)}|#{letra}#{" ×#{vezes}" if vezes > 1}", class: "painel-fila-letra", data: { letra: letra }) }
     safe_join([ "#{quantas} · #{vez.etapa.nome}: #{"falta " if vez.iniciada?}", safe_join(codigos, ", ") ])
+  end
+
+  # The letras a missing material holds out of the stage's queue (5b1c3,
+  # Q3a); nil when none. A cliente final sees no queue.
+  # Usage: aviso_das_retidas(vez) # => "DUB-B, DUB-C aguardam Espuma TC4 Branco-1.40 m"
+  def aviso_das_retidas(vez)
+    return if vez.retidas.blank?
+
+    letras = vez.retidas.map { |linha| linha.dublagem.letra }.uniq
+    "#{letras.join(", ")} #{letras.one? ? "aguarda" : "aguardam"} #{vez.retidas_por.map(&:nome_completo).join(" e ")}"
   end
 
   # Usage: momento_da_fila(Time.zone.parse("2026-11-12 15:30")) # => "qui 12/11 15:30" ("hoje 15:30", "amanhã 09:00")

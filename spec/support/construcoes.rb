@@ -64,14 +64,26 @@ module Construcoes
 
   # Dublagem 5a: a confirmed tecido pedido whose corrida is dubbed into the
   # construção, its stock out taken (the dublado, from the construção's owner).
+  # estoque: a construção dubbed in the pedido gets each layer and ligante
+  # in first, so nothing is missing (5b1c3: a missing one holds its letra);
+  # false leaves the stock empty. One dubbed in the stock (5a) takes its
+  # dublado, never these.
   # Usage: pedido = pedido_dublado_confirmado(construcao, metros: 10)
-  def pedido_dublado_confirmado(construcao, metros: 10, client: construcao.client || create(:client))
+  def pedido_dublado_confirmado(construcao, metros: 10, client: construcao.client || create(:client), estoque: true)
+    abastecer_construcao(construcao, metros) if estoque && !construcao.dubla_antes?
     pedido = create(:pedido, client: client, tipo: "tecido")
     arquivo = criar_obra_de_tecido("corrida", client: client).arquivos.first
     create(:item_pedido, pedido: pedido, arquivo: arquivo, materia_prima: construcao.superficie.materia_prima, construcao: construcao, metros: metros)
     pedido.update!(status: "confirmado")
     SaidaDoPedido.call(pedido)
     pedido.reload
+  end
+
+  def abastecer_construcao(construcao, metros)
+    ComponentesDaDublagem.new(construcao).each do |componente|
+      MovimentoEstoque.create!(materia_prima: componente.materia_prima, client: componente.client, da_empresa: componente.client.nil?,
+                               tipo: "entrada", quantidade: metros * componente.por_metro)
+    end
   end
 end
 

@@ -6,7 +6,9 @@
 // Calandra waits for the paper and DUB-A, DUB-B for the Calandra. 5b1c2
 // (canvas "5b1c2 · Dublagem no Painel e na fila"): the Painel has the
 // Dublagem and Dublagem final columns and one Dublagem tab whose queue
-// names each letra with its pedido.
+// names each letra with its pedido. 5b1c3: the Espuma short (25 of its 30 m
+// out by hand), DUB-B — the letra taking it — says so and its baixa asks
+// for the entry; DUB-A goes on.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -42,7 +44,14 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
   await test("Setup: a construção with a dublagem after the Calandra, a client and his corrida", async () => {
     const dublagem = await prepararDublagem(page, `${U}n`);
     const cor = (await buscarJson(page, "/materiais/cores")).find((c) => c.nome === "Branco").id;
-    const espuma = await material(page, cor, await grupo(page, "Espuma"), nomes.espuma, { "movimento_estoque[gramatura]": `${U}e` }, "tecido", `${U}e`);
+    const espumaGrupo = await grupo(page, "Espuma");
+    const espuma = await material(page, cor, espumaGrupo, nomes.espuma, { "movimento_estoque[gramatura]": `${U}e` }, "tecido", `${U}e`);
+    ids.espuma = espuma;
+    const saiu = await postar(page, "/movimentos", {
+      "movimento_estoque[da_empresa]": "true", "movimento_estoque[tipo]": "saida", "movimento_estoque[quantidade]": "25", "movimento_estoque[grupo_material_uuid]": espumaGrupo,
+      "movimento_estoque[cor_material_uuid]": cor, "movimento_estoque[largura]": "1.40 m", "movimento_estoque[gramatura]": `${U}e`,
+    });
+    if (!saiu) throw new Error("The Espuma's out by hand failed");
     const salva = await page.evaluate(async (campos) => {
       const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
       return (await fetch("/construcoes", { method: "POST", body: new URLSearchParams({ authenticity_token: token, ...campos }) })).url;
@@ -121,9 +130,21 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
     await darBaixa(page.locator(".producao-tecido-linha"), "12");
     await etapa("calandra");
     await darBaixa(page.locator(".producao-tecido-linha"), "12");
+    // 5b1c3 (Q2a): 12 m of Espuma for 5 left — DUB-B's baixa asks for the 7 m.
     await etapa("dublagem_final");
-    await darBaixa(linha("DUB-B"), "12");
+    const falta = (await linha("DUB-B").locator("[data-falta-da-letra]").innerText()).trim();
+    if (!falta.startsWith("aguarda Espuma") || !falta.endsWith("faltam 7 m")) throw new Error(`DUB-B says ${falta}`);
+    await linha("DUB-B").locator(".baixa-abrir").click();
+    await linha("DUB-B").locator(".baixa-medida").fill("12");
+    await linha("DUB-B").locator(".baixa-salvar").click();
+    const dialogo = linha("DUB-B").locator("dialog.baixa-falta");
+    await dialogo.waitFor({ state: "visible" });
+    if ((await dialogo.locator("input[data-chave]").inputValue()) !== "7") throw new Error("The entry doesn't start at the 7 m missing");
+    await dialogo.locator(".baixa-falta-lancar").click();
+    await page.getByText("Baixa de Dublagem final registrada").waitFor();
+    await etapa("dublagem_final");
     await linha("DUB-B").locator(".baixa-feita", { hasText: "✓ 12,00 m" }).waitFor();
+    if (await linha("DUB-B").locator("[data-falta-da-letra]").count()) throw new Error("DUB-B still says it waits for the Espuma");
   });
 
   await test("The Dublagem's page fits a phone, never scrolling sideways", async () => {

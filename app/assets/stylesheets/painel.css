@@ -233,3 +233,5 @@ main:has(.painel) { max-width: 1480px; }
 
 /* 5b1c2 (Q4): a dublagem's letra in the queue, with its pedido. */
 .painel-fila-letra { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; background: #f1f3f4; border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+/* 5b1c3 (Q3a): the letras a missing material holds out of the queue. */
+.painel-fila-retidas { font-size: 0.75rem; color: #a24c00; margin-top: 2px; }
