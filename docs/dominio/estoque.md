@@ -59,8 +59,22 @@ family, after the PIM pattern of families with required attributes:
   an item keeps its own material if its group stopped printing. A group with
   ressalvas shows its text on the item (`aviso_de_ressalva`), never a block.
 - The type `filme` is labeled "Ligante (dublagem)"; filme, filme PU and filme
-  TPU are groups of it, in micras. The cola waits for Dublagem 5/5 (the stock
-  only knows meters).
+  TPU are groups of it, in micras.
+- **The unit is the group's** (Dublagem 5b2a, decided 12/11/2026, Q1a):
+  `GrupoMaterial#unidade`, **m** or **kg**, set on the group page ("Conta
+  em") and fixed once the group has a material (their stock would read in
+  another unit; the page says how many). The **Cola** counts in kg (the
+  migration moved the dev's empty Cola; `db/seeds/rede_de_dublagens.yml` gives
+  a new instance's Cola `unidade: kg` and `atributos: { consumo_g_m2: true }`).
+  A kg material has **no width**, says its **consumption in g/m²** (the new
+  attribute `consumo_g_m2`, Q2a, part of its name: "Cola PU-Branco-120 g/m²"),
+  is a ligante (never a tecido: the stock entry makes it `filme`, and a
+  tecido in kg is refused) and its `preco_metro` is the price **per kg**.
+  The stock entry hides the width and asks "Quantity (kg)" for such a group;
+  the stock, the ledger, the consumption, the faltas and the falta dialog
+  write the unit (`quantidade_do_material`: "0,48 kg", to the gram;
+  `preco_da_unidade`: "$18.00/kg"). What the cola takes per meter dubbed and
+  its price in the construção come in 5b2b.
 - E2E: `e2e/grupos-de-material.spec.js`.
 - The development database gets these groups (Oxford, Microfibra, Cetim,
   Telinha, TNT, Helanca, Lona, EVA, Espuma, the three filmes and Papel) and a
