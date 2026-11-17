@@ -100,6 +100,18 @@ class MateriaPrima < ApplicationRecord
 
   def em_kg? = unidade == "kg"
 
+  # What it takes, as a ligante, per meter dubbed of a construção that wide
+  # (Dublagem 5b2b, Q2a): 1 m of a filme; of a cola (kg) its consumption over
+  # the width, in kg. nil when a kg one has no consumption or the width is unknown.
+  # Usage: filme.por_metro_dublado(1400) # => 1
+  #        cola.por_metro_dublado(1400)  # => 0.168 (120 g/m² × 1,40 m)
+  def por_metro_dublado(largura_mm)
+    return 1 unless em_kg?
+    return nil unless consumo_g_m2 && largura_mm
+
+    (consumo_g_m2.to_d * largura_mm / 1_000_000).round(4)
+  end
+
   # The group with its densidade, espessura and micras, then the color: a
   # construção's layer (Dublagem 3/5). Usage: espuma.nome_da_camada # => "Espuma TC4 3 mm Branco"
   def nome_da_camada

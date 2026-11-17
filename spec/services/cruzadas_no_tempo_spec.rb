@@ -6,7 +6,7 @@ require_relative "../support/producao_tecido"
 # Impressão, and its Calandra didn't end at a virada: one lane, both
 # stages, in the Manhã. A tecido prints 15,5 m in an hour.
 RSpec.describe CruzadasNoTempo do
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let!(:outro) { pedido_tecido_confirmado.tap { |p| p.update_columns(confirmado_em: quarta - 2.hours) } }

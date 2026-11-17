@@ -973,3 +973,7 @@
 .pedido-prazo { margin-top: 0.75rem; font-size: 0.875rem; }
 .pedido-prazo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .pedido-prazo-form input[type="date"] { font: inherit; padding: 4px 6px; border: 1px solid #dadce0; border-radius: 6px; }
+
+/* Dublagem 5b2b (Q4b): a cola short warns without holding — muted, not the
+   red of a wait. */
+.pedido-aviso-material { margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-left: 3px solid #b5b1a6; background: #f6f5f1; color: #5f5e5a; overflow-wrap: anywhere; }

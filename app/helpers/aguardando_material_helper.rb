@@ -42,6 +42,23 @@ module AguardandoMaterialHelper
     "aguarda #{materiais_que_faltam(faltas)}" if faltas.any?
   end
 
+  # What a dublagem line's letra takes that the stock lacks without holding
+  # it (Dublagem 5b2b, Q4b): a cola, counted in kg; nil when none. The cola
+  # is the empresa's: a cliente final never reads it.
+  # Usage: aviso_da_letra(pedido, linha) # => "Cola PU-Branco-120 g/m² · faltam 0,48 kg · não trava"
+  def aviso_da_letra(pedido, linha)
+    return if cliente_final?
+
+    partes = MateriaisDaLetra.call(linha).to_set { |parte| [ parte.materia_prima, parte.client ] }
+    avisos_que_faltam(aguardando_material.avisos_do_pedido(pedido).select { |falta| partes.include?([ falta.materia_prima, falta.client ]) })
+  end
+
+  # The pedido's own warnings, next to what it waits for (Q4b).
+  # Usage: aviso_do_pedido(pedido) # => "Cola PU-Branco-120 g/m² · faltam 0,48 kg · não trava"
+  def aviso_do_pedido(pedido)
+    avisos_que_faltam(aguardando_material.avisos_do_pedido(pedido)) unless cliente_final?
+  end
+
   # The pedidos list's badge (Dublagem 5a).
   # Usage: rotulo_do_aguardando(pedido) # => "aguardando dublagem", "aguardando material" or nil
   def rotulo_do_aguardando(pedido)
@@ -60,10 +77,16 @@ module AguardandoMaterialHelper
     return if faltas.empty?
 
     pedidos = faltas.map(&:pedido_id).uniq.size
-    "Aguardando: #{pedidos} #{pedidos == 1 ? "pedido" : "pedidos"} · faltam #{quantidade_do_material(faltas.sum(&:metros), material)}"
+    quantos = "#{pedidos} #{pedidos == 1 ? "pedido" : "pedidos"} · faltam #{quantidade_do_material(faltas.sum(&:metros), material)}"
+    # Dublagem 5b2b (Q4b): a cola short holds no pedido.
+    material.em_kg? ? "Falta para #{quantos} · não trava" : "Aguardando: #{quantos}"
   end
 
   private
+
+  def avisos_que_faltam(avisos)
+    avisos.map { |falta| "#{falta.materia_prima.nome_completo} · faltam #{quantidade_do_material(falta.metros, falta.materia_prima)} · não trava" }.join("; ").presence
+  end
 
   def materiais_que_faltam(faltas)
     proprias = faltas_visiveis(faltas)

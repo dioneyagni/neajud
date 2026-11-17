@@ -7,7 +7,7 @@ require_relative "../support/producao_tecido"
 # confirming it (MoverNaFila). A tecido pedido here prints 15,5 m in an
 # hour and runs them on the Calandra in half an hour.
 RSpec.describe ImpactoDoMovimento do
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let(:pessoa) { create(:user) }

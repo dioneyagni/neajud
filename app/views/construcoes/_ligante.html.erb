@@ -21,7 +21,7 @@
         <% end %>
       </select>
     <% else %>
-      <span class="construcao-ligante-pendente" data-ligante-pendente><%= regra %> — a escolher na 5/5</span>
+      <span class="construcao-ligante-pendente" data-ligante-pendente><%= regra %> — nenhum material cadastrado serve</span>
     <% end %>
     <% if ligacao.a_confirmar? %><span class="rede-chip rede-chip--confirmar">a confirmar</span><% end %>
     <%= link_to "ver na rede", rede_ligacao_path(ligacao.uuid), class: "construcao-ver-na-rede", data: { ver_na_rede: true } %>

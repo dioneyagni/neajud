@@ -10,7 +10,7 @@ require_relative "../support/construcoes"
 RSpec.describe "Dublagem no Painel e na fila" do
   include ActiveSupport::Testing::TimeHelpers
 
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let(:construcao) { construcao_dublada_no_pedido }

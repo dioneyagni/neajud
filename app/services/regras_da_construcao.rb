@@ -2,7 +2,7 @@
 # Parâmetros' maximum of layers (5b1a, Q2d), all tecidos; the first a superfície, the others bases; each pair
 # a ligação of the dublagem network, joined by a ligante the network allows
 # in the situação — or none while no registered material serves (the cola,
-# until 5/5); a client's layer needs the client, and a client needs a layer
+# until 5/5 — registered, in kg, since 5b2a); a client's layer needs the client, and a client needs a layer
 # of his; never twice the same construção. Each message names the layer and
 # what was expected. A construção in use is not checked against the network
 # (rede editável 2/2a, Q6a): its layers can't change, it keeps the momentos

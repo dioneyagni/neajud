@@ -157,7 +157,7 @@ Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
   "Waiting line by line"). The item reads "dublado no pedido: DUB-A, DUB-B
   (Dublagem) · DUB-C (Dublagem final)".
 - **Its stock** (Q8a): the confirmation takes 1 m a meter of **each layer**,
-  from its owner, and of **each ligante**, the empresa's
+  from its owner, and of **each ligante** (a cola its kg, 5b2b, below), the empresa's
   (`ComponentesDaDublagem`, as an ordem of 5a) — never the superfície
   alone. The Dublagem stages' baixa takes nothing (Q2a; the loss of each
   dublagem is for later); the Calandra's still adjusts the superfície.
@@ -173,6 +173,23 @@ Decided 02/11/2026 (plano Etapa 2.9 D1; decisions 1a–4a):
   named ("DUB-B, DUB-C aguardam Espuma"), and the pedido says "previsão
   quando Espuma entrar" until it comes (Q3a); the Impressão and the
   Calandra run.
+- **The cola** (5b2b, decided 12/11/2026): counted in kg (5b2a,
+  `docs/dominio/estoque.md`), a cola ligante takes its **consumption over the
+  construção's width** per meter dubbed — 120 g/m² × 1,40 m = 0,168 kg
+  (`MateriaPrima#por_metro_dublado`, `Construcao#largura_mais_estreita_mm`;
+  Q2a) — in the confirmation's out, the ordens of 5a and the letra's parts.
+  The suggested price takes its price per kg times that, the card keeping
+  one line "Cola R$ 3,02" (Q3a); without its consumption the line reads
+  "sem consumo". **Short, it never holds** (Q4b): it goes out all the same,
+  the balance below zero; `AguardandoMaterial` keeps it apart
+  (`avisos_do_pedido`), so no letra is held, no baixa or delivery asks its
+  entry and the pedido isn't "aguardando material". It warns: on the
+  letra's line ("Cola PU-Branco-120 g/m² · faltam 0,48 kg · não trava",
+  `aviso_da_letra`), on the pedido ("Falta no estoque: …"), on the
+  material's row ("Falta para 1 pedido · … · não trava") and in the
+  Painel's Dublagem cell detail — never for a cliente final (the cola is
+  the empresa's). Specs: `spec/services/cola_na_dublagem_spec.rb`,
+  `spec/requests/cola_na_dublagem_spec.rb`.
 - E2E: `e2e/construcoes.spec.js` ("Dubs a corrida's item…"),
   `e2e/dublagem-no-pedido.spec.js`.
 

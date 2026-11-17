@@ -6,7 +6,7 @@ require_relative "../support/producao_tecido"
 # start, deadline and what holds it. Painel 2/4b: its previsão and folga
 # from the queue (its block is BlocosNoTempo's).
 RSpec.describe LinhaDoPainel do
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
 
   def linha(pedido, aguardando: sem_falta, **opcoes)
     described_class.call(pedido, aguardando: aguardando, **opcoes)
@@ -55,7 +55,7 @@ RSpec.describe LinhaDoPainel do
   it "says a pedido waits for material, its detail only for the team" do
     pedido = pedido_tecido_confirmado
     falta = AguardandoMaterial::Falta.new(pedido_id: pedido.id, materia_prima: pedido.itens_pedido.first.materia_prima, metros: 12.5)
-    aguardando = instance_double(AguardandoMaterial, do_pedido: [ falta ])
+    aguardando = instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: [ falta ])
 
     equipe = linha(pedido, aguardando: aguardando)
     expect([ equipe.celulas["material"].texto, equipe.celulas["material"].detalhe ]).to eq([ "aguarda material", "#{falta.materia_prima.nome_completo} · faltam 12,5 m" ])

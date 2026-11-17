@@ -61,6 +61,8 @@ class LinhaDoPainel
     @reposicoes = reposicoes
     @juntando = juntando
     @faltas = aguardando.do_pedido(pedido)
+    # 5b2b (Q4b): a cola short, the empresa's — never the cliente final's to read.
+    @avisos = cliente_final ? [] : aguardando.avisos_do_pedido(pedido)
     @bloqueios = pedido.confirmavel? ? PedidoBloqueiosService.call(pedido) : []
     @estados = pedido.saiu_do_rascunho? ? (estados || EstadoDasEtapas.call(pedido)) : {}
     @celulas = montar_celulas
@@ -175,7 +177,26 @@ class LinhaDoPainel
     celulas = COLUNAS.keys.index_with { CelulaDoPainel.nova(:nao_tem) }
     celulas.merge!("arquivos" => celula_dos_arquivos, "comercial" => celula_comercial, "material" => celula_do_material)
     celulas.merge!(celulas_das_etapas)
+    avisar_nas_dublagens(celulas)
     celulas.merge!("entrega" => celula_da_entrega(celulas))
+  end
+
+  # Dublagem 5b2b (Q4b, decided 12/11/2026): a cola short never holds — the
+  # cell keeps its state and text, its hover detail gains the warning, in
+  # the stage whose letras take it.
+  def avisar_nas_dublagens(celulas)
+    return if @avisos.empty?
+
+    %w[dublagem dublagem_final].each do |chave|
+      linhas = estados[chave]&.values&.map(&:linha) || []
+      levam = linhas.flat_map { |linha| MateriaisDaLetra.call(linha).map { |parte| [ parte.materia_prima, parte.client ] } }
+      avisos = @avisos.select { |falta| levam.include?([ falta.materia_prima, falta.client ]) }
+      next if avisos.empty?
+
+      celula = celulas[COLUNA_DA_ETAPA.fetch(chave, chave)]
+      texto = avisos.map { |falta| "#{falta.materia_prima.nome_completo} · faltam #{kg(falta.metros)} · não trava" }.join("; ")
+      celula.detalhe = [ celula.detalhe, texto ].compact.join(" · ")
+    end
   end
 
   # A draft's stages are not computed (its lines still follow the artes): "—".
@@ -238,6 +259,10 @@ class LinhaDoPainel
 
   def descricoes(bloqueios)
     bloqueios.map { |b| @cliente_final && PedidoBloqueiosService::DA_FABRICA.include?(b.tipo) ? "em análise pela fábrica" : b.descricao }.uniq.join("; ")
+  end
+
+  def kg(valor)
+    "#{ActiveSupport::NumberHelper.number_to_rounded(valor, precision: 3, strip_insignificant_zeros: true, separator: ",")} kg"
   end
 
   def metros(valor)
