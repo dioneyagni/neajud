@@ -31,6 +31,13 @@ RSpec.describe ImportarRedeDeDublagens do
     expect(ligantes.map { |l| [ l.grupo_material.nome, l.situacao_dublagem&.chave, l.micras_minimo, l.posicao ] }).to eq([ [ "Filme", nil, 35, 1 ], [ "Filme PU", "tecido_molha", nil, 2 ] ])
   end
 
+  # Dublagem 5b2a: the file's Cola is counted in kg and asks its consumption.
+  it "creates a missing group with the file's unit and attributes" do
+    importar(ligacao("ligantes" => [ { "grupo" => "Cola" } ]), grupos: papeis.merge("Cola" => papeis["Filme"].merge("unidade" => "kg", "atributos" => { "consumo_g_m2" => true })))
+    expect(GrupoMaterial.find_by!(nome: "Cola")).to have_attributes(unidade: "kg", atributos: { "consumo_g_m2" => true })
+    expect(YAML.safe_load_file(described_class::ARQUIVO).dig("grupos", "Cola")).to include("unidade" => "kg", "atributos" => { "consumo_g_m2" => true })
+  end
+
   it "never changes what is already there, and run again adds nothing" do
     oxford = GrupoMaterial.create!(nome: "oxford", superficie: true, base: false)
     importar(ligacao)
@@ -88,6 +95,13 @@ RSpec.describe ImportarRedeDeDublagens do
 
     it "refuses the same pair twice, in any order" do
       expect { importar(ligacao, ligacao("par" => %w[Lona Oxford])) }.to raise_error(described_class::Invalida, /pair Lona–Oxford appears 2 times/)
+    end
+
+    it "refuses a group's unit or attributes it doesn't know" do
+      expect { importar(ligacao, grupos: papeis.merge("Lona" => papeis["Lona"].merge("unidade" => "litro"))) }
+        .to raise_error(described_class::Invalida, /grupo Lona: .*optionally unidade: m\|kg/)
+      expect { importar(ligacao, grupos: papeis.merge("Lona" => papeis["Lona"].merge("atributos" => { "cor" => true }))) }
+        .to raise_error(described_class::Invalida, /grupo Lona: /)
     end
 
     it "refuses a group's roles that aren't true/false and an estampavel option" do

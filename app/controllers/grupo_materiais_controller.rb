@@ -15,12 +15,12 @@ class GrupoMateriaisController < ApplicationController
     @grupo = @grupos.por_uuid!(params[:id])
   end
 
-  # Usage: PATCH /grupos-de-material/:uuid, grupo_material[superficie|base|estampavel|ressalva],
+  # Usage: PATCH /grupos-de-material/:uuid, grupo_material[superficie|base|estampavel|ressalva|unidade],
   #        pede[]=densidade, obrigatorios[]=espessura_mm
   def update
     @grupos = grupos_em_ordem
     @grupo = @grupos.por_uuid!(params[:id])
-    @grupo.assign_attributes(params.require(:grupo_material).permit(:superficie, :base, :estampavel, :ressalva))
+    @grupo.assign_attributes(params.require(:grupo_material).permit(:superficie, :base, :estampavel, :ressalva, :unidade))
     @grupo.definir_atributos(pede: params[:pede], obrigatorios: params[:obrigatorios])
     return redirect_to edit_grupo_material_path(@grupo), notice: "#{@grupo.nome}: salvo." if @grupo.save
 

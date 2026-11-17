@@ -6,7 +6,7 @@ module OrdensDublagemHelper
   #   # => "falta componente: Lona Branco-1.40 m da empresa, 4 m; Filme 35 µm-1.60 m da empresa, 10 m"
   def falta_de_componentes(construcao, metros, saldos)
     componentes = ComponentesDaDublagem.new(construcao)
-    faltas = componentes.faltas(metros.to_f, saldos).map { |c| "#{c.materia_prima.nome_completo} #{c.client ? "do cliente" : "da empresa"}, #{metros(c.falta)}" }
+    faltas = componentes.faltas(metros.to_f, saldos).map { |c| "#{c.materia_prima.nome_completo} #{c.client ? "do cliente" : "da empresa"}, #{quantidade_do_material(c.falta, c.materia_prima)}" }
     faltas << "#{componentes.sem_ligante} ligante a escolher na construção" if componentes.sem_ligante.positive?
     "falta componente: #{faltas.join("; ")}" if faltas.any?
   end

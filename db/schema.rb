@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_202113) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -470,6 +470,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_202113) do
     t.string "estampavel", default: "sim", null: false
     t.text "ressalva"
     t.json "atributos", default: {"gramatura" => true}, null: false
+    t.string "unidade", default: "m", null: false
     t.index ["nome"], name: "index_grupo_materiais_on_nome", unique: true
     t.index ["uuid"], name: "index_grupo_materiais_on_uuid", unique: true
   end
@@ -604,8 +605,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_202113) do
     t.decimal "espessura_mm", precision: 6, scale: 2
     t.integer "micras"
     t.string "fornecedor"
+    t.decimal "consumo_g_m2", precision: 8, scale: 2
     t.index ["cor_material_id"], name: "index_materia_primas_on_cor_material_id"
-    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura", "densidade", "espessura_mm", "micras", "fornecedor"], name: "idx_materia_primas_composite", unique: true, where: "tipo <> 'dublado'"
+    t.index ["grupo_material_id", "cor_material_id", "largura", "gramatura", "densidade", "espessura_mm", "micras", "consumo_g_m2", "fornecedor"], name: "idx_materia_primas_composite", unique: true, where: "tipo <> 'dublado'"
     t.index ["grupo_material_id"], name: "index_materia_primas_on_grupo_material_id"
     t.index ["uuid"], name: "index_materia_primas_on_uuid", unique: true
   end

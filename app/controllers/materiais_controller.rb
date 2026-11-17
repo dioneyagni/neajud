@@ -38,7 +38,7 @@ class MateriaisController < ApplicationController
   def grupos
     grupos = params[:q].present? ? visiveis(GrupoMaterial).search(params[:q]) : visiveis(GrupoMaterial).order(:nome)
     # Dublagem 1/5: the stock entry shows the fields the group asks for.
-    render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome, atributos: g.atributos } }
+    render json: grupos.limit(10).map { |g| { id: g.uuid, nome: g.nome, atributos: g.atributos, unidade: g.unidade } }
   end
 
   def create_grupo

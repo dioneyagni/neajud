@@ -3,6 +3,8 @@
 // and whether it prints; the stock entry then shows that field and refuses a
 // new material without it. A tecido pedido offers only what prints — the
 // card's modal and the item's select — and warns of a group's ressalva.
+// Dublagem 5b2a (decided 12/11/2026, Q1a): a group counted in kg — the cola
+// — registers its materials by their consumption, without a width.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -13,7 +15,7 @@ const { waitForText } = require("./support/wait");
 
 runSpec("Grupos de material E2E Tests", async ({ page, test }) => {
   const U = Date.now();
-  const grupos = { espuma: `Espuma${U}`, tnt: `TNT${U}`, telinha: `Telinha${U}` };
+  const grupos = { espuma: `Espuma${U}`, tnt: `TNT${U}`, telinha: `Telinha${U}`, cola: `Cola${U}` };
   const nomes = { cliente: `Familias ${U}`, corrida: `familia${U}` };
   const ids = {};
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), "grupos-de-material-"));
@@ -115,6 +117,38 @@ runSpec("Grupos de material E2E Tests", async ({ page, test }) => {
     await page.fill("#movimento_estoque_densidade", "TC4");
     await page.click('input[type="submit"][value="Register Movement"]');
     await waitForText(page, `of ${grupos.espuma} TC4 3 mm-Branco-1.40 m`);
+  });
+
+  await test("A group counted in kg registers the cola by its consumption, without a width", async () => {
+    await abrirGrupo(grupos.cola);
+    await page.check("#grupo_material_unidade_kg");
+    await page.uncheck('input[name="pede[]"][value="gramatura"]');
+    await page.uncheck('input[name="obrigatorios[]"][value="gramatura"]');
+    await page.check('input[name="obrigatorios[]"][value="consumo_g_m2"]');
+    await salvarGrupo(grupos.cola);
+
+    await page.goto(`${BASE_URL}/movimentos/new`);
+    await page.click('input[name="movimento_estoque[da_empresa]"][value="true"]');
+    await page.fill("[data-group-select-target=input]", grupos.cola);
+    await page.locator(`.combobox-option[data-name="${grupos.cola}"]`).click();
+    await page.locator('[data-atributo="consumo_g_m2"]').waitFor({ state: "visible" });
+    // kg: the cola has no roll, so no width is shown nor sent.
+    if (await page.locator('[data-atributos-do-grupo-target="largura"]').isVisible()) throw new Error("The cola shows a width");
+    const rotulo = (await page.locator('label[for="movimento_estoque_quantidade"]').innerText()).trim();
+    if (rotulo !== "Quantity (kg)") throw new Error(`The quantity says "${rotulo}"`);
+    await page.click(`.color-swatch[title="Branco"]`);
+    await page.fill("#movimento_estoque_consumo_g_m2", "120");
+    await page.fill("#movimento_estoque_quantidade", "1.5");
+    await page.click('input[type="submit"][value="Register Movement"]');
+    await waitForText(page, `In 1.5 kg of ${grupos.cola}-Branco-120 g/m²`);
+    const cola = await material(grupos.cola);
+    const saldo = (await page.locator(`tr[data-material="${cola.id}"] [data-saldo="empresa"]`).innerText()).trim();
+    if (saldo !== "1,5 kg") throw new Error(`The cola's stock reads "${saldo}"`);
+
+    // With a material, the unit no longer changes.
+    await abrirGrupo(grupos.cola);
+    if (!(await page.locator("#grupo_material_unidade_m").isDisabled())) throw new Error("The cola's unit can still change");
+    await waitForText(page, "Não muda: o grupo já tem 1 material.");
   });
 
   await test("A tecido pedido offers only what prints and warns of a ressalva", async () => {

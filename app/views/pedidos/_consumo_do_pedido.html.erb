@@ -8,8 +8,8 @@
     <% consumo.each do |linha| %>
       <dt><%= linha.materia_prima.nome_completo %> <small>(<%= linha.client&.name || "Empresa" %>)</small></dt>
       <dd data-consumo="<%= linha.materia_prima.uuid %>">
-        saída <%= metros(linha.saida) %>
-        <% if linha.ajustes.nonzero? %> · ajustes <%= ajuste_em_metros(linha.ajustes) %> · real até agora <%= metros(linha.real) %><% end %>
+        saída <%= quantidade_do_material(linha.saida, linha.materia_prima) %>
+        <% if linha.ajustes.nonzero? %> · ajustes <%= ajuste_em_metros(linha.ajustes, linha.materia_prima) %> · real até agora <%= quantidade_do_material(linha.real, linha.materia_prima) %><% end %>
       </dd>
     <% end %>
   </dl>

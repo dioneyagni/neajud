@@ -25,7 +25,7 @@ module MovimentoCreatable
     @movimento.materia_prima = mp
 
     if @movimento.save
-      redirect_to materiais_path, notice: "Movement registered: #{@movimento.tipo == 'entrada' ? 'In' : 'Out'} #{@movimento.quantidade} m of #{mp.nome_completo} (#{@movimento.dono})."
+      redirect_to materiais_path, notice: "Movement registered: #{@movimento.tipo == 'entrada' ? 'In' : 'Out'} #{@movimento.quantidade} #{mp.unidade} of #{mp.nome_completo} (#{@movimento.dono})."
     else
       # The form re-rendered without saying why (until Etapa 2.3).
       flash.now[:alert] = @movimento.errors.full_messages.to_sentence
@@ -35,7 +35,7 @@ module MovimentoCreatable
   end
 
   def normalize_decimal_separator
-    %w[largura quantidade valor espessura_mm].each do |field|
+    %w[largura quantidade valor espessura_mm consumo_g_m2].each do |field|
       raw = params.dig(:movimento_estoque, field)
       params[:movimento_estoque][field] = raw.sub(",", ".") if raw.is_a?(String)
     end
@@ -52,6 +52,7 @@ module MovimentoCreatable
     @selected_client_nome = @movimento.client&.name
     @selected_grupo_nome = grupo_escolhido&.nome
     @selected_grupo_atributos = grupo_escolhido&.atributos
+    @selected_grupo_unidade = grupo_escolhido&.unidade
   end
 
   def movimento_params
@@ -84,10 +85,12 @@ module MovimentoCreatable
   # dropped, so the same material is found again whatever the form sent.
   def atributos_do_material
     grupo = grupo_escolhido
-    atributos = { grupo_material: grupo, cor_material: cor_escolhida, largura: movimento_params[:largura] }
+    # Dublagem 5b2a: a group counted in kg has no width (the form drops it).
+    atributos = { grupo_material: grupo, cor_material: cor_escolhida, largura: (grupo&.em_kg? ? "" : movimento_params[:largura]) }
     GrupoMaterial::ATRIBUTOS.each do |atributo|
       atributos[atributo.to_sym] = (movimento_params[atributo].to_s.squish.presence if grupo&.pede?(atributo))
     end
-    atributos.merge(gramatura: atributos[:gramatura].to_s)
+    # A group counted in kg is the cola: a ligante, never a tecido (5b2a).
+    atributos.merge(gramatura: atributos[:gramatura].to_s, **(grupo&.em_kg? ? { tipo: "filme" } : {}))
   end
 end

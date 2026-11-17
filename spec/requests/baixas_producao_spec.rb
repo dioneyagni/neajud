@@ -194,7 +194,7 @@ RSpec.describe "Production baixas", type: :request do
       baixa("corte", "0,2")
       expect(response.parsed_body).to eq("ok" => false, "pode_lancar" => true,
                                          "falta_material" => "Falta material para esta baixa no estoque. Se ele chegou, lance a entrada para dar a baixa.",
-                                         "faltas" => [ { "chave" => chave, "material" => material.nome_completo, "dono" => falta.dono, "falta" => 0.2, "minimo" => 0.2 } ])
+                                         "faltas" => [ { "chave" => chave, "material" => material.nome_completo, "dono" => falta.dono, "falta" => 0.2, "minimo" => 0.2, "unidade" => "m" } ])
       baixa("corte", "0,2", entradas: { chave => "5" })
       expect(response.parsed_body).to eq("ok" => true)
       expect(MovimentoEstoque.entradas.sole.slice(:quantidade, :lancado_por_id, :autorizado_por_id).transform_values { |v| v.is_a?(BigDecimal) ? v.to_f : v })

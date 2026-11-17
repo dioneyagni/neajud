@@ -8,6 +8,9 @@
 class LeituraDaRedeInicial
   CAMPOS = %w[par lado ligantes dubla situacoes a_confirmar].freeze
   PAPEIS = %w[superficie base estampavel].freeze
+  # Dublagem 5b2a: a group may also say its unit and the attributes it asks
+  # (the Cola: kg, its consumption in g/m² required).
+  OPCIONAIS = %w[unidade atributos].freeze
 
   def initialize(conteudo)
     @conteudo = conteudo
@@ -32,10 +35,21 @@ class LeituraDaRedeInicial
   end
 
   def recusar_papeis(nome, papeis)
-    return if papeis.is_a?(Hash) && papeis.keys.sort == PAPEIS.sort && [ papeis["superficie"], papeis["base"] ].all? { |valor| [ true, false ].include?(valor) } &&
-              GrupoMaterial::ESTAMPAVEL.include?(papeis["estampavel"])
+    return if papeis_validos?(papeis) && opcionais_validos?(papeis)
 
-    raise ImportarRedeDeDublagens::Invalida, "grupo #{nome}: roles #{papeis.inspect}; expected { superficie: true|false, base: true|false, estampavel: #{GrupoMaterial::ESTAMPAVEL.join("|")} }"
+    raise ImportarRedeDeDublagens::Invalida, "grupo #{nome}: roles #{papeis.inspect}; expected { superficie: true|false, base: true|false, estampavel: #{GrupoMaterial::ESTAMPAVEL.join("|")} }, " \
+                                             "optionally unidade: #{GrupoMaterial::UNIDADES.join("|")} and atributos: { #{GrupoMaterial::ATRIBUTOS.first}: true|false, … }"
+  end
+
+  def papeis_validos?(papeis)
+    papeis.is_a?(Hash) && (papeis.keys - OPCIONAIS).sort == PAPEIS.sort && [ papeis["superficie"], papeis["base"] ].all? { |valor| [ true, false ].include?(valor) } &&
+      GrupoMaterial::ESTAMPAVEL.include?(papeis["estampavel"])
+  end
+
+  def opcionais_validos?(papeis)
+    atributos = papeis.fetch("atributos", {})
+    GrupoMaterial::UNIDADES.include?(papeis.fetch("unidade", "m")) && atributos.is_a?(Hash) &&
+      (atributos.keys - GrupoMaterial::ATRIBUTOS).empty? && atributos.values.all? { |valor| [ true, false ].include?(valor) }
   end
 
   def situacoes_de(dados)

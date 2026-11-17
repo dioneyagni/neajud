@@ -6,6 +6,8 @@
 # (GrupoMaterial#atributos) — gramatura, densidade, espessura, micras,
 # fornecedor — and which are required; a requirement added later doesn't
 # refuse the materials already there, it marks them (atributos_faltando).
+# Dublagem 5b2a (12/11/2026, Q1a): the group may count it in kg instead (the
+# cola): no width, its preco_metro then the price per kg.
 class MateriaPrima < ApplicationRecord
   # The insumos say the stage that uses them up (decided 28/10/2026): the
   # papel and the filme DTF at Impressão, the kraft at Calandra, the plástico
@@ -29,13 +31,18 @@ class MateriaPrima < ApplicationRecord
   normalizes :gramatura, with: ->(valor) { valor.to_s.strip }, apply_to_nil: true
   normalizes :densidade, :fornecedor, with: ->(valor) { valor.squish.presence }
 
-  validates :largura, presence: true
+  # Dublagem 5b2a: a material counted in kg (the cola) has no roll width.
+  attribute :largura, default: ""
+  normalizes :largura, with: ->(valor) { valor.to_s.strip }, apply_to_nil: true
+  validates :largura, presence: true, unless: :em_kg?
   # A dublado is told apart by its construção, not by its group and color.
-  validates :largura, uniqueness: { scope: %i[grupo_material_id cor_material_id gramatura densidade espessura_mm micras fornecedor] }, unless: :dublado?
+  validates :largura, uniqueness: { scope: %i[grupo_material_id cor_material_id gramatura densidade espessura_mm micras consumo_g_m2 fornecedor] }, unless: :dublado?
   validates :espessura_mm, numericality: { greater_than: 0 }, allow_nil: true
+  validates :consumo_g_m2, numericality: { greater_than: 0 }, allow_nil: true
   validates :micras, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validate :atributos_obrigatorios, on: :create
   validate :dublado_continua_dublado, on: :update
+  validate :em_kg_nao_e_tecido
   validates :tipo, inclusion: { in: TIPOS, message: "%{value} is not a material type; expected one of #{TIPOS.join(", ")}" }
   validates :preco_metro, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
@@ -76,14 +83,22 @@ class MateriaPrima < ApplicationRecord
   end
 
   # The group with its densidade, espessura and micras when it has them
-  # ("Espuma TC4 3 mm"), then color, width, gramatura and fornecedor; a
-  # material without them keeps its pre-1/5 name.
+  # ("Espuma TC4 3 mm"), then color, width, gramatura, consumption and
+  # fornecedor; a material without them keeps its pre-1/5 name.
   # Usage: espuma.nome_completo # => "Espuma TC4 3 mm-Branco-1.40 m"
+  #        cola.nome_completo   # => "Cola PU-Branco-120 g/m²" (no width: kg, 5b2a)
   def nome_completo
     return construcao.nome if dublado? && construcao
 
-    [ cabeca_do_nome, cor_material.nome, largura, gramatura.presence, fornecedor ].compact.join("-")
+    consumo = consumo_g_m2 && "#{numero_curto(consumo_g_m2)} g/m²"
+    [ cabeca_do_nome, cor_material.nome, largura.presence, gramatura.presence, consumo, fornecedor ].compact.join("-")
   end
+
+  # What its stock is counted in, its group's (Dublagem 5b2a): "m" or "kg".
+  # Usage: cola.unidade # => "kg"
+  def unidade = grupo_material&.unidade || "m"
+
+  def em_kg? = unidade == "kg"
 
   # The group with its densidade, espessura and micras, then the color: a
   # construção's layer (Dublagem 3/5). Usage: espuma.nome_da_camada # => "Espuma TC4 3 mm Branco"
@@ -129,6 +144,11 @@ class MateriaPrima < ApplicationRecord
     return unless will_save_change_to_tipo? && tipo_in_database.to_s.then { |antes| antes == "dublado" || dublado? }
 
     errors.add(:tipo, "#{tipo_in_database} can't become #{tipo}: a dublado is made by its construção only")
+  end
+
+  # A fabric is sold and dubbed by the meter: kg is for the cola (5b2a).
+  def em_kg_nao_e_tecido
+    errors.add(:tipo, "#{tipo} can't be counted in kg (group #{grupo_material.nome}); expected a ligante or an insumo") if em_kg? && %w[tecido dublado].include?(tipo)
   end
 
   def cabeca_do_nome

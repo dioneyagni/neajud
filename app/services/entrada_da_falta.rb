@@ -28,7 +28,7 @@ class EntradaDaFalta
 
     # What the dialog shows (the baixa and entrega Stimulus controllers).
     def para_o_dialogo
-      { chave: chave, material: materia_prima.nome_completo, dono: client&.name || "Empresa", falta: falta.to_f, minimo: minimo.to_f }
+      { chave: chave, material: materia_prima.nome_completo, dono: client&.name || "Empresa", falta: falta.to_f, minimo: minimo.to_f, unidade: materia_prima.unidade }
     end
   end
 
@@ -73,9 +73,10 @@ class EntradaDaFalta
   def erro_das_quantidades
     @faltas.filter_map do |item|
       valor = @entradas[item.chave].to_s
-      next "Entry of #{item.materia_prima.nome_completo} #{valor.inspect} is not a number of meters." unless valor.match?(/\A\d+(\.\d+)?\z/)
+      unidade = item.materia_prima.unidade
+      next "Entry of #{item.materia_prima.nome_completo} #{valor.inspect} is not a number of #{unidade == "kg" ? "kg" : "meters"}." unless valor.match?(/\A\d+(\.\d+)?\z/)
 
-      "Entry of #{item.materia_prima.nome_completo} #{valor.tr(".", ",")} m is below the #{metros_br(item.minimo)} m missing; expected at least that." if valor.to_d < item.minimo
+      "Entry of #{item.materia_prima.nome_completo} #{valor.tr(".", ",")} #{unidade} is below the #{metros_br(item.minimo)} #{unidade} missing; expected at least that." if valor.to_d < item.minimo
     end.first
   end
 

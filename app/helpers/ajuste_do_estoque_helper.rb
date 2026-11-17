@@ -18,7 +18,7 @@ module AjusteDoEstoqueHelper
     return "sem saída do estoque" unless baixa.pedido.movimentos_estoque.da_confirmacao.exists?
     return if baixa.ajustes_estoque.empty?
 
-    "estoque: " + baixa.ajustes_estoque.includes(:materia_prima, :client).map { |m| "#{sinal(m)}#{metros(m.quantidade)} #{m.materia_prima.nome_completo} (#{m.dono})" }.join("; ")
+    "estoque: " + baixa.ajustes_estoque.includes(:materia_prima, :client).map { |m| "#{sinal(m)}#{quantidade_do_material(m.quantidade, m.materia_prima)} #{m.materia_prima.nome_completo} (#{m.dono})" }.join("; ")
   end
 
   Consumo = Struct.new(:materia_prima, :client, :saida, :ajustes, keyword_init: true) do
@@ -39,8 +39,9 @@ module AjusteDoEstoqueHelper
   end
 
   # Usage: ajuste_em_metros(1.2) # => "+1,2 m"; ajuste_em_metros(-0.3) # => "−0,3 m"
-  def ajuste_em_metros(valor)
-    "#{valor.negative? ? "−" : "+"}#{metros(valor.abs)}"
+  #        ajuste_em_metros(-0.05, cola) # => "−0,05 kg" (Dublagem 5b2a)
+  def ajuste_em_metros(valor, material = nil)
+    "#{valor.negative? ? "−" : "+"}#{quantidade_do_material(valor.abs, material)}"
   end
 
   private

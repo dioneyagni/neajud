@@ -27,12 +27,30 @@
         </label>
       </fieldset>
 
+      <%# Dublagem 5b2a (Q1a): the unit its materials are counted in — fixed
+          once one exists, or their stock would read in another unit. %>
+      <fieldset class="grupo-unidade">
+        <legend>Conta em</legend>
+        <% GrupoMaterial::UNIDADES.each do |unidade| %>
+          <label><%= f.radio_button :unidade, unidade, disabled: @grupo.unidade_fixa? %> <%= GrupoMaterial::ROTULOS_DAS_UNIDADES[unidade] %></label>
+        <% end %>
+        <% if @grupo.unidade_fixa? %>
+          <p class="grupo-nota" data-unidade-fixa>Não muda: o grupo já tem <%= pluralize(@grupo.materia_primas.count, "material", plural: "materiais") %>.</p>
+        <% else %>
+          <p class="grupo-nota">Em kg, os materiais não pedem largura e o preço é por kg (a cola).</p>
+        <% end %>
+      </fieldset>
+
       <fieldset>
         <legend>O que os materiais do grupo pedem</legend>
         <table class="grupo-atributos">
           <thead><tr><th>Atributo</th><th>Pede</th><th>Obrigatório</th></tr></thead>
           <tbody>
-            <tr><td>Largura</td><td><input type="checkbox" checked disabled aria-label="Largura: pede sempre"></td><td><input type="checkbox" checked disabled aria-label="Largura: sempre obrigatória"></td></tr>
+            <% if @grupo.em_kg? %>
+              <tr><td>Largura</td><td><input type="checkbox" disabled aria-label="Largura: não pede (conta em kg)"></td><td>não pede: conta em kg</td></tr>
+            <% else %>
+              <tr><td>Largura</td><td><input type="checkbox" checked disabled aria-label="Largura: pede sempre"></td><td><input type="checkbox" checked disabled aria-label="Largura: sempre obrigatória"></td></tr>
+            <% end %>
             <% GrupoMaterial::ATRIBUTOS.each do |atributo| %>
               <% rotulo = GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[atributo] %>
               <tr data-atributo="<%= atributo %>">

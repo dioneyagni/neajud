@@ -37,10 +37,12 @@ export default class DialogoDaFalta {
     const rotulo = Object.assign(document.createElement("label"), { htmlFor: campo.id, textContent: `${falta.material} · ${falta.dono}` })
     const detalhe = document.createElement("span")
     detalhe.className = "baixa-esperado"
+    // Dublagem 5b2a: the material's unit, m or kg.
+    const u = falta.unidade || "m"
     detalhe.textContent = falta.minimo > falta.falta
-      ? `faltam ${metrosBr(falta.falta)} m deste pedido e ${metrosBr(falta.minimo - falta.falta)} m de saídas anteriores — mínimo ${metrosBr(falta.minimo)} m`
-      : `faltam ${metrosBr(falta.falta)} m — lance mais se chegou mais`
-    linhaEl.append(rotulo, campo, " m", detalhe)
+      ? `faltam ${metrosBr(falta.falta)} ${u} deste pedido e ${metrosBr(falta.minimo - falta.falta)} ${u} de saídas anteriores — mínimo ${metrosBr(falta.minimo)} ${u}`
+      : `faltam ${metrosBr(falta.falta)} ${u} — lance mais se chegou mais`
+    linhaEl.append(rotulo, campo, ` ${u}`, detalhe)
     return linhaEl
   }
 

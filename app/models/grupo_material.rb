@@ -10,9 +10,14 @@ class GrupoMaterial < ApplicationRecord
   ROTULOS_DO_ESTAMPAVEL = { "sim" => "Estampável", "ressalvas" => "Com ressalvas", "nao" => "Não estampa" }.freeze
   # The fixed list a group picks from (D5): what a material may have besides
   # its color and width.
-  ATRIBUTOS = %w[gramatura densidade espessura_mm micras fornecedor].freeze
+  # Dublagem 5b2a: consumo_g_m2, the cola's grams per square meter dubbed.
+  ATRIBUTOS = %w[gramatura densidade espessura_mm micras consumo_g_m2 fornecedor].freeze
   ROTULOS_DOS_ATRIBUTOS = { "gramatura" => "Gramatura", "densidade" => "Densidade", "espessura_mm" => "Espessura (mm)",
-                            "micras" => "Micras", "fornecedor" => "Fornecedor" }.freeze
+                            "micras" => "Micras", "consumo_g_m2" => "Consumo (g/m²)", "fornecedor" => "Fornecedor" }.freeze
+  # What its materials are counted in (Dublagem 5b2a, decided 12/11/2026,
+  # Q1a): meters, or kg (the cola) — the stock, the price and the faltas.
+  UNIDADES = %w[m kg].freeze
+  ROTULOS_DAS_UNIDADES = { "m" => "Metros", "kg" => "Quilos (kg)" }.freeze
 
   include GeraUuid
   has_many :materia_primas, dependent: :restrict_with_error
@@ -20,7 +25,9 @@ class GrupoMaterial < ApplicationRecord
   validates :nome, presence: true, uniqueness: { case_sensitive: false }
   validates :estampavel, inclusion: { in: ESTAMPAVEL, message: "%{value} is not a printing option; expected one of #{ESTAMPAVEL.join(", ")}" }
   validates :ressalva, presence: { message: "diz qual é a ressalva (o aviso que o pedido mostra)" }, if: :com_ressalvas?
+  validates :unidade, inclusion: { in: UNIDADES, message: "%{value} is not a unit; expected one of #{UNIDADES.join(", ")}" }
   validate :atributos_conhecidos
+  validate :unidade_fixa_com_materiais, on: :update
 
   scope :search, ->(q) {
     return all if q.blank?
@@ -46,7 +53,21 @@ class GrupoMaterial < ApplicationRecord
 
   def com_ressalvas? = estampavel == "ressalvas"
 
+  # Usage: cola.em_kg? # => true
+  def em_kg? = unidade == "kg"
+
+  # Its materials are counted in it: changing it would read their stock in
+  # another unit, so it is fixed once one exists.
+  # Usage: cola.unidade_fixa? # => true (it has materials)
+  def unidade_fixa? = persisted? && materia_primas.exists?
+
   private
+
+  def unidade_fixa_com_materiais
+    return unless will_save_change_to_unidade? && materia_primas.exists?
+
+    errors.add(:unidade, "não muda: o grupo tem #{materia_primas.count} #{materia_primas.count == 1 ? "material contado" : "materiais contados"} em #{unidade_in_database}")
+  end
 
   def atributos_conhecidos
     desconhecidos = atributos.keys - ATRIBUTOS

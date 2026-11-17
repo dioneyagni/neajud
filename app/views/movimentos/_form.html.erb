@@ -58,7 +58,7 @@
           <div class="combobox-results" data-group-select-target="results"></div>
         </div>
         <input type="hidden" name="movimento_estoque[grupo_material_uuid]" data-group-select-target="hidden" data-atributos-do-grupo-target="grupo"
-               data-atributos="<%= @selected_grupo_atributos&.to_json %>" value="<%= @selected_grupo_uuid %>">
+               data-atributos="<%= @selected_grupo_atributos&.to_json %>" data-unidade="<%= @selected_grupo_unidade || "m" %>" value="<%= @selected_grupo_uuid %>">
       </div>
 
       <div class="client-field" data-controller="color-picker">
@@ -100,7 +100,7 @@
         </dialog>
       </div>
 
-      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value=" m" data-range-slider-decimal-value="true">
+      <div class="client-field" data-controller="range-slider" data-range-slider-suffix-value=" m" data-range-slider-decimal-value="true" data-atributos-do-grupo-target="largura">
         <%= f.label :largura, "Width (m)" %>
         <div class="range-slider-wrapper">
           <input type="range"
@@ -127,7 +127,7 @@
       </div>
 
       <% { "densidade" => [ "ex.: TC4, D28", "text" ], "espessura_mm" => [ "ex.: 3", "decimal" ],
-           "micras" => [ "ex.: 35", "numeric" ], "fornecedor" => [ "opcional", "text" ] }.each do |atributo, (exemplo, modo)| %>
+           "micras" => [ "ex.: 35", "numeric" ], "consumo_g_m2" => [ "ex.: 120", "decimal" ], "fornecedor" => [ "opcional", "text" ] }.each do |atributo, (exemplo, modo)| %>
         <div class="client-field" data-atributos-do-grupo-target="campo" data-atributo="<%= atributo %>" hidden>
           <label for="movimento_estoque_<%= atributo %>"><%= GrupoMaterial::ROTULOS_DOS_ATRIBUTOS[atributo] %> <span class="atributo-obrigatorio" title="obrigatório" hidden>*</span></label>
           <input type="text" name="movimento_estoque[<%= atributo %>]" id="movimento_estoque_<%= atributo %>" value="<%= @atributos_val&.dig(atributo) %>"
@@ -136,12 +136,12 @@
       <% end %>
 
       <div class="client-field">
-        <%= f.label :quantidade, "Quantity (meters)" %>
-        <%= f.number_field :quantidade, step: "0.01", min: 0.01, required: true %>
+        <%= f.label :quantidade do %>Quantity (<span data-atributos-do-grupo-target="unidade" data-plural="true">meters</span>)<% end %>
+        <%= f.number_field :quantidade, step: "any", min: 0.001, required: true %>
       </div>
 
       <div class="client-field">
-        <%= f.label :valor, "Cost per meter (optional)" %>
+        <%= f.label :valor do %>Cost per <span data-atributos-do-grupo-target="unidade">meter</span> (optional)<% end %>
         <%= f.number_field :valor, step: "0.01", min: 0 %>
       </div>
 
