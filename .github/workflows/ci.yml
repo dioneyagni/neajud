@@ -5,9 +5,12 @@ on:
   push:
     branches: [ main ]
 
+# The runner is pinned (18/11/2026): ubuntu-latest became Ubuntu 26.04,
+# where Playwright installs no Chromium (the e2e job died at setup) and
+# another ImageMagick broke the preview specs (#214). Move on deliberately.
 jobs:
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -25,7 +28,7 @@ jobs:
         run: bin/bundler-audit
 
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -40,7 +43,7 @@ jobs:
         run: bin/importmap audit
 
   check_residues:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -55,7 +58,7 @@ jobs:
         run: bin/check-residues
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
@@ -81,7 +84,7 @@ jobs:
         run: bin/rubocop -f github
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -111,7 +114,7 @@ jobs:
         run: bin/rails db:test:prepare && bin/rspec
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
