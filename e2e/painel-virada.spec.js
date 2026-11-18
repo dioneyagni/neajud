@@ -12,6 +12,11 @@
 // "mostrar quem cruzou" draws the second one, held by it, as an orange lane
 // in its timeline and marks its rows (Q9a, the form of Q16a — 3/4b3).
 // Runs last: the turnos it trashed stay so.
+// The rhythms are fast and fixed (17/11/2026): at 100 m/h the whole suite's
+// queue put ~80 minutes ahead of the pedido, so from about 22:40 it no
+// longer fit in today's turno (until 23:59): the pedido ended tomorrow and
+// the arrow said "+2 turnos" (CI of #213, 23:22). At 2000 m/h it is minutes;
+// fixed, a rhythm measured by an earlier spec's baixas never replaces it.
 const { execFileSync } = require("child_process");
 const path = require("path");
 const { BASE_URL, runSpec } = require("./support/runner");
@@ -49,8 +54,10 @@ runSpec("Painel Virada E2E Tests", async ({ page, test }) => {
     await page.click(`${novo} input[type="submit"][value="Add turno"]`);
     await waitForText(page, `Turno ${turno} saved.`);
     await page.goto(`${BASE_URL}/parametros/ritmos/edit`);
-    await page.fill('input[name="ritmos[tecido][impressao][por_hora]"]', "100");
-    await page.fill('input[name="ritmos[tecido][calandra][por_hora]"]', "100");
+    for (const etapa of ["impressao", "calandra"]) {
+      await page.fill(`input[name="ritmos[tecido][${etapa}][por_hora]"]`, "2000");
+      await page.check(`input[type="checkbox"][name="ritmos[tecido][${etapa}][fixar_informado]"]`);
+    }
     await page.evaluate(() => { document.body.dataset.antesDeSalvar = "1" });
     await page.click('.ritmos-form button[type="submit"]');
     await page.waitForSelector("body:not([data-antes-de-salvar])");
@@ -88,9 +95,13 @@ runSpec("Painel Virada E2E Tests", async ({ page, test }) => {
   await test("Its faixa draws yesterday's plan dashed, an arrow to today, and marks who crossed it", async () => {
     await page.locator(".painel-setor[data-setor='']").click();
     const faixa = page.locator(`#painel_${ids.pedido} > .painel-faixa`);
-    if (!(await faixa.locator("[data-tdp-plano]").count())) throw new Error("The faixa draws no plan");
+    // The click redraws the grid: wait for the faixa's plan, not a count of the old one.
+    await faixa.locator("[data-tdp-plano]").first().waitFor({ state: "attached", timeout: 10000 }).catch(() => { throw new Error("The faixa draws no plan"); });
     const seta = await faixa.locator("[data-tdp-seta]").first().innerText();
-    if (seta !== "+1 turno") throw new Error(`The arrow says "${seta}"`);
+    // Today's turno ends at 23:59: in its last minutes the queue ends tomorrow.
+    const [hora, minuto] = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Sao_Paulo" }).split(":").map(Number);
+    const esperada = hora * 60 + minuto >= 23 * 60 + 49 ? "+2 turnos" : "+1 turno";
+    if (seta !== esperada) throw new Error(`The arrow says "${seta}", expected "${esperada}"`);
     if (!(await faixa.locator(".painel-tdp-col--passada").count())) throw new Error("Yesterday's turno is not in the timeline");
 
     const botao = faixa.locator(".painel-tdp-topo .painel-cruzou-btn");
