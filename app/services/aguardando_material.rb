@@ -15,10 +15,16 @@
 # waiting on the same material × owner, which the entries cover first
 # (decided 05/11/2026, the entry launched at the baixa: EntradaDaFalta).
 #
+# Dublagem 5b2b (decided 12/11/2026, Q4b): a material counted in kg (the
+# cola) goes out all the same, but its falta never holds — no pedido waits
+# for it, no letra is held, no baixa or delivery asks its entry. It is a
+# warning (avisos_do_pedido), the balance may go below zero.
+#
 # Usage: aguardando = AguardandoMaterial.call
 #        aguardando.do_pedido(pedido) # => [#<Falta materia_prima=Oxford client=MKS metros=12.5 para_liberar=17.5>]
 #        aguardando.pedido_ids        # => [42, 57]
 #        aguardando.do_material(oxford) # => [#<Falta …>, …] (one per waiting pedido)
+#        aguardando.avisos_do_pedido(pedido) # => [#<Falta materia_prima=Cola PU … metros=0.48>] (kg: warns only)
 class AguardandoMaterial
   Falta = Struct.new(:pedido_id, :materia_prima, :client, :metros, :para_liberar, keyword_init: true)
 
@@ -28,10 +34,10 @@ class AguardandoMaterial
 
   def initialize(movimentos = MovimentoEstoque.all)
     linhas = movimentos.que_contam.order(:created_at, :id).pluck(:materia_prima_id, :client_id, :tipo, :quantidade, :pedido_id)
-    faltas = linhas.group_by { |linha| linha.first(2) }.flat_map { |(material, client), grupo| faltas_do_grupo(material, client, grupo) }
-    @faltas = sem_entregues(faltas)
-    @materiais = MateriaPrima.where(id: @faltas.map(&:materia_prima)).index_by(&:id)
-    @clientes = Client.where(id: @faltas.filter_map(&:client)).index_by(&:id)
+    faltas = sem_entregues(linhas.group_by { |linha| linha.first(2) }.flat_map { |(material, client), grupo| faltas_do_grupo(material, client, grupo) })
+    @materiais = MateriaPrima.includes(:grupo_material).where(id: faltas.map(&:materia_prima)).index_by(&:id)
+    @clientes = Client.where(id: faltas.filter_map(&:client)).index_by(&:id)
+    @avisos, @faltas = faltas.partition { |falta| @materiais[falta.materia_prima].em_kg? }
   end
 
   def pedido_ids
@@ -48,8 +54,15 @@ class AguardandoMaterial
     @faltas.select { |falta| falta.pedido_id == pedido.id }.map { |falta| completa(falta) }
   end
 
+  # A material's own page tells its warnings too (a cola short).
   def do_material(material)
-    @faltas.select { |falta| falta.materia_prima == material.id }.map { |falta| completa(falta) }
+    (@faltas + @avisos).select { |falta| falta.materia_prima == material.id }.map { |falta| completa(falta) }
+  end
+
+  # What the pedido took and the stock lacks without holding it: a material
+  # counted in kg (Q4b).
+  def avisos_do_pedido(pedido)
+    @avisos.select { |falta| falta.pedido_id == pedido.id }.map { |falta| completa(falta) }
   end
 
   private
@@ -63,7 +76,7 @@ class AguardandoMaterial
       falta = [ acumulado - entradas, quantidade ].min
       next unless pedido_id && falta.positive?
 
-      Falta.new(pedido_id: pedido_id, materia_prima: material, client: client, metros: falta.to_f.round(2), para_liberar: (acumulado - entradas).to_d.ceil(2))
+      Falta.new(pedido_id: pedido_id, materia_prima: material, client: client, metros: falta.to_f.round(3), para_liberar: (acumulado - entradas).to_d.ceil(3))
     end
   end
 

@@ -68,3 +68,6 @@
 
 /* Dublagem 5b1c3 (Q2a): a letra whose material is missing says so above its baixa. */
 .producao-aguarda-material { margin: 0 0 0.35rem; font-size: 0.8125rem; color: #a24c00; background: #fef3e2; border-radius: 6px; padding: 0.2rem 0.5rem; display: inline-block; }
+
+/* Dublagem 5b2b (Q4b): the letra's cola short — a note, the baixa goes on. */
+.producao-aviso-material { margin: 0 0 0.35rem; font-size: 0.8125rem; color: #5f5e5a; background: #f1efe8; border: 1px dashed #b5b1a6; border-radius: 6px; padding: 0.2rem 0.5rem; display: inline-block; }

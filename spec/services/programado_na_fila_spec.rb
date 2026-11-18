@@ -9,7 +9,7 @@ require_relative "../support/producao_tecido"
 RSpec.describe ProgramadoNaFila do
   include ActiveSupport::Testing::TimeHelpers
 
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday, as the Manhã starts.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let!(:manha) { Turno.create!(nome: "Manhã", inicio: "08:00", fim: "12:00", dias: (1..5).to_a) }

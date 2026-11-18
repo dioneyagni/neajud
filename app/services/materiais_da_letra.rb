@@ -10,12 +10,17 @@
 # Usage: MateriaisDaLetra.call(linha) # => [#<Parte materia_prima=Espuma client=nil esperado=10.0>, #<Parte materia_prima=Helanca …>]
 #        MateriaisDaLetra.presas(linhas, aguardando.do_pedido(pedido)) # => { "<item>/3" => [Espuma], "<item>/4" => [Espuma] }
 class MateriaisDaLetra
+  # Dublagem 5b2b (Q2a): a cola's part is its kg — the consumption over the
+  # construção's width times the meters.
   def self.call(linha)
     dublagem = linha.dublagem
-    cliente = linha.item.construcao.client
-    partes = dublagem.lados.reject(&:dublagem?).map { |folha| [ folha.camada.materia_prima, (cliente if folha.camada.do_cliente) ] }
-    partes << [ dublagem.juncao.ligante, nil ] if dublagem.juncao.ligante
-    partes.uniq.map { |material, client| MateriaisDasLinhas::Parte.new(materia_prima: material, client: client, esperado: linha.esperado.to_f) }
+    construcao = linha.item.construcao
+    partes = dublagem.lados.reject(&:dublagem?).map { |folha| [ folha.camada.materia_prima, (construcao.client if folha.camada.do_cliente), 1 ] }
+    ligante = dublagem.juncao.ligante
+    partes << [ ligante, nil, ligante.por_metro_dublado(construcao.largura_mais_estreita_mm) || 0 ] if ligante
+    partes.uniq { |material, client, _| [ material, client ] }.map do |material, client, por_metro|
+      MateriaisDasLinhas::Parte.new(materia_prima: material, client: client, esperado: (linha.esperado.to_f * por_metro.to_f).round(3))
+    end
   end
 
   # The open dublagem lines a falta holds, by chave, with the materials

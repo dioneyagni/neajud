@@ -73,8 +73,9 @@ family, after the PIM pattern of families with required attributes:
   The stock entry hides the width and asks "Quantity (kg)" for such a group;
   the stock, the ledger, the consumption, the faltas and the falta dialog
   write the unit (`quantidade_do_material`: "0,48 kg", to the gram;
-  `preco_da_unidade`: "$18.00/kg"). What the cola takes per meter dubbed and
-  its price in the construção come in 5b2b.
+  `preco_da_unidade`: "$18.00/kg"). What the cola takes per meter dubbed,
+  its price in the construção and its falta that never holds (5b2b):
+  `docs/dominio/tecido.md`, "The cola".
 - E2E: `e2e/grupos-de-material.spec.js`.
 - The development database gets these groups (Oxford, Microfibra, Cetim,
   Telinha, TNT, Helanca, Lona, EVA, Espuma, the three filmes and Papel) and a
@@ -182,8 +183,8 @@ normal) and the `preco_final`. 2 layers to Parâmetros' maximum (5b1a; it was
   the first a superfície, the others bases; each pair a ligação of the
   network (the superfície's lado first); the ligante one the network allows
   in the situação (`OpcoesDaConstrucao#ligantes`) — **or none while no
-  registered material serves** (decision 4: the cola until 5/5, shown as
-  "a escolher na 5/5"); never the same construção twice (a twin in the trash
+  registered material serves** (decision 4: shown as "a escolher"; the cola
+  is registered since 5b2a, in kg); never the same construção twice (a twin in the trash
   says to restore it).
 - **In use** (decision 5): once the dublado has a stock movement or a pedido
   item (`MateriaPrima#em_uso?`) — or, since 4/5, a pedido item is dubbed

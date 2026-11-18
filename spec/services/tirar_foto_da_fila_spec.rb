@@ -8,7 +8,7 @@ require_relative "../support/producao_tecido"
 RSpec.describe TirarFotoDaFila do
   include ActiveSupport::Testing::TimeHelpers
 
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday and Thursday, as the Manhã starts.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let(:quinta) { Time.zone.parse("2026-11-05 08:00") }

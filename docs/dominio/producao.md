@@ -448,6 +448,11 @@ Decided 11/11/2026 (canvas Painel, "5b1c2 · Dublagem no Painel e na fila").
   `Previsao` has no `fim` while a letra is held ("previsão quando …
   entrar"). A material only letras take no longer holds the pedido's first
   stage (`materiais_presos`). Specs: `spec/services/falta_da_letra_spec.rb`.
+- **The cola short** (5b2b, Q4b): never a falta here — a material counted
+  in kg is a warning (`AguardandoMaterial#avisos_do_pedido`): the queue,
+  the previsão and the cells don't change; the Dublagem cell's hover
+  detail (and the Dublagem final's, by the letras that take it) ends with
+  "… · faltam 0,48 kg · não trava" (`LinhaDoPainel#avisar_nas_dublagens`).
 - Specs: `spec/services/painel_da_dublagem_spec.rb`; E2E
   `e2e/dublagem-no-pedido.spec.js`.
 

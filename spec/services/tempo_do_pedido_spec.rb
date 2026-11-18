@@ -6,7 +6,7 @@ require_relative "../support/producao_tecido"
 # turno; a day per column for a cliente final (Q4a). A tecido pedido here
 # prints 15,5 m and then runs them on the Calandra.
 RSpec.describe TempoDoPedido do
-  let(:sem_falta) { instance_double(AguardandoMaterial, do_pedido: []) }
+  let(:sem_falta) { instance_double(AguardandoMaterial, avisos_do_pedido: [], do_pedido: []) }
   # Wednesday.
   let(:quarta) { Time.zone.parse("2026-11-04 08:00") }
   let(:pedido) { pedido_tecido_confirmado.tap { |p| p.update_columns(confirmado_em: quarta - 1.hour, prazo_entrega: Date.new(2026, 11, 3)) } }

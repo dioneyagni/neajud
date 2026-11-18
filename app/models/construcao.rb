@@ -120,6 +120,12 @@ class Construcao < ApplicationRecord
     camadas_em_ordem.filter_map(&:materia_prima).min_by { |material| material.largura_mm || Float::INFINITY }&.largura
   end
 
+  # The same in mm, what a cola's consumption spreads over (Dublagem 5b2b,
+  # Q2a); nil while no layer has a width. Usage: construcao.largura_mais_estreita_mm # => 1400
+  def largura_mais_estreita_mm
+    camadas_em_ordem.filter_map { |camada| camada.materia_prima&.largura_mm }.min
+  end
+
   private
 
   def nome_da_camada(camada)

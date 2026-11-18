@@ -3,7 +3,7 @@
 # in order. Each says whether it is the empresa's or the construção's
 # client's, and the ligante that joins it to the layer above — none on the
 # superfície, none either where no registered material serves yet (the cola,
-# until 5/5). A base keeps when its ligação dubs (dubla: antes | depois,
+# until 5/5 — registered, in kg, since 5b2a). A base keeps when its ligação dubs (dubla: antes | depois,
 # rede editável 1/2, Q3a; Construcao#guardar_momentos) and in which
 # dublagem of the chave it is joined to the layer above (ordem_da_dublagem,
 # Dublagem 5b1a; ChaveDaConstrucao). Addressed by position inside its

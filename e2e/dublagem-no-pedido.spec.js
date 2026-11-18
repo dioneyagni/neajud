@@ -8,7 +8,9 @@
 // Dublagem and Dublagem final columns and one Dublagem tab whose queue
 // names each letra with its pedido. 5b1c3: the Espuma short (25 of its 30 m
 // out by hand), DUB-B — the letra taking it — says so and its baixa asks
-// for the entry; DUB-A goes on.
+// for the entry; DUB-A goes on. 5b2b (Q2a, Q4b): DUB-B's cola, counted in
+// kg, is short too (0,5 kg left) — its line only warns, and the entry the
+// baixa asks is the Espuma's alone.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -47,6 +49,17 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
     const espumaGrupo = await grupo(page, "Espuma");
     const espuma = await material(page, cor, espumaGrupo, nomes.espuma, { "movimento_estoque[gramatura]": `${U}e` }, "tecido", `${U}e`);
     ids.espuma = espuma;
+    // 5b2b: the network's Cola counts in kg and asks its consumption; this
+    // run's own consumption keeps its name apart from another spec's.
+    const consumo = `${100 + (Number(U) % 89)}`;
+    const colaGrupo = await grupo(page, "Cola");
+    const camposDaCola = { "movimento_estoque[consumo_g_m2]": consumo };
+    ids.cola = await material(page, cor, colaGrupo, `Cola-Branco-${consumo} g/m²`, camposDaCola, "filme", "Cola");
+    const colaSaiu = await postar(page, "/movimentos", {
+      "movimento_estoque[da_empresa]": "true", "movimento_estoque[tipo]": "saida", "movimento_estoque[quantidade]": "29.5",
+      "movimento_estoque[grupo_material_uuid]": colaGrupo, "movimento_estoque[cor_material_uuid]": cor, ...camposDaCola,
+    });
+    if (!colaSaiu) throw new Error("The cola's out by hand failed");
     const saiu = await postar(page, "/movimentos", {
       "movimento_estoque[da_empresa]": "true", "movimento_estoque[tipo]": "saida", "movimento_estoque[quantidade]": "25", "movimento_estoque[grupo_material_uuid]": espumaGrupo,
       "movimento_estoque[cor_material_uuid]": cor, "movimento_estoque[largura]": "1.40 m", "movimento_estoque[gramatura]": `${U}e`,
@@ -60,6 +73,7 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
       "construcao[dublagens][0][cima][escolha]": dublagem.ids.oxford, "construcao[dublagens][0][cima][lado]": "trama",
       "construcao[dublagens][0][baixo][escolha]": dublagem.ids.oxford, "construcao[dublagens][0][ligante_uuid]": dublagem.ids.filme,
       "construcao[dublagens][1][cima][escolha]": "dublagem:0", "construcao[dublagens][1][baixo][escolha]": espuma,
+      "construcao[dublagens][1][ligante_uuid]": ids.cola,
     });
     ids.construcao = salva.match(/construcoes\/([0-9a-f-]{36})\/edit/)?.[1];
     if (!ids.construcao) throw new Error(`The construção wasn't saved: ${salva}`);
@@ -134,11 +148,15 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
     await etapa("dublagem_final");
     const falta = (await linha("DUB-B").locator("[data-falta-da-letra]").innerText()).trim();
     if (!falta.startsWith("aguarda Espuma") || !falta.endsWith("faltam 7 m")) throw new Error(`DUB-B says ${falta}`);
+    // 5b2b (Q4b): the cola short warns only.
+    const aviso = (await linha("DUB-B").locator("[data-aviso-da-letra]").innerText()).trim();
+    if (!aviso.startsWith("Cola-Branco-") || !aviso.endsWith("kg · não trava")) throw new Error(`DUB-B's cola says ${aviso}`);
     await linha("DUB-B").locator(".baixa-abrir").click();
     await linha("DUB-B").locator(".baixa-medida").fill("12");
     await linha("DUB-B").locator(".baixa-salvar").click();
     const dialogo = linha("DUB-B").locator("dialog.baixa-falta");
     await dialogo.waitFor({ state: "visible" });
+    if ((await dialogo.locator("input[data-chave]").count()) !== 1) throw new Error("The entry asks for the cola too");
     if ((await dialogo.locator("input[data-chave]").inputValue()) !== "7") throw new Error("The entry doesn't start at the 7 m missing");
     await dialogo.locator(".baixa-falta-lancar").click();
     await page.getByText("Baixa de Dublagem final registrada").waitFor();

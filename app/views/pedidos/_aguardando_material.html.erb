@@ -5,3 +5,7 @@
 <% if (aguardando = aguardando_do_pedido(pedido)) %>
   <p class="pedido-aguardando" data-resumo="aguardando" role="status"><strong>Aguardando:</strong> <%= aguardando %></p>
 <% end %>
+<%# Dublagem 5b2b (Q4b): a cola short is a warning, never a wait. %>
+<% if (aviso = aviso_do_pedido(pedido)) %>
+  <p class="pedido-aviso-material" data-resumo="aviso-material" role="note"><strong>Falta no estoque:</strong> <%= aviso %></p>
+<% end %>
