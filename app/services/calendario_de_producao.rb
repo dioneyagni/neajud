@@ -61,6 +61,17 @@ class CalendarioDeProducao
     [ (ocorrencia.fim - comeco) / 3600.0, 0.0 ].max
   end
 
+  # Hours a sector has in the turno: the most of its stages that have work
+  # there. The Estamparia's sector holds the calçado's Estamparia and the
+  # tecido's Calandra, different machines that stop apart — read by the
+  # sector's own name, a Calandra stop was never seen and an Estamparia one
+  # left the Calandra's pieces in "2 h de 0 h" (fixed 19/11/2026; machines,
+  # decision 6a, replace it).
+  # Usage: calendario.horas_do_setor(ocorrencia, %w[estamparia calandra], desde: Time.current) # => 8.0
+  def horas_do_setor(ocorrencia, chaves_das_etapas, desde: nil)
+    chaves_das_etapas.map { |chave| horas(ocorrencia, chave, desde: desde) }.max || 0.0
+  end
+
   def parada?(ocorrencia, chave_da_etapa)
     excecoes_do_dia(ocorrencia.data).any? { |excecao| excecao.para?(ocorrencia, chave_da_etapa) }
   end

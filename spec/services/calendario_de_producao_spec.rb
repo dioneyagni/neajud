@@ -50,6 +50,17 @@ RSpec.describe CalendarioDeProducao do
     expect([ calendario.horas(ocorrencia, "calandra"), calendario.horas(ocorrencia, "impressao") ]).to eq([ 0.0, 8.0 ])
   end
 
+  # The Estamparia's sector: the calçado's Estamparia and the tecido's
+  # Calandra are different machines that stop apart (19/11/2026).
+  it "gives a sector the hours of the stage that has the most there" do
+    ExcecaoCalendario.create!(data: quarta, nome: "Calandra parada", etapa: "calandra")
+    calendario = described_class.new
+    ocorrencia = calendario.agora(em(quarta, "10:00"))
+    expect(calendario.horas_do_setor(ocorrencia, %w[estamparia calandra], desde: em(quarta, "10:00"))).to eq(4.0)
+    expect(calendario.horas_do_setor(ocorrencia, %w[calandra])).to eq(0.0)
+    expect(calendario.horas_do_setor(ocorrencia, [])).to eq(0.0)
+  end
+
   it "counts the hours left of a turno under way" do
     calendario = described_class.new
     ocorrencia = calendario.agora(em(quarta, "10:30"))

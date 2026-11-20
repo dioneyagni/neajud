@@ -122,6 +122,37 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
     if (!eventos.some((e) => /^previsão mudou: .+ → .+ \(reprogramação da fábrica\)$/.test(e))) throw new Error(`Its Histórico: ${eventos.join(" | ")}`);
   });
 
+  // Fixed 19/11/2026: the Estamparia's sector holds the calçado's Estamparia
+  // and the tecido's Calandra, different machines that stop apart. Read by
+  // the sector's name, an Estamparia stop left the Calandra's pieces in
+  // "… de 0 min"; now each turno counts the hours of the stages with pieces.
+  await test("With the Estamparia stopped today, the sector's tab still gives the Calandra's pieces their hours", async () => {
+    const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const [ano, mes, dia] = hoje.split("-");
+    await page.goto(`${BASE_URL}/parametros/turnos`);
+    await page.click('button:has-text("New exception")');
+    const dialogo = page.locator("dialog.calendario-dialog");
+    await dialogo.locator("#excecao_nome").fill("Prensa parada");
+    await dialogo.locator("#excecao_data").fill(hoje);
+    await dialogo.locator("#excecao_etapa").selectOption({ label: "Estamparia" });
+    await dialogo.locator('input[type="submit"]').click();
+    await waitForText(page, `Prensa parada (${dia}/${mes}/${ano}) saved.`);
+
+    await page.goto(`${BASE_URL}/painel`);
+    await page.locator(".painel-setor[data-setor='estamparia']").click();
+    const fila = page.locator("[data-fila-setor='estamparia']");
+    await fila.locator(`[data-fila-pedido='${ids.primeiro}']`).first().waitFor();
+    const cargas = await fila.locator("[data-fila-turno] .painel-fila-turno-carga").allInnerTexts();
+    if (!cargas.length) throw new Error("The Estamparia's tab shows no turno");
+    const sem = cargas.filter((texto) => / de 0 min/.test(texto));
+    if (sem.length) throw new Error(`A turno of the Calandra's pieces has no hours: ${sem.join(" | ")}`);
+
+    await page.goto(`${BASE_URL}/parametros/turnos?ano=${ano}`);
+    await page.locator('tr[data-excecao="Prensa parada"] button:has-text("Remove")').click();
+    await waitForText(page, `Prensa parada (${dia}/${mes}/${ano}) removed.`);
+    await page.locator('tr[data-excecao="Prensa parada"]').waitFor({ state: "detached" });
+  });
+
   await test("\"Voltar tudo à ordem de chegada\" takes the queue back", async () => {
     await abrirFila();
     await page.locator("[data-fila-setor='impressao'] .painel-fila-voltar").click();

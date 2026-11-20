@@ -183,13 +183,25 @@ class FilaDeProducao
   end
 
   # The turnos the sector's queue fills, each with its pieces and the hours
-  # it has (from now on, for the one under way).
+  # it has (from now on, for the one under way): those of the stages with
+  # pieces there — a Calandra stop doesn't take the Estamparia's hours.
   # Usage: fila.turnos_do_setor("impressao").first.livres # => 3.5
   def turnos_do_setor(setor)
     pecas = do_setor(setor).flat_map { |vez| vez.trechos.map { |trecho| [ vez, trecho ] } }
     pecas.group_by { |_, trecho| trecho.ocorrencia }.map do |ocorrencia, do_turno|
-      TurnoDaFila.new(ocorrencia: ocorrencia, pecas: do_turno, livres: @calendario.horas(ocorrencia, setor, desde: agora))
+      etapas = do_turno.map { |vez, _| vez.etapa.chave }.uniq
+      TurnoDaFila.new(ocorrencia: ocorrencia, pecas: do_turno, livres: @calendario.horas_do_setor(ocorrencia, etapas, desde: agora))
     end
+  end
+
+  # The stages whose hours count for the sector: the ones in its queue, or
+  # every stage of it when the queue is empty.
+  # Usage: fila.etapas_do_setor("estamparia") # => ["calandra"] in a tecido-only factory
+  def etapas_do_setor(setor)
+    na_fila = do_setor(setor).map { |vez| vez.etapa.chave }.uniq
+    return na_fila if na_fila.any?
+
+    EtapasProducao.todas.values.flatten.select { |etapa| self.class.setor_de(etapa) == setor }.map(&:chave).uniq
   end
 
   TurnoDaFila = Struct.new(:ocorrencia, :pecas, :livres, keyword_init: true) do

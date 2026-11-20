@@ -128,9 +128,10 @@ class LinhaDoTempo
 
     turnos = ocorrencias_do_dia(data)
     return CelulaDaCarga.new(data: data, estado: :sem_turno) if turnos.empty?
-    return CelulaDaCarga.new(data: data, estado: :parada) if turnos.all? { |ocorrencia| @calendario.parada?(ocorrencia, setor) }
+    etapas = @fila.etapas_do_setor(setor)
+    return CelulaDaCarga.new(data: data, estado: :parada) if turnos.all? { |ocorrencia| etapas.all? { |etapa| @calendario.parada?(ocorrencia, etapa) } }
 
-    livres = turnos.sum { |ocorrencia| @calendario.horas(ocorrencia, setor, desde: agora) }
+    livres = turnos.sum { |ocorrencia| @calendario.horas_do_setor(ocorrencia, etapas, desde: agora) }
     return CelulaDaCarga.new(data: data, estado: :encerrado) unless livres.positive?
 
     percentual = [ (ocupadas(setor, data) / livres * 100).round, 100 ].min
