@@ -474,7 +474,13 @@ it is the dono's, in Parâmetros (`exige_dono`), and the team's only
   restored only if its hours are still free.
 - **Calendar** (`ExcecaoCalendario`) — a day or one turno of it that the
   **whole factory or one stage** doesn't work (Q8a: a recess, the Calandra
-  stopped); the stage gets no hours there. Removed physically, like a
+  stopped); the stage gets no hours there. A sector counts the hours of
+  its stages that have work (`CalendarioDeProducao#horas_do_setor`,
+  `FilaDeProducao#etapas_do_setor`): the Estamparia's sector holds the
+  calçado's Estamparia and the tecido's Calandra, different machines that
+  stop apart — its tab and its load in the Linha do tempo read the
+  Calandra's stop, and an Estamparia stop leaves the Calandra its hours
+  (fixed 19/11/2026; the machines of decision 6a replace this). Removed physically, like a
   molde's price: a setting about the future. The **national holidays** are
   computed (`FeriadosNacionais`, the movable ones from Easter; Carnaval and
   Corpus Christi marked "ponto facultativo") and only suggested: the dono

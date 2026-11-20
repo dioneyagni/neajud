@@ -65,6 +65,24 @@ RSpec.describe FilaDeProducao do
     expect(f.turnos_do_setor("impressao").map { |t| [ t.ocorrencia.turno.nome, t.ocupadas, t.livres ] }).to eq([ [ "Manhã", 0.5, 0.5 ], [ "Tarde", 0.5, 4.0 ] ])
   end
 
+  # Fixed 19/11/2026: the sector's tab read the stops by the sector's name
+  # (estamparia), so an Estamparia stop left the Calandra's pieces in
+  # "0,5 h de 0 h" — they are different machines that stop apart.
+  it "gives a sector's turno the hours of the stages with pieces there" do
+    ritmos
+    tecido(quarta - 1.hour)
+    ExcecaoCalendario.create!(data: quarta.to_date, nome: "Prensa parada", etapa: "estamparia")
+    f = fila
+
+    expect(f.turnos_do_setor("estamparia").map { |t| [ t.ocorrencia.turno.nome, t.ocupadas, t.livres ] }).to eq([ [ "Manhã", 0.5, 4.0 ] ])
+    expect(f.etapas_do_setor("estamparia")).to eq(%w[calandra])
+  end
+
+  it "counts every stage of a sector whose queue is empty" do
+    expect(fila.etapas_do_setor("estamparia")).to contain_exactly("estamparia", "calandra")
+    expect(fila.etapas_do_setor("dublagem")).to contain_exactly("dublagem", "dublagem_final")
+  end
+
   it "starts a stage now when the one it waits for is done" do
     ritmos
     pedido = tecido(quarta - 1.hour)

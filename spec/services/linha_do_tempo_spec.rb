@@ -14,9 +14,12 @@ RSpec.describe LinhaDoTempo do
   let(:excecoes) { [ ExcecaoCalendario.new(data: Date.new(2026, 11, 10), nome: "Recesso"), ExcecaoCalendario.new(data: Date.new(2026, 11, 6), nome: "Faca nova", etapa: "corte") ] }
   let(:calendario) { CalendarioDeProducao.new(turnos: [ manha, tarde ], excecoes: excecoes) }
   let(:setores) { {} }
+  # The stages whose hours a sector counts: its own name, unless a test says.
+  let(:etapas_dos_setores) { {} }
   let(:fila) do
     instance_double(FilaDeProducao, agora: agora).tap do |f|
       allow(f).to receive(:do_setor) { |setor| setores.fetch(setor, []) }
+      allow(f).to receive(:etapas_do_setor) { |setor| etapas_dos_setores.fetch(setor, [ setor ]) }
     end
   end
 
@@ -115,6 +118,27 @@ RSpec.describe LinhaDoTempo do
       expect(celulas(t, "impressao")).to eq([ [ :passado, nil ], [ :passado, nil ], [ :ok, 33 ], [ :ok, 75 ], [ :livre, 0 ], [ :sem_turno, nil ] ])
       expect(celulas(t, "estamparia")[3]).to eq([ :cheio, 100 ])
       expect(celulas(t, "corte").values_at(3, 4)).to eq([ [ :alto, 88 ], [ :parada, nil ] ])
+    end
+
+    # Fixed 19/11/2026: the Estamparia's sector read the stops by its own
+    # name, so a Calandra stop never showed in a tecido-only factory.
+    context "with the Calandra stopped on Thursday, the Estamparia's sector doing only tecido" do
+      let(:excecoes) { [ ExcecaoCalendario.new(data: Date.new(2026, 11, 5), nome: "Calandra parada", etapa: "calandra") ] }
+      let(:etapas_dos_setores) { { "estamparia" => %w[calandra] } }
+      let(:setores) { { "estamparia" => [ vez(trecho(agora, 2)) ] } }
+
+      it "says the sector stops that day" do
+        expect(celulas(tempo([]), "estamparia").values_at(2, 3)).to eq([ [ :ok, 33 ], [ :parada, nil ] ])
+      end
+    end
+
+    context "with the Estamparia stopped on Thursday and both stages in the queue" do
+      let(:excecoes) { [ ExcecaoCalendario.new(data: Date.new(2026, 11, 5), nome: "Prensa parada", etapa: "estamparia") ] }
+      let(:etapas_dos_setores) { { "estamparia" => %w[estamparia calandra] } }
+
+      it "counts the Calandra's hours, which still works" do
+        expect(celulas(tempo([]), "estamparia")[3]).to eq([ :cheio, 100 ])
+      end
     end
 
     # Painel 3/4b (Q7a): today's load is the larger of the queue's and the photo's.
