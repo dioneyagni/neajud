@@ -100,7 +100,7 @@ RSpec.describe "Turnos, calendário e ritmo", type: :request do
       expect(linha).not_to include("[por_hora]")
       patch parametros_ritmos_path, params: { ritmos: { calcado: { corte: { velocidade_mm_s: "120", pinca_s: "1,5", preparo_min: "", troca_min: "" } } } }
       ritmo = RitmoProducao.sole
-      expect([ ritmo.velocidade_mm_s, ritmo.pinca_s, ritmo.preparo_min, ritmo.maquina(:preparo_min) ]).to eq([ 120, 1.5, nil, 5.0 ])
+      expect([ ritmo.velocidade_mm_s, ritmo.pinca_s, ritmo.preparo_min, ritmo.parametro_do_corte(:preparo_min) ]).to eq([ 120, 1.5, nil, 5.0 ])
     end
 
     it "refuses a machine parameter of 0, naming it" do

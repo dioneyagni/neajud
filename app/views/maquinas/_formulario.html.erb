@@ -1,0 +1,76 @@
+<%# A machine's page (Máquinas 1/5, canvas "Máquinas", 2): the name, what it
+    does — each trabalho checked with its speed — and the Corte do calçado's
+    parameters (Q8a, blank = the default), then its histórico. A machine in
+    the trash opens read only. The trash button is outside the form (a
+    button_to is a form of its own). locals: titulo %>
+<% editavel = !@maquina.excluido? %>
+<% corte = @maquina.trabalho_de(TrabalhosDeMaquina::CORTE_POR_PARAMETROS) %>
+<div class="maquina-pagina" data-controller="maquina">
+  <p class="parametros-voltar"><%= link_to "← Máquinas", parametros_maquinas_path %></p>
+  <h2><%= titulo %> <%= selo_excluido(@maquina) unless @maquina.new_record? %></h2>
+
+  <%= form_with model: @maquina, url: @maquina.new_record? ? parametros_maquinas_path : parametros_maquina_path(@maquina),
+                scope: :maquina, id: "maquina-form", class: "maquina-form" do |form| %>
+    <fieldset class="maquina-secao" <%= "disabled" unless editavel %>>
+      <label for="maquina_nome" class="maquina-rotulo">Nome</label>
+      <%= form.text_field :nome, id: "maquina_nome", class: "maquina-nome", required: true %>
+      <small>Único entre as máquinas, lixeira incluída.</small>
+    </fieldset>
+
+    <fieldset class="maquina-secao" <%= "disabled" unless editavel %>>
+      <legend><h3>O que ela faz</h3></legend>
+      <p class="maquina-nota">Marque cada trabalho e diga a velocidade nele. Pelo menos um.</p>
+      <% TrabalhosDeMaquina.todos.each do |trabalho| %>
+        <% feito = @maquina.trabalho_de(trabalho.chave) %>
+        <% campo = "maquina[trabalhos][#{trabalho.chave}]" %>
+        <div class="maquina-trabalho" data-trabalho="<%= trabalho.chave %>">
+          <input type="hidden" name="<%= campo %>[marcado]" value="0">
+          <input type="checkbox" id="trabalho_<%= trabalho.chave %>" name="<%= campo %>[marcado]" value="1" <%= "checked" if feito %>
+                 data-action="maquina#marcar" data-maquina-trabalho-param="<%= trabalho.chave %>">
+          <label for="trabalho_<%= trabalho.chave %>" class="maquina-trabalho-nome"><%= trabalho.nome %><% if trabalho.detalhe %> <small>· <%= trabalho.detalhe %></small><% end %></label>
+          <% unless trabalho.corte_por_parametros? %>
+            <input type="text" inputmode="decimal" name="<%= campo %>[por_hora]" value="<%= numero_br(feito&.por_hora, 3) %>"
+                   aria-label="Velocidade em <%= trabalho.nome %>" data-velocidade-de="<%= trabalho.chave %>" <%= "disabled" unless feito %>>
+            <span class="maquina-unidade"><%= trabalho.unidade %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </fieldset>
+
+    <fieldset class="maquina-secao" <%= "disabled" unless editavel %>>
+      <legend><h3>Quando marca o Corte do calçado</h3></legend>
+      <p class="maquina-nota">Os parâmetros da máquina de corte, os mesmos de hoje em Ritmos. Em branco vale o padrão.</p>
+      <div class="maquina-parametros">
+        <% ParametrosDoCorte::ROTULOS.each do |parametro, (nome, unidade)| %>
+          <label class="maquina-parametro"><%= nome %> (<%= unidade %>)
+            <input type="text" inputmode="decimal" name="maquina[trabalhos][<%= TrabalhosDeMaquina::CORTE_POR_PARAMETROS %>][<%= parametro %>]"
+                   value="<%= numero_br(corte&.public_send(parametro), 3) %>" placeholder="<%= numero_br(ParametrosDoCorte::PADRAO[parametro]) %>"
+                   data-velocidade-de="<%= TrabalhosDeMaquina::CORTE_POR_PARAMETROS %>" <%= "disabled" unless corte %>>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+  <% end %>
+
+  <div class="maquina-botoes">
+    <% if editavel %>
+      <button type="submit" form="maquina-form" class="btn btn-primary">Salvar</button>
+      <%= link_to "Cancelar", parametros_maquinas_path, class: "maquina-cancelar" %>
+    <% end %>
+    <span class="maquina-espaco"></span>
+    <% if editavel && @maquina.persisted? %>
+      <%= button_to "Mandar para a lixeira", parametros_maquina_path(@maquina), method: :delete, class: "btn btn-secondary", form: { class: "maquina-lixeira" } %>
+    <% end %>
+  </div>
+
+  <% if @maquina.persisted? %>
+    <section class="maquina-historico">
+      <h3>Histórico</h3>
+      <ol>
+        <% @alteracoes.each do |alteracao| %>
+          <li><%= l(alteracao.created_at, format: "%d/%m %H:%M") %> · <%= alteracao.user&.nome || "sistema" %> · <%= alteracao.texto %></li>
+        <% end %>
+      </ol>
+    </section>
+  <% end %>
+</div>

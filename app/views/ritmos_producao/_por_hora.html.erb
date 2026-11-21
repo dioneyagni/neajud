@@ -1,9 +1,13 @@
 <%# A rhythm per hour (Painel 2/4a). locals: ritmo, medida, campo, id, rotulo %>
-<td class="ritmo-informado">
-  <label class="visually-hidden" for="<%= id %>"><%= rotulo %> per hour</label>
-  <input type="text" inputmode="decimal" name="<%= campo %>[por_hora]" id="<%= id %>" value="<%= numero_br(ritmo.por_hora, 3) %>">
-  <span class="ritmo-unidade"><%= ritmo.unidade %></span>
-</td>
+<% if ritmo.com_maquinas? %>
+  <%= render "das_maquinas", ritmo: ritmo %>
+<% else %>
+  <td class="ritmo-informado">
+    <label class="visually-hidden" for="<%= id %>"><%= rotulo %> per hour</label>
+    <input type="text" inputmode="decimal" name="<%= campo %>[por_hora]" id="<%= id %>" value="<%= numero_br(ritmo.por_hora, 3) %>">
+    <span class="ritmo-unidade"><%= ritmo.unidade %></span>
+  </td>
+<% end %>
 <td class="ritmo-medido">
   <% if medida %>
     <%= numero_br(medida.valor) %> <%= ritmo.unidade %> <small>· <%= medida.turnos %> turnos</small>

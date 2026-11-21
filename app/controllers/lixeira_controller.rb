@@ -14,7 +14,9 @@ class LixeiraController < ApplicationController
     # Painel 2/4a.
     "turnos" => Turno,
     # Rede editável 2/2a.
-    "ligacoes_dublagem" => LigacaoDublagem
+    "ligacoes_dublagem" => LigacaoDublagem,
+    # Máquinas 1/5.
+    "maquinas" => Maquina
   }.freeze
 
   def index

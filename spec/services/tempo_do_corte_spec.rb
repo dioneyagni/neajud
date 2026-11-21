@@ -51,4 +51,15 @@ RSpec.describe TempoDoCorte do
     tempo = described_class.call([ linha(:oxford, de: sem) ], ritmo)
     expect([ tempo.segundos, tempo.sem_medida ]).to eq([ 162.0, [ "39" ] ])
   end
+
+  # Máquinas 1/5 (Q8a): two machines share the Corte, each by its parameters.
+  it "splits the load between the Corte do calçado's machines, as their rates add up" do
+    mesa = Maquina.new(nome: "Mesa 1").tap { |m| m.trabalhos.build(trabalho: "corte_calcado") }.tap(&:save!)
+    rapida = Maquina.new(nome: "Mesa 2").tap { |m| m.trabalhos.build(trabalho: "corte_calcado", velocidade_mm_s: 150, pinca_s: 1, preparo_min: 2, recolhimento_pecas_min: 20) }.tap(&:save!)
+    # Alone 512 s and 290 s: together 1 ÷ (1/512 + 1/290).
+    expect(described_class.call([ linha(:oxford) ], RitmoProducao.de("calcado", "corte")).segundos).to be_within(0.01).of(1 / (1 / 512.0 + 1 / 290.0))
+    rapida.excluir!(changed_by: "127.0.0.1")
+    expect(described_class.call([ linha(:oxford) ], RitmoProducao.de("calcado", "corte")).segundos).to eq(512.0)
+    expect(mesa.reload.trabalhos.size).to eq(1)
+  end
 end

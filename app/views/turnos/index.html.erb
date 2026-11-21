@@ -1,7 +1,7 @@
 <% content_for :title, "Turnos e calendário" %>
 <%# Painel 2/4a (decided 05/11/2026): the turnos, the year's exceptions and
     the national holidays suggested; the queue and the previsão run on them. %>
-<p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Production rhythm", edit_parametros_ritmos_path %></p>
+<p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Production rhythm", edit_parametros_ritmos_path %> · <%= link_to "Máquinas", parametros_maquinas_path %></p>
 <h2>Turnos e calendário</h2>
 <p class="funcoes-intro">The factory's working hours. A turno that ends before it starts crosses midnight and belongs to
   the day it starts (a Friday "Noite 22:00–06:00" ends on Saturday). Turnos may not overlap.</p>

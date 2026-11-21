@@ -30,7 +30,7 @@ class RitmoMedido
     @calendario = calendario
     @ate = ate
     @de = ate - DIAS.days
-    @ritmos = (ritmos || RitmoProducao.all).index_by { |ritmo| [ ritmo.tipo, ritmo.etapa ] }
+    @ritmos = ritmos ? ritmos.index_by { |ritmo| [ ritmo.tipo, ritmo.etapa ] } : RitmoProducao.da_fabrica
     @linhas = {}
   end
 

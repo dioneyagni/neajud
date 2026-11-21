@@ -211,6 +211,18 @@ areas:
       - "app/services/{calendario_de_producao,feriados_nacionais,ritmo_medido,tempo_do_corte,medir_camadas_do_corte}.rb"
       - "app/helpers/{turnos,ritmos_producao}_helper.rb"
       - "app/assets/stylesheets/turnos.css"
+  # Máquinas 1/5 (21/11/2026): the machines and Ritmos reading them.
+  maquinas:
+    specs: [maquinas, parametros-producao, painel-programacao]
+    arquivos:
+      - "app/controllers/maquinas_controller.rb"
+      - "app/views/maquinas/**/*"
+      - "app/models/{maquina,trabalho_da_maquina,alteracao_da_maquina,trabalhos_de_maquina}.rb"
+      - "app/models/concerns/parametros_do_corte.rb"
+      - "app/services/salvar_maquina.rb"
+      - "app/helpers/maquinas_helper.rb"
+      - "app/javascript/controllers/maquina_controller.js"
+      - "app/assets/images/icons/lixeira/maquina.svg"
   dtf:
     specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]
     arquivos:

@@ -25,10 +25,12 @@ Rails.application.routes.draw do
       collection { post :feriado }
     end
     resource :ritmos, only: %i[edit update], controller: "ritmos_producao"
+    # Máquinas 1/5 (decided 20/11/2026): the machines and what each one does.
+    resources :maquinas, only: %i[index new create edit update destroy], param: :uuid
   end
   get "lixeira" => "lixeira#index", as: :lixeira
   post "lixeira/:tipo/:id/restaurar" => "lixeira#restaurar", as: :restaurar_lixeira,
-       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes|turnos|ligacoes_dublagem/ }
+       constraints: { tipo: /arquivos|pedidos|clients|moldes|pecas|funcoes|construcoes|turnos|ligacoes_dublagem|maquinas/ }
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :tamanhos, only: [] do

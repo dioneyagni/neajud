@@ -75,6 +75,20 @@ RSpec.describe "Public identifiers are uuids", type: :request do
       expect(ExcecaoCalendario.count).to eq(1)
     end
 
+    # Máquinas 1/5.
+    it "refuses a machine by integer id" do
+      maquina = Maquina.new(nome: "Calandra 2").tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 40) }.tap(&:save!)
+      get "/parametros/maquinas/#{maquina.id}/edit"
+      expect(response).to have_http_status(:not_found)
+      patch "/parametros/maquinas/#{maquina.id}", params: { maquina: { nome: "X" } }
+      expect([ response.status, maquina.reload.nome ]).to eq([ 404, "Calandra 2" ])
+      delete "/parametros/maquinas/#{maquina.id}"
+      expect([ response.status, maquina.reload.excluido? ]).to eq([ 404, false ])
+      get "/parametros/maquinas/#{maquina.uuid}/edit"
+      expect(response.body).to include("/parametros/maquinas/#{maquina.uuid}\"")
+      expect(response.body).not_to include("/parametros/maquinas/#{maquina.id}\"")
+    end
+
     it "refuses a tamanho download by integer id" do
       tamanho = create(:tamanho)
       get "/tamanhos/#{tamanho.id}/download"

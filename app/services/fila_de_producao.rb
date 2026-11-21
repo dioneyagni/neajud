@@ -128,7 +128,8 @@ class FilaDeProducao
     @ordens = ordens || MovimentoDaFila.ordens
     @estados = estados.dup
     @aguardando = aguardando || AguardandoMaterial.call
-    @ritmos = (ritmos || RitmoProducao.all.to_a).index_by { |ritmo| [ ritmo.tipo, ritmo.etapa ] }
+    # Máquinas 1/5: each with its machines, read once.
+    @ritmos = RitmoProducao.da_fabrica(ritmos || RitmoProducao.all.to_a)
     @medidas = RitmoMedido.call(calendario, ate: agora, ritmos: @ritmos.values)
     @ocorrencias = calendario.ocorrencias(de: agora, ate: agora + HORIZONTE)
     @agenda = Agenda.new(Hash.new(agora), {})

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -28,6 +28,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
     t.index ["arte_id"], name: "index_alteracoes_arte_on_arte_id"
     t.index ["user_id"], name: "index_alteracoes_arte_on_user_id"
     t.index ["uuid"], name: "index_alteracoes_arte_on_uuid", unique: true
+  end
+
+  create_table "alteracoes_da_maquina", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "maquina_id", null: false
+    t.integer "user_id"
+    t.text "texto", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maquina_id"], name: "index_alteracoes_da_maquina_on_maquina_id"
+    t.index ["user_id"], name: "index_alteracoes_da_maquina_on_user_id"
+    t.index ["uuid"], name: "index_alteracoes_da_maquina_on_uuid", unique: true
   end
 
   create_table "alteracoes_da_rede", force: :cascade do |t|
@@ -591,6 +603,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
     t.index ["situacao_dublagem_id"], name: "index_ligantes_da_ligacao_on_situacao_dublagem_id"
   end
 
+  create_table "maquinas", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.string "nome", null: false
+    t.datetime "deleted_at"
+    t.integer "deleted_by_id"
+    t.datetime "restored_at"
+    t.integer "restored_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["uuid"], name: "index_maquinas_on_uuid", unique: true
+  end
+
   create_table "materia_primas", force: :cascade do |t|
     t.integer "grupo_material_id", null: false
     t.integer "cor_material_id", null: false
@@ -920,6 +944,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
     t.index ["uuid"], name: "index_tamanhos_on_uuid", unique: true
   end
 
+  create_table "trabalhos_da_maquina", force: :cascade do |t|
+    t.string "uuid", null: false
+    t.integer "maquina_id", null: false
+    t.string "trabalho", null: false
+    t.decimal "por_hora", precision: 10, scale: 3
+    t.decimal "velocidade_mm_s", precision: 10, scale: 3
+    t.decimal "pinca_s", precision: 10, scale: 3
+    t.decimal "preparo_min", precision: 10, scale: 3
+    t.decimal "recolhimento_pecas_min", precision: 10, scale: 3
+    t.decimal "troca_min", precision: 10, scale: 3
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maquina_id", "trabalho"], name: "index_trabalhos_da_maquina_on_maquina_id_and_trabalho", unique: true
+    t.index ["maquina_id"], name: "index_trabalhos_da_maquina_on_maquina_id"
+    t.index ["uuid"], name: "index_trabalhos_da_maquina_on_uuid", unique: true
+  end
+
   create_table "turnos", force: :cascade do |t|
     t.string "uuid", null: false
     t.string "nome", null: false
@@ -1003,6 +1044,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
   add_foreign_key "alteracoes_arte", "arquivos"
   add_foreign_key "alteracoes_arte", "artes"
   add_foreign_key "alteracoes_arte", "users"
+  add_foreign_key "alteracoes_da_maquina", "maquinas"
+  add_foreign_key "alteracoes_da_maquina", "users"
   add_foreign_key "alteracoes_da_rede", "users"
   add_foreign_key "aprovacoes_arte", "arquivo_versions"
   add_foreign_key "aprovacoes_arte", "arquivos"
@@ -1106,6 +1149,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_230000) do
   add_foreign_key "solicitacoes_aprovacao", "artes"
   add_foreign_key "solicitacoes_aprovacao", "users"
   add_foreign_key "tamanhos", "arquivos"
+  add_foreign_key "trabalhos_da_maquina", "maquinas"
   add_foreign_key "vezes_da_foto", "fotos_da_fila", column: "foto_da_fila_id", on_delete: :cascade
   add_foreign_key "vezes_da_foto", "pedidos"
   add_foreign_key "vinculos", "clients"

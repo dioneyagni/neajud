@@ -9,6 +9,11 @@
 #     material the machine ended on (`anterior`: the pedido before it in
 #     the queue, Painel 2/4b) when it isn't one of theirs
 #
+# Máquinas 1/5 (Q8a): with several machines doing the Corte do calçado,
+# each with its parameters, they share the load: the stage takes
+# 1 ÷ Σ(1 ÷ each one's time) — the same as summing their m/h. The queue per
+# machine (Máquinas 2/5) replaces it.
+#
 # Its materials go one after the other, the one already on the machine
 # first. A size with no measure counts nothing and is named in sem_medida,
 # so a short time never looks real.
@@ -36,25 +41,37 @@ class TempoDoCorte
 
   def call
     materiais = ordem_dos_materiais
-    Tempo.new(segundos: maquina + preparo + recolhimento + trocas(materiais) * @ritmo.maquina(:troca_min) * 60,
+    Tempo.new(segundos: juntas(@ritmo.fontes_do_corte.map { |fonte| segundos_com(fonte, materiais) }),
               ultimo_material: materiais.last || @anterior, sem_medida: sem_medida)
   end
 
   private
 
-  def maquina
+  # fonte: whose parameters (ParametrosDoCorte) — the ritmo's or a machine's.
+  def segundos_com(fonte, materiais)
+    maquina(fonte) + preparo(fonte) + recolhimento(fonte) + trocas(materiais) * fonte.parametro_do_corte(:troca_min) * 60
+  end
+
+  # Machines cutting at once: nothing to cut takes no time on any of them.
+  def juntas(segundos)
+    return 0.0 unless segundos.all?(&:positive?)
+
+    1.0 / segundos.sum { |cada| 1.0 / cada }
+  end
+
+  def maquina(fonte)
     @linhas.sum do |linha|
       corte = corte_de(linha)
-      corte ? linha.pecas * (corte.linha_mm / @ritmo.maquina(:velocidade_mm_s) + corte.furos * @ritmo.maquina(:pinca_s)) : 0
+      corte ? linha.pecas * (corte.linha_mm / fonte.parametro_do_corte(:velocidade_mm_s) + corte.furos * fonte.parametro_do_corte(:pinca_s)) : 0
     end
   end
 
-  def preparo
-    @linhas.sum { |linha| linha.esperado.to_f } * @ritmo.maquina(:preparo_min) * 60
+  def preparo(fonte)
+    @linhas.sum { |linha| linha.esperado.to_f } * fonte.parametro_do_corte(:preparo_min) * 60
   end
 
-  def recolhimento
-    @linhas.sum(&:pecas).to_f / @ritmo.maquina(:recolhimento_pecas_min) * 60
+  def recolhimento(fonte)
+    @linhas.sum(&:pecas).to_f / fonte.parametro_do_corte(:recolhimento_pecas_min) * 60
   end
 
   def ordem_dos_materiais
