@@ -187,7 +187,7 @@ areas:
   # Painel 1/4 (04/11/2026): pedidos × stages; it reads every stage's state.
   # Painel 2/4b: the queue, the blocks in time and the page refreshing itself.
   painel:
-    specs: [painel, painel-programacao, painel-virada, producao-baixas, painel-entregar]
+    specs: [painel, painel-programacao, painel-virada, producao-baixas, painel-entregar, painel-maquinas]
     arquivos:
       - "app/controllers/{paineis,prazos_do_pedido,movimentos_da_fila}_controller.rb"
       - "app/views/paineis/**/*"
@@ -211,9 +211,10 @@ areas:
       - "app/services/{calendario_de_producao,feriados_nacionais,ritmo_medido,tempo_do_corte,medir_camadas_do_corte}.rb"
       - "app/helpers/{turnos,ritmos_producao}_helper.rb"
       - "app/assets/stylesheets/turnos.css"
-  # Máquinas 1/5 (21/11/2026): the machines and Ritmos reading them.
+  # Máquinas 1/5 (21/11/2026): the machines and Ritmos reading them; 2/5a
+  # the queue per machine and the sector's lanes.
   maquinas:
-    specs: [maquinas, parametros-producao, painel-programacao]
+    specs: [maquinas, parametros-producao, painel-programacao, painel-maquinas]
     arquivos:
       - "app/controllers/maquinas_controller.rb"
       - "app/views/maquinas/**/*"
@@ -221,7 +222,10 @@ areas:
       - "app/models/concerns/parametros_do_corte.rb"
       - "app/services/salvar_maquina.rb"
       - "app/helpers/maquinas_helper.rb"
-      - "app/javascript/controllers/maquina_controller.js"
+      - "app/javascript/controllers/{maquina,maquinas_da_fila}_controller.js"
+      - "app/services/recursos_da_fila.rb"
+      - "app/helpers/maquinas_da_fila_helper.rb"
+      - "app/views/paineis/_raias_do_turno.html.erb"
       - "app/assets/images/icons/lixeira/maquina.svg"
   dtf:
     specs: [etiqueta-dtf, pedido-dtf, precos-dtf, producao-dtf]

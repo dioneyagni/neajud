@@ -136,14 +136,6 @@ RSpec.describe FilaDeProducao do
   end
 
   # Q2a: no rhythm, no previsão from that stage on.
-  # Máquinas 1/5 (Q7a): the Calandra's machines give it their sum.
-  it "runs a stage at its machines' sum, with none typed in Ritmos" do
-    ritmos(calandra: nil)
-    [ "Calandra 2", "Calandra 3" ].each { |nome| Maquina.new(nome: nome).tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 15.5) }.save! }
-    pedido = tecido(quarta - 1.hour)
-    expect(vez(fila, pedido, "calandra").then { |v| [ v.horas, horarios(v) ] }).to eq([ 0.5, [ "Wed 09:00–09:30" ] ])
-  end
-
   it "leaves a stage without rhythm, and what waits for it, without previsão" do
     ritmos(calandra: nil)
     pedido = tecido(quarta - 1.hour)

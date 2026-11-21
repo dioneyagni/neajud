@@ -235,3 +235,36 @@ main:has(.painel) { max-width: 1480px; }
 .painel-fila-letra { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; background: #f1f3f4; border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 /* 5b1c3 (Q3a): the letras a missing material holds out of the queue. */
 .painel-fila-retidas { font-size: 0.75rem; color: #a24c00; margin-top: 2px; }
+
+/* Máquinas 2/5a (the 4B mockup, 21/11/2026): the first turno's lanes, a
+   machine per row; the filter chips; the Máquina column's chip — one of six
+   colors by the machine's place in the sector. */
+.painel-fila--maquinas .painel-fila-l { grid-template-columns: 52px minmax(180px, 1.4fr) minmax(160px, 1.6fr) 110px 130px 130px 130px minmax(150px, 1fr); min-width: 1030px; }
+.painel-fila--maquinas .painel-fila-dia, .painel-fila--maquinas .painel-fila-turno, .painel-fila--maquinas .painel-fila-sem-turno, .painel-fila--maquinas .painel-fila-sem-previsao { min-width: 1030px; }
+.painel-raias { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 12px 14px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; }
+.painel-raias-titulo { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+.painel-raias-titulo span { font-size: 12px; color: #5f6368; }
+.painel-raia { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) minmax(90px, 130px); gap: 12px; align-items: center; font-size: 13px; }
+.painel-raia-nome small { color: #5f6368; }
+.painel-raia-barra { position: relative; display: block; height: 14px; background: #e6f4ea; border-radius: 3px; overflow: hidden; }
+.painel-raia-peca { position: absolute; top: 0; bottom: 0; background: #d2e3fc; border-right: 1px solid #fff; }
+.painel-raia-peca--andamento { background: #1a73e8; }
+.painel-raia-peca--outra { background: repeating-linear-gradient(135deg, #dadce0 0 5px, #f1f3f4 5px 10px); }
+.painel-raia-agora { position: absolute; top: 0; bottom: 0; width: 2px; background: #d93025; }
+.painel-raia-livres { color: #137333; font-variant-numeric: tabular-nums; }
+.painel-fila-filtro { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.painel-fila-filtro-chip { font: inherit; font-size: 13px; border: 1px solid #dadce0; background: #fff; color: #202124; border-radius: 14px; padding: 3px 12px; cursor: pointer; }
+.painel-fila-filtro-chip--ativo { border-color: #1a73e8; background: #e8f0fe; color: #174ea6; }
+.painel-fila-l--outra-maquina { display: none; }
+.painel-maquina { display: inline-block; max-width: 100%; box-sizing: border-box; font-size: 12px; border-radius: 10px; padding: 2px 10px; color: #202124; overflow-wrap: anywhere; }
+.painel-maquina--1 { background: #e8f0fe; }
+.painel-maquina--2 { background: #fce8e6; }
+.painel-maquina--3 { background: #e6f4ea; }
+.painel-maquina--4 { background: #fef7e0; }
+.painel-maquina--5 { background: #f3e8fd; }
+.painel-maquina--6 { background: #e4f7fb; }
+.painel-maquina-sem { font-size: 12px; color: #5f6368; }
+@media (max-width: 640px) {
+  .painel-raia { grid-template-columns: minmax(0, 1fr) auto; }
+  .painel-raia-barra { grid-column: 1 / -1; grid-row: 2; }
+}

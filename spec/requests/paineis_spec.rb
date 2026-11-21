@@ -1,11 +1,14 @@
 require "rails_helper"
 require_relative "../support/producao_calcado"
 require_relative "../support/fila_de_producao"
+require_relative "../support/producao_tecido"
 
 # Painel 1/4 (decided 04/11/2026): the page, a row's items and the delivery
 # date — the Pedidos' permission and visibility. Painel 2/4b: the blocks in
 # time, the previsão and each sector's queue; a cliente final by day only.
 RSpec.describe "Painel", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   def entrar_como_cliente_final(cliente)
     funcao = create(:funcao, :para_cliente, niveis: Autorizacao::NIVEL_MAXIMO_PARA_CLIENTE)
     entrar_como(create(:vinculo, user: create(:user), client: cliente, funcao: funcao).user)
@@ -44,6 +47,43 @@ RSpec.describe "Painel", type: :request do
     expect(fila.css(".painel-fila-dia--hoje .painel-fila-dia-rel").text).to eq("hoje")
     expect(fila.css("[data-fila-pedido='#{pedido.uuid}'] .painel-fila-pos").map(&:text)).to eq([ "1º" ])
     expect(pagina.css("[data-fila-setor]").map { |s| s["data-fila-setor"] }).to eq(%w[impressao corte estamparia conferencia])
+  end
+
+  # Máquinas 2/5a (the 4B mockup, 21/11/2026): a sector with machines shows
+  # the first turno's lanes, a chip per machine and the Máquina column; one
+  # without keeps the list as it was.
+  it "shows a sector's machines: the lanes, the filter and the Máquina column" do
+    turno_o_dia_todo
+    # 15,5 m each (pedido_tecido_confirmado), at 31 m/h: half an hour.
+    epson_a, epson_b = [ "Epson A", "Epson B" ].map { |nome| Maquina.new(nome: nome).tap { |m| m.trabalhos.build(trabalho: "impressao_papel", por_hora: 31) }.tap(&:save!) }
+    primeiro = pedido_tecido_confirmado
+    segundo = pedido_tecido_confirmado
+    get painel_path
+
+    fila = Nokogiri::HTML(response.body).css("[data-fila-setor=impressao]").sole
+    expect(fila["data-controller"]).to eq("maquinas-da-fila")
+    expect(fila.css("[data-fila-raia]").map { |r| [ r["data-fila-raia"], r.css(".painel-raia-nome b").text ] }).to eq([ [ epson_a.uuid, "Epson A" ], [ epson_b.uuid, "Epson B" ] ])
+    expect(fila.css(".painel-fila-filtro-chip").map(&:text)).to eq([ "Todas as máquinas", "Epson A", "Epson B" ])
+    expect(fila.css(".painel-fila-cab div").map(&:text)).to include("Máquina")
+    # Both free at once: each pedido on its own machine.
+    expect([ primeiro, segundo ].map { |p| fila.css("[data-fila-pedido='#{p.uuid}']").sole.then { |l| [ l["data-fila-maquina"], l.css("[data-fila-na-maquina]").text ] } })
+      .to eq([ [ epson_a.uuid, "Epson A" ], [ epson_b.uuid, "Epson B" ] ])
+    estamparia = Nokogiri::HTML(response.body).css("[data-fila-setor=estamparia]").sole
+    expect([ estamparia["data-controller"], estamparia.css("[data-fila-raias], .painel-fila-filtro").size ]).to eq([ nil, 0 ])
+  end
+
+  # Q1a: a machine doing two sectors' trabalhos — its lane shows the other
+  # sector's piece hatched, naming it and its tab.
+  it "hatches another sector's piece on a machine's lane" do
+    travel_to(Time.zone.parse("2026-11-04 10:00")) do
+      turno_o_dia_todo
+      Maquina.new(nome: "Combo").tap { |m| m.trabalhos.build(trabalho: "impressao_papel", por_hora: 31) && m.trabalhos.build(trabalho: "calandra", por_hora: 31) }.save!
+      pedido = pedido_tecido_confirmado
+      get painel_path
+
+      outra = Nokogiri::HTML(response.body).css("[data-fila-setor=estamparia] [data-fila-raia] [data-fila-outra]").sole
+      expect(outra["title"]).to eq("impressão · ##{pedido.uuid.first(8)} · 10:00–10:30 · aba Impressão")
+    end
   end
 
   # Decided 05/11/2026: the reposição comes inside its original's row.

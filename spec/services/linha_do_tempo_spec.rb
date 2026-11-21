@@ -20,6 +20,9 @@ RSpec.describe LinhaDoTempo do
     instance_double(FilaDeProducao, agora: agora).tap do |f|
       allow(f).to receive(:do_setor) { |setor| setores.fetch(setor, []) }
       allow(f).to receive(:etapas_do_setor) { |setor| etapas_dos_setores.fetch(setor, [ setor ]) }
+      # No machines here: the sector is one agenda (FilaDeProducao's own spec sums machines).
+      allow(f).to receive(:horas_do_setor) { |ocorrencia, setor, desde:| calendario.horas_do_setor(ocorrencia, etapas_dos_setores.fetch(setor, [ setor ]), desde: desde) }
+      allow(f).to receive(:de_outros_setores).and_return([])
     end
   end
 

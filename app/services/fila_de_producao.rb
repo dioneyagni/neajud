@@ -7,6 +7,13 @@
 # what is left of it), where the stage works (CalendarioDeProducao); a stage
 # starts when the ones it waits for (`trava`) end for that pedido.
 #
+# Máquinas 2/5a (decided 20–21/11/2026): the hours go on a machine — each
+# active one doing the stage's trabalho (RecursosDaFila), the piece on the
+# one that ends it first (Q3a), at that machine's speed; a trabalho with no
+# machine is its sector's one agenda, as before (Q7a). A machine is one
+# agenda whatever it does (Q1a: the Calandra 2 calandra and dubla, its time
+# shared by arrival). And no strict order any more (Q2a): see `agendar`.
+#
 # What leaves a stage without previsão, and every stage that waits for it:
 #   - a missing material (Q1c, 06/11/2026) holds only the stage that takes it
 #     from the stock — without fabric the Impressão still runs and the Corte
@@ -19,10 +26,9 @@
 #
 # Painel 3/4a (decided 07/11/2026): a person may move a stage in its
 # sector's queue (MovimentoDaFila, the order in force given as `ordens`).
-# Each sector's queue then goes in its own order — first the stages already
-# under way (some line had its baixa, Q6b: no one passes them), then the
-# moved ones where they were put and the others by arrival —, sector by
-# sector, each stage still waiting for the ones it depends on.
+# The order is first the stages already under way (some line had its
+# baixa, Q6b: no one passes them), then the moved ones where they were put
+# and the others by arrival; each stage still waits for the ones it depends on.
 #
 # It reads the whole factory — the pedidos, the calendar, the rhythms — even
 # for a cliente final, whose previsão depends on everyone else's pedidos
@@ -36,13 +42,6 @@
 class FilaDeProducao
   HORIZONTE = 90.days
   ATIVOS = %w[confirmado em_producao].freeze
-  # Dublagem 5b1c2 (Q3b, 11/11/2026): the sectors whose queue holds a stage
-  # waiting for another sector midway (the Dublagem final, the Calandra):
-  # it never holds the ones behind it — among those whose stages waited
-  # for are placed, the one that may start first goes, the order breaking
-  # ties.
-  SETORES_PELO_PRONTO = %w[dublagem].freeze
-
   # A stage's piece inside one turno.
   Trecho = Struct.new(:ocorrencia, :inicio, :fim, keyword_init: true) do
     def horas
@@ -54,13 +53,15 @@ class FilaDeProducao
   # motivo says why (falta: a material is missing). espera: the stage it
   # waits for, when that one ends after now. abertas / total: its lines.
   # movimento: the MovimentoDaFila that put it where it is (nil: arrival).
+  # recurso: the agenda it went on (RecursosDaFila), maquina: that Maquina
+  # (nil: its sector's, a trabalho with no machine).
   # linhas, antes (the open stages it waits for), preso (the materials
   # holding it), ordem and colocada are how the queue builds it.
   # retidas: a dublagem's open lines a missing material holds (5b1c3, Q3a) —
   # the stage goes with the free ones (linhas); retidas_por: those materials.
   Vez = Struct.new(:pedido, :etapa, :setor, :posicao, :carga, :horas, :inicio, :fim, :trechos, :espera,
                    :motivo, :falta, :abertas, :total, :sem_medida, :movimento, :linhas, :antes, :preso, :ordem, :colocada,
-                   :retidas, :retidas_por, keyword_init: true) do
+                   :retidas, :retidas_por, :recurso, :maquina, keyword_init: true) do
     # Some line already had its baixa.
     def iniciada?
       abertas < total
@@ -103,8 +104,9 @@ class FilaDeProducao
     end
   end
 
-  # Where each sector's queue is: the moment it is free and the material the
-  # cutting machine ended on (the troca between pedidos, Painel 2/4a2 A6b).
+  # Where each resource is (a machine, or a sector with none — Máquinas
+  # 2/5a): the moment it is free and the material a cutting machine ended
+  # on (the troca between pedidos, Painel 2/4a2 A6b; per machine, Q8a).
   Agenda = Struct.new(:livre, :ultimo_material) do
     def copia
       Agenda.new(livre.dup, ultimo_material.dup)
@@ -130,6 +132,9 @@ class FilaDeProducao
     @aguardando = aguardando || AguardandoMaterial.call
     # Máquinas 1/5: each with its machines, read once.
     @ritmos = RitmoProducao.da_fabrica(ritmos || RitmoProducao.all.to_a)
+    @recursos = RecursosDaFila.new(@ritmos, calendario)
+    @opcoes = {}.compare_by_identity
+    @cargas = {}
     @medidas = RitmoMedido.call(calendario, ate: agora, ritmos: @ritmos.values)
     @ocorrencias = calendario.ocorrencias(de: agora, ate: agora + HORIZONTE)
     @agenda = Agenda.new(Hash.new(agora), {})
@@ -183,16 +188,47 @@ class FilaDeProducao
     @filas[setor]
   end
 
-  # The turnos the sector's queue fills, each with its pieces and the hours
-  # it has (from now on, for the one under way): those of the stages with
-  # pieces there — a Calandra stop doesn't take the Estamparia's hours.
-  # Usage: fila.turnos_do_setor("impressao").first.livres # => 3.5
+  # The turnos the sector's queue fills, each with its pieces, a lane per
+  # resource (Máquinas 2/5a: its machines, or the sector with none) and the
+  # hours they have summed (from now on, for the one under way); the pieces
+  # another sector put on its machines (outras, Q1a) count as taken.
+  # Usage: fila.turnos_do_setor("impressao").first.livres # => 7.0 (two machines, 3.5 h left)
   def turnos_do_setor(setor)
-    pecas = do_setor(setor).flat_map { |vez| vez.trechos.map { |trecho| [ vez, trecho ] } }
-    pecas.group_by { |_, trecho| trecho.ocorrencia }.map do |ocorrencia, do_turno|
-      etapas = do_turno.map { |vez, _| vez.etapa.chave }.uniq
-      TurnoDaFila.new(ocorrencia: ocorrencia, pecas: do_turno, livres: @calendario.horas_do_setor(ocorrencia, etapas, desde: agora))
+    recursos = recursos_do_setor(setor)
+    outras = pecas_de(de_outros_setores(setor))
+    pecas_de(do_setor(setor)).group_by { |_, trecho| trecho.ocorrencia }.map do |ocorrencia, do_turno|
+      de_fora = outras.select { |_, trecho| trecho.ocorrencia == ocorrencia }
+      raias = recursos.map do |recurso, etapas|
+        RaiaDoTurno.new(recurso: recurso, livres: @calendario.horas_do_setor(ocorrencia, etapas, desde: agora),
+                        pecas: (do_turno + de_fora).select { |vez, _| vez.recurso == recurso.chave })
+      end
+      TurnoDaFila.new(ocorrencia: ocorrencia, pecas: do_turno, outras: de_fora, raias: raias, livres: raias.sum(&:livres))
     end
+  end
+
+  # The hours the sector has in a turno, its resources' summed (the Linha do
+  # tempo's load, Máquinas 2/5a).
+  # Usage: fila.horas_do_setor(ocorrencia, "estamparia") # => 12.0 (three calandras, 4 h)
+  def horas_do_setor(ocorrencia, setor, desde: agora)
+    recursos_do_setor(setor).sum { |_, etapas| @calendario.horas_do_setor(ocorrencia, etapas, desde: desde) }
+  end
+
+  # The sector's resources with the stages each does there (RecursosDaFila#do_setor):
+  # for the type × stage pairs in its queue, or every one of the sector when empty.
+  def recursos_do_setor(setor)
+    pares = do_setor(setor).map { |vez| [ vez.pedido.tipo, vez.etapa.chave ] }.uniq.presence ||
+            @ritmos.keys.select { |tipo, etapa| self.class.setor_de(EtapasProducao.etapa(tipo, etapa)) == setor }
+    @recursos.do_setor(setor, pares)
+  end
+
+  # Other sectors' stages on this sector's machines (Q1a: the Calandra 2
+  # dubbing, seen from the Estamparia).
+  # Usage: fila.de_outros_setores("estamparia").map { |vez| vez.etapa.chave } # => ["dublagem"]
+  def de_outros_setores(setor)
+    maquinas = recursos_do_setor(setor).map { |recurso, _| recurso.chave if recurso.maquina? }.compact
+    return [] if maquinas.empty?
+
+    @filas.except(setor).values.flatten.select { |vez| maquinas.include?(vez.recurso) }
   end
 
   # The stages whose hours count for the sector: the ones in its queue, or
@@ -205,9 +241,30 @@ class FilaDeProducao
     EtapasProducao.todas.values.flatten.select { |etapa| self.class.setor_de(etapa) == setor }.map(&:chave).uniq
   end
 
-  TurnoDaFila = Struct.new(:ocorrencia, :pecas, :livres, keyword_init: true) do
+  # pecas, outras: [vez, trecho] — the sector's, and other sectors' on its machines.
+  TurnoDaFila = Struct.new(:ocorrencia, :pecas, :outras, :raias, :livres, keyword_init: true) do
+    def ocupadas
+      (pecas + Array(outras)).sum { |_, trecho| trecho.horas }
+    end
+
+    # Lanes worth showing: some machine among them (a sector with none is one agenda, as before).
+    def com_maquinas?
+      Array(raias).any? { |raia| raia.recurso.maquina? }
+    end
+  end
+
+  # One resource's lane in a turno (Máquinas 2/5a, the 4B mockup).
+  RaiaDoTurno = Struct.new(:recurso, :livres, :pecas, keyword_init: true) do
     def ocupadas
       pecas.sum { |_, trecho| trecho.horas }
+    end
+  end
+
+  # A stage's best place (Q3a): the resource that ends it first, with its
+  # load, hours and pieces there.
+  Opcao = Struct.new(:recurso, :carga, :horas, :trechos, :fim, keyword_init: true) do
+    def inicio
+      trechos.first&.inicio
     end
   end
 
@@ -281,81 +338,109 @@ class FilaDeProducao
     vez.antes.reject(&:iniciada?).select { |antes| antes.movimento || antes.ordem[1] != (antes.pedido.confirmado_em || antes.pedido.created_at) }.map { |antes| antes.ordem[1] }.max
   end
 
-  # Each sector's queue in its order, sector by sector: a sector's next
-  # stage goes once the ones it waits for are placed, holding the ones after
-  # it (the strict order).
+  # Máquinas 2/5a (Q2a, decided 21/11/2026 — "ordem estrita me incomoda"):
+  # no strict order, the whole factory at once. Of the stages whose ones
+  # waited for are placed, the one that may start first goes, its order
+  # (arrival, a move) breaking ties: a stage waiting for another holds no
+  # one, and when ready takes its place ahead of the ones that came after
+  # it and haven't started (a started piece is never interrupted); a
+  # machine doing two sectors' trabalhos serves them by it (Q1a). The ones
+  # under way start now and sort first. (The Dublagem went like this since
+  # 5b1c2, Q3b; now every sector does.)
   def agendar(vezes)
-    filas = vezes.group_by(&:setor).transform_values { |do_setor| do_setor.sort_by(&:ordem) }
-    until filas.values.all?(&:empty?)
-      colocadas = filas.values.sum { |fila| colocar_as_primeiras(fila) }
-      destravar(filas) if colocadas.zero?
+    pendentes = vezes.sort_by(&:ordem)
+    until pendentes.empty?
+      vez = pendentes.select { |outra| outra.antes.all?(&:colocada) }.min_by { |outra| [ inicio_possivel(outra), outra.ordem ] }
+      entrar_na_fila(colocar(pendentes.delete(vez), @agenda))
     end
   end
 
-  def colocar_as_primeiras(fila)
-    return colocar_pelo_pronto(fila) if SETORES_PELO_PRONTO.include?(fila.first&.setor)
+  # When it would start: one without previsão first (it takes no hours), one
+  # past the horizon last.
+  def inicio_possivel(vez)
+    return agora - HORIZONTE if bloqueio(vez)
 
-    colocadas = 0
-    while (vez = fila.first) && vez.antes.all?(&:colocada)
-      entrar_na_fila(colocar(fila.shift, @agenda))
-      colocadas += 1
-    end
-    colocadas
-  end
+    opcao = opcao(vez, @agenda)
+    return agora - HORIZONTE unless opcao
 
-  def colocar_pelo_pronto(fila)
-    colocadas = 0
-    while (indice = proxima_pronta(fila))
-      entrar_na_fila(colocar(fila.delete_at(indice), @agenda))
-      colocadas += 1
-    end
-    colocadas
-  end
-
-  # The index of the one to place next: among the front ones whose stages
-  # waited for are placed (when they end is known), the earliest start; nil
-  # when the first still waits for one not placed.
-  def proxima_pronta(fila)
-    conhecidas = fila.take_while { |vez| vez.antes.all?(&:colocada) }
-    conhecidas.each_index.min_by { |indice| [ [ @agenda.livre[conhecidas[indice].setor], pronto(conhecidas[indice]) ].max, indice ] }
+    opcao.inicio || agora + HORIZONTE
   end
 
   def pronto(vez) = ([ agora ] + vez.antes.filter_map(&:fim)).max
 
-  # Every sector's next stage waits for one behind it in its own sector (a
-  # stage moved ahead of the one it waits for): that one goes first.
-  def destravar(filas)
-    vez = filas.values.find(&:any?).first
-    vez = vez.antes.find { |outra| !outra.colocada } until vez.antes.all?(&:colocada)
-    filas[vez.setor].delete(vez)
-    filas[vez.setor].unshift(vez)
-  end
-
-  # Places it after the stages it waits for (their Vez in antes).
+  # Places it after the stages it waits for (their Vez in antes), on its best resource.
   def colocar(vez, agenda)
     vez.colocada = true
-    sem = vez.antes.find { |outra| outra.fim.nil? }
-    return vez.tap { |v| v.motivo, v.falta = sem.motivo, sem.falta } if sem
-    return vez.tap { |v| v.motivo, v.falta = "previsão quando #{v.preso.map(&:nome_completo).join(" e ")} entrar", true } if vez.preso
+    motivo, falta = bloqueio(vez)
+    return vez.tap { |v| v.motivo, v.falta = motivo, falta } if motivo
 
-    ritmo = @ritmos[[ vez.pedido.tipo, vez.etapa.chave ]] || RitmoProducao.new(tipo: vez.pedido.tipo, etapa: vez.etapa.chave)
-    carga = CargaDaEtapa.call(vez.pedido, vez.etapa, vez.linhas, ritmo, anterior: agenda.ultimo_material[vez.setor], memoria: @memoria)
-    horas = ritmo.horas(carga.valor, @medidas[[ vez.pedido.tipo, vez.etapa.chave ]])
-    return vez.tap { |v| v.motivo = "#{v.etapa.nome} (#{Pedido::ROTULOS_DOS_TIPOS[v.pedido.tipo]}) sem ritmo" } unless horas
+    opcao = opcao(vez, agenda)
+    return vez.tap { |v| v.motivo = "#{v.etapa.nome} (#{Pedido::ROTULOS_DOS_TIPOS[v.pedido.tipo]}) sem ritmo" } unless opcao
 
     vez.espera = vez.antes.select { |outra| outra.fim > agora }.max_by(&:fim)
-    encher(vez, carga, horas, pronto(vez), agenda)
+    encher(vez, opcao, agenda)
   end
 
-  def encher(vez, carga, horas, pronto, agenda)
-    vez.carga, vez.horas, vez.sem_medida = carga.valor, horas, carga.sem_medida
-    vez.trechos, vez.fim = trechos(vez.etapa.chave, [ agenda.livre[vez.setor], pronto ].max, horas)
+  # Why it can't have a previsão: [motivo, falta] — a stage it waits for has
+  # none, or a missing material holds it; nil when it can.
+  def bloqueio(vez)
+    sem = vez.antes.find { |outra| outra.fim.nil? }
+    return [ sem.motivo, sem.falta ] if sem
+
+    [ "previsão quando #{vez.preso.map(&:nome_completo).join(" e ")} entrar", true ] if vez.preso
+  end
+
+  # The resource that ends it first (Q3a; a tie, the first registered); nil
+  # without a rhythm (Q2a). The queue's own agenda keeps it until one of its
+  # resources moves.
+  def opcao(vez, agenda)
+    ritmo = ritmo_de(vez)
+    recursos = @recursos.do_ritmo(ritmo, vez.setor)
+    estado = recursos.map { |recurso| [ agenda.livre[recurso.chave], agenda.ultimo_material[recurso.chave] ] }
+    guardada = @opcoes[vez] if agenda.equal?(@agenda)
+    return guardada[1] if guardada && guardada[0] == estado
+
+    melhor = recursos.filter_map { |recurso| opcao_em(vez, ritmo, recurso, agenda) }.min_by { |opcao| opcao.fim || agora + (2 * HORIZONTE) }
+    @opcoes[vez] = [ estado, melhor ] if agenda.equal?(@agenda)
+    melhor
+  end
+
+  def ritmo_de(vez)
+    @ritmos[[ vez.pedido.tipo, vez.etapa.chave ]] || RitmoProducao.new(tipo: vez.pedido.tipo, etapa: vez.etapa.chave).tap { |ritmo| ritmo.maquinas = [] }
+  end
+
+  def opcao_em(vez, ritmo, recurso, agenda)
+    carga = carga_em(vez, ritmo, recurso, agenda)
+    horas = ritmo.horas(carga.valor, @medidas[[ vez.pedido.tipo, vez.etapa.chave ]], parte: recurso.parte)
+    return unless horas
+
+    trechos, fim = trechos(vez.etapa.chave, [ agenda.livre[recurso.chave], pronto(vez) ].max, horas)
+    Opcao.new(recurso: recurso, carga: carga, horas: horas, trechos: fim ? trechos : [], fim: fim)
+  end
+
+  # Its load there: the same on every resource, but a cutting machine's
+  # time is its own, from the material it ended on (Q8a).
+  def carga_em(vez, ritmo, recurso, agenda)
+    corte = ritmo.maquina_de_corte?
+    anterior = agenda.ultimo_material[recurso.chave] if corte
+    fonte = recurso.trabalho if corte
+    @cargas[[ vez.object_id, fonte&.id, anterior&.id ]] ||=
+      CargaDaEtapa.call(vez.pedido, vez.etapa, vez.linhas, ritmo, anterior: anterior, memoria: @memoria, fonte: fonte)
+  end
+
+  def encher(vez, opcao, agenda)
+    vez.carga, vez.horas, vez.sem_medida = opcao.carga.valor, opcao.horas, opcao.carga.sem_medida
+    vez.recurso, vez.maquina = opcao.recurso.chave, opcao.recurso.maquina
+    vez.trechos, vez.fim = opcao.trechos, opcao.fim
     vez.inicio = vez.trechos.first&.inicio
-    agenda.livre[vez.setor] = vez.fim || agora + HORIZONTE
-    agenda.ultimo_material[vez.setor] = carga.ultimo_material if carga.ultimo_material
+    agenda.livre[vez.recurso] = vez.fim || agora + HORIZONTE
+    agenda.ultimo_material[vez.recurso] = opcao.carga.ultimo_material if opcao.carga.ultimo_material
     vez.motivo = ocorrencias.empty? ? "sem turnos cadastrados" : "a fila passa de 90 dias" unless vez.fim
-    vez.trechos = [] unless vez.fim
     vez
+  end
+
+  def pecas_de(vezes)
+    vezes.flat_map { |vez| vez.trechos.map { |trecho| [ vez, trecho ] } }
   end
 
   # The turnos' hours the stage fills from the moment on; the end is nil
