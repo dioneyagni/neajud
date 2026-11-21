@@ -4,11 +4,15 @@
     ↑ ↓ open the impact window (who programs the production; not a stage
     under way, Q6b), a moved one says by whom (Q7c). Painel 3/4b: one the
     photo had end in a turno already over says where it came from (Q3a).
-    locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go) %>
+    Máquinas 2/5a: the Máquina column (cores: { maquina id => 1..6 }; nil,
+    a sector without machines — no column).
+    locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go), cores %>
+<% cores = local_assigns[:cores] %>
 <% pedido = vez.pedido %>
 <% primeiro = trecho.nil? || trecho == vez.trechos.first %>
 <div class="painel-fila-l<%= " painel-fila-l--andamento" if vez.iniciada? %>" data-fila-pedido="<%= pedido.uuid %>"
-     data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-pendencia="<%= linha&.pendencia? || false %>">
+     data-tipo="<%= pedido.tipo %>" data-cliente="<%= pedido.client&.uuid %>" data-pendencia="<%= linha&.pendencia? || false %>"
+     data-fila-maquina="<%= vez.maquina&.uuid %>">
   <div class="painel-fila-lugar">
     <span class="painel-fila-pos"><%= vez.posicao ? "#{vez.posicao}º" : "—" %></span>
     <% if primeiro && vez.posicao && !vez.iniciada? && pode_acao?(:programar_producao) %>
@@ -34,6 +38,9 @@
     <% if vez.iniciada? %><div class="painel-fila-barra"><i style="width: <%= ((vez.total - vez.abertas) * 100.0 / vez.total).round %>%"></i></div><% end %>
   </div>
   <div class="painel-fila-num"><%= carga_da_vez(vez) if vez.carga %></div>
+  <% if cores %>
+    <div><% if vez.maquina %><span class="painel-maquina painel-maquina--<%= cores.fetch(vez.maquina.id, 1) %>" data-fila-na-maquina><%= vez.maquina.nome %></span><% elsif vez.fim %><span class="painel-maquina-sem">sem máquina</span><% end %></div>
+  <% end %>
   <div class="painel-fila-hora">
     <% if trecho %>
       <%= trecho.inicio.strftime("%H:%M") %>–<%= trecho.fim.strftime("%H:%M") %>

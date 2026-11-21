@@ -1,0 +1,29 @@
+<%# The machines in the sector's first turno (Máquinas 2/5a, the 4B mockup
+    approved 21/11/2026): a lane per machine, its pieces where they fall in
+    the turno — another sector's hatched (Q1a) —, the line of now and the
+    hours left free. locals: turno (FilaDeProducao::TurnoDaFila), setor, cores, agora %>
+<% ocorrencia = turno.ocorrencia %>
+<% linha_do_agora = agora_na_raia(ocorrencia, agora) %>
+<div class="painel-raias" data-fila-raias>
+  <div class="painel-raias-titulo"><b>As máquinas na <%= ocorrencia.turno.nome %></b>
+    <span><%= dia_com_semana(ocorrencia.data) %> · <%= ocorrencia.turno.horario %><%= " · a linha vermelha é agora" if linha_do_agora %></span></div>
+  <% turno.raias.each do |raia| %>
+    <% maquina = raia.recurso.maquina %>
+    <div class="painel-raia" data-fila-raia="<%= maquina&.uuid %>">
+      <span class="painel-raia-nome"><b><%= maquina&.nome || "Sem máquina" %></b> <small><%= maquina ? trabalhos_na_raia(maquina) : LinhaDoPainel::COLUNAS.fetch(setor) %></small></span>
+      <span class="painel-raia-barra">
+        <% raia.pecas.each do |vez, trecho| %>
+          <% if vez.setor == setor %>
+            <i class="painel-raia-peca<%= " painel-raia-peca--andamento" if vez.iniciada? %>" style="<%= estilo_na_raia(trecho, ocorrencia) %>"
+               title="#<%= vez.pedido.uuid.first(8) %> · <%= trecho.inicio.strftime("%H:%M") %>–<%= trecho.fim.strftime("%H:%M") %>"></i>
+          <% else %>
+            <i class="painel-raia-peca painel-raia-peca--outra" style="<%= estilo_na_raia(trecho, ocorrencia) %>" data-fila-outra
+               title="<%= outra_na_raia(vez) %> · <%= trecho.inicio.strftime("%H:%M") %>–<%= trecho.fim.strftime("%H:%M") %> · aba <%= LinhaDoPainel::COLUNAS.fetch(vez.setor) %>"></i>
+          <% end %>
+        <% end %>
+        <% if linha_do_agora %><i class="painel-raia-agora" style="left: <%= linha_do_agora %>%"></i><% end %>
+      </span>
+      <span class="painel-raia-livres" data-fila-livres><%= livres_da_raia(raia) %></span>
+    </div>
+  <% end %>
+</div>

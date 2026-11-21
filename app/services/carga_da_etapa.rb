@@ -5,7 +5,8 @@
 #     baixa's measure: m, peças, unidades);
 #   papel — the meters of paper of the same lines (the calçado's Estamparia);
 #   maquina_de_corte — the cutting machine's hours (TempoDoCorte), from the
-#     material it ended on (`anterior`).
+#     material it ended on (`anterior`); one machine's (`fonte`, its
+#     TrabalhoDaMaquina — the queue, Máquinas 2/5a) or the ritmo's together.
 #
 # Usage: carga = CargaDaEtapa.call(pedido, etapa, linhas, ritmo)
 #        [ carga.valor, carga.ultimo_material ] # => [3.2, tactel]
@@ -14,10 +15,10 @@ class CargaDaEtapa
 
   # linhas: LinhasDeProducao lines of the stage; memoria: a Hash shared by
   # the calls of one page, so a pedido's paper lines are built once.
-  def self.call(pedido, etapa, linhas, ritmo, anterior: nil, memoria: {})
+  def self.call(pedido, etapa, linhas, ritmo, anterior: nil, memoria: {}, fonte: nil)
     case etapa.ritmo
     when "papel" then Carga.new(valor: em_papel(pedido, etapa, linhas, memoria).sum { |linha| linha.esperado.to_f }, sem_medida: [])
-    when "maquina_de_corte" then da_maquina(linhas, ritmo, anterior)
+    when "maquina_de_corte" then da_maquina(linhas, ritmo, anterior, fonte)
     else Carga.new(valor: linhas.sum { |linha| linha.esperado.to_f }, sem_medida: [])
     end
   end
@@ -29,8 +30,8 @@ class CargaDaEtapa
     todas.select { |linha| chaves.include?(linha.chave) }
   end
 
-  def self.da_maquina(linhas, ritmo, anterior)
-    tempo = TempoDoCorte.call(linhas, ritmo, anterior: anterior)
+  def self.da_maquina(linhas, ritmo, anterior, fonte)
+    tempo = TempoDoCorte.call(linhas, ritmo, anterior: anterior, fonte: fonte)
     Carga.new(valor: tempo.horas, ultimo_material: tempo.ultimo_material, sem_medida: tempo.sem_medida)
   end
   private_class_method :em_papel, :da_maquina

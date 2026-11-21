@@ -178,9 +178,9 @@ queue as in the canvas's "Fila A").
   tipo's rhythm in use (`RitmoProducao#horas`). The hours fill the turnos
   from now (the turno under way only what is left of it) where the stage
   works (`CalendarioDeProducao#horas`), and a stage starts when the ones it
-  waits for (`trava`) end for that pedido. Strict order: a pedido waiting
-  for its Impressão also holds the ones after it in the Estamparia
-  (reordering is the programação, 3/4a: then the stages under way go first).
+  waits for (`trava`) end for that pedido. It was a strict order (a pedido
+  waiting for its Impressão held the ones after it in the Estamparia)
+  until Máquinas 2/5a (Q2a, 21/11/2026): see "The queue per machine".
 - **No previsão** for a stage, and every stage that waits for it, when:
   - a **material is missing** (Q1c): it holds only the stage that takes it
     from the stock — without fabric the Impressão runs and the Corte
@@ -288,9 +288,8 @@ section (3/4b1).
   have no ↑↓), then the moved ones and the others by arrival. A stage not
   moved itself follows the one it waits for that was (moving a pedido's
   Impressão takes its Calandra along). A stage still waits for the ones it
-  depends on, holding the ones after it (the strict order of 2/4b). Two
-  stages waiting for each other's sector (not in today's types) don't
-  stall it: the one waited for goes first.
+  depends on — holding the ones after it until Máquinas 2/5a, when the
+  strict order ended (Q2a): now the order breaks ties among the ready ones.
 - **↑ ↓** (Q3a) — on each line of a sector's queue, for who has
   **programar_producao** (a team action in Funções; the dono has it, the
   "Admin" template too). They open the **impact window**
@@ -430,12 +429,11 @@ Decided 11/11/2026 (canvas Painel, "5b1c2 · Dublagem no Painel e na fila").
   `LinhaDoPainel.setores_usados`). The calendar offers **"Dublagem (as duas
   etapas)"**: one stop stops both (`ExcecaoCalendario.etapas`, `#para?`).
   The rhythm stays one per stage.
-- **Its order** (Q3b): in `FilaDeProducao::SETORES_PELO_PRONTO` a stage
-  waiting for another sector midway (the Dublagem final, the Calandra)
-  never holds the ones behind it: among the front ones whose stages waited
-  for are placed, the one that may start first goes, arrival (or a move)
-  breaking ties; stages under way still go first. Other sectors keep the
-  strict order.
+- **Its order** (Q3b): a stage waiting for another sector midway (the
+  Dublagem final, the Calandra) never holds the ones behind it: the one
+  that may start first goes, arrival (or a move) breaking ties; stages
+  under way still go first. Every sector goes so since Máquinas 2/5a (Q2a;
+  `SETORES_PELO_PRONTO` is gone).
 - **The queue's row** (Q4): a dublagem's lines are letras, each named with
   its pedido, the piece's label at the machine — `3 letras · Dublagem:
   #7674gj44|DUB-A, …`, started `1 de 3 letras · …: falta #7674gj44|DUB-C`, a
@@ -559,8 +557,53 @@ only (`Visibilidade::DA_EQUIPE`).
   type × stage with its machines in one query (the queue, RitmoMedido, the
   pages).
 - **The Corte do calçado with machines** (Q8a): `TempoDoCorte` takes each
-  machine's parameters (`RitmoProducao#fontes_do_corte`); with two or more
-  they share the load — 1 ÷ Σ(1 ÷ each one's time), the same as summing
-  m/h. Until Máquinas 2/5 the queue is still one line per sector: the
-  machines only change its rhythm.
+  machine's parameters (`RitmoProducao#fontes_do_corte`); with two or more,
+  together, 1 ÷ Σ(1 ÷ each one's time) — what `RitmoMedido` measures the
+  aproveitamento by. The queue asks one machine's time (`fonte:`, 2/5a).
+
+## The queue per machine (Máquinas 2/5a)
+
+Decided 20–21/11/2026 (Q1a–Q5a in `docs/plano.md`, Etapa 2.11; the 4B
+mockup in the canvas "Máquinas").
+
+- **Resources** (`RecursosDaFila`) — a stage's pieces go on the active
+  machines doing its trabalho; a trabalho with none is its sector's one
+  agenda, as before (Q7a). A machine is **one agenda whatever it does**
+  (Q1a): the Calandra 2's calandra and dublagem share its time, by arrival.
+- **The machine that ends it first** (Q3a) — a stage of a pedido goes
+  whole on one machine: for each, from when it is free (or the piece
+  ready), through the stage's turnos; the earliest end wins, a tie the
+  machine registered first. Its hours are the load over **that machine's
+  speed** — its share of the rhythm in use (`RitmoProducao#parte_da_maquina`:
+  its speed over the sum, so a measured rhythm, still per stage until the
+  baixa says the machine in 4/5, splits like the informado). The Corte do
+  calçado by that machine's parameters, its troca from the material **it**
+  ended on (Q8a). A piece already under way goes where the queue puts it
+  (the baixa says no machine until 4/5).
+- **No strict order** (Q2a, "ordem estrita me incomoda") — the whole
+  factory placed in one pass (`FilaDeProducao#agendar`): of the stages
+  whose ones waited for are placed, the one that may start first goes, its
+  order (arrival, a move ↑↓) breaking ties. A stage waiting for another
+  holds no one, and once ready takes its place ahead of the ones that
+  came after it and haven't started; a started piece is never
+  interrupted. With or without machines (the Dublagem went so since
+  5b1c2). A place (1º, 2º…) is the order the sector's pieces start in, so
+  a move by ↑↓ changes who goes first among the ready ones.
+- **The sector's hours** — each resource's summed: three calandras in a 4 h
+  turno have 12 h (the tab's turno load, the Linha do tempo's load,
+  `FilaDeProducao#horas_do_setor`); another sector's pieces on its machines
+  count as taken (`de_outros_setores`).
+- **The tab** (`_fila_do_setor`, 4B) — with machines: on top, the first
+  turno's lanes (`_raias_do_turno`), a line per machine with its pieces
+  where they fall in the turno, another sector's hatched ("dublando ·
+  #…", its tab on hover), the line of now and the hours left free; chips
+  "Todas as máquinas · <each>" filter the list (`maquinas_da_fila`
+  Stimulus, kept per sector in the tab's sessionStorage and after a
+  refresh); the **Máquina** column, a chip in one of six colors by the
+  machine's place. A sector with none keeps the list as it was.
+- **Not yet**: sending a piece to another machine by hand (2/5b); the stop
+  per machine (3/5); the baixa saying the machine and the measured rhythm
+  per machine (4/5); the Painel's hover, the Linha do tempo's load per
+  machine and the pedido's timeline naming it (5/5). The turno's photo
+  and the virada stay per sector.
 

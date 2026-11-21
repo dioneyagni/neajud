@@ -11,8 +11,9 @@
 #
 # Máquinas 1/5 (Q8a): with several machines doing the Corte do calçado,
 # each with its parameters, they share the load: the stage takes
-# 1 ÷ Σ(1 ÷ each one's time) — the same as summing their m/h. The queue per
-# machine (Máquinas 2/5) replaces it.
+# 1 ÷ Σ(1 ÷ each one's time) — the same as summing their m/h. That is what
+# RitmoMedido measures by; the queue (Máquinas 2/5a) asks one machine's
+# time (`fonte:`), from the material that machine ended on.
 #
 # Its materials go one after the other, the one already on the machine
 # first. A size with no measure counts nothing and is named in sem_medida,
@@ -20,6 +21,7 @@
 #
 # Usage: tempo = TempoDoCorte.call(linhas, RitmoProducao.de("calcado", "corte"), anterior: oxford)
 #        [ tempo.horas, tempo.ultimo_material, tempo.sem_medida ] # => [1.42, helanca, []]
+#        TempoDoCorte.call(linhas, ritmo, fonte: mesa.trabalho_de("corte_calcado")).horas # one machine
 class TempoDoCorte
   Tempo = Struct.new(:segundos, :ultimo_material, :sem_medida, keyword_init: true) do
     def horas
@@ -27,21 +29,22 @@ class TempoDoCorte
     end
   end
 
-  # linhas: LinhasDeProducao lines of a Corte stage.
-  def self.call(linhas, ritmo, anterior: nil)
-    new(linhas, ritmo, anterior).call
+  # linhas: LinhasDeProducao lines of a Corte stage. fonte: one machine's
+  # TrabalhoDaMaquina (its parameters); nil, the ritmo's machines together.
+  def self.call(linhas, ritmo, anterior: nil, fonte: nil)
+    new(linhas, ritmo, anterior, fonte).call
   end
 
-  def initialize(linhas, ritmo, anterior)
+  def initialize(linhas, ritmo, anterior, fonte = nil)
     @linhas = linhas
-    @ritmo = ritmo
+    @fontes = fonte ? [ fonte ] : ritmo.fontes_do_corte
     @anterior = anterior
     @anotacoes = {}
   end
 
   def call
     materiais = ordem_dos_materiais
-    Tempo.new(segundos: juntas(@ritmo.fontes_do_corte.map { |fonte| segundos_com(fonte, materiais) }),
+    Tempo.new(segundos: juntas(@fontes.map { |fonte| segundos_com(fonte, materiais) }),
               ultimo_material: materiais.last || @anterior, sem_medida: sem_medida)
   end
 

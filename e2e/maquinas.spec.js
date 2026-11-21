@@ -1,8 +1,9 @@
 // Máquinas 1/5 (decided 20/11/2026, canvas "Máquinas"): the dono registers
 // a machine doing two trabalhos (a speed typed only once checked), sees
 // each trabalho's sum, a checked trabalho without speed is refused, Ritmos
-// shows a row with machines read only, the Painel runs the Calandra at its
-// machines' sum, a trashed machine comes back from the Lixeira and its name
+// shows a row with machines read only, the Painel puts the Calandra on the
+// machine that ends it first (Máquinas 2/5a: a piece goes whole on one
+// machine, Q3a), a trashed machine comes back from the Lixeira and its name
 // stays taken there. Last, every machine goes to the trash: the specs after
 // this one type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
@@ -38,7 +39,7 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     await page.locator(".painel-setor[data-setor='estamparia']").click();
     const vez = page.locator(`[data-fila-setor='estamparia'] [data-fila-pedido='${pedido}']`).first();
     await vez.waitFor();
-    return (await vez.locator(".painel-fila-hora small").innerText()).trim();
+    return [ (await vez.locator(".painel-fila-hora small").innerText()).trim(), (await vez.locator("[data-fila-na-maquina]").innerText()).trim() ];
   }
 
   await test("Parameters links to Máquinas, with no machine yet", async () => {
@@ -78,7 +79,7 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     if (!(await page.locator('tr[data-ritmo="calcado:conferencia"] input[name$="[por_hora]"]').count())) throw new Error("The Conferência lost its field");
   });
 
-  await test("The Painel runs the Calandra at its machines' sum: a second one halves its time", async () => {
+  await test("The Painel puts the Calandra on the machine that ends it first: a faster one takes it", async () => {
     corrida = await prepararCorrida(page, "maq");
     pedido = await pedidoDaCorrida(page, corrida);
     await page.goto(`${BASE_URL}/parametros/turnos`);
@@ -95,13 +96,13 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     await novaMaquina(epson, { impressao_papel: "100" });
     await waitForText(page, `${epson}: salva.`);
 
-    // 12,5 m at 25 m/h, then at 25 + 25.
-    const sozinha = await horasDaCalandra();
-    if (sozinha !== "30 min") throw new Error(`With one machine the Calandra takes "${sozinha}", expected 30 min`);
-    await novaMaquina(segunda, { calandra: "25" });
+    // 12,5 m at 25 m/h; then a machine of 50 m/h, free, ends it first.
+    const [sozinha, primeira] = await horasDaCalandra();
+    if (sozinha !== "30 min" || primeira !== calandra) throw new Error(`With one machine the Calandra takes "${sozinha}" on "${primeira}", expected 30 min on ${calandra}`);
+    await novaMaquina(segunda, { calandra: "50" });
     await waitForText(page, `${segunda}: salva.`);
-    const juntas = await horasDaCalandra();
-    if (juntas !== "15 min") throw new Error(`With two machines the Calandra takes "${juntas}", expected 15 min`);
+    const [rapida, outra] = await horasDaCalandra();
+    if (rapida !== "15 min" || outra !== segunda) throw new Error(`With a faster machine the Calandra takes "${rapida}" on "${outra}", expected 15 min on ${segunda}`);
   });
 
   await test("Unchecking the Dublagem removes it, and the histórico says so", async () => {

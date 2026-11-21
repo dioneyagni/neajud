@@ -62,4 +62,11 @@ RSpec.describe TempoDoCorte do
     expect(described_class.call([ linha(:oxford) ], RitmoProducao.de("calcado", "corte")).segundos).to eq(512.0)
     expect(mesa.reload.trabalhos.size).to eq(1)
   end
+
+  # Máquinas 2/5a: the queue asks one machine's time, by its parameters.
+  it "gives one machine's time alone" do
+    Maquina.new(nome: "Mesa 1").tap { |m| m.trabalhos.build(trabalho: "corte_calcado") }.save!
+    rapida = Maquina.new(nome: "Mesa 2").tap { |m| m.trabalhos.build(trabalho: "corte_calcado", velocidade_mm_s: 150, pinca_s: 1, preparo_min: 2, recolhimento_pecas_min: 20) }.tap(&:save!)
+    expect(described_class.call([ linha(:oxford) ], RitmoProducao.de("calcado", "corte"), fonte: rapida.trabalho_de("corte_calcado")).segundos).to eq(290.0)
+  end
 end

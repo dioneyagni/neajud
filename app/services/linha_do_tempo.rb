@@ -131,7 +131,8 @@ class LinhaDoTempo
     etapas = @fila.etapas_do_setor(setor)
     return CelulaDaCarga.new(data: data, estado: :parada) if turnos.all? { |ocorrencia| etapas.all? { |etapa| @calendario.parada?(ocorrencia, etapa) } }
 
-    livres = turnos.sum { |ocorrencia| @calendario.horas_do_setor(ocorrencia, etapas, desde: agora) }
+    # Máquinas 2/5a: each of its machines' hours, summed.
+    livres = turnos.sum { |ocorrencia| @fila.horas_do_setor(ocorrencia, setor, desde: agora) }
     return CelulaDaCarga.new(data: data, estado: :encerrado) unless livres.positive?
 
     percentual = [ (ocupadas(setor, data) / livres * 100).round, 100 ].min
@@ -153,11 +154,12 @@ class LinhaDoTempo
     percentual >= 85 ? :alto : :ok
   end
 
-  # The hours the sector's queue fills that day.
+  # The hours the sector's queue fills that day, with other sectors' pieces
+  # on its machines (Máquinas 2/5a, Q1a: the Calandra 2 dubbing is taken).
   def ocupadas(setor, data)
     @ocupadas ||= Hash.new(0.0)
     @ocupadas_lidas ||= {}
-    @ocupadas_lidas[setor] ||= @fila.do_setor(setor).each do |vez|
+    @ocupadas_lidas[setor] ||= (@fila.do_setor(setor) + @fila.de_outros_setores(setor)).each do |vez|
       vez.trechos.each { |trecho| @ocupadas[[ setor, trecho.ocorrencia.data ]] += trecho.horas }
     end
     @ocupadas[[ setor, data ]]
