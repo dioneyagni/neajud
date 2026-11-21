@@ -409,6 +409,19 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect([ turno.reload.nome, ExcecaoCalendario.count, RitmoProducao.count ]).to eq([ "Manhã", 1, 0 ])
     end
 
+    # Máquinas 1/5: the machines, like the rest of Parâmetros.
+    it "the machines are the dono's only, whatever the grid says" do
+      maquina = Maquina.new(nome: "Calandra 2").tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 40) }.tap(&:save!)
+      entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
+      pedidos = [
+        -> { get parametros_maquinas_path }, -> { get new_parametros_maquina_path }, -> { get edit_parametros_maquina_path(maquina) },
+        -> { post parametros_maquinas_path, params: { maquina: { nome: "X" } } },
+        -> { patch parametros_maquina_path(maquina), params: { maquina: { nome: "X" } } }, -> { delete parametros_maquina_path(maquina) }
+      ]
+      expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
+      expect([ maquina.reload.nome, maquina.excluido?, Maquina.count ]).to eq([ "Calandra 2", false, 1 ])
+    end
+
     it "the Funções page is the dono's only, whatever the grid says" do
       entrar_com_funcao(niveis: Autorizacao::AREAS.index_with { |a| Autorizacao.nivel_maximo(a) }, acoes: Autorizacao::ACOES)
       get funcoes_path

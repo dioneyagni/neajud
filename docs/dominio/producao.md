@@ -480,7 +480,7 @@ it is the dono's, in Parâmetros (`exige_dono`), and the team's only
   calçado's Estamparia and the tecido's Calandra, different machines that
   stop apart — its tab and its load in the Linha do tempo read the
   Calandra's stop, and an Estamparia stop leaves the Calandra its hours
-  (fixed 19/11/2026; the machines of decision 6a replace this). Removed physically, like a
+  (fixed 19/11/2026; the machines of Etapa 2.11 replace this in Máquinas 3/5). Removed physically, like a
   molde's price: a setting about the future. The **national holidays** are
   computed (`FeriadosNacionais`, the movable ones from Easter; Carnaval and
   Corpus Christi marked "ponto facultativo") and only suggested: the dono
@@ -525,3 +525,42 @@ it is the dono's, in Parâmetros (`exige_dono`), and the team's only
     detected before (nil) count their whole line, no holes; `bin/rails
     cortes:medir_camadas` (`MedirCamadasDoCorte`) fills them by position,
     never recreating a size. The rhythm page says how many are left.
+
+## Machines (Máquinas 1/5)
+
+Decided 20/11/2026 (`docs/plano.md`, Etapa 2.11), canvas "Máquinas". The
+dono's, in Parâmetros (`/parametros/maquinas`, `exige_dono`), the team's
+only (`Visibilidade::DA_EQUIPE`).
+
+- **What a machine does** (`TrabalhosDeMaquina`, a fixed list): each
+  trabalho the type × stage pairs it serves — Impressão em papel (calçado
+  and tecido Impressão), Impressão DTF, Corte do calçado, Corte do DTF,
+  Estamparia (the calçado's, m/h of paper), Calandra, Dublagem (Dublagem
+  and Dublagem final). The Conferência has none: it stays typed in Ritmos.
+  The unit is the first stage's rhythm unit.
+- **A machine** (`Maquina`, `TrabalhoDaMaquina`) — a name, unique across
+  the trash (one there says to restore it), and one or more trabalhos, each
+  with its speed per hour > 0; the Corte do calçado instead with the
+  cutting machine's 5 parameters (`ParametrosDoCorte`, blank = the default,
+  shared with the Corte's row in Ritmos). Saved by `SalvarMaquina`, which
+  writes the histórico (`AlteracaoDaMaquina`: "criou com Calandra 40 m/h",
+  "Calandra 40 m/h → 50 m/h; tirou Dublagem", "renomeou A → B", "mandou para
+  a lixeira", "restaurou"). Unchecking a trabalho removes its row
+  physically: the histórico keeps what it was. Saved, trashed or restored,
+  the Painel refreshes itself (`AvisaAFila` on the machine and its
+  histórico — the trash writes with `update_columns`, so its histórico line
+  is the commit that tells).
+- **The rhythm** (`RitmoProducao#informado`, Q7a) — a stage whose trabalho
+  has active machines takes **the sum of their speeds** as its informado;
+  with none, the one typed in Ritmos, as before. The measured one and "fix
+  yours" are unchanged. Ritmos shows such a row read only ("80 m/h · 2
+  máquinas · ver máquinas") and saving ignores its fields, keeping what was
+  typed for when the machines go. `RitmoProducao.da_fabrica` reads every
+  type × stage with its machines in one query (the queue, RitmoMedido, the
+  pages).
+- **The Corte do calçado with machines** (Q8a): `TempoDoCorte` takes each
+  machine's parameters (`RitmoProducao#fontes_do_corte`); with two or more
+  they share the load — 1 ÷ Σ(1 ÷ each one's time), the same as summing
+  m/h. Until Máquinas 2/5 the queue is still one line per sector: the
+  machines only change its rhythm.
+

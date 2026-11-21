@@ -2,6 +2,8 @@
 # dono types it, sees the one measured from the baixas (RitmoMedido) and may
 # fix his own (Q5a). The calçado's Corte types the cutting machine's
 # parameters instead (Painel 2/4a2). The dono's, like the rest of Parâmetros.
+# Máquinas 1/5: a row whose trabalho has machines shows their sum, read
+# only — it is changed in Máquinas; saving keeps what was typed there before.
 class RitmosProducaoController < ApplicationController
   include NumeroDigitado
   exige_dono
@@ -28,10 +30,14 @@ class RitmosProducaoController < ApplicationController
 
   CAMPOS_DIGITADOS = [ :por_hora, *RitmoProducao::MAQUINA_PADRAO.keys ].freeze
 
-  # Blank = not set (per hour) or the default (the machine's).
+  # Blank = not set (per hour) or the default (the machine's). A row with
+  # machines takes only the fix.
   def digitado(linha)
     dados = params.dig(:ritmos, linha.tipo, linha.etapa.chave) || {}
-    CAMPOS_DIGITADOS.index_with { |campo| decimal_digitado(dados[campo]) }.merge(fixar_informado: dados[:fixar_informado] == "1")
+    fixar = { fixar_informado: dados[:fixar_informado] == "1" }
+    return fixar if linha.ritmo.com_maquinas?
+
+    CAMPOS_DIGITADOS.index_with { |campo| decimal_digitado(dados[campo]) }.merge(fixar)
   end
 
   def digitado?(ritmo)
@@ -40,12 +46,13 @@ class RitmosProducaoController < ApplicationController
 
   Linha = Struct.new(:tipo, :etapa, :ritmo, :medida, keyword_init: true)
 
-  # One row per type × stage of config/etapas_producao.yml, saved or not.
+  # One row per type × stage of config/etapas_producao.yml, saved or not,
+  # each with its machines.
   def linhas_do_ritmo
-    salvos = visiveis(RitmoProducao).index_by { |ritmo| [ ritmo.tipo, ritmo.etapa ] }
-    medidas = RitmoMedido.call(CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a), ritmos: salvos.values)
+    ritmos = RitmoProducao.da_fabrica(visiveis(RitmoProducao).to_a, trabalhos: visiveis(TrabalhoDaMaquina).ativos)
+    medidas = RitmoMedido.call(CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a), ritmos: ritmos.values)
     EtapasProducao.todas.flat_map do |tipo, etapas|
-      etapas.map { |etapa| Linha.new(tipo: tipo, etapa: etapa, ritmo: salvos[[ tipo, etapa.chave ]] || visiveis(RitmoProducao).new(tipo: tipo, etapa: etapa.chave), medida: medidas[[ tipo, etapa.chave ]]) }
+      etapas.map { |etapa| Linha.new(tipo: tipo, etapa: etapa, ritmo: ritmos.fetch([ tipo, etapa.chave ]), medida: medidas[[ tipo, etapa.chave ]]) }
     end
   end
 end

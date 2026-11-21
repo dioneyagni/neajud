@@ -1,0 +1,58 @@
+<% content_for :title, "Máquinas" %>
+<%# Máquinas 1/5 (decided 20/11/2026, canvas "Máquinas", 1): each trabalho
+    with its machines and informado, then the machines with what each does. %>
+<div class="maquinas-pagina">
+  <p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Turnos e calendário", parametros_turnos_path %> · <%= link_to "Production rhythm", edit_parametros_ritmos_path %></p>
+  <div class="maquinas-topo">
+    <h2>Máquinas</h2>
+    <%= link_to "+ Nova máquina", new_parametros_maquina_path, class: "btn btn-primary" %>
+  </div>
+  <p class="funcoes-intro">Cada máquina diz o que faz e a velocidade em cada trabalho. O ritmo informado de um trabalho é a soma
+    das máquinas dele; um trabalho sem máquina segue com o ritmo digitado em Ritmos. A Conferência é feita por pessoas: continua só em Ritmos.</p>
+
+  <section class="maquinas-secao">
+    <h3>Por trabalho</h3>
+    <div class="maquinas-rolagem">
+      <table class="clients-table maquinas-por-trabalho">
+        <thead><tr><th>Trabalho</th><th>Máquinas</th><th class="maquinas-num">Ritmo informado</th></tr></thead>
+        <tbody>
+          <% TrabalhosDeMaquina.todos.each do |trabalho| %>
+            <% nomes = @maquinas.select { |maquina| maquina.trabalho_de(trabalho.chave) }.map(&:nome) %>
+            <tr data-trabalho="<%= trabalho.chave %>">
+              <td><%= trabalho.nome %><% if trabalho.detalhe && !trabalho.corte_por_parametros? %> <small>· <%= trabalho.detalhe %></small><% end %></td>
+              <td class="<%= "maquinas-nenhuma" if nomes.empty? %>"><%= nomes.any? ? nomes.join(" · ") : "nenhuma — usa o ritmo de Ritmos" %></td>
+              <td class="maquinas-num <%= "maquinas-nenhuma" if nomes.empty? %>"><%= informado_do_trabalho(trabalho, @ritmos) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="maquinas-secao">
+    <h3>As máquinas</h3>
+    <% if @maquinas.empty? %>
+      <p class="maquinas-vazio">Nenhuma máquina ainda: os ritmos seguem os de Ritmos.</p>
+    <% else %>
+      <div class="maquinas-rolagem">
+        <table class="clients-table maquinas-lista">
+          <thead><tr><th>Nome</th><th>O que faz</th><th></th></tr></thead>
+          <tbody>
+            <% @maquinas.each do |maquina| %>
+              <tr data-maquina="<%= maquina.nome %>">
+                <td><%= link_to maquina.nome, edit_parametros_maquina_path(maquina) %></td>
+                <td><div class="maquina-chips">
+                  <% maquina.trabalhos.each do |feito| %>
+                    <span class="maquina-chip"><%= feito.tipo_de_trabalho.nome %> · <%= feito.velocidade %></span>
+                  <% end %>
+                </div></td>
+                <td class="maquinas-num"><%= button_to "Lixeira", parametros_maquina_path(maquina), method: :delete, class: "btn btn-secondary btn-sm",
+                      form: { class: "maquina-lixeira" }, "aria-label": "Mandar #{maquina.nome} para a lixeira" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+</div>

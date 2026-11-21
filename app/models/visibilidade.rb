@@ -52,7 +52,7 @@ class Visibilidade
   # 2/2a: its histórico.
   # Painel 2/4a: the factory's turnos, calendar and rhythms.
   # Painel 3/4a–b: the programação — its moves, photos and viradas.
-  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem LigacaoDublagem LiganteDaLigacao SituacaoDublagem AlteracaoDaRede Turno ExcecaoCalendario RitmoProducao MovimentoDaFila FotoDaFila VezDaFoto ViradaDoPedido PlanoDaEtapa].freeze
+  DA_EQUIPE = %w[User Funcao Vinculo ExclusaoLog Empresa CamadaConstrucao OrdemDublagem LigacaoDublagem LiganteDaLigacao SituacaoDublagem AlteracaoDaRede Turno ExcecaoCalendario RitmoProducao Maquina TrabalhoDaMaquina AlteracaoDaMaquina MovimentoDaFila FotoDaFila VezDaFoto ViradaDoPedido PlanoDaEtapa].freeze
 
   # The kind that hides a model's rows when closed (TiposParaCliente).
   TIPO_DO_MODELO = {

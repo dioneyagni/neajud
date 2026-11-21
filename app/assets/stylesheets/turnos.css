@@ -50,3 +50,43 @@
 .ritmo-maquina { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px 10px; min-width: 260px; }
 .ritmo-parametro { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #5f6368; }
 .ritmo-parametro input { width: 90px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px; font: inherit; font-size: 14px; color: inherit; }
+
+/* Máquinas 1/5 (canvas "Máquinas"): the list and a machine's page. */
+.maquinas-pagina, .maquina-pagina { display: flex; flex-direction: column; gap: 16px; max-width: 1100px; }
+.maquina-pagina { max-width: 820px; }
+.maquinas-pagina h2, .maquina-pagina h2, .maquinas-secao h3, .maquina-secao h3, .maquina-historico h3 { margin: 0; }
+.maquinas-topo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.maquinas-secao { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 0 4px; margin: 0; min-width: 0; }
+.maquinas-secao th.maquinas-num { text-align: right; }
+.maquinas-secao h3 { padding: 0 16px 8px; font-size: 16px; font-weight: 500; }
+.maquinas-rolagem { overflow-x: auto; }
+.maquinas-secao .clients-table { min-width: 640px; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+.maquinas-num { text-align: right; font-variant-numeric: tabular-nums; }
+.maquinas-nenhuma, .maquinas-vazio, .maquinas-secao small, .maquina-nota, .maquina-unidade, .maquina-secao small { color: #5f6368; }
+.maquinas-vazio { padding: 0 16px 10px; margin: 0; }
+.maquina-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.maquina-chip { background: #e8f0fe; color: #174ea6; padding: 3px 10px; border-radius: 12px; font-size: 13px; }
+.maquina-lixeira { display: inline-block; margin: 0; }
+.maquina-form { display: flex; flex-direction: column; gap: 16px; }
+.maquina-secao { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.maquina-secao legend { float: left; width: 100%; padding: 0; }
+.maquina-secao legend h3 { font-size: 16px; font-weight: 500; }
+.maquina-secao small, .maquina-nota { font-size: 13px; margin: 0; }
+.maquina-rotulo { font-size: 14px; font-weight: 500; }
+.maquina-nome { font: inherit; padding: 10px 12px; border: 1px solid #dadce0; border-radius: 6px; max-width: 360px; }
+.maquina-trabalho { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 0; border-top: 1px solid #f1f3f4; }
+.maquina-trabalho input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+.maquina-trabalho-nome { flex: 1 1 240px; }
+.maquina-trabalho:has(input:checked) .maquina-trabalho-nome { font-weight: 500; }
+.maquina-trabalho input[type="text"], .maquina-parametro input { font: inherit; width: 96px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 6px; }
+.maquina-trabalho input:disabled, .maquina-parametro input:disabled { background: #f8f9fa; border-color: #e0e0e0; }
+.maquina-unidade { width: 90px; }
+.maquina-parametros { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.maquina-parametro { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.maquina-botoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.maquina-cancelar { padding: 12px 8px; }
+.maquina-espaco { flex: 1; }
+.maquina-historico { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #5f6368; }
+.maquina-historico h3 { font-size: 14px; font-weight: 500; color: #202124; }
+.maquina-historico ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ritmo-das-maquinas small { color: #5f6368; }

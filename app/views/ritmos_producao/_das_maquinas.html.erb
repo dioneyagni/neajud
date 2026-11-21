@@ -1,0 +1,12 @@
+<%# Máquinas 1/5 (canvas "Máquinas", 3): the stage's trabalho has machines —
+    their sum, read only, changed in Máquinas. The Corte do calçado's are
+    each machine's parameters. locals: ritmo %>
+<td class="ritmo-informado ritmo-das-maquinas" data-das-maquinas>
+  <% if ritmo.maquina_de_corte? %>
+    pelos parâmetros de <%= pluralize(ritmo.maquinas.size, "máquina", plural: "máquinas") %>
+  <% else %>
+    <strong class="ritmo-soma"><%= numero_br(ritmo.informado) %> <%= ritmo.unidade %></strong>
+    <small>· <%= pluralize(ritmo.maquinas.size, "máquina", plural: "máquinas") %></small>
+  <% end %>
+  · <%= link_to "ver máquinas", parametros_maquinas_path %>
+</td>

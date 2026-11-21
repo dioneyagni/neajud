@@ -32,3 +32,15 @@ en:
   time:
     formats:
       short: "%d/%m/%y %H:%M"
+  # Máquinas 1/5: the Lixeira's heading and the machine's errors.
+  activerecord:
+    models:
+      maquina: "Máquina"
+    attributes:
+      trabalho_da_maquina:
+        velocidade_mm_s: "Faca (mm/s)"
+        pinca_s: "Pinça por furo (s)"
+        preparo_min: "Preparo por metro (min)"
+        recolhimento_pecas_min: "Recolhimento (peças/min)"
+        troca_min: "Troca de material (min)"
+        por_hora: "Velocidade"

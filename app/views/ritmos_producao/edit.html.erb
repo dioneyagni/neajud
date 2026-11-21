@@ -2,7 +2,7 @@
 <%# Painel 2/4a (decided 05/11/2026): each type × stage's rhythm per hour,
     typed by the dono, measured from the baixas (RitmoMedido). Painel 2/4a2:
     the calçado's Corte is the cutting machine's time (TempoDoCorte). %>
-<p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Turnos e calendário", parametros_turnos_path %></p>
+<p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Turnos e calendário", parametros_turnos_path %> · <%= link_to "Máquinas", parametros_maquinas_path %></p>
 <h2>Production rhythm</h2>
 <p class="funcoes-intro">How much each stage does per hour, in the unit its baixa is given in. The measured one comes from the
   baixas of the last <%= RitmoMedido::DIAS %> days (the median of the turnos that had one) and replaces yours once it has
@@ -10,6 +10,9 @@
 <p class="funcoes-intro">The cutting machine's stage counts its time from the corte files: the cut line (contour and the layers
   marked Cut) at its speed, a punch per hole (layers Hole), the setup per meter of fabric, the unloading and each change of
   material. What is measured there is how much of the turno that time took.</p>
+<%# Máquinas 1/5. %>
+<p class="funcoes-intro">Uma etapa cujo trabalho tem máquinas usa a soma delas como o seu informado: ele se muda em
+  <%= link_to "Máquinas", parametros_maquinas_path %>. As outras seguem com o número digitado aqui.</p>
 <% if @cortes_sem_camadas.positive? %>
   <p class="ritmos-aviso" data-cortes-sem-camadas><%= pluralize(@cortes_sem_camadas, "corte file is", plural: "corte files are") %> not measured by layer yet: their whole line counts as cut, with no holes.</p>
 <% end %>
