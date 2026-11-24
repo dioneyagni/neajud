@@ -115,6 +115,10 @@ jobs:
 
   e2e:
     runs-on: ubuntu-24.04
+    # The whole suite takes ~15 min. A test server that stops answering
+    # (puma 8.1.2 on PR #219, 23/11/2026) held the job until GitHub's 6 h
+    # limit; this fails it instead.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
