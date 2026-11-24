@@ -77,6 +77,54 @@ RSpec.describe "Mover na fila", type: :request do
     expect(html.css("[data-historico-programacao] li").sole.text).to include("passou à frente de 1 pedido")
   end
 
+  # Máquinas 2/5b (Q3a, 21/11/2026): sending a stage to another machine —
+  # the same window, held there, its badge and its line in the history.
+  describe "to another machine" do
+    let!(:lenta) { Maquina.new(nome: "Calandra 2").tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 15.5) }.tap(&:save!) }
+    let!(:rapida) { Maquina.new(nome: "Calandra 3").tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 31) }.tap(&:save!) }
+
+    def linha_da_calandra(pedido)
+      html.css("[data-fila-setor=estamparia] [data-fila-pedido='#{pedido.uuid}']").sole
+    end
+
+    it "offers ⇄ on a stage with two machines, shows the window, holds it there and says so" do
+      get painel_path
+      expect(linha_da_calandra(segundo).css("[data-mover=maquina]").sole["href"]).to include("maquina=#{lenta.uuid}")
+
+      get impacto_na_fila_path(pedido: segundo.uuid, etapa: "calandra", maquina: lenta.uuid)
+      expect(html.css("turbo-frame#painel_impacto h3").text).to eq("Mandar a Calandra do ##{segundo.uuid.first(8)} · #{segundo.client.name} para outra máquina")
+      expect(html.css("#impacto-maquina option").map { |o| [ o.text, o["selected"].present? ] }).to eq([ [ "Calandra 2", true ], [ "Calandra 3 · a de agora", false ] ])
+      expect(html.css("[data-impacto-automatico]")).to be_empty
+
+      post movimentos_da_fila_path, params: { pedido: segundo.uuid, etapa: "calandra", maquina: lenta.uuid, motivo: "feltro novo na 3" }
+      expect(html.css("[data-impacto-feito]").text).to eq("1 movimento salvo.")
+      get painel_path
+      linha = linha_da_calandra(segundo)
+      expect([ linha.css("[data-fila-presa]").text, linha.css("[data-fila-presa]").sole["title"], linha.css("[data-fila-na-maquina]").text ])
+        .to eq([ "● presa na Calandra 2 · #{@usuario_logado.nome} 04/11 10:00", "feltro novo na 3", "Calandra 2" ])
+      get resumo_pedido_path(segundo)
+      expect(html.css("[data-historico-programacao] li").sole.text).to include("mandou a Calandra do ##{segundo.uuid.first(8)} da Calandra 3 para a Calandra 2 · feltro novo na 3")
+    end
+
+    # The machine goes by its uuid (AGENTS.md): its integer id is no machine.
+    it "refuses a machine given by its integer id, holding nothing" do
+      post movimentos_da_fila_path, params: { pedido: segundo.uuid, etapa: "calandra", maquina: lenta.id }
+      expect([ response.status, html.css(".painel-impacto-erro").text, MovimentoDaFila.count ])
+        .to eq([ 422, "machine #{lenta.id.to_s.inspect} doesn't do the Calandra of pedido #{segundo.uuid}; expected one of Calandra 2, Calandra 3", 0 ])
+    end
+
+    it "takes a held one back to the automatic from its window" do
+      MovimentoDaFila.create!(pedido: segundo, user: @usuario_logado, etapa: "calandra", setor: "estamparia", de: 2, de_maquina: rapida, para_maquina: lenta)
+      get impacto_na_fila_path(pedido: segundo.uuid, etapa: "calandra", maquina: rapida.uuid)
+      expect(html.css("[data-impacto-automatico]").sole["href"]).to include("automatico=1")
+
+      post movimentos_da_fila_path, params: { pedido: segundo.uuid, etapa: "calandra", automatico: 1 }
+      expect([ MovimentoDaFila.fixacoes, MovimentoDaFila.last.para_maquina ]).to eq([ {}, nil ])
+      get resumo_pedido_path(segundo)
+      expect(html.css("[data-historico-programacao] li").last.text).to include("voltou a Calandra do ##{segundo.uuid.first(8)} ao automático (estava na Calandra 2)")
+    end
+  end
+
   # Q4: a cliente final learns only that his previsão moved to another day.
   it "shows a cliente final no programação, only the history's \"previsão mudou\"" do
     primeiro.eventos_pedido.create!(user: @usuario_logado, tipo: "previsao_mudou", recado: "qua 04/11 → qui 05/11")

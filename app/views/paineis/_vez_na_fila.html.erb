@@ -5,7 +5,9 @@
     under way, Q6b), a moved one says by whom (Q7c). Painel 3/4b: one the
     photo had end in a turno already over says where it came from (Q3a).
     Máquinas 2/5a: the Máquina column (cores: { maquina id => 1..6 }; nil,
-    a sector without machines — no column).
+    a sector without machines — no column). 2/5b: ⇄ sends it to another of
+    its machines (maquinas: the ones it may go on, two or more), a held one
+    says where and by whom.
     locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go), cores %>
 <% cores = local_assigns[:cores] %>
 <% pedido = vez.pedido %>
@@ -19,12 +21,17 @@
       <span class="painel-fila-mover">
         <% if vez.posicao > limite %><%= link_to "↑", impacto_na_fila_path(pedido: pedido.uuid, etapa: vez.etapa.chave, posicao: vez.posicao - 1), class: "painel-fila-seta", data: { turbo_frame: "painel_impacto", mover: "subir" }, aria: { label: "Subir na fila" } %><% end %>
         <% if vez.posicao < total %><%= link_to "↓", impacto_na_fila_path(pedido: pedido.uuid, etapa: vez.etapa.chave, posicao: vez.posicao + 1), class: "painel-fila-seta", data: { turbo_frame: "painel_impacto", mover: "descer" }, aria: { label: "Descer na fila" } %><% end %>
+        <% if (outra = local_assigns[:maquinas].to_a.find { |maquina| maquina != vez.maquina }) %><%= link_to "⇄", impacto_na_fila_path(pedido: pedido.uuid, etapa: vez.etapa.chave, maquina: outra.uuid), class: "painel-fila-seta", data: { turbo_frame: "painel_impacto", mover: "maquina" }, aria: { label: "Mandar para outra máquina" }, title: "Mandar para outra máquina" %><% end %>
       </span>
     <% end %>
   </div>
   <div>
     <div class="painel-fila-pid"><%= link_to "##{pedido.uuid.first(8)}", resumo_pedido_path(pedido) %> · <%= pedido.client&.name || "sem cliente" %><small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></div>
     <% if pedido.reposicao? %><div class="painel-fila-ref">↻ reposição de #<%= pedido.reposicao_de.uuid.first(8) %></div><% end %>
+    <%# A machine in the trash lets it go back to the automatic: no badge then. %>
+    <% if (fixacao = vez.fixacao) && primeiro && vez.maquina&.id == fixacao.para_maquina_id %>
+      <div class="painel-fila-presa" title="<%= fixacao.motivo %>" data-fila-presa>● presa na <%= fixacao.para_maquina.nome %> · <%= fixacao.user.nome %> <%= fixacao.created_at.strftime("%d/%m %H:%M") %></div>
+    <% end %>
     <% if (movimento = vez.movimento) && primeiro %>
       <div class="painel-fila-movida" title="<%= movimento.motivo %>" data-fila-movida><%= movimento.para < movimento.de ? "↑" : "↓" %> movida · <%= movimento.user.nome %> <%= movimento.created_at.strftime("%d/%m %H:%M") %></div>
     <% end %>

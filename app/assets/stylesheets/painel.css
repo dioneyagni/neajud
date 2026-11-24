@@ -182,7 +182,7 @@ main:has(.painel) { max-width: 1480px; }
 /* Painel 3/4a: moving a stage in its sector's queue — ↑ ↓, the moved badge,
    the impact window (centred, the ones coming to be late in red). */
 .painel-fila-lugar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.painel-fila-mover { display: inline-flex; gap: 2px; }
+.painel-fila-mover { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
 .painel-fila-seta { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid #dadce0; border-radius: 6px; background: #fff; color: #1a73e8; text-decoration: none; font-weight: 700; }
 .painel-fila-seta:hover { background: #e8f0fe; }
 .painel-fila-movida { font-size: 11px; color: #a24c00; }
@@ -268,3 +268,6 @@ main:has(.painel) { max-width: 1480px; }
   .painel-raia { grid-template-columns: minmax(0, 1fr) auto; }
   .painel-raia-barra { grid-column: 1 / -1; grid-row: 2; }
 }
+/* Máquinas 2/5b: a stage held on a machine, and the window's note. */
+.painel-fila-presa { font-size: 11px; color: #7c4dff; }
+.painel-impacto-nota { margin: 0; font-size: 13px; color: #5f6368; }

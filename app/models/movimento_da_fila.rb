@@ -6,9 +6,15 @@
 # if it had arrived then — or nil, back to its arrival. Never deleted: the
 # history of the programação, seen by the team only.
 #
+# Máquinas 2/5b (Q3a, 21/11/2026): or it sends the stage to another machine
+# (de_maquina → para_maquina), holding it there until it ends; para_maquina
+# nil is back to the automatic. Those are `fixacoes`, apart from the
+# order (`ordens`): a stage may be moved and held at once.
+#
 # Usage: MovimentoDaFila.create!(pedido: p, user: u, etapa: "impressao", setor: "impressao", de: 3, para: 1,
 #                                ordem_em: outro.confirmado_em - 0.001, motivo: "cliente pediu urgência")
 #        MovimentoDaFila.ordens # => { [pedido_id, "impressao"] => 2026-11-04 09:59:59.999 }
+#        MovimentoDaFila.fixacoes # => { [pedido_id, "calandra"] => #<MovimentoDaFila para_maquina_id: 3> }
 class MovimentoDaFila < ApplicationRecord
   self.table_name = "movimentos_da_fila"
 
@@ -17,14 +23,26 @@ class MovimentoDaFila < ApplicationRecord
 
   belongs_to :pedido
   belongs_to :user
+  belongs_to :de_maquina, class_name: "Maquina", optional: true
+  belongs_to :para_maquina, class_name: "Maquina", optional: true
+
+  scope :de_lugar, -> { where(de_maquina_id: nil, para_maquina_id: nil) }
+  scope :trocas_de_maquina, -> { where.not(de_maquina_id: nil).or(where.not(para_maquina_id: nil)) }
 
   validates :etapa, :setor, presence: true
 
   # The order in force of each moved stage: its last movement's (nil ones,
   # back to the arrival, are left out).
   def self.ordens
-    ultimos = group(:pedido_id, :etapa).maximum(:id).values
+    ultimos = de_lugar.group(:pedido_id, :etapa).maximum(:id).values
     where(id: ultimos).where.not(ordem_em: nil).to_h { |movimento| [ [ movimento.pedido_id, movimento.etapa ], movimento ] }
+  end
+
+  # The machine each held stage is on: its last machine movement's (one
+  # back to the automatic is left out).
+  def self.fixacoes
+    ultimos = trocas_de_maquina.group(:pedido_id, :etapa).maximum(:id).values
+    where(id: ultimos).where.not(para_maquina_id: nil).includes(:user, :para_maquina).to_h { |movimento| [ [ movimento.pedido_id, movimento.etapa ], movimento ] }
   end
 
   # The movements that touched the pedido: its own, and the ones that pushed it.
@@ -51,7 +69,12 @@ class MovimentoDaFila < ApplicationRecord
 
   # Back to the arrival order (one stage, or the whole sector).
   def voltou?
-    ordem_em.nil?
+    !de_maquina? && ordem_em.nil?
+  end
+
+  # A stage sent to another machine, or back to the automatic (Máquinas 2/5b).
+  def de_maquina?
+    !de_maquina_id.nil? || !para_maquina_id.nil?
   end
 
   # What it did to that pedido: { "de" => …, "para" => … } (times, ISO 8601), or nil.

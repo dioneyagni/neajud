@@ -79,7 +79,7 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     if (!(await page.locator('tr[data-ritmo="calcado:conferencia"] input[name$="[por_hora]"]').count())) throw new Error("The Conferência lost its field");
   });
 
-  await test("The Painel puts the Calandra on the machine that ends it first: a faster one takes it", async () => {
+  await test("The Painel puts the Calandra on the machine that ends it first: a much faster one takes it", async () => {
     corrida = await prepararCorrida(page, "maq");
     pedido = await pedidoDaCorrida(page, corrida);
     await page.goto(`${BASE_URL}/parametros/turnos`);
@@ -96,13 +96,14 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     await novaMaquina(epson, { impressao_papel: "100" });
     await waitForText(page, `${epson}: salva.`);
 
-    // 12,5 m at 25 m/h; then a machine of 50 m/h, free, ends it first.
+    // 12,5 m at 25 m/h; then a machine of 1250 m/h ends it first — even
+    // after the earlier specs' pedidos, which arrived first, go on it too.
     const [sozinha, primeira] = await horasDaCalandra();
     if (sozinha !== "30 min" || primeira !== calandra) throw new Error(`With one machine the Calandra takes "${sozinha}" on "${primeira}", expected 30 min on ${calandra}`);
-    await novaMaquina(segunda, { calandra: "50" });
+    await novaMaquina(segunda, { calandra: "1250" });
     await waitForText(page, `${segunda}: salva.`);
     const [rapida, outra] = await horasDaCalandra();
-    if (rapida !== "15 min" || outra !== segunda) throw new Error(`With a faster machine the Calandra takes "${rapida}" on "${outra}", expected 15 min on ${segunda}`);
+    if (rapida !== "1 min" || outra !== segunda) throw new Error(`With a faster machine the Calandra takes "${rapida}" on "${outra}", expected 1 min on ${segunda}`);
   });
 
   await test("Unchecking the Dublagem removes it, and the histórico says so", async () => {

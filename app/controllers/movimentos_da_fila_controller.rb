@@ -10,6 +10,8 @@ class MovimentosDaFilaController < ApplicationController
   # Usage: GET /painel/fila/impacto?pedido=<uuid>&etapa=impressao&posicao=1
   #        GET /painel/fila/impacto?pedido=<uuid>&etapa=impressao     (back to its arrival)
   #        GET /painel/fila/impacto?setor=impressao                     (every moved one back)
+  #        GET /painel/fila/impacto?pedido=<uuid>&etapa=calandra&maquina=<uuid> (to another machine, Máquinas 2/5b)
+  #        GET /painel/fila/impacto?pedido=<uuid>&etapa=calandra&automatico=1    (a held one back)
   def impacto
     render partial: "paineis/impacto", locals: { impacto: calcular, erro: nil, motivo: nil }
   rescue ImpactoDoMovimento::Invalido => e
@@ -32,7 +34,9 @@ class MovimentosDaFilaController < ApplicationController
   # The queue reads the whole factory (FilaDeProducao); the pedido moved is a visible one.
   def calcular
     pedido = visiveis(Pedido).por_uuid!(params[:pedido]) if params[:pedido].present?
-    ImpactoDoMovimento.call(FilaDeProducao.call(ordens: visiveis(MovimentoDaFila).ordens), pedido: pedido, etapa: params[:etapa].presence,
-                            posicao: params[:posicao].presence&.to_i, setor: params[:setor].presence)
+    movimentos = visiveis(MovimentoDaFila)
+    ImpactoDoMovimento.call(FilaDeProducao.call(ordens: movimentos.ordens, fixacoes: movimentos.fixacoes), pedido: pedido, etapa: params[:etapa].presence,
+                            posicao: params[:posicao].presence&.to_i, setor: params[:setor].presence,
+                            maquina: params[:maquina].presence, automatico: params[:automatico].present?)
   end
 end

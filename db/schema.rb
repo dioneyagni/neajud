@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -740,6 +740,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
     t.json "empurrados", default: [], null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "de_maquina_id"
+    t.integer "para_maquina_id"
+    t.index ["de_maquina_id"], name: "index_movimentos_da_fila_on_de_maquina_id"
+    t.index ["para_maquina_id"], name: "index_movimentos_da_fila_on_para_maquina_id"
     t.index ["pedido_id", "etapa", "id"], name: "index_movimentos_da_fila_on_pedido_id_and_etapa_and_id"
     t.index ["pedido_id"], name: "index_movimentos_da_fila_on_pedido_id"
     t.index ["user_id"], name: "index_movimentos_da_fila_on_user_id"
@@ -1129,6 +1133,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
   add_foreign_key "movimento_estoques", "pedidos", column: "lancada_na_entrega_id"
   add_foreign_key "movimento_estoques", "users", column: "autorizado_por_id"
   add_foreign_key "movimento_estoques", "users", column: "lancado_por_id"
+  add_foreign_key "movimentos_da_fila", "maquinas", column: "de_maquina_id"
+  add_foreign_key "movimentos_da_fila", "maquinas", column: "para_maquina_id"
   add_foreign_key "movimentos_da_fila", "pedidos"
   add_foreign_key "movimentos_da_fila", "users"
   add_foreign_key "ordens_dublagem", "clients"

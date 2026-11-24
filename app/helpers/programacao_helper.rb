@@ -11,6 +11,8 @@ module ProgramacaoHelper
     vez = impacto.vez
     nome = "##{vez.pedido.uuid.first(8)} · #{vez.etapa.nome}"
     return "#{nome}: voltar à ordem de chegada (#{impacto.de}º → #{impacto.para}º)" if impacto.tipo == :chegada
+    return "Mandar a #{vez.etapa.nome} do ##{vez.pedido.uuid.first(8)} · #{vez.pedido.client&.name} para outra máquina" if impacto.tipo == :maquina
+    return "#{nome}: voltar ao automático (presa na #{vez.maquina&.nome})" if impacto.tipo == :automatico
 
     "#{nome}: #{impacto.de}º → #{impacto.para}º"
   end
@@ -127,14 +129,23 @@ module ProgramacaoHelper
   def acao_do_movimento(movimento)
     etapa = EtapasProducao.etapa(movimento.pedido.tipo, movimento.etapa, pedido: movimento.pedido).nome
     numero = "##{movimento.pedido.uuid.first(8)}"
+    return acao_de_maquina(movimento, etapa, numero) if movimento.de_maquina?
     return "voltou o #{numero} à ordem de chegada na #{etapa}" if movimento.voltou?
 
     "#{movimento.para < movimento.de ? "passou o #{numero} à frente" : "pôs o #{numero} mais atrás"} na #{etapa} (#{movimento.de}º → #{movimento.para}º)"
   end
 
+  # Máquinas 2/5b: "mandou a Calandra do #… da Calandra 2 para a Calandra 3".
+  def acao_de_maquina(movimento, etapa, numero)
+    de = movimento.de_maquina ? " da #{movimento.de_maquina.nome}" : ""
+    return "voltou a #{etapa} do #{numero} ao automático#{" (estava na #{movimento.de_maquina.nome})" if movimento.de_maquina}" unless movimento.para_maquina
+
+    "mandou a #{etapa} do #{numero}#{de} para a #{movimento.para_maquina.nome}"
+  end
+
   def efeito_do_movimento(movimento, pedido)
     if movimento.pedido_id == pedido.id
-      return if movimento.voltou? || movimento.para > movimento.de
+      return if movimento.de_maquina? || movimento.voltou? || movimento.para.nil? || movimento.para > movimento.de
 
       "passou à frente de #{pluralize(movimento.de - movimento.para, "pedido", plural: "pedidos")}"
     elsif (empurrado = movimento.empurrado(pedido))

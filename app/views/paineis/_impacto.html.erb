@@ -1,5 +1,6 @@
 <%# The impact window of a move in the queue (Painel 3/4a, Q3a, Q5a): the
-    move, a place to jump to, the moved pedido's gain, every pedido whose
+    move, a place to jump to (Máquinas 2/5b: or a machine to send it to,
+    the held one's way back to the automatic), the moved pedido's gain, every pedido whose
     previsão gets worse — the ones coming to be late in red, on top, which
     makes the reason required —, Cancel and Confirm. In its frame inside
     the Painel's dialog. locals: impacto (ImpactoDoMovimento::Impacto), erro, motivo %>
@@ -21,6 +22,21 @@
       <% end %>
     <% end %>
 
+    <% if impacto.tipo == :maquina %>
+      <%= form_with url: impacto_na_fila_path, method: :get, class: "painel-impacto-posicao", data: { painel_target: "posicao" } do %>
+        <%= hidden_field_tag :pedido, vez.pedido.uuid, id: nil %>
+        <%= hidden_field_tag :etapa, vez.etapa.chave, id: nil %>
+        <label>Máquina
+          <%= select_tag :maquina, options_for_select(impacto.maquinas.map { |m| [ m == vez.maquina ? "#{m.nome} · a de agora" : m.nome, m.uuid ] }, impacto.para_maquina&.uuid),
+                         id: "impacto-maquina", data: { action: "painel#outraPosicao" } %>
+        </label>
+      <% end %>
+      <p class="painel-impacto-nota">Só aparecem as máquinas que fazem <%= vez.etapa.nome %>. Ela fica presa na escolhida até terminar.</p>
+      <% if vez.fixacao %>
+        <%= link_to "Voltar ao automático", impacto_na_fila_path(pedido: vez.pedido.uuid, etapa: vez.etapa.chave, automatico: 1), class: "painel-impacto-voltar", data: { impacto_automatico: true } %>
+      <% end %>
+    <% end %>
+
     <% impacto.movidos.each do |pedido, (de, para)| %>
       <p class="painel-impacto-movido" data-impacto-movido="<%= pedido.uuid %>">
         <b>#<%= pedido.uuid.first(8) %></b> <%= pedido.client&.name %> · previsão <%= previsao_do_impacto(de) %> → <b><%= previsao_do_impacto(para) %></b>
@@ -28,7 +44,7 @@
     <% end %>
 
     <% if !impacto.muda? %>
-      <p class="painel-impacto-nada">Esta já é a posição dele. Escolha outra.</p>
+      <p class="painel-impacto-nada"><%= impacto.tipo == :maquina ? "Ela já está presa nesta máquina. Escolha outra." : "Esta já é a posição dele. Escolha outra." %></p>
     <% elsif impacto.empurrados.empty? %>
       <p class="painel-impacto-nada" data-impacto-ninguem>Ninguém é empurrado: nenhuma previsão piora.</p>
     <% else %>
@@ -51,6 +67,8 @@
       <%= hidden_field_tag :etapa, vez&.etapa&.chave, id: nil %>
       <%= hidden_field_tag :posicao, (impacto.para if impacto.tipo == :posicao), id: nil %>
       <%= hidden_field_tag :setor, (impacto.setor if impacto.tipo == :setor), id: nil %>
+      <%= hidden_field_tag :maquina, impacto.para_maquina&.uuid, id: nil %>
+      <%= hidden_field_tag :automatico, (1 if impacto.tipo == :automatico), id: nil %>
       <label for="impacto-motivo">Motivo<%= impacto.exige_motivo? ? " (obrigatório: alguém passa a atrasar)" : " (opcional)" %></label>
       <%= text_area_tag :motivo, motivo, id: "impacto-motivo", rows: 2, required: impacto.exige_motivo?, placeholder: "ex.: cliente pediu urgência" %>
       <% if erro %><p class="painel-impacto-erro" role="alert"><%= erro %></p><% end %>
