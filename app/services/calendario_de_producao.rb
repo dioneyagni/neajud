@@ -86,6 +86,15 @@ class CalendarioDeProducao
     chaves_das_etapas.map { |chave| horas(ocorrencia, chave, desde: desde, maquina_id: maquina_id) }.max || 0.0
   end
 
+  # The exceptions that stop the stages — or the machine — in the turno
+  # (Máquinas 3/5b: the lane says which, until when).
+  # Usage: calendario.paradas(ocorrencia, %w[calandra dublagem], maquina_id: calandra_2.id).map(&:nome) # => ["Manutenção"]
+  def paradas(ocorrencia, chaves_das_etapas, maquina_id: nil)
+    excecoes_do_dia(ocorrencia.data).select do |excecao|
+      chaves_das_etapas.any? { |chave| excecao.parada_ate(ocorrencia, chave, maquina_id: maquina_id) }
+    end
+  end
+
   # The same calendar with one more exception (a stop not saved yet: its
   # impact, ImpactoDaParada).
   # Usage: calendario.com(parada).horas(ocorrencia, "calandra", maquina_id: calandra_2.id) # => 0.0

@@ -202,6 +202,9 @@ Rails.application.routes.draw do
   get "painel/pedidos/:uuid/itens", to: "paineis#itens", as: :itens_do_painel
   get "painel/fila/impacto", to: "movimentos_da_fila#impacto", as: :impacto_na_fila
   post "painel/fila/movimentos", to: "movimentos_da_fila#create", as: :movimentos_da_fila
+  # Máquinas 3/5b: the ⏸ on a machine's lane — the new stop's window and saving it.
+  get "painel/paradas/nova", to: "paradas_no_painel#new", as: :nova_parada_no_painel
+  post "painel/paradas", to: "paradas_no_painel#create", as: :paradas_no_painel
   # The tecido pedidos' own list (20/10/2026); before resources so "tecido" isn't a uuid.
   get "pedidos/tecido", to: "lista_pedidos_tecido#index", as: :pedidos_tecido
   resources :pedidos, param: :uuid, only: %i[index show create update destroy] do

@@ -185,6 +185,19 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    # Máquinas 3/5b (Q5a): the ⏸ on a lane, like a move in the queue.
+    it "the Painel's stop window and saving it need programar_producao" do
+      maquina = Maquina.new(nome: "Calandra 2").tap { |m| m.trabalhos.build(trabalho: "calandra", por_hora: 40) }.tap(&:save!)
+      entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[atualizar_producao])
+      get nova_parada_no_painel_path(maquina: maquina.uuid, setor: "estamparia")
+      expect(response).to have_http_status(:forbidden)
+      post paradas_no_painel_path, params: { maquina: maquina.uuid, excecao: { nome: "X", data: Date.current.iso8601, etapa: "calandra" } }
+      expect([ response.status, ExcecaoCalendario.count ]).to eq([ 403, 0 ])
+      entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: %w[programar_producao])
+      get nova_parada_no_painel_path(maquina: maquina.uuid, setor: "estamparia")
+      expect(response).to have_http_status(:ok)
+    end
+
     # Rede editável 2/2a (Q7a): the action alone edits the network — no
     # estoque level beyond ver; without it the page is read only.
     it "creating, saving and trashing a ligação need editar_rede_de_dublagens" do

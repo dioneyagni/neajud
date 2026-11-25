@@ -5,7 +5,8 @@
 // first (Q3a). Máquinas 2/5b: ⇄ sends it to another machine through the
 // impact window — Cancel changes nothing, Confirm holds it there (its badge,
 // its line in the history) —, and the window takes it back to the
-// automatic. Máquinas 4/5a: the Calandra's baixa names its machine. Last, its machines go to the trash: the specs after this one
+// automatic. Máquinas 4/5a: the Calandra's baixa names its machine.
+// Máquinas 3/5b: ⏸ on a lane stops its machine, "voltou a funcionar". Last, its machines go to the trash: the specs after this one
 // type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
@@ -189,6 +190,40 @@ runSpec("Painel Máquinas E2E Tests", async ({ page, test }) => {
     await baixa.locator(".baixa-confirmar").click();
     await waitForText(page, `na ${outra}.`);
     await page.locator(".baixa-feita-maquina", { hasText: outra }).first().waitFor();
+  });
+
+  // Máquinas 3/5b (Q1a, Q7a): ⏸ on a Calandra's lane stops it — the
+  // pieces waiting for it are RSpec's (parada_no_painel_spec): the baixa
+  // above may have ended this pedido's Calandra.
+  await test("⏸ on a lane stops its machine: the window warns, the lane says so, and it comes back", async () => {
+    const nome = calandras[0];
+    const raiaDela = () => page.locator("[data-fila-setor='estamparia'] .painel-raia", { hasText: nome });
+    const abrir = async () => {
+      await page.goto(`${BASE_URL}/painel`);
+      await page.locator(".painel-setor[data-setor='estamparia']").click();
+      await raiaDela().waitFor();
+    };
+    await abrir();
+    await raiaDela().locator(".painel-raia-parar").click();
+    const janela = page.locator("#painel_impacto_janela");
+    await janela.locator("[data-nova-parada]").waitFor();
+    if (!(await janela.locator(".parada-maquina", { hasText: nome }).locator("input").isChecked())) throw new Error(`The window doesn't pick ${nome}`);
+    await janela.locator("#parada_nome").fill(`Feltro ${U}`);
+    await janela.locator('input[type="submit"]').click();
+    await janela.locator("[data-parada-feita] [data-parada-aviso]").waitFor();
+    await janela.locator('[data-parada-feita] button:has-text("Fechar")').click();
+    await janela.waitFor({ state: "hidden" });
+
+    await abrir();
+    const parada = raiaDela().locator("[data-raia-parada]");
+    await parada.waitFor();
+    if (!(await parada.innerText()).includes(`Feltro ${U}`)) throw new Error(`The lane says "${await parada.innerText()}"`);
+    if (!(await page.locator("[data-fila-setor='estamparia'] [data-fila-paradas]").innerText()).includes("1 parada")) throw new Error("The header doesn't count the stop");
+
+    await raiaDela().locator('button:has-text("Voltou a funcionar")').click();
+    await waitForText(page, `Feltro ${U}: voltou a funcionar.`);
+    await abrir();
+    await raiaDela().locator(".painel-raia-parar").waitFor();
   });
 
   await test("Cleanup: its machines to the trash", async () => {

@@ -7,9 +7,11 @@
     Máquinas 2/5a: the Máquina column (cores: { maquina id => 1..6 }; nil,
     a sector without machines — no column). 2/5b: ⇄ sends it to another of
     its machines (maquinas: the ones it may go on, two or more), a held one
-    says where and by whom.
+    says where and by whom. Máquinas 3/5b: one held or started on a stopped
+    machine says it waits for it, "máquina parada" (Q2a; paradas: ParadasNaFila).
     locals: vez (FilaDeProducao::Vez), trecho, linha (LinhaDoPainel or nil), limite, total (the places it may go), cores %>
 <% cores = local_assigns[:cores] %>
+<% espera_a_maquina = local_assigns[:paradas]&.espera(vez) %>
 <% pedido = vez.pedido %>
 <% primeiro = trecho.nil? || trecho == vez.trechos.first %>
 <div class="painel-fila-l<%= " painel-fila-l--andamento" if vez.iniciada? %>" data-fila-pedido="<%= pedido.uuid %>"
@@ -29,8 +31,10 @@
     <div class="painel-fila-pid"><%= link_to "##{pedido.uuid.first(8)}", resumo_pedido_path(pedido) %> · <%= pedido.client&.name || "sem cliente" %><small><%= Pedido::ROTULOS_DOS_TIPOS.fetch(pedido.tipo) %></small></div>
     <% if pedido.reposicao? %><div class="painel-fila-ref">↻ reposição de #<%= pedido.reposicao_de.uuid.first(8) %></div><% end %>
     <%# A machine in the trash lets it go back to the automatic: no badge then. %>
-    <% if (fixacao = vez.fixacao) && primeiro && vez.maquina&.id == fixacao.para_maquina_id %>
-      <div class="painel-fila-presa" title="<%= fixacao.motivo %>" data-fila-presa>● presa na <%= fixacao.para_maquina.nome %> · <%= fixacao.user.nome %> <%= fixacao.created_at.strftime("%d/%m %H:%M") %></div>
+    <% if espera_a_maquina == :comecada && primeiro %>
+      <div class="painel-fila-presa" data-fila-espera-maquina>começada na <%= vez.maquina.nome %> · espera ela voltar</div>
+    <% elsif (fixacao = vez.fixacao) && primeiro && vez.maquina&.id == fixacao.para_maquina_id %>
+      <div class="painel-fila-presa" title="<%= fixacao.motivo %>" data-fila-presa>● presa na <%= fixacao.para_maquina.nome %><% if espera_a_maquina %> · parada até <%= dia_com_semana(local_assigns[:paradas].da_maquina(vez.maquina).data_fim) %><% end %> · <%= fixacao.user.nome %> <%= fixacao.created_at.strftime("%d/%m %H:%M") %></div>
     <% end %>
     <% if (movimento = vez.movimento) && primeiro %>
       <div class="painel-fila-movida" title="<%= movimento.motivo %>" data-fila-movida><%= movimento.para < movimento.de ? "↑" : "↓" %> movida · <%= movimento.user.nome %> <%= movimento.created_at.strftime("%d/%m %H:%M") %></div>
@@ -60,6 +64,8 @@
   <div>
     <% if trecho.nil? %>
       <span class="painel-fila-chip painel-fila-chip--espera"><%= motivo_da_vez(vez) %></span>
+    <% elsif espera_a_maquina && primeiro %>
+      <span class="painel-fila-chip painel-fila-chip--parada" data-fila-maquina-parada>máquina parada</span>
     <% elsif vez.espera && primeiro %>
       <span class="painel-fila-chip painel-fila-chip--espera">espera <%= vez.espera.etapa.nome %> (até <%= momento_da_fila(vez.espera.fim) %>)</span>
     <% elsif vez.iniciada? %>

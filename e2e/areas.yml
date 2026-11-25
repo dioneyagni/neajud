@@ -229,6 +229,9 @@ areas:
       - "app/javascript/controllers/{maquina,maquinas_da_fila}_controller.js"
       - "app/services/recursos_da_fila.rb"
       - "app/helpers/maquinas_da_fila_helper.rb"
+      - "app/controllers/paradas_no_painel_controller.rb"
+      - "app/services/paradas_na_fila.rb"
+      - "app/views/paineis/{_nova_parada,_parada_feita}.html.erb"
       - "app/views/paineis/_raias_do_turno.html.erb"
       - "app/assets/images/icons/lixeira/maquina.svg"
   dtf:

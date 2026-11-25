@@ -619,8 +619,7 @@ mockup in the canvas "Máquinas").
 - **The places** (1º, 2º…) are the order a sector's pieces start in
   (`numerar_pelo_inicio`): one ending first on a free slower machine may
   start before one placed ahead of it (seen on the dev data, 21/11/2026).
-- **Not yet**: the Painel's side of the stop per machine (3/5b: the ⏸ on
-  a lane, the stopped lane, the badges); the Painel's hover, the
+- **Not yet**: the Painel's hover, the
   Linha do tempo's load per machine and the pedido's timeline naming it
   (5/5). The turno's photo and the virada stay per sector.
 
@@ -715,5 +714,30 @@ the queue had to know where a started piece is):
   ends).
 - **Who** (Q5a): creating a stop and "voltou a funcionar" are the dono's and
   who has `programar_producao`; removing and the holidays, the dono's. The
-  Turnos page stays the dono's (the others will create from the Painel's
-  ⏸, 3/5b).
+  Turnos page stays the dono's (the others create from the Painel's ⏸).
+
+### In the Painel (Máquinas 3/5b)
+
+Canvas "Máquinas", artboard 8:
+
+- **⏸ parar** on each machine's lane (who programs the production) opens
+  the new stop's window in the Painel's impact frame
+  (`GET /painel/paradas/nova?maquina=&setor=`): the stage the machine does
+  in that tab (`ExcecaoCalendario.etapa_da_maquina`), the machine checked,
+  today to today; **before saving** it says the other stages it stops
+  ("A Calandra 2 também faz Dublagem: ela para lá também") and the pieces
+  that wait ("1 peça presa nela e 1 já começada esperam ela voltar").
+  Saved (`POST /painel/paradas`, `SalvarParada`), the window shows the same
+  warning as the Turnos page and the Painel refreshes behind it.
+- **A stopped lane** (`ParadasNaFila`: the stop taking the machine in the
+  first turno ahead — its own, its stage's or the factory's — not one that
+  came back) says "⏸ parada até sex 06/11 · <nome> · <quem>", with
+  "Voltou a funcionar" while under way (back to the Painel); its bar
+  hatched; the header "3 máquinas, 1 parada".
+- **A piece that waits** for its stopped machine says so: held there,
+  "● presa na Calandra 3 · parada até sex 06/11 · …"; started there,
+  "começada na Calandra 3 · espera ela voltar"; its Situação "máquina
+  parada".
+- Not done (Q1a, 25/11): "ia para a Calandra 2; foi sozinha para a 3" on a
+  loose piece — it would take a second queue on every Painel load; the
+  lanes and the Máquina column already show where it is.

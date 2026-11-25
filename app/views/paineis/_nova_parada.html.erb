@@ -1,0 +1,51 @@
+<%# The new stop's window from a machine's ⏸ (Máquinas 3/5b, canvas
+    "Máquinas", 7): the stage and the machine picked, today to today; before
+    saving, the other stages it stops too (Q1a) and the pieces that wait for
+    it (Q2a). In the Painel's impact frame.
+    locals: parada (unsaved ExcecaoCalendario), maquina, setor, esperam ({ presa:, comecada: }), erro %>
+<% trabalhos = ExcecaoCalendario.trabalhos_da_etapa(parada.etapa) %>
+<% da_etapa = visiveis(Maquina).ativos.includes(:trabalhos).order(:id).select { |m| m.trabalhos.any? { |feito| trabalhos.include?(feito.trabalho) } } %>
+<% marcadas = parada.paradas_das_maquinas.any? ? parada.paradas_das_maquinas.map(&:maquina_id) : [ maquina.id ] %>
+<% outras = maquina.trabalhos.reject { |feito| trabalhos.include?(feito.trabalho) }.map { |feito| feito.tipo_de_trabalho.nome } %>
+<turbo-frame id="painel_impacto">
+  <div class="painel-impacto painel-nova-parada" data-nova-parada>
+    <h3 id="titulo-impacto">Parar a <%= maquina.nome %></h3>
+    <% if erro %><p class="painel-impacto-erro" role="alert"><%= erro %></p><% end %>
+    <%= form_with url: paradas_no_painel_path, method: :post, scope: :excecao, class: "client-form" do |form| %>
+      <%= hidden_field_tag :maquina, maquina.uuid, id: nil %>
+      <%= hidden_field_tag :setor, setor, id: nil %>
+      <%= form.hidden_field :etapa, value: parada.etapa %>
+      <div class="client-field">
+        <%= form.label :nome, "Nome", for: "parada_nome" %>
+        <%= form.text_field :nome, id: "parada_nome", value: parada.nome, required: true, placeholder: "ex.: Manutenção da #{maquina.nome}" %>
+      </div>
+      <div class="parada-periodo">
+        <div class="client-field"><%= form.label :data, "De", for: "parada_data" %><%= form.date_field :data, id: "parada_data", value: parada.data, required: true %></div>
+        <div class="client-field"><%= form.label :data_fim, "Até", for: "parada_data_fim" %><%= form.date_field :data_fim, id: "parada_data_fim", value: parada.data_fim %></div>
+      </div>
+      <div class="client-field">
+        <%= form.label :turno_uuid, "Turno", for: "parada_turno" %>
+        <%= form.select :turno_uuid, [ [ "O dia inteiro", "" ] ] + visiveis(Turno).ativos.order(:inicio_min).map { |turno| [ "#{turno.nome} (#{turno.horario})", turno.uuid ] }, { selected: parada.turno&.uuid }, id: "parada_turno" %>
+      </div>
+      <fieldset class="parada-maquinas">
+        <legend>Máquinas da <%= ExcecaoCalendario.etapas[parada.etapa] %></legend>
+        <% da_etapa.each do |outra| %>
+          <label class="parada-maquina">
+            <input type="checkbox" name="excecao[maquina_uuids][]" value="<%= outra.uuid %>" <%= "checked" if marcadas.include?(outra.id) %>>
+            <span><%= outra.nome %></span>
+          </label>
+        <% end %>
+        <small>Nenhuma marcada: a etapa toda para.</small>
+      </fieldset>
+      <div class="painel-parada-avisos" data-parada-previa>
+        <% if outras.any? %><p>A <%= maquina.nome %> também faz <%= outras.to_sentence(two_words_connector: " e ", last_word_connector: " e ") %>: ela para lá também.</p><% end %>
+        <% partes = [ (pluralize(esperam[:presa], "peça presa", plural: "peças presas") if esperam[:presa].positive?), (pluralize(esperam[:comecada], "já começada", plural: "já começadas") if esperam[:comecada].positive?) ].compact %>
+        <% if partes.any? %><p><%= partes.to_sentence(two_words_connector: " e ", last_word_connector: " e ") %> nela <%= esperam.values.sum == 1 ? "espera" : "esperam" %> ela voltar.</p><% end %>
+      </div>
+      <div class="client-dialog-actions">
+        <button type="button" class="btn btn-secondary" data-action="painel#fecharImpacto">Cancelar</button>
+        <%= form.submit "Salvar parada", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</turbo-frame>
