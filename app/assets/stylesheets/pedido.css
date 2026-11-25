@@ -549,6 +549,20 @@
   color: #1a4b9c;
 }
 
+/* Máquinas 4/5a: which machine did it. */
+.baixa-maquina {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+  max-width: 14rem;
+}
+
+.baixa-na-maquina,
+.baixa-feita-maquina {
+  color: #5f6368;
+}
+
 /* Decided 05/11/2026: the material missing, launched with the baixa. */
 .baixa-falta {
   max-width: 480px;

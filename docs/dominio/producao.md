@@ -619,8 +619,37 @@ mockup in the canvas "Máquinas").
 - **The places** (1º, 2º…) are the order a sector's pieces start in
   (`numerar_pelo_inicio`): one ending first on a free slower machine may
   start before one placed ahead of it (seen on the dev data, 21/11/2026).
-- **Not yet**: the stop per machine (3/5); the baixa saying the machine and the measured rhythm
-  per machine (4/5); the Painel's hover, the Linha do tempo's load per
-  machine and the pedido's timeline naming it (5/5). The turno's photo
-  and the virada stay per sector.
+- **Not yet**: the measured rhythm per machine and its fix (4/5b); the
+  stop per machine (3/5, decided — it comes after the 4/5, Q8a 24/11/2026:
+  the queue must know where a started piece is); the Painel's hover, the
+  Linha do tempo's load per machine and the pedido's timeline naming it
+  (5/5). The turno's photo and the virada stay per sector.
+
+## The baixa says the machine (Máquinas 4/5a)
+
+Decided 20–24/11/2026 (canvas "Máquinas", artboard 9):
+
+- **One machine per baixa** (Q2a), among the active ones doing the
+  stage's trabalho (`MaquinaDaBaixa.opcoes`); done on two, it takes a baixa
+  per line or referência. A stage with machines **requires** it (two or
+  more: a select; one: "na Calandra 1", no choice); a stage with none (the
+  Conferência, a trabalho nobody registered) has no field. The old baixas
+  stay without one (`baixas_producao.maquina_id` nil).
+- **The editor opens on the suggested one** (Q4a "a programada"):
+  `GET /pedidos/:uuid/baixas/maquina?etapa=` — the stage's last baixa's
+  machine, else the one it is held on (2/5b), else where the queue put it —
+  fetched when the editor opens, so the pedido's page doesn't build the
+  queue.
+- **The baixa wins** (Q1a): a started stage stays on the machine of its
+  last baixa in force until it ends (`Vez#maquina_da_baixa`, over a hold);
+  a baixa on another machine than the held one writes a machine movement
+  of it (`movimentos_da_fila.baixa_producao_id`), so the hold follows and
+  the Histórico da programação says "começou a Calandra do #… na Calandra 2
+  (estava presa na Calandra 3) · pela baixa". The notice too: "… na Calandra
+  2. Ela estava presa na Calandra 3: o resto fica na Calandra 2 até
+  terminar." Undoing the baixa leaves that movement in the history (the
+  hold stays on the baixa's machine).
+- The line done and the baixas' history name the machine.
+- `trabalhos_da_maquina.fixar_informado` came with the same migration, for
+  the 4/5b (the fix per machine, Q4a).
 

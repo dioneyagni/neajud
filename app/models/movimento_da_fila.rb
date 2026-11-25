@@ -25,6 +25,8 @@ class MovimentoDaFila < ApplicationRecord
   belongs_to :user
   belongs_to :de_maquina, class_name: "Maquina", optional: true
   belongs_to :para_maquina, class_name: "Maquina", optional: true
+  # Máquinas 4/5a (Q1a): the baixa that moved the hold to its machine.
+  belongs_to :baixa_producao, optional: true
 
   scope :de_lugar, -> { where(de_maquina_id: nil, para_maquina_id: nil) }
   scope :trocas_de_maquina, -> { where.not(de_maquina_id: nil).or(where.not(para_maquina_id: nil)) }

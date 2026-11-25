@@ -75,6 +75,14 @@ module PedidosHelper
     pode_acao?(:atualizar_producao) && pedido.em_producao?
   end
 
+  # The machines a stage's baixa may name (Máquinas 4/5a, Q2a: one per
+  # baixa), read once per page for each stage.
+  # Usage: maquinas_da_baixa(pedido, etapa).map(&:nome) # => ["Calandra 2", "Calandra 3"]
+  def maquinas_da_baixa(pedido, etapa)
+    @maquinas_da_baixa ||= {}
+    @maquinas_da_baixa[[ pedido.id, etapa.chave ]] ||= MaquinaDaBaixa.opcoes(pedido, etapa, maquinas: visiveis(Maquina))
+  end
+
   # A stage's progress: "3 de 5 linhas" (Etapa 2.2, 2/3).
   # Usage: andamento_da_etapa(situacoes) # => "3 de 5 linhas feitas"
   def andamento_da_etapa(situacoes)

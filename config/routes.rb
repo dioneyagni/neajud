@@ -208,7 +208,9 @@ Rails.application.routes.draw do
       get :artes_para_adicionar
     end
     # Etapa 2.2 (2/3): the factory's baixa of a production stage.
-    resources :baixas, only: %i[create destroy], controller: "baixas_producao"
+    resources :baixas, only: %i[create destroy], controller: "baixas_producao" do
+      get :maquina, on: :collection
+    end
     member do
       delete :remover_item
       patch :atualizar_item

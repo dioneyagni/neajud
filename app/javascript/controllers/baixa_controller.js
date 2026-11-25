@@ -16,9 +16,12 @@ import DialogoDaFalta from "controllers/dialogo_da_falta"
 // Material missing (decided 05/11/2026): the server saves nothing and lists
 // what the stock lacks; the dialog (DialogoDaFalta) asks how much came in
 // and, from who may not, someone's password — then the baixa goes again.
+// Máquinas 4/5a (decided 24/11/2026, Q4a): a stage with machines sends the
+// one picked; opening fetches the sugerida (the last baixa's, the held one,
+// or the queue's) once, so the page doesn't build the queue.
 export default class extends Controller {
-  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem", "falta"]
-  static values = { url: String, etapa: String, nivel: String, alvo: String }
+  static targets = ["abrir", "editor", "medida", "porMaterial", "mensagem", "confirmar", "contagem", "falta", "maquina"]
+  static values = { url: String, etapa: String, nivel: String, alvo: String, sugestao: String }
 
   connect() {
     this.dialogoDaFalta = new DialogoDaFalta(this.faltaTarget)
@@ -28,6 +31,16 @@ export default class extends Controller {
     this.abrirTarget.hidden = true
     this.editorTarget.hidden = false
     this.campoPrincipal().focus()
+    this.sugerirMaquina()
+  }
+
+  sugerirMaquina() {
+    if (!this.hasMaquinaTarget || !this.sugestaoValue || this.sugeriu) return
+    this.sugeriu = true
+    fetch(this.sugestaoValue, { headers: { "Accept": "application/json" } })
+      .then(r => r.json())
+      .then(data => { if (data.maquina) this.maquinaTarget.value = data.maquina })
+      .catch(() => {})
   }
 
   campoPrincipal() {
@@ -62,6 +75,7 @@ export default class extends Controller {
       : (this.hasMedidaTarget ? this.medidaTarget.value : "")
     Object.entries({ etapa: this.etapaValue, nivel: this.nivelValue, alvo: this.alvoValue, medida, confirmar: confirmar ? "1" : "0" })
       .forEach(([campo, valor]) => body.append(campo, valor))
+    if (this.hasMaquinaTarget) body.append("maquina", this.maquinaTarget.value)
     this.porMaterialTargets.forEach(input => body.append(`medidas[${input.dataset.material}]`, input.value))
     contagens.forEach(input => {
       body.append(`contagens[${input.dataset.chave}]`, input.value)
