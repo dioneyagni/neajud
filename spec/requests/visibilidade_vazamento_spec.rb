@@ -62,7 +62,7 @@ RSpec.describe "Visibilidade: no client sees another's records", type: :request,
   # The other client's record for each path segment; nil = no such record.
   def preencher(caminho, b, arquivo)
     valores = { "id" => id_do(caminho, b, arquivo), "uuid" => (caminho.start_with?("/pedidos") ? b[:pedido].uuid : SecureRandom.uuid),
-                "arquivo_id" => arquivo.uuid, "molde_id" => b[:molde].uuid, "pedido_id" => b[:pedido].uuid, "etapa" => "estamparia", "tipo" => "arquivos" }
+                "arquivo_id" => arquivo.uuid, "molde_id" => b[:molde].uuid, "pedido_id" => b[:pedido].uuid, "pedido_uuid" => b[:pedido].uuid, "etapa" => "estamparia", "tipo" => "arquivos" }
     caminho.gsub(/:(\w+)/) { valores.fetch(Regexp.last_match(1)) }
   end
 

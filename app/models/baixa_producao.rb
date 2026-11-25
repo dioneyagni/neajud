@@ -18,6 +18,9 @@ class BaixaProducao < ApplicationRecord
   # Etapa 2.2 (4/4): the reposição a Conferência with pieces missing made.
   belongs_to :reposicao, class_name: "Pedido", optional: true
   # Etapa 2.3e: its stock adjustments (real − expected), counting while it stands.
+  # Máquinas 4/5a (Q4a): the machine it was done on; nil before machines,
+  # or for a stage with none (MaquinaDaBaixa).
+  belongs_to :maquina, optional: true
   has_many :ajustes_estoque, class_name: "MovimentoEstoque", dependent: :nullify
 
   validates :etapa, presence: true

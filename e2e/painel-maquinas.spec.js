@@ -5,7 +5,7 @@
 // first (Q3a). Máquinas 2/5b: ⇄ sends it to another machine through the
 // impact window — Cancel changes nothing, Confirm holds it there (its badge,
 // its line in the history) —, and the window takes it back to the
-// automatic. Last, its machines go to the trash: the specs after this one
+// automatic. Máquinas 4/5a: the Calandra's baixa names its machine. Last, its machines go to the trash: the specs after this one
 // type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
@@ -153,6 +153,42 @@ runSpec("Painel Máquinas E2E Tests", async ({ page, test }) => {
     await linhaDoPedido(fila).locator("[data-fila-presa]").waitFor({ state: "detached" });
     await page.goto(`${BASE_URL}/pedidos/${pedido}/resumo`);
     await waitForText(page, `voltou a Calandra do #${pedido.slice(0, 8)} ao automático`);
+  });
+
+  // Máquinas 4/5a: the Calandra's baixa asks which machine (one per baixa),
+  // opening on the suggested one — here the queue's, fetched as it opens.
+  await test("The Calandra's baixa asks the machine, opening on the queue's, and says it once saved", async () => {
+    // The test server has no forgery protection: no csrf meta to send.
+    await page.goto(`${BASE_URL}/painel`);
+    const resposta = await page.evaluate(async (url) => {
+      const csrf = document.querySelector("meta[name='csrf-token']")?.content || "";
+      const body = new FormData();
+      Object.entries({ etapa: "impressao", nivel: "pedido", medida: "1", confirmar: "1" }).forEach(([c, v]) => body.append(c, v));
+      const r = await fetch(url, { method: "POST", headers: { "Accept": "application/json", "X-CSRF-Token": csrf }, body });
+      return r.json();
+    }, `${BASE_URL}/pedidos/${pedido}/baixas`);
+    if (!resposta.ok) throw new Error(`The Impressão's baixa answered ${JSON.stringify(resposta)}`);
+    // The Impressão done moves the queue: the Calandra's machine is read after it.
+    const naFila = await maquinaDaCalandra(await abaDaEstamparia());
+
+    await page.goto(`${BASE_URL}/pedidos/${pedido}/tecido/producao/calandra`);
+    const baixa = page.locator(".baixa").filter({ has: page.locator("select.baixa-maquina") }).first();
+    const sugerida = page.waitForResponse((r) => r.url().includes("/baixas/maquina"));
+    await baixa.locator(".baixa-abrir").click();
+    await sugerida;
+    const select = baixa.locator("select.baixa-maquina");
+    await select.locator("option:checked", { hasText: naFila }).waitFor({ state: "attached" });
+    const opcoes = (await select.locator("option").allInnerTexts()).map((t) => t.trim());
+    for (const nome of calandras) if (!opcoes.includes(nome)) throw new Error(`The machines offered are ${JSON.stringify(opcoes)}, expected ${nome} among them`);
+
+    const outra = calandras.find((nome) => nome !== naFila);
+    await select.selectOption({ label: outra });
+    await baixa.locator("input.baixa-medida").fill("1");
+    await baixa.locator(".baixa-salvar").click();
+    // 1 m is outside the band of either line: the warning asks to confirm.
+    await baixa.locator(".baixa-confirmar").click();
+    await waitForText(page, `na ${outra}.`);
+    await page.locator(".baixa-feita-maquina", { hasText: outra }).first().waitFor();
   });
 
   await test("Cleanup: its machines to the trash", async () => {

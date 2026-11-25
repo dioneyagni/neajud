@@ -137,9 +137,11 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       expect(response.headers["Content-Disposition"]).to include("Impressao #{tecido.uuid.first(8)}.zip")
     end
 
-    it "a production baixa needs atualizar_producao" do
+    it "a production baixa, and its machine suggested (Máquinas 4/5a), need atualizar_producao" do
       entrar_com_funcao(niveis: { "pedidos" => 3 }, acoes: %w[baixar_producao])
       post pedido_baixas_path(pedido), params: { etapa: "corte", nivel: "pedido", medida: "1" }, as: :json
+      expect(response).to have_http_status(:forbidden)
+      get maquina_pedido_baixas_path(pedido, etapa: "corte"), as: :json
       expect(response).to have_http_status(:forbidden)
     end
 

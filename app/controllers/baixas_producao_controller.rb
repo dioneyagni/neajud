@@ -7,6 +7,7 @@
 # Usage: POST /pedidos/:pedido_uuid/baixas (etapa, nivel, alvo, medida, confirmar; medidas[<material uuid>] — Etapa 2.3e;
 #        entradas[<material uuid>:<client uuid|empresa>], autorizador[email], autorizador[senha] — the material missing)
 #        DELETE /pedidos/:pedido_uuid/baixas/:uuid
+#        GET /pedidos/:pedido_uuid/baixas/maquina?etapa=calandra — the machine the editor opens on (Máquinas 4/5a)
 class BaixasProducaoController < ApplicationController
   include EntradaDaFaltaAutorizada
   exige_acao :atualizar_producao
@@ -17,10 +18,23 @@ class BaixasProducaoController < ApplicationController
     resultado = RegistrarBaixaService.call(@pedido, etapa: params[:etapa], nivel: params[:nivel], alvo: params[:alvo],
                                                     medida: params[:medida], confirmar: params[:confirmar] == "1",
                                                     contagens: params[:contagens]&.to_unsafe_h, refazer: params[:refazer]&.to_unsafe_h,
-                                                    medidas: params[:medidas]&.to_unsafe_h, **campos_da_entrada, **autoria)
+                                                    medidas: params[:medidas]&.to_unsafe_h, maquina: params[:maquina],
+                                                    movimentos: visiveis(MovimentoDaFila), maquinas: visiveis(Maquina), **campos_da_entrada, **autoria)
     responder(resultado)
   rescue EtapasProducao::Invalida => e
     render json: { ok: false, error: e.message }, status: :unprocessable_content
+  end
+
+  # Q4a: the last baixa's machine, the one it is held on or where the
+  # queue put it — read when the editor opens, so the pedido's page doesn't
+  # build the whole queue. The queue reads the whole factory (FilaDeProducao).
+  def maquina
+    etapa = EtapasProducao.etapa(@pedido.tipo, params[:etapa], pedido: @pedido)
+    movimentos = visiveis(MovimentoDaFila)
+    sugestao = MaquinaDaBaixa.sugerida(@pedido, etapa, fixacoes: movimentos.fixacoes, maquinas: visiveis(Maquina)) { FilaDeProducao.call(ordens: movimentos.ordens, fixacoes: movimentos.fixacoes) }
+    render json: { maquina: sugestao&.maquina&.uuid, nome: sugestao&.maquina&.nome, origem: sugestao&.origem }
+  rescue EtapasProducao::Invalida => e
+    render json: { error: e.message }, status: :unprocessable_content
   end
 
   def destroy
@@ -37,7 +51,7 @@ class BaixasProducaoController < ApplicationController
   def responder(resultado)
     case resultado.estado
     when :ok
-      flash[:notice] = aviso_de_registro(resultado.baixa)
+      flash[:notice] = [ aviso_de_registro(resultado.baixa), aviso_da_troca(resultado.troca) ].compact.join(" ")
       render json: { ok: true }
     when :aviso then render json: { ok: false, aviso: resultado.mensagem }
     when :falta_material then render json: { ok: false, falta_material: resultado.mensagem, **dialogo_da_falta(resultado.faltas) }
@@ -47,11 +61,18 @@ class BaixasProducaoController < ApplicationController
   end
 
   def aviso_de_registro(baixa)
-    texto = "Baixa de #{EtapasProducao.etapa(@pedido.tipo, baixa.etapa).nome} registrada (#{baixa.linhas.size} #{baixa.linhas.one? ? "linha" : "linhas"})."
+    texto = "Baixa de #{EtapasProducao.etapa(@pedido.tipo, baixa.etapa).nome} registrada (#{baixa.linhas.size} #{baixa.linhas.one? ? "linha" : "linhas"})#{" na #{baixa.maquina.nome}" if baixa.maquina}."
     return texto unless baixa.reposicao
 
     situacao = baixa.reposicao.reload.status == "rascunho" ? "guardadas na reposição em aberto" : "na reposição, que foi para a produção"
     "#{texto} Peças que faltaram #{situacao} ##{baixa.reposicao.uuid.first(8)}."
+  end
+
+  # Q1a: the hold followed the baixa.
+  def aviso_da_troca(troca)
+    return unless troca
+
+    "Ela estava presa na #{troca.de_maquina.nome}: o resto fica na #{troca.para_maquina.nome} até terminar."
   end
 
   # The Conferência's lines to count one by one (Etapa 2.2, 4/4), with what

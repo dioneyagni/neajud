@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -254,7 +254,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
     t.json "contagens", default: {}, null: false
     t.integer "reposicao_id"
     t.json "medidas", default: {}, null: false
+    t.integer "maquina_id"
     t.index ["desfeita_por_id"], name: "index_baixas_producao_on_desfeita_por_id"
+    t.index ["maquina_id"], name: "index_baixas_producao_on_maquina_id"
     t.index ["pedido_id", "etapa"], name: "index_baixas_producao_on_pedido_id_and_etapa"
     t.index ["pedido_id"], name: "index_baixas_producao_on_pedido_id"
     t.index ["reposicao_id"], name: "index_baixas_producao_on_reposicao_id"
@@ -742,6 +744,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
     t.datetime "updated_at", null: false
     t.integer "de_maquina_id"
     t.integer "para_maquina_id"
+    t.integer "baixa_producao_id"
+    t.index ["baixa_producao_id"], name: "index_movimentos_da_fila_on_baixa_producao_id"
     t.index ["de_maquina_id"], name: "index_movimentos_da_fila_on_de_maquina_id"
     t.index ["para_maquina_id"], name: "index_movimentos_da_fila_on_para_maquina_id"
     t.index ["pedido_id", "etapa", "id"], name: "index_movimentos_da_fila_on_pedido_id_and_etapa_and_id"
@@ -960,6 +964,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
     t.decimal "troca_min", precision: 10, scale: 3
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "fixar_informado", default: false, null: false
     t.index ["maquina_id", "trabalho"], name: "index_trabalhos_da_maquina_on_maquina_id_and_trabalho", unique: true
     t.index ["maquina_id"], name: "index_trabalhos_da_maquina_on_maquina_id"
     t.index ["uuid"], name: "index_trabalhos_da_maquina_on_uuid", unique: true
@@ -1076,6 +1081,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
   add_foreign_key "arquivos", "referencias"
   add_foreign_key "arquivos", "tamanhos"
   add_foreign_key "artes", "materia_primas"
+  add_foreign_key "baixas_producao", "maquinas"
   add_foreign_key "baixas_producao", "pedidos"
   add_foreign_key "baixas_producao", "pedidos", column: "reposicao_id"
   add_foreign_key "baixas_producao", "users"
@@ -1133,6 +1139,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
   add_foreign_key "movimento_estoques", "pedidos", column: "lancada_na_entrega_id"
   add_foreign_key "movimento_estoques", "users", column: "autorizado_por_id"
   add_foreign_key "movimento_estoques", "users", column: "lancado_por_id"
+  add_foreign_key "movimentos_da_fila", "baixas_producao", column: "baixa_producao_id"
   add_foreign_key "movimentos_da_fila", "maquinas", column: "de_maquina_id"
   add_foreign_key "movimentos_da_fila", "maquinas", column: "para_maquina_id"
   add_foreign_key "movimentos_da_fila", "pedidos"

@@ -3,12 +3,16 @@
     Etapa 2.3e: lines of several materials ask one measure each.
     Decided 05/11/2026: the material missing in the stock opens the dialog
     to launch its entry with the baixa (EntradaDaFalta).
+    Máquinas 4/5a (Q4a): a stage with machines asks which one, opening on
+    the sugerida (fetched when the editor opens); with one, it just says it.
     locals: pedido, etapa (EtapasProducao::Etapa), nivel, alvo, rotulo, esperado,
             materiais (optional: material => expected meters, when several) %>
 <% unidade = etapa.unidade_da_medida %>
 <% materiais = local_assigns[:materiais] || {} %>
 <% campo = "baixa-#{etapa.chave}-#{nivel}-#{alvo.to_s.parameterize.presence || "pedido"}" %>
+<% maquinas = maquinas_da_baixa(pedido, etapa) %>
 <div class="baixa" data-controller="baixa"
+     <% if maquinas.size > 1 %>data-baixa-sugestao-value="<%= maquina_pedido_baixas_path(pedido, etapa: etapa.chave) %>"<% end %>
      data-baixa-url-value="<%= pedido_baixas_path(pedido) %>" data-baixa-etapa-value="<%= etapa.chave %>"
      data-baixa-nivel-value="<%= nivel %>" data-baixa-alvo-value="<%= alvo %>">
   <button type="button" class="btn btn-sm btn-secondary baixa-abrir" data-baixa-target="abrir" data-action="baixa#abrir"><%= rotulo %></button>
@@ -33,6 +37,16 @@
       <% if esperado %>
         <span class="baixa-esperado">esperado ~<%= number_with_precision(esperado, precision: etapa.metragem? ? 2 : 0, separator: ",") %> <%= unidade %></span>
       <% end %>
+    <% end %>
+    <% if maquinas.size > 1 %>
+      <label for="<%= campo %>-maquina">Máquina</label>
+      <select id="<%= campo %>-maquina" class="baixa-maquina" data-baixa-target="maquina" data-action="change->baixa#editou">
+        <% maquinas.each do |maquina| %>
+          <option value="<%= maquina.uuid %>"><%= maquina.nome %></option>
+        <% end %>
+      </select>
+    <% elsif maquinas.one? %>
+      <span class="baixa-na-maquina">na <%= maquinas.first.nome %></span>
     <% end %>
     <button type="button" class="btn btn-sm btn-primary baixa-salvar" data-action="baixa#salvar">Salvar</button>
     <button type="button" class="btn btn-sm btn-secondary" data-action="baixa#cancelar">Cancelar</button>

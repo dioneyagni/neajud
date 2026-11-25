@@ -59,13 +59,15 @@ class FilaDeProducao
   # recurso: the agenda it went on (RecursosDaFila), maquina: that Maquina
   # (nil: its sector's, a trabalho with no machine). fixacao: the
   # MovimentoDaFila holding it on a machine (2/5b), nil when automatic.
+  # maquina_da_baixa: the machine id of its last baixa (4/5a, Q1a) — a
+  # started stage stays there until it ends, over any hold.
   # linhas, antes (the open stages it waits for), preso (the materials
   # holding it), ordem and colocada are how the queue builds it.
   # retidas: a dublagem's open lines a missing material holds (5b1c3, Q3a) —
   # the stage goes with the free ones (linhas); retidas_por: those materials.
   Vez = Struct.new(:pedido, :etapa, :setor, :posicao, :carga, :horas, :inicio, :fim, :trechos, :espera,
                    :motivo, :falta, :abertas, :total, :sem_medida, :movimento, :linhas, :antes, :preso, :ordem, :colocada,
-                   :retidas, :retidas_por, :recurso, :maquina, :fixacao, keyword_init: true) do
+                   :retidas, :retidas_por, :recurso, :maquina, :fixacao, :maquina_da_baixa, keyword_init: true) do
     # Some line already had its baixa.
     def iniciada?
       abertas < total
@@ -74,37 +76,6 @@ class FilaDeProducao
     # Usage: vez.motivo_das_retidas # => "previsão quando Espuma TC4 Branco-1.40 m entrar"
     def motivo_das_retidas
       "previsão quando #{retidas_por.map(&:nome_completo).join(" e ")} entrar" if retidas.present?
-    end
-  end
-
-  # The pedido's open stages. motivo: why none can be computed (a draft
-  # with pendências).
-  Previsao = Struct.new(:pedido, :vezes, :motivo, :se_confirmar, keyword_init: true) do
-    # When its last stage ends; nil when some stage has no previsão.
-    # A letra held by a missing material leaves it without one too (5b1c3).
-    def fim
-      return if vezes.empty? || vezes.any? { |vez| vez.fim.nil? || vez.retidas.present? }
-
-      vezes.map(&:fim).max
-    end
-
-    def sem_previsao
-      self[:motivo] || vezes.find { |vez| vez.fim.nil? }&.motivo || vezes.filter_map(&:motivo_das_retidas).first
-    end
-
-    # Every stage done: only the delivery is left.
-    def pronta?
-      vezes.empty? && self[:motivo].nil?
-    end
-
-    # Its next piece of work from the moment on (the block it is in, Q3a).
-    def proxima(agora)
-      vezes.flat_map(&:trechos).select { |trecho| trecho.fim >= agora }.min_by(&:inicio)
-    end
-
-    # Days left between the previsão and the deadline; negative: late.
-    def folga(prazo)
-      prazo && fim && (prazo - fim.to_date).to_i
     end
   end
 
@@ -300,10 +271,14 @@ class FilaDeProducao
                                      abertas: linhas.size, total: situacoes.size, linhas: livres.presence || retidas, preso: preso.presence,
                                      retidas: (retidas if livres.any?), retidas_por: retidas_por,
                                      antes: etapa.trava.filter_map { |trava| abertas[trava] }, movimento: @ordens[[ pedido.id, etapa.chave ]],
-                                     fixacao: @fixacoes[[ pedido.id, etapa.chave ]]).tap do |vez|
+                                     fixacao: @fixacoes[[ pedido.id, etapa.chave ]], maquina_da_baixa: maquina_da_ultima(situacoes)).tap do |vez|
         vez.ordem = ordem_de(vez, indice)
       end
     end
+  end
+
+  def maquina_da_ultima(situacoes)
+    situacoes.filter_map(&:baixa).select(&:maquina_id).max_by(&:created_at)&.maquina_id
   end
 
   # The pedido's open dublagem lines a missing material holds (MateriaisDaLetra).
@@ -410,10 +385,12 @@ class FilaDeProducao
 
   # Held on a machine (2/5b): only it, while it is one of the stage's —
   # trashed, or no longer doing the trabalho, the piece is automatic again.
+  # Started on one (4/5a, Q1a: its last baixa's), that one wins.
   def fixados(vez, recursos)
-    return recursos unless vez.fixacao
+    maquina_id = vez.maquina_da_baixa || vez.fixacao&.para_maquina_id
+    return recursos unless maquina_id
 
-    recursos.select { |recurso| recurso.maquina&.id == vez.fixacao.para_maquina_id }.presence || recursos
+    recursos.select { |recurso| recurso.maquina&.id == maquina_id }.presence || recursos
   end
 
   def ritmo_de(vez)

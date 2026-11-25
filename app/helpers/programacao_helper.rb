@@ -136,7 +136,12 @@ module ProgramacaoHelper
   end
 
   # Máquinas 2/5b: "mandou a Calandra do #… da Calandra 2 para a Calandra 3".
+  # 4/5a (Q1a): "começou a Calandra do #… na Calandra 2 (estava presa na Calandra 3) · pela baixa".
   def acao_de_maquina(movimento, etapa, numero)
+    if movimento.baixa_producao_id
+      return "começou a #{etapa} do #{numero} na #{movimento.para_maquina.nome} (estava presa na #{movimento.de_maquina.nome}) · pela baixa"
+    end
+
     de = movimento.de_maquina ? " da #{movimento.de_maquina.nome}" : ""
     return "voltou a #{etapa} do #{numero} ao automático#{" (estava na #{movimento.de_maquina.nome})" if movimento.de_maquina}" unless movimento.para_maquina
 

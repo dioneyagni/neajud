@@ -21,11 +21,14 @@
 #   leave the pedido waiting for a material they take, nothing is saved and
 #   it comes back as :falta_material (`faltas`) until the entry is sent with
 #   it (`entradas`, `autorizador` — EntradaDaFalta).
+# - The machine (Máquinas 4/5a, decided 24/11/2026): a stage with machines
+#   takes one (`maquina`, its uuid; MaquinaDaBaixa); on another than the one
+#   the stage was held on, the hold follows the baixa (`troca`, Q1a).
 #
 # Usage: RegistrarBaixaService.call(pedido, etapa: "corte", nivel: "pedido", medida: "12,4", confirmar: false, user: u, changed_by: ip)
 #   # => #<Resultado estado=:ok baixa=#<BaixaProducao …>>
 class RegistrarBaixaService
-  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, :linhas, :contagem, :faltas, keyword_init: true)
+  Resultado = Struct.new(:estado, :baixa, :esperado, :mensagem, :linhas, :contagem, :faltas, :troca, keyword_init: true)
   STATUS = Pedido::EM_PRODUCAO
 
   def self.call(pedido, **dados)
@@ -33,8 +36,11 @@ class RegistrarBaixaService
   end
 
   def initialize(pedido, etapa:, nivel:, medida:, alvo: nil, confirmar: false, contagens: nil, refazer: nil, medidas: nil, user: nil, changed_by: nil, fontes: nil,
-                 entradas: nil, autorizador: nil)
+                 entradas: nil, autorizador: nil, maquina: nil, movimentos: MovimentoDaFila, maquinas: Maquina)
     @pedido = pedido
+    @maquina_uuid = maquina.to_s
+    @movimentos = movimentos
+    @maquinas = maquinas
     @fontes = fontes
     @etapa = EtapasProducao.etapa(pedido.tipo, etapa, pedido: pedido)
     @nivel = nivel.to_s
@@ -51,7 +57,7 @@ class RegistrarBaixaService
   end
 
   def call
-    erro = erro_de_entrada || erro_das_medidas || contagem&.erro
+    erro = erro_de_entrada || erro_da_maquina || erro_das_medidas || contagem&.erro
     return Resultado.new(estado: :erro, mensagem: erro) if erro
     return pedir_contagem if contagem&.contar?
 
@@ -62,7 +68,7 @@ class RegistrarBaixaService
     baixa = registrar(esperado, faltas)
     return @sem_material if @sem_material
 
-    Resultado.new(estado: :ok, baixa: baixa, esperado: esperado)
+    Resultado.new(estado: :ok, baixa: baixa, esperado: esperado, troca: @troca)
   end
 
   # A line as the factory names it: "Lateral 29-30 ESQ".
@@ -95,9 +101,10 @@ class RegistrarBaixaService
     baixa = BaixaProducao.transaction(requires_new: true) do
       @pedido.baixas_producao.create!(etapa: @etapa.chave, nivel: @nivel, linhas: linhas.map(&:chave), medida: medida,
                                       esperado: (esperado if esperado.positive?), contagens: contagem&.por_linha || {},
-                                      medidas: medidas_por_material, fora_da_faixa: faltas.empty? && fora?(esperado), **@autoria)
+                                      medidas: medidas_por_material, fora_da_faixa: faltas.empty? && fora?(esperado), maquina: @maquina, **@autoria)
                     .tap { |nova| AjusteDaBaixa.call(nova, linhas) }
                     .tap { |nova| lancar_o_que_falta(nova) }
+                    .tap { |nova| @troca = MaquinaDaBaixa.mover_presa(nova, @etapa, movimentos: @movimentos) }
     end
     return nil if @sem_material
 
@@ -157,6 +164,13 @@ class RegistrarBaixaService
     return "Measure #{@medida.inspect} is not a number of #{@etapa.metragem? ? "meters" : "pieces"}." unless @medida.match?(/\A\d+(\.\d+)?\z/)
 
     erro_das_linhas
+  end
+
+  def erro_da_maquina
+    @maquina = MaquinaDaBaixa.escolher(@pedido, @etapa, @maquina_uuid, maquinas: @maquinas)
+    nil
+  rescue MaquinaDaBaixa::Invalida => e
+    e.message
   end
 
   # Several materials: each one's measure, a number (Etapa 2.3e).
@@ -232,7 +246,7 @@ class RegistrarBaixaService
   def baixas_vigentes(etapa)
     return @fontes.baixas(etapa) if @fontes
 
-    @pedido.baixas_producao.vigentes.da_etapa(etapa).includes(:user).order(:created_at)
+    @pedido.baixas_producao.vigentes.da_etapa(etapa).includes(:user, :maquina).order(:created_at)
   end
 
   # Outside the dono's band: the whole measure, or any material's own.
