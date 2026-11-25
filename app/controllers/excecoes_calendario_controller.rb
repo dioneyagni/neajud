@@ -84,9 +84,9 @@ class ExcecoesCalendarioController < ApplicationController
   end
 
   # The Turnos page is the dono's; who only programs the production goes
-  # back to the Painel (its ⏸ comes in 3/5b).
+  # back to the Painel, and so does a stop ended from its lane (3/5b, painel=1).
   def voltar(data, **mensagem)
-    return redirect_to painel_path, **mensagem unless dono?
+    return redirect_to painel_path, **mensagem if params[:painel].present? || !dono?
 
     redirect_to parametros_turnos_path(ano: data&.year, anchor: "calendario"), **mensagem
   end

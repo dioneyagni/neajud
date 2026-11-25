@@ -157,6 +157,11 @@ export default class extends Controller {
   }
 
   mostrarImpacto(frame) {
+    // Máquinas 3/5b: a stop saved keeps its warning open; the Painel refreshes behind.
+    if (frame.querySelector("[data-parada-feita]")) {
+      this.ultimaRecarga = 0
+      this.pedirRecarga()
+    }
     if (frame.querySelector("[data-impacto-feito]")) {
       this.fecharImpacto()
       this.ultimaRecarga = 0

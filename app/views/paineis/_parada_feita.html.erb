@@ -1,0 +1,12 @@
+<%# A stop saved from the Painel (Máquinas 3/5b): the same warning as the
+    Turnos page (Q3a), the window kept open to read it while the Painel
+    refreshes behind (data-parada-feita). locals: parada %>
+<turbo-frame id="painel_impacto">
+  <div class="painel-impacto" data-parada-feita>
+    <h3 id="titulo-impacto">Parada salva</h3>
+    <%= render "turnos/aviso_da_parada", parada: parada %>
+    <div class="client-dialog-actions">
+      <button type="button" class="btn btn-primary" data-action="painel#fecharImpacto">Fechar</button>
+    </div>
+  </div>
+</turbo-frame>

@@ -1,7 +1,10 @@
 <%# The machines in the sector's first turno (Máquinas 2/5a, the 4B mockup
     approved 21/11/2026): a lane per machine, its pieces where they fall in
     the turno — another sector's hatched (Q1a) —, the line of now and the
-    hours left free. locals: turno (FilaDeProducao::TurnoDaFila), setor, cores, agora %>
+    hours left free. Máquinas 3/5b (canvas "Máquinas", 8): ⏸ stops a
+    machine (who programs the production); a stopped one says until when and
+    by which stop, with "Voltou a funcionar" while it is under way.
+    locals: turno (FilaDeProducao::TurnoDaFila), setor, cores, agora, paradas (ParadasNaFila) %>
 <% ocorrencia = turno.ocorrencia %>
 <% linha_do_agora = agora_na_raia(ocorrencia, agora) %>
 <div class="painel-raias" data-fila-raias>
@@ -9,8 +12,18 @@
     <span><%= dia_com_semana(ocorrencia.data) %> · <%= ocorrencia.turno.horario %><%= " · a linha vermelha é agora" if linha_do_agora %></span></div>
   <% turno.raias.each do |raia| %>
     <% maquina = raia.recurso.maquina %>
-    <div class="painel-raia" data-fila-raia="<%= maquina&.uuid %>">
-      <span class="painel-raia-nome"><b><%= maquina&.nome || "Sem máquina" %></b> <small><%= maquina ? trabalhos_na_raia(maquina) : LinhaDoPainel::COLUNAS.fetch(setor) %></small></span>
+    <div class="painel-raia<%= " painel-raia--parada" if paradas.da_maquina(maquina) %>" data-fila-raia="<%= maquina&.uuid %>">
+      <% parada = paradas.da_maquina(maquina) %>
+      <span class="painel-raia-nome"><b><%= maquina&.nome || "Sem máquina" %></b> <small><%= maquina ? trabalhos_na_raia(maquina) : LinhaDoPainel::COLUNAS.fetch(setor) %></small>
+        <% if parada %>
+          <span class="painel-raia-parada" data-raia-parada title="<%= parada.nome %>">⏸ parada até <%= dia_com_semana(parada.data_fim) %> · <%= parada.nome %><%= " · #{parada.user.nome}" if parada.user %></span>
+          <% if parada.em_andamento? && pode_acao?(:programar_producao) %>
+            <%= button_to "Voltou a funcionar", voltou_parametros_excecao_path(parada, painel: 1), method: :patch, class: "painel-raia-voltou", form: { class: "painel-raia-form" } %>
+          <% end %>
+        <% elsif maquina && pode_acao?(:programar_producao) %>
+          <%= link_to "⏸ parar", nova_parada_no_painel_path(maquina: maquina.uuid, setor: setor), class: "painel-raia-parar", data: { turbo_frame: "painel_impacto" }, aria: { label: "Parar a #{maquina.nome}" } %>
+        <% end %>
+      </span>
       <span class="painel-raia-barra">
         <% raia.pecas.each do |vez, trecho| %>
           <% if vez.setor == setor %>

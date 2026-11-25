@@ -8,7 +8,8 @@
     the turno under way's load counts what its photo programmed and is
     still to do — over the hours left, past 100% (Q7a). Máquinas 2/5a (the
     4B mockup, 21/11/2026): with machines, the first turno's lanes on top,
-    a chip per machine filtering the list, and the Máquina column.
+    a chip per machine filtering the list, and the Máquina column. Máquinas
+    3/5b: the stopped machines counted, their lanes and waiting pieces (ParadasNaFila).
     locals: fila (FilaDeProducao), setor, nome, linhas ({ pedido id => LinhaDoPainel }) %>
 <% vezes = fila.do_setor(setor) %>
 <% previstas = vezes.select(&:fim) %>
@@ -18,11 +19,13 @@
 <% maquinas = maquinas_do_setor(fila, setor) %>
 <% cores = cores_das_maquinas(maquinas) %>
 <% turnos_da_fila = fila.turnos_do_setor(setor) %>
+<% paradas = ParadasNaFila.new(fila) %>
+<% paradas_agora = paradas.quantas(maquinas) %>
 <section class="painel-fila<%= " painel-fila--maquinas" if maquinas.any? %>" data-fila-setor="<%= setor %>" hidden
          <% if maquinas.any? %>data-controller="maquinas-da-fila" data-maquinas-da-fila-setor-value="<%= setor %>"<% end %>>
   <div class="painel-fila-resumo">
     <strong>Fila da <%= nome %></strong>
-    <span><%= pluralize(previstas.size, "pedido", plural: "pedidos") %> · <%= horas_da_fila(previstas.sum(&:horas)) %><%= " · #{pluralize(maquinas.size, "máquina", plural: "máquinas")}" if maquinas.any? %></span>
+    <span><%= pluralize(previstas.size, "pedido", plural: "pedidos") %> · <%= horas_da_fila(previstas.sum(&:horas)) %><%= " · #{pluralize(maquinas.size, "máquina", plural: "máquinas")}" if maquinas.any? %><span data-fila-paradas><%= ", #{pluralize(paradas_agora, "parada", plural: "paradas")}" if paradas_agora.positive? %></span></span>
     <% if previstas.any? %><span>a fila termina <b><%= momento_da_fila(previstas.last.fim) %></b></span><% end %>
     <span>ordem: chegada<%= " · #{pluralize(movidas, "movida", plural: "movidas")}" if movidas.positive? %></span>
     <% if movidas.positive? && pode_acao?(:programar_producao) %>
@@ -30,7 +33,7 @@
     <% end %>
   </div>
   <% if (primeiro_turno = turnos_da_fila.first)&.com_maquinas? %>
-    <%= render "paineis/raias_do_turno", turno: primeiro_turno, setor: setor, cores: cores, agora: agora %>
+    <%= render "paineis/raias_do_turno", turno: primeiro_turno, setor: setor, cores: cores, agora: agora, paradas: paradas %>
   <% end %>
   <% if maquinas.any? %>
     <div class="painel-fila-filtro" role="group" aria-label="Filtrar por máquina">
@@ -67,7 +70,7 @@
             <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga.percentual >= 95 %>" style="width: <%= [ carga.percentual, 100 ].min %>%"></i></span></span>
         </div>
         <% turno.pecas.each do |vez, trecho| %>
-          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?) %>
+          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?), paradas: paradas %>
         <% end %>
       <% end %>
     <% end %>
@@ -75,7 +78,7 @@
     <% if sem.any? %>
       <div class="painel-fila-sem-previsao"><b>Sem previsão</b><span>algo impede entrar na fila</span></div>
       <% sem.each do |vez| %>
-        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?) %>
+        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?), paradas: paradas %>
       <% end %>
     <% end %>
     <% if vezes.empty? %><p class="painel-fila-vazia">Nenhum pedido na fila da <%= nome %>.</p><% end %>

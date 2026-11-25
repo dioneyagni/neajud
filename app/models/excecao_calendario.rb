@@ -95,6 +95,15 @@ class ExcecaoCalendario < ApplicationRecord
     TrabalhosDeMaquina.todos.select { |trabalho| trabalho.etapas.any? { |_, chave| chave == etapa.to_s } }.map(&:chave)
   end
 
+  # The stage a machine's ⏸ opens on (Máquinas 3/5b): the first it does in
+  # the sector's tab, else the first it does.
+  # Usage: ExcecaoCalendario.etapa_da_maquina(calandra_2, "estamparia") # => "calandra"
+  def self.etapa_da_maquina(maquina, setor)
+    feitos = maquina.trabalhos.map(&:trabalho)
+    delas = etapas.keys.select { |etapa| trabalhos_da_etapa(etapa).intersect?(feitos) }
+    delas.find { |etapa| LinhaDoPainel::COLUNA_DA_ETAPA.fetch(etapa, etapa) == setor } || delas.first
+  end
+
   # The other stages its machines stop in (Q1a: "para também na Dublagem").
   # Usage: excecao.tambem_para # => ["Dublagem"]
   def tambem_para
