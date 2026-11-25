@@ -13,6 +13,8 @@
 <%# Máquinas 1/5. %>
 <p class="funcoes-intro">Uma etapa cujo trabalho tem máquinas usa a soma delas como o seu informado: ele se muda em
   <%= link_to "Máquinas", parametros_maquinas_path %>. As outras seguem com o número digitado aqui.</p>
+<%# Máquinas 4/5b. %>
+<p class="funcoes-intro">Uma etapa com máquinas soma as delas: a informada, a medida e a em uso. O fix dela fica em cada máquina.</p>
 <% if @cortes_sem_camadas.positive? %>
   <p class="ritmos-aviso" data-cortes-sem-camadas><%= pluralize(@cortes_sem_camadas, "corte file is", plural: "corte files are") %> not measured by layer yet: their whole line counts as cut, with no holes.</p>
 <% end %>

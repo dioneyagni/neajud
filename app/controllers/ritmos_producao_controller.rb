@@ -31,11 +31,12 @@ class RitmosProducaoController < ApplicationController
   CAMPOS_DIGITADOS = [ :por_hora, *RitmoProducao::MAQUINA_PADRAO.keys ].freeze
 
   # Blank = not set (per hour) or the default (the machine's). A row with
-  # machines takes only the fix.
+  # machines takes nothing: its fix is each machine's (Máquinas 4/5b, Q4a).
   def digitado(linha)
+    return {} if linha.ritmo.com_maquinas?
+
     dados = params.dig(:ritmos, linha.tipo, linha.etapa.chave) || {}
     fixar = { fixar_informado: dados[:fixar_informado] == "1" }
-    return fixar if linha.ritmo.com_maquinas?
 
     CAMPOS_DIGITADOS.index_with { |campo| decimal_digitado(dados[campo]) }.merge(fixar)
   end
@@ -50,7 +51,10 @@ class RitmosProducaoController < ApplicationController
   # each with its machines.
   def linhas_do_ritmo
     ritmos = RitmoProducao.da_fabrica(visiveis(RitmoProducao).to_a, trabalhos: visiveis(TrabalhoDaMaquina).ativos)
-    medidas = RitmoMedido.call(CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a), ritmos: ritmos.values)
+    medido = RitmoMedido.new(calendario_de_producao, ritmos: ritmos.values)
+    medidas = medido.call
+    # Máquinas 4/5b: a stage with machines sums theirs.
+    @uso_das_maquinas = UsoDasMaquinas.new(ritmos, medido)
     EtapasProducao.todas.flat_map do |tipo, etapas|
       etapas.map { |etapa| Linha.new(tipo: tipo, etapa: etapa, ritmo: ritmos.fetch([ tipo, etapa.chave ]), medida: medidas[[ tipo, etapa.chave ]]) }
     end

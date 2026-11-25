@@ -619,7 +619,7 @@ mockup in the canvas "Máquinas").
 - **The places** (1º, 2º…) are the order a sector's pieces start in
   (`numerar_pelo_inicio`): one ending first on a free slower machine may
   start before one placed ahead of it (seen on the dev data, 21/11/2026).
-- **Not yet**: the measured rhythm per machine and its fix (4/5b); the
+- **Not yet**: the
   stop per machine (3/5, decided — it comes after the 4/5, Q8a 24/11/2026:
   the queue must know where a started piece is); the Painel's hover, the
   Linha do tempo's load per machine and the pedido's timeline naming it
@@ -652,4 +652,35 @@ Decided 20–24/11/2026 (canvas "Máquinas", artboard 9):
 - The line done and the baixas' history name the machine.
 - `trabalhos_da_maquina.fixar_informado` came with the same migration, for
   the 4/5b (the fix per machine, Q4a).
+
+## The measured rhythm per machine (Máquinas 4/5b)
+
+Decided 24–25/11/2026 (canvas "Máquinas", artboards 10–12):
+
+- **Each machine × trabalho is measured** (Q3a) from the baixas that say
+  it (4/5a), as the stage's: the median of the last 30 days' turnos with a
+  baixa, from 5 turnos (`RitmoMedido#das_maquinas`). A trabalho's stages
+  count together (the Impressão em papel's calçado and tecido); the
+  Corte do calçado's is the machine's aproveitamento, its time by its own
+  parameters. The old baixas, with no machine, count only in the stage's.
+- **Two trabalhos in one turno** (Q1a, 25/11): the turno's hours split
+  between them by the time each took at the machine's informada (the
+  load over the speed; a cutting machine's load is already time), so a
+  Calandra that also dubbed doesn't look slow.
+- **What a machine uses** (`RitmoDaMaquina`), in order: **fixada** ("usar
+  a informada" on its page — Q4a, the fix is each machine's, with a line
+  in its histórico "Calandra: passou a usar a informada" / "voltou a usar a
+  medida"); **its own measure**; **the stage's measured split by speed**
+  (as in 2/5a); else **its informada**. The queue times a machine's piece
+  by it; a sector with no machine keeps the stage's rhythm and fix.
+- **The Máquinas list** has a row per machine × trabalho: Informada ·
+  Medida ("36 m/h · 6 turnos", "faltam 3 turnos") · Em uso ("medida ·
+  36 m/h", "da etapa · …", the badge "fixada"). **The machine's page** says
+  it under each trabalho it does, with the checkbox.
+- **Ritmos**, a stage with machines: the Medido sums their own ("84 m/h ·
+  1 de 2 máquinas"), the fix column says "nas máquinas" or "fixado em 1 de
+  2 máquinas", the Em uso sums what each uses ("166 m/h · 84 medida + 82 da
+  etapa"); the Corte do calçado lists the aproveitamentos (once when
+  alike). The stage's own fix no longer counts there (none was set on the
+  dev data).
 

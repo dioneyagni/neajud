@@ -107,19 +107,17 @@ class RitmoProducao < ApplicationRecord
 
   # The hours a load (CargaDaEtapa) takes at the rhythm in use (Painel 2/4b);
   # nil without a rhythm (Q2a). The machine's load is already hours, over
-  # its aproveitamento. parte: one machine's share of the rhythm (Máquinas
-  # 2/5a, parte_da_maquina) — the load goes to it alone.
+  # its aproveitamento. A machine's hours are its own (RitmoDaMaquina, Máquinas 4/5b).
   # Usage: ritmo.horas(12.0, medida) # => 2.4 at 5 m/h
-  #        ritmo.horas(24.0, nil, parte: 0.5) # => 0.6 on one of two machines of 40 m/h
-  def horas(carga, medida, parte: 1.0)
+  def horas(carga, medida)
     em_uso = em_uso(medida)
-    em_uso && carga.to_f / (em_uso.to_f * parte)
+    em_uso && carga.to_f / em_uso.to_f
   end
 
   # A machine's share of the rhythm in use (Máquinas 2/5a, assumed 21/11/2026):
-  # its speed over the machines' sum, so the measured one — still per stage
-  # until the baixa says the machine (4/5) — splits like the informado. A
-  # cutting machine's load is already its own time: 1.
+  # its speed over the machines' sum, so the stage's measured one splits like
+  # the informado — what a machine without its own measure uses (4/5b,
+  # RitmoDaMaquina). A cutting machine's load is already its own time: 1.
   # Usage: ritmo.parte_da_maquina(calandra_2.trabalho_de("calandra")) # => 0.5 (40 of 80 m/h)
   def parte_da_maquina(trabalho)
     return 1.0 if maquina_de_corte?

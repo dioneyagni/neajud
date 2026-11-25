@@ -5,7 +5,11 @@
 # "acrescentou Dublagem 30 m/h", "tirou Dublagem", "Calandra 40 → 50 m/h",
 # "renomeou A → B"); nothing changed, no line.
 #
-# dados: { nome:, trabalhos: { "calandra" => { marcado: "1", por_hora: "40" },
+# Máquinas 4/5b (Q4a): "usar a informada", the fix of each trabalho, read
+# only when sent (the page sends it for the trabalhos it shows); its line
+# says "Calandra: passou a usar a informada" / "voltou a usar a medida".
+#
+# dados: { nome:, trabalhos: { "calandra" => { marcado: "1", por_hora: "40", fixar_informado: "1" },
 #          "corte_calcado" => { marcado: "1", velocidade_mm_s: "120", … } } } (numbers as typed: "4,5")
 #
 # Usage: SalvarMaquina.new(maquina, dados, user: Current.user).call # => true, or false with maquina.errors
@@ -45,6 +49,7 @@ class SalvarMaquina
     feito = existente || @maquina.trabalhos.build(trabalho: trabalho.chave)
     feito.assign_attributes(CAMPOS.index_with { |campo| numero_digitado(linha[campo]) })
     feito.por_hora = nil if feito.corte_por_parametros?
+    feito.fixar_informado = linha[:fixar_informado] == "1" if linha.key?(:fixar_informado)
   end
 
   # "4,5" → "4.5"; blank → nil.
@@ -52,9 +57,10 @@ class SalvarMaquina
     valor.to_s.strip.tr(",", ".").presence
   end
 
-  # { nome:, trabalhos: { "calandra" => "Calandra 40 m/h" } }, what the histórico compares.
+  # { nome:, trabalhos: { "calandra" => "Calandra 40 m/h" }, fixados: { "calandra" => true } }, what the histórico compares.
   def retrato(maquina = @maquina)
-    { nome: maquina.nome, trabalhos: maquina.trabalhos_mantidos.to_h { |feito| [ feito.trabalho, feito.descricao ] } }
+    mantidos = maquina.trabalhos_mantidos
+    { nome: maquina.nome, trabalhos: mantidos.to_h { |feito| [ feito.trabalho, feito.descricao ] }, fixados: mantidos.to_h { |feito| [ feito.trabalho, feito.fixar_informado ] } }
   end
 
   def criacao
@@ -65,7 +71,15 @@ class SalvarMaquina
     linhas = []
     linhas << "renomeou #{antes[:nome]} → #{depois[:nome]}" if antes[:nome] != depois[:nome]
     linhas += TrabalhosDeMaquina.todos.filter_map { |trabalho| mudanca(trabalho, antes[:trabalhos][trabalho.chave], depois[:trabalhos][trabalho.chave]) }
+    linhas += TrabalhosDeMaquina.todos.filter_map { |trabalho| mudanca_do_fix(trabalho, antes[:fixados][trabalho.chave], depois[:fixados][trabalho.chave]) }
     linhas.join("; ")
+  end
+
+  # Only a trabalho it kept: a new one starts unfixed, a removed one says "tirou".
+  def mudanca_do_fix(trabalho, era, ficou)
+    return if era.nil? || ficou.nil? || era == ficou
+
+    "#{trabalho.nome}: #{ficou ? "passou a usar a informada" : "voltou a usar a medida"}"
   end
 
   def mudanca(trabalho, era, ficou)

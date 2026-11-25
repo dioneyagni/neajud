@@ -12,8 +12,16 @@
 # time (TempoDoCorte), so the measure is its aproveitamento — 0.62 when the
 # machine's work took 62% of the turno.
 #
+# Máquinas 4/5b (decided 24–25/11/2026): each machine × trabalho is measured
+# too, from the baixas that say the machine (4/5a) — its stages together
+# (the Impressão em papel's calçado and tecido). A machine doing two
+# trabalhos in one turno splits the turno's hours between them by the time
+# each took at its informada (Q1a), so neither looks slow. The old baixas,
+# with no machine, count only in the stage's.
+#
 # Usage: medidas = RitmoMedido.call(CalendarioDeProducao.new)
 #        medidas[%w[calcado impressao]] # => #<Medida valor=4.6 turnos=12> or nil
+#        RitmoMedido.new(calendario).das_maquinas[[ calandra_2.id, "calandra" ]] # => #<Medida valor=36.0 turnos=6>
 class RitmoMedido
   DIAS = 30
   MINIMO_DE_TURNOS = 5
@@ -23,10 +31,10 @@ class RitmoMedido
 
   # ritmos: the saved rhythms (the machine's parameters); read when not given.
   def self.call(calendario, ate: Time.current, ritmos: nil)
-    new(calendario, ate, ritmos).call
+    new(calendario, ate: ate, ritmos: ritmos).call
   end
 
-  def initialize(calendario, ate, ritmos)
+  def initialize(calendario, ate: Time.current, ritmos: nil)
     @calendario = calendario
     @ate = ate
     @de = ate - DIAS.days
@@ -36,33 +44,82 @@ class RitmoMedido
 
   # { [tipo, etapa] => Medida } for the ones with enough turnos.
   def call
-    ocorrencias = @calendario.ocorrencias(de: @de, ate: @ate)
-    baixas.group_by { |baixa| [ baixa.pedido.tipo, baixa.etapa ] }.filter_map do |chave, do_tipo|
-      medida = medir(do_tipo, ocorrencias)
+    @call ||= baixas.group_by { |baixa| [ baixa.pedido.tipo, baixa.etapa ] }.filter_map do |chave, do_tipo|
+      medida = mediana_dos_turnos(por_turno(do_tipo).map { |ocorrencia, do_turno| do_turno.sum { |baixa| carga(baixa) } / ocorrencia.horas })
       [ chave, medida ] if medida
     end.to_h
+  end
+
+  # { [maquina_id, trabalho] => Medida } for the machines' trabalhos with
+  # enough turnos (Máquinas 4/5b).
+  def das_maquinas
+    @das_maquinas ||= valores_das_maquinas.filter_map do |chave, valores|
+      medida = mediana_dos_turnos(valores)
+      [ chave, medida ] if medida
+    end.to_h
+  end
+
+  # The turnos a machine's trabalho has a baixa in, enough or not ("faltam 3 turnos").
+  def turnos_da_maquina(maquina_id, trabalho)
+    valores_das_maquinas.fetch([ maquina_id, trabalho ], []).size
   end
 
   private
 
   def baixas
-    BaixaProducao.vigentes.where(created_at: @de..@ate).includes(:pedido).to_a
+    @baixas ||= BaixaProducao.vigentes.where(created_at: @de..@ate).includes(:pedido, maquina: :trabalhos).to_a
   end
 
   # The baixas outside every turno (given at night, on a day off) don't count.
-  def medir(baixas, ocorrencias)
-    por_turno = baixas.group_by { |baixa| ocorrencias.find { |ocorrencia| ocorrencia.contem?(baixa.created_at) } }.except(nil)
-    return if por_turno.size < MINIMO_DE_TURNOS
-
-    Medida.new(valor: mediana(por_turno.map { |ocorrencia, do_turno| do_turno.sum { |baixa| carga(baixa) } / ocorrencia.horas }).round(3), turnos: por_turno.size)
+  def por_turno(baixas)
+    @ocorrencias ||= @calendario.ocorrencias(de: @de, ate: @ate)
+    baixas.group_by { |baixa| @ocorrencias.find { |ocorrencia| ocorrencia.contem?(baixa.created_at) } }.except(nil)
   end
 
-  # What a baixa did, in its rhythm's unit (CargaDaEtapa).
-  def carga(baixa)
+  def mediana_dos_turnos(valores)
+    return if valores.size < MINIMO_DE_TURNOS
+
+    Medida.new(valor: mediana(valores).round(3), turnos: valores.size)
+  end
+
+  # { [maquina_id, trabalho] => [one value per turno] }: per machine and
+  # turno, each trabalho's load over its share of the turno's hours.
+  def valores_das_maquinas
+    return @valores_das_maquinas if @valores_das_maquinas
+
+    feitas = baixas.select { |baixa| feito_na_maquina(baixa) }
+    @valores_das_maquinas = feitas.group_by(&:maquina_id).each_with_object(Hash.new { |valores, chave| valores[chave] = [] }) do |(maquina_id, da_maquina), valores|
+      por_turno(da_maquina).each do |ocorrencia, do_turno|
+        repartir(ocorrencia, do_turno).each { |trabalho, valor| valores[[ maquina_id, trabalho ]] << valor }
+      end
+    end
+  end
+
+  # { trabalho => load per hour } of one machine's turno (Q1a).
+  def repartir(ocorrencia, baixas)
+    cargas = baixas.group_by { |baixa| feito_na_maquina(baixa) }.to_h { |feito, do_trabalho| [ feito, do_trabalho.sum { |baixa| carga(baixa, fonte: feito) } ] }
+    tempos = cargas.to_h { |feito, carga| [ feito, feito.corte_por_parametros? ? carga : carga / feito.por_hora.to_f ] }
+    total = tempos.values.sum
+    cargas.filter_map do |feito, carga|
+      horas = total.positive? ? ocorrencia.horas * tempos[feito] / total : ocorrencia.horas
+      [ feito.trabalho, carga / horas ] if horas.positive?
+    end.to_h
+  end
+
+  # The machine's TrabalhoDaMaquina for the baixa's stage; nil when the
+  # baixa has no machine or the machine no longer does it.
+  def feito_na_maquina(baixa)
+    trabalho = baixa.maquina && TrabalhosDeMaquina.da_etapa(baixa.pedido.tipo, baixa.etapa)
+    trabalho && baixa.maquina.trabalho_de(trabalho.chave)
+  end
+
+  # What a baixa did, in its rhythm's unit (CargaDaEtapa); fonte: the
+  # machine whose cutting parameters count (Máquinas 4/5b), else the ritmo's.
+  def carga(baixa, fonte: nil)
     etapa = EtapasProducao.etapa(baixa.pedido.tipo, baixa.etapa)
     return baixa.medida if etapa.ritmo.nil?
 
-    CargaDaEtapa.call(baixa.pedido, etapa, linhas_da(baixa, etapa), ritmo_de(baixa), memoria: @linhas).valor
+    CargaDaEtapa.call(baixa.pedido, etapa, linhas_da(baixa, etapa), ritmo_de(baixa), memoria: @linhas, fonte: fonte).valor
   end
 
   # The pedido's lines of the stage that the baixa covered, built once.

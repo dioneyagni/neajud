@@ -29,7 +29,7 @@ class PaineisController < ApplicationController
     @atrasaram_na_virada = visiveis(ViradaDoPedido).do_turno_de(Time.current).atrasaram
                                                    .where(pedido: visiveis(Pedido).ativos).includes(:pedido).order(:id).to_a
     # Painel 2/4a: the turno on now, in the header (none for a cliente final).
-    @calendario = CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
+    @calendario = calendario_de_producao
   end
 
   # Usage: GET /painel/pedidos/:uuid/itens?colunas[]=…

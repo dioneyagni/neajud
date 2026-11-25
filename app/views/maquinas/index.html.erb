@@ -9,6 +9,9 @@
   </div>
   <p class="funcoes-intro">Cada máquina diz o que faz e a velocidade em cada trabalho. O ritmo informado de um trabalho é a soma
     das máquinas dele; um trabalho sem máquina segue com o ritmo digitado em Ritmos. A Conferência é feita por pessoas: continua só em Ritmos.</p>
+  <p class="funcoes-intro">A medida vem das baixas de cada máquina nos últimos <%= RitmoMedido::DIAS %> dias (a mediana dos turnos com baixa)
+    e substitui a informada quando chega a <%= RitmoMedido::MINIMO_DE_TURNOS %> turnos, a menos que a máquina esteja fixada. Até lá, a máquina
+    usa o medido da etapa, dividido pela velocidade.</p>
 
   <section class="maquinas-secao">
     <h3>Por trabalho</h3>
@@ -35,22 +38,32 @@
       <p class="maquinas-vazio">Nenhuma máquina ainda: os ritmos seguem os de Ritmos.</p>
     <% else %>
       <div class="maquinas-rolagem">
+        <%# Máquinas 4/5b (canvas "Máquinas", 10): a row per machine × trabalho
+            with its informada, its own measure and what it uses. %>
         <table class="clients-table maquinas-lista">
-          <thead><tr><th>Nome</th><th>O que faz</th><th></th></tr></thead>
-          <tbody>
-            <% @maquinas.each do |maquina| %>
-              <tr data-maquina="<%= maquina.nome %>">
-                <td><%= link_to maquina.nome, edit_parametros_maquina_path(maquina) %></td>
-                <td><div class="maquina-chips">
-                  <% maquina.trabalhos.each do |feito| %>
-                    <span class="maquina-chip"><%= feito.tipo_de_trabalho.nome %> · <%= feito.velocidade %></span>
+          <thead><tr><th>Nome</th><th>Trabalho</th><th class="maquinas-num">Informada</th><th>Medida</th><th>Em uso</th><th></th></tr></thead>
+          <% @maquinas.each do |maquina| %>
+            <tbody class="maquinas-da-maquina">
+              <% feitos = maquina.trabalhos.to_a %>
+              <% feitos.each_with_index do |feito, indice| %>
+                <% linha = @uso_das_maquinas.do_trabalho(feito) %>
+                <tr <% if indice.zero? %>data-maquina="<%= maquina.nome %>"<% end %> data-trabalho-da-maquina="<%= feito.trabalho %>">
+                  <% if indice.zero? %>
+                    <td rowspan="<%= feitos.size %>"><%= link_to maquina.nome, edit_parametros_maquina_path(maquina) %></td>
                   <% end %>
-                </div></td>
-                <td class="maquinas-num"><%= button_to "Lixeira", parametros_maquina_path(maquina), method: :delete, class: "btn btn-secondary btn-sm",
-                      form: { class: "maquina-lixeira" }, "aria-label": "Mandar #{maquina.nome} para a lixeira" %></td>
-              </tr>
-            <% end %>
-          </tbody>
+                  <td><%= feito.tipo_de_trabalho.nome %></td>
+                  <td class="maquinas-num" data-informada><%= feito.corte_por_parametros? ? "parâmetros" : feito.velocidade %></td>
+                  <td class="<%= "maquinas-nenhuma" unless linha.medida %>" data-medida><%= medida_da_maquina(linha) %></td>
+                  <td data-em-uso><%= em_uso_da_maquina(linha) %>
+                    <% if feito.fixar_informado %><span class="maquina-fixada">fixada</span><% end %></td>
+                  <% if indice.zero? %>
+                    <td class="maquinas-num" rowspan="<%= feitos.size %>"><%= button_to "Lixeira", parametros_maquina_path(maquina), method: :delete, class: "btn btn-secondary btn-sm",
+                          form: { class: "maquina-lixeira" }, "aria-label": "Mandar #{maquina.nome} para a lixeira" %></td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          <% end %>
         </table>
       </div>
     <% end %>

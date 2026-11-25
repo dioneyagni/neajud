@@ -95,16 +95,14 @@ RSpec.describe RitmoProducao do
     end
 
     # Máquinas 2/5a (assumed 21/11/2026): a machine runs its share of the
-    # rhythm in use — the measured one split like the informado.
-    it "gives each machine its share of the rhythm, the measured one split by speed" do
+    # rhythm — the stage's measured one split like the informado (what a
+    # machine without its own measure uses, RitmoDaMaquina, 4/5b).
+    it "gives each machine its share of the rhythm by speed" do
       lenta = maquina("Calandra 2", calandra: 20).trabalho_de("calandra")
       rapida = maquina("Calandra 3", calandra: 60).trabalho_de("calandra")
       ritmo = described_class.de("tecido", "calandra")
-      medido = RitmoMedido::Medida.new(valor: 40.0, turnos: 6)
 
       expect([ ritmo.parte_da_maquina(lenta), ritmo.parte_da_maquina(rapida) ]).to eq([ 0.25, 0.75 ])
-      # 30 m alone on the 60 m/h one; measured 40 m/h for both, it does 30 of them.
-      expect([ ritmo.horas(30, nil, parte: 0.75), ritmo.horas(30, medido, parte: 0.75) ]).to eq([ 0.5, 1.0 ])
       expect(described_class.de("calcado", "corte").parte_da_maquina(lenta)).to eq(1.0)
     end
   end

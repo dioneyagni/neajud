@@ -24,6 +24,13 @@ class ApplicationController < ActionController::Base
     { changed_by: request.remote_ip, user: Current.user }
   end
 
+  # The turnos and the calendar's exceptions the person sees, for the
+  # pages that read the queue or the measured rhythms.
+  # Usage: RitmoMedido.call(calendario_de_producao)
+  def calendario_de_producao
+    CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
+  end
+
   # Not visiveis: the header's count is no proof the action used the policy.
   def load_current_pedido_count
     pedido = visibilidade.escopo(Pedido).ativos.find_by(uuid: session[:current_pedido_uuid])
