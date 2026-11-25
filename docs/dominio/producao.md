@@ -601,8 +601,25 @@ mockup in the canvas "Máquinas").
   Stimulus, kept per sector in the tab's sessionStorage and after a
   refresh); the **Máquina** column, a chip in one of six colors by the
   machine's place. A sector with none keeps the list as it was.
-- **Not yet**: sending a piece to another machine by hand (2/5b); the stop
-  per machine (3/5); the baixa saying the machine and the measured rhythm
+- **Sending a piece to another machine** (2/5b, Q3a) — ⇄ on a line whose
+  trabalho has two machines or more (who has `programar_producao`, a stage
+  not under way) opens the impact window of the ↑↓ (`ImpactoDoMovimento`
+  `maquina:`): a select of the trabalho's machines ("· a de agora"), the
+  previsão before → after, the pedidos pushed, the reason required only if
+  someone comes to be late. Confirmed, a `MovimentoDaFila` with
+  `de_maquina`/`para_maquina` **holds it there until it ends**
+  (`MovimentoDaFila.fixacoes`, apart from the `ordens` of place; inside
+  that machine the order as usual). The line says "● presa na Calandra 2 ·
+  Dione 21/11 15:10" (the reason on hover); the window of a held one offers
+  "Voltar ao automático" (`automatico:`, a move with no `para_maquina`).
+  The history: "mandou a Calandra do #… da Calandra 3 para a Calandra 2",
+  "voltou a Calandra do #… ao automático (estava na Calandra 2)". A machine
+  in the trash, or no longer doing the trabalho, lets its held pieces go
+  back to the automatic by themselves (no badge then).
+- **The places** (1º, 2º…) are the order a sector's pieces start in
+  (`numerar_pelo_inicio`): one ending first on a free slower machine may
+  start before one placed ahead of it (seen on the dev data, 21/11/2026).
+- **Not yet**: the stop per machine (3/5); the baixa saying the machine and the measured rhythm
   per machine (4/5); the Painel's hover, the Linha do tempo's load per
   machine and the pedido's timeline naming it (5/5). The turno's photo
   and the virada stay per sector.

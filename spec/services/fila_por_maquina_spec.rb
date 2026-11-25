@@ -71,6 +71,17 @@ RSpec.describe FilaDeProducao do
       expect(vez(fila, pedido, "calandra").maquina).to eq(lenta)
     end
 
+    # Found on the dev data (21/11/2026): the third pedido, placed after the
+    # second, ends first on the slower machine free now — it starts first.
+    it "numbers a sector's places by when they start" do
+      rapida = maquina("Epson R", impressao_papel: 310)
+      lenta = maquina("Epson L", impressao_papel: 110)
+      um, dois, tres = [ 3, 2, 1 ].map { |horas| tecido(quarta - horas.hours) }
+
+      expect(fila.do_setor("impressao").map { |v| [ v.pedido, v.posicao, v.maquina, v.inicio.strftime("%H:%M") ] })
+        .to eq([ [ um, 1, rapida, "08:00" ], [ tres, 2, lenta, "08:00" ], [ dois, 3, rapida, "08:03" ] ])
+    end
+
     it "leaves a machine in the trash out" do
       ritmos(calandra: nil)
       lenta = maquina("Calandra 2", calandra: 15.5)

@@ -67,7 +67,7 @@
             <span class="painel-fila-carga"><i class="<%= "painel-fila-carga--cheia" if carga.percentual >= 95 %>" style="width: <%= [ carga.percentual, 100 ].min %>%"></i></span></span>
         </div>
         <% turno.pecas.each do |vez, trecho| %>
-          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?) %>
+          <%= render "paineis/vez_na_fila", vez: vez, trecho: trecho, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?) %>
         <% end %>
       <% end %>
     <% end %>
@@ -75,7 +75,7 @@
     <% if sem.any? %>
       <div class="painel-fila-sem-previsao"><b>Sem previsão</b><span>algo impede entrar na fila</span></div>
       <% sem.each do |vez| %>
-        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?) %>
+        <%= render "paineis/vez_na_fila", vez: vez, trecho: nil, linha: linhas[vez.pedido.id], limite: limite, total: previstas.size, cores: (cores if maquinas.any?), maquinas: (fila.maquinas_para(vez) if maquinas.any?) %>
       <% end %>
     <% end %>
     <% if vezes.empty? %><p class="painel-fila-vazia">Nenhum pedido na fila da <%= nome %>.</p><% end %>
