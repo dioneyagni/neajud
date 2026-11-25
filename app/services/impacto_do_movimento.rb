@@ -1,7 +1,7 @@
 # What moving a stage in its sector's queue does (Painel 3/4a, decided
 # 07/11/2026, Q3a, Q5a), before anyone confirms it: the queue computed again
-# with the move and compared — every pedido whose previsão gets worse, in any
-# sector (the cascade), the ones that come to be late first; the reason is
+# with the move and compared (ComparacaoDaFila) — every pedido whose previsão
+# gets worse, in any sector (the cascade), the ones that come to be late first; the reason is
 # required only then. The moved pedido apart, with what it gains.
 #
 # Three moves: a stage to a place (posicao), a stage back to its arrival
@@ -18,12 +18,6 @@
 class ImpactoDoMovimento
   # The stage can't move: it isn't in the queue, has no previsão or is under way.
   class Invalido < StandardError; end
-
-  Empurrado = Struct.new(:pedido, :de, :para, :prazo, :passa_a_atrasar, keyword_init: true) do
-    def folga
-      prazo && para && (prazo - para.to_date).to_i
-    end
-  end
 
   # tipo: :posicao, :chegada (one stage back), :setor (every moved one back),
   # :maquina (to another machine), :automatico (a held one back).
@@ -133,7 +127,7 @@ class ImpactoDoMovimento
     movidos = movimentos.map(&:pedido).uniq
     Impacto.new(tipo: tipo, setor: setor, vez: vez, de: vez&.posicao, para: movimentos.first&.para || vez&.posicao, limite: limite, total: total,
                 movimentos: movimentos, movidos: movidos.to_h { |p| [ p, [ fim(@fila, p), fim(depois, p) ] ] },
-                empurrados: empurrados(depois, movidos), maquinas: maquinas, para_maquina: para_maquina)
+                empurrados: ComparacaoDaFila.empurrados(@fila, depois, fora: movidos), maquinas: maquinas, para_maquina: para_maquina)
   end
 
   def ordens_com(movimentos)
@@ -155,18 +149,6 @@ class ImpactoDoMovimento
   end
 
   def fim(fila, pedido)
-    fila.previsao(pedido)&.fim
-  end
-
-  # The ones whose previsão got worse (or lost), the newly late first.
-  def empurrados(depois, movidos)
-    lista = (@fila.pedidos - movidos).filter_map do |pedido|
-      de, para = fim(@fila, pedido), fim(depois, pedido)
-      next unless de && (para.nil? || para > de)
-
-      prazo = AvisoDePrevisao.prazo(pedido)
-      Empurrado.new(pedido: pedido, de: de, para: para, prazo: prazo, passa_a_atrasar: AvisoDePrevisao.passa_a_atrasar?(prazo, de, para))
-    end
-    lista.sort_by { |e| [ e.passa_a_atrasar ? 0 : 1, e.de ] }
+    ComparacaoDaFila.fim(fila, pedido)
   end
 end

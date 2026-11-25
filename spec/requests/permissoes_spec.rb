@@ -396,6 +396,8 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
     end
 
     # Painel 2/4a: the turnos, the calendar and the rhythm, like the parameters.
+    # Máquinas 3/5a (Q5a): creating a stop and "voltou a funcionar" are who
+    # programs the production's (below); removing one and the holidays stay here.
     it "the turnos, the calendar and the rhythm are the dono's only, whatever the grid says" do
       turno = Turno.create!(nome: "Manhã", inicio: "06:00", fim: "14:00", dias: [ 1 ])
       excecao = ExcecaoCalendario.create!(data: Date.new(2026, 11, 13), nome: "Recesso")
@@ -403,12 +405,28 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
       pedidos = [
         -> { get parametros_turnos_path }, -> { post parametros_turnos_path, params: { turno: { nome: "Tarde" } } },
         -> { patch parametros_turno_path(turno), params: { turno: { nome: "X" } } }, -> { delete parametros_turno_path(turno) },
-        -> { post parametros_excecoes_path, params: { excecao: { nome: "X" } } }, -> { delete parametros_excecao_path(excecao) },
+        -> { delete parametros_excecao_path(excecao) },
         -> { post feriado_parametros_excecoes_path, params: { data: "2026-11-20", confirmado: "1" } },
         -> { get edit_parametros_ritmos_path }, -> { patch parametros_ritmos_path, params: { ritmos: {} } }
       ]
       expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
       expect([ turno.reload.nome, ExcecaoCalendario.count, RitmoProducao.count ]).to eq([ "Manhã", 1, 0 ])
+    end
+
+    it "a stop is created and ended by who programs the production, not removed" do
+      parada = ExcecaoCalendario.create!(data: Date.current, nome: "Calandra parada", etapa: "calandra")
+      entrar_com_funcao(niveis: { "pedidos" => 1 })
+      post parametros_excecoes_path, params: { excecao: { nome: "X", data: Date.current.iso8601 } }
+      patch voltou_parametros_excecao_path(parada)
+      expect([ response.status, ExcecaoCalendario.count, parada.reload.voltou_em ]).to eq([ 403, 1, nil ])
+
+      entrar_com_funcao(niveis: { "pedidos" => 1 }, acoes: [ "programar_producao" ])
+      post parametros_excecoes_path, params: { excecao: { nome: "Recesso", data: (Date.current + 30).iso8601 } }
+      expect([ response, ExcecaoCalendario.count ]).to match([ redirect_to(painel_path), 2 ])
+      patch voltou_parametros_excecao_path(parada)
+      expect(parada.reload.voltou_em).to be_present
+      delete parametros_excecao_path(ExcecaoCalendario.find_by!(nome: "Recesso"))
+      expect([ response.status, ExcecaoCalendario.count ]).to eq([ 403, 2 ])
     end
 
     # Máquinas 1/5: the machines, like the rest of Parâmetros.

@@ -50,9 +50,11 @@ RSpec.describe "Turnos, calendário e ritmo", type: :request do
     let!(:tarde) { Turno.create!(nome: "Tarde", inicio: "14:00", fim: "22:00", dias: (1..5).to_a) }
 
     it "adds an exception for one stage and turno, and removes it" do
-      post parametros_excecoes_path, params: { excecao: { nome: "Calandra parada", data: "2026-11-13", turno_uuid: tarde.uuid, etapa: "calandra" } }
+      dia = Date.current + 7
+      post parametros_excecoes_path, params: { excecao: { nome: "Calandra parada", data: dia.iso8601, turno_uuid: tarde.uuid, etapa: "calandra" } }
       excecao = ExcecaoCalendario.sole
-      expect([ excecao.turno, excecao.etapa, excecao.origem, flash[:notice] ]).to eq([ tarde, "calandra", "manual", "Calandra parada (13/11/2026) saved." ])
+      expect([ excecao.turno, excecao.etapa, excecao.origem, excecao.data_fim, flash[:notice] ])
+        .to eq([ tarde, "calandra", "manual", dia, "Calandra parada (#{dia.strftime("%d/%m/%Y")}) salva." ])
       delete parametros_excecao_path(excecao)
       expect(ExcecaoCalendario.count).to eq(0)
     end

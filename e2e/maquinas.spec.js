@@ -5,7 +5,8 @@
 // machine that ends it first (Máquinas 2/5a: a piece goes whole on one
 // machine, Q3a), a trashed machine comes back from the Lixeira and its name
 // stays taken there; Máquinas 4/5b: the list's row per trabalho and the
-// fix ("usar a informada") on the machine's page. Last, every machine goes to the trash: the specs after
+// fix ("usar a informada") on the machine's page; Máquinas 3/5a: a stop of
+// one machine and "voltou a funcionar". Last, every machine goes to the trash: the specs after
 // this one type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
@@ -141,7 +142,40 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     if (!(await page.isChecked("#fixar_calandra"))) throw new Error("The fix came back unchecked");
   });
 
+  // Máquinas 3/5a (Q1a, Q3a, Q7a): a stop of one machine for two days, the
+  // warning of who comes to be late, and "voltou a funcionar".
+  await test("A stop of one Calandra for two days: saved with its warning, then it came back to work", async () => {
+    const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const amanha = new Date(Date.now() + 86400000).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const nome = `Manutenção ${U}`;
+    await page.goto(`${BASE_URL}/parametros/turnos`);
+    await page.click('button:has-text("Nova parada")');
+    const dialogo = page.locator("dialog.calendario-dialog");
+    await dialogo.locator("#excecao_nome").fill(nome);
+    await dialogo.locator("#excecao_data").fill(hoje);
+    await dialogo.locator("#excecao_data_fim").fill(amanha);
+    // The machines' box shows only for the stage picked.
+    if (await dialogo.locator("fieldset.parada-maquinas[data-etapa='calandra']").isVisible()) throw new Error("The Calandra's machines show before the stage is picked");
+    await dialogo.locator("#excecao_etapa").selectOption({ label: "Calandra" });
+    await dialogo.locator("fieldset.parada-maquinas[data-etapa='calandra'] label", { hasText: segunda }).locator("input").check();
+    await dialogo.locator('input[type="submit"]').click();
+    await waitForText(page, `${nome} (`);
+    const aviso = (await page.locator("[data-parada-aviso]").innerText()).replace(/\s+/g, " ");
+    if (!/passa(m)? a atrasar/.test(aviso)) throw new Error(`The warning says "${aviso}"`);
+    const linha = page.locator(`tr[data-excecao="${nome}"]`);
+    const texto = (await linha.innerText()).replace(/\s+/g, " ");
+    if (!texto.includes(`Calandra › ${segunda} · dia inteiro`)) throw new Error(`The stop's row says "${texto}"`);
+
+    await linha.locator('button:has-text("Voltou a funcionar")').click();
+    await waitForText(page, `${nome}: voltou a funcionar.`);
+    await page.locator(`tr[data-excecao="${nome}"] [data-voltou]`).waitFor();
+    // Ended, it stays on the record: no button to remove it.
+    if (await page.locator(`tr[data-excecao="${nome}"] button`).count()) throw new Error("The ended stop still has buttons");
+  });
+
   await test("To the trash and back from the Lixeira; its name stays taken there", async () => {
+    await page.goto(`${BASE_URL}/parametros/maquinas`);
+    await page.click(`tr[data-maquina="${calandra}"] a`);
     await page.click('.maquina-botoes button:has-text("Mandar para a lixeira")');
     await waitForText(page, `${calandra}: foi para a lixeira.`);
     if (await page.locator(`tr[data-maquina="${calandra}"]`).count()) throw new Error("The trashed machine is still listed");

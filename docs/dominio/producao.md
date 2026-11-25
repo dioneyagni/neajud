@@ -619,9 +619,8 @@ mockup in the canvas "Máquinas").
 - **The places** (1º, 2º…) are the order a sector's pieces start in
   (`numerar_pelo_inicio`): one ending first on a free slower machine may
   start before one placed ahead of it (seen on the dev data, 21/11/2026).
-- **Not yet**: the
-  stop per machine (3/5, decided — it comes after the 4/5, Q8a 24/11/2026:
-  the queue must know where a started piece is); the Painel's hover, the
+- **Not yet**: the Painel's side of the stop per machine (3/5b: the ⏸ on
+  a lane, the stopped lane, the badges); the Painel's hover, the
   Linha do tempo's load per machine and the pedido's timeline naming it
   (5/5). The turno's photo and the virada stay per sector.
 
@@ -684,3 +683,37 @@ Decided 24–25/11/2026 (canvas "Máquinas", artboards 10–12):
   alike). The stage's own fix no longer counts there (none was set on the
   dev data).
 
+## The stop per machine (Máquinas 3/5a)
+
+Decided 24/11/2026 (canvas "Máquinas", artboards 6–7), after the 4/5 (Q8a:
+the queue had to know where a started piece is):
+
+- **A stop runs de…até** (Q6a, `excecoes_calendario.data_fim`; the old ones
+  end the day they start), the turno picked on each day. In a stage with
+  machines it may take **some of them** (`ParadaDaMaquina`,
+  `excecoes_calendario_maquinas`); none = the whole stage, as before.
+- **A machine stops whole** (Q1a): in every stage it does — the Calandra 2
+  that also dubs stops its Dublagem; the list says "para também na
+  Dublagem". The calendar answers per machine
+  (`CalendarioDeProducao#horas/comeco/parada?` with `maquina_id`), so the
+  queue lays a machine's pieces around its stops and the sector's hours
+  sum only the machines working.
+- **The pieces that can't leave wait** (Q2a): one held on the machine
+  (2/5b) or started on it (4/5a) goes after the stop; the loose ones go by
+  themselves to the machine that ends them first. Nothing changes alone.
+- **Saved directly** (Q3a): `ImpactoDaParada` computes the queue with the
+  stop against the one now (`ComparacaoDaFila`, shared with the moves) and
+  the warning lists who comes to be late — "(presa na Calandra 2)" when a
+  piece waits for it — and how many pieces wait. **The impact is kept in the
+  stop** (Q4a, `impacto` JSON: atrasam, pioram, esperam, the pedidos with
+  prazo, previsão before → after and why), for the bulletins to come; the
+  list shows "atrasou N pedidos · ver" ("—" for the stops before it). Each
+  pushed pedido's history says its previsão moved, like a move's.
+- **"Voltou a funcionar"** (Q7a) ends a stop under way from that moment —
+  in the turno too — keeping when and who; one that ended stays on the
+  record with no button ("Remover" is for one made by mistake, before it
+  ends).
+- **Who** (Q5a): creating a stop and "voltou a funcionar" are the dono's and
+  who has `programar_producao`; removing and the holidays, the dono's. The
+  Turnos page stays the dono's (the others will create from the Painel's
+  ⏸, 3/5b).

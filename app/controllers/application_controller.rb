@@ -28,7 +28,7 @@ class ApplicationController < ActionController::Base
   # pages that read the queue or the measured rhythms.
   # Usage: RitmoMedido.call(calendario_de_producao)
   def calendario_de_producao
-    CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).to_a)
+    CalendarioDeProducao.new(turnos: visiveis(Turno).ativos.to_a, excecoes: visiveis(ExcecaoCalendario).includes(:paradas_das_maquinas).to_a)
   end
 
   # Not visiveis: the header's count is no proof the action used the policy.

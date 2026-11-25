@@ -180,7 +180,7 @@ class FilaDeProducao
     pecas_de(do_setor(setor)).group_by { |_, trecho| trecho.ocorrencia }.map do |ocorrencia, do_turno|
       de_fora = outras.select { |_, trecho| trecho.ocorrencia == ocorrencia }
       raias = recursos.map do |recurso, etapas|
-        RaiaDoTurno.new(recurso: recurso, livres: @calendario.horas_do_setor(ocorrencia, etapas, desde: agora),
+        RaiaDoTurno.new(recurso: recurso, livres: @calendario.horas_do_setor(ocorrencia, etapas, desde: agora, maquina_id: recurso.maquina&.id),
                         pecas: (do_turno + de_fora).select { |vez, _| vez.recurso == recurso.chave })
       end
       TurnoDaFila.new(ocorrencia: ocorrencia, pecas: do_turno, outras: de_fora, raias: raias, livres: raias.sum(&:livres))
@@ -191,7 +191,7 @@ class FilaDeProducao
   # tempo's load, Máquinas 2/5a).
   # Usage: fila.horas_do_setor(ocorrencia, "estamparia") # => 12.0 (three calandras, 4 h)
   def horas_do_setor(ocorrencia, setor, desde: agora)
-    recursos_do_setor(setor).sum { |_, etapas| @calendario.horas_do_setor(ocorrencia, etapas, desde: desde) }
+    recursos_do_setor(setor).sum { |recurso, etapas| @calendario.horas_do_setor(ocorrencia, etapas, desde: desde, maquina_id: recurso.maquina&.id) }
   end
 
   # The machines a stage may go on (2/5b: where it may be sent), in lane order.
@@ -405,7 +405,7 @@ class FilaDeProducao
     horas = horas_em(vez, ritmo, recurso, carga)
     return unless horas
 
-    trechos, fim = trechos(vez.etapa.chave, [ agenda.livre[recurso.chave], pronto(vez) ].max, horas)
+    trechos, fim = trechos(vez.etapa.chave, [ agenda.livre[recurso.chave], pronto(vez) ].max, horas, recurso.maquina&.id)
     Opcao.new(recurso: recurso, carga: carga, horas: horas, trechos: fim ? trechos : [], fim: fim)
   end
 
@@ -446,17 +446,18 @@ class FilaDeProducao
 
   # The turnos' hours the stage fills from the moment on; the end is nil
   # when they run out before the hours do.
-  def trechos(chave, desde, horas)
+  # maquina_id: the machine's own stops count too (Máquinas 3/5a); a stop
+  # that came back to work in a turno gives it from then on.
+  def trechos(chave, desde, horas, maquina_id = nil)
     indice = ocorrencias.bsearch_index { |ocorrencia| ocorrencia.fim > desde }
     return [ [], nil ] unless indice
 
     restante = horas
     ocorrencias[indice..].each_with_object([]) do |ocorrencia, pecas|
-      livres = @calendario.horas(ocorrencia, chave, desde: desde)
-      next unless livres.positive?
+      comeco = @calendario.comeco(ocorrencia, chave, desde: desde, maquina_id: maquina_id)
+      next unless comeco
 
-      comeco = [ ocorrencia.inicio, desde ].max
-      usadas = [ livres, restante ].min
+      usadas = [ (ocorrencia.fim - comeco) / 3600.0, restante ].min
       pecas << Trecho.new(ocorrencia: ocorrencia, inicio: comeco, fim: desde = comeco + (usadas * 3600))
       restante -= usadas
       return [ pecas, desde ] if restante <= 1e-6

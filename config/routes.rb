@@ -23,6 +23,8 @@ Rails.application.routes.draw do
     resources :turnos, only: %i[index create update destroy], param: :uuid
     resources :excecoes, only: %i[create destroy], param: :uuid, controller: "excecoes_calendario" do
       collection { post :feriado }
+      # Máquinas 3/5a: a stop came back to work.
+      member { patch :voltou }
     end
     resource :ritmos, only: %i[edit update], controller: "ritmos_producao"
     # Máquinas 1/5 (decided 20/11/2026): the machines and what each one does.
