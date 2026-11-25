@@ -1,0 +1,48 @@
+<%# A new stop (Máquinas 3/5a, canvas "Máquinas", 7): de…até (Q6a, the
+    turno on each day), the stage and, in a stage with machines, some of
+    them (Q1a: none = the whole stage). The machines' box shows only for
+    the stage picked (parada Stimulus). %>
+<dialog class="client-dialog calendario-dialog" data-dialog-target="dialog" aria-labelledby="calendario-dialog-titulo">
+  <%= form_with url: parametros_excecoes_path, method: :post, scope: :excecao, class: "client-form", data: { controller: "parada" } do |form| %>
+    <h4 id="calendario-dialog-titulo">Nova parada</h4>
+    <div class="client-field">
+      <%= form.label :nome, "Nome" %>
+      <%= form.text_field :nome, required: true, placeholder: "ex.: Manutenção da Calandra 2, recesso" %>
+    </div>
+    <div class="parada-periodo">
+      <div class="client-field">
+        <%= form.label :data, "De" %>
+        <%= form.date_field :data, required: true, data: { action: "parada#copiarInicio", parada_target: "inicio" } %>
+      </div>
+      <div class="client-field">
+        <%= form.label :data_fim, "Até" %>
+        <%= form.date_field :data_fim, data: { parada_target: "fim" } %>
+      </div>
+    </div>
+    <div class="client-field">
+      <%= form.label :turno_uuid, "Turno" %>
+      <%= form.select :turno_uuid, [ [ "O dia inteiro", "" ] ] + @turnos.map { |turno| [ "#{turno.nome} (#{turno.horario})", turno.uuid ] } %>
+      <small>Um dia só: "até" igual a "de". O turno escolhido vale em cada dia do período.</small>
+    </div>
+    <div class="client-field">
+      <%= form.label :etapa, "Vale para" %>
+      <%= form.select :etapa, [ [ "Toda a fábrica", "" ] ] + ExcecaoCalendario.etapas.map { |chave, nome| [ nome, chave ] }, {}, data: { action: "parada#escolherEtapa" } %>
+    </div>
+    <% @maquinas_por_etapa.each do |etapa, maquinas| %>
+      <fieldset class="parada-maquinas" data-parada-target="maquinas" data-etapa="<%= etapa %>" hidden disabled>
+        <legend>Máquinas da <%= ExcecaoCalendario.etapas[etapa] %></legend>
+        <% maquinas.each do |maquina| %>
+          <label class="parada-maquina">
+            <input type="checkbox" name="excecao[maquina_uuids][]" value="<%= maquina.uuid %>">
+            <span><%= maquina.nome %><% if maquina.trabalhos.size > 1 %> <small>· <%= maquina.trabalhos.map { |feito| feito.tipo_de_trabalho.nome }.to_sentence(two_words_connector: " e ", last_word_connector: " e ") %></small><% end %></span>
+          </label>
+        <% end %>
+        <small>Nenhuma marcada: a etapa toda para. Uma máquina marcada para inteira, também nas outras etapas que faz.</small>
+      </fieldset>
+    <% end %>
+    <div class="client-dialog-actions">
+      <button type="button" class="btn btn-secondary" data-action="dialog#close">Cancelar</button>
+      <%= form.submit "Salvar parada", class: "btn btn-primary" %>
+    </div>
+  <% end %>
+</dialog>

@@ -1,0 +1,12 @@
+<%# The stop just saved (Máquinas 3/5a, Q3a): who comes to be late, and the
+    pieces waiting for its machines (Q2a). locals: parada %>
+<% atrasados = atrasados_do_impacto(parada) %>
+<% esperam = parada.impacto&.dig("esperam").to_i %>
+<div class="parada-aviso" data-parada-aviso role="status">
+  <p><b><%= parada.nome %> (<%= periodo_da_parada(parada) %>) salva.</b>
+    <%= atrasados.empty? ? "Ninguém passa a atrasar." : "#{pluralize(atrasados.size, "pedido passa", plural: "pedidos passam")} a atrasar:" %>
+    <% if esperam.positive? %><%= pluralize(esperam, "peça presa ou começada", plural: "peças presas ou começadas") %> nas máquinas dela <%= esperam == 1 ? "espera" : "esperam" %> elas voltarem.<% end %></p>
+  <% if atrasados.any? %>
+    <ul><% atrasados.each do |item| %><li><%= linha_do_impacto(item, @pedidos_do_impacto) %></li><% end %></ul>
+  <% end %>
+</div>

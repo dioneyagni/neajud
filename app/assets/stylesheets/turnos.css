@@ -96,3 +96,18 @@
 .maquina-historico h3 { font-size: 14px; font-weight: 500; color: #202124; }
 .maquina-historico ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .ritmo-das-maquinas small { color: #5f6368; }
+/* Máquinas 3/5a: the stops, their warning and the new stop's machines. */
+.calendario-rolagem { overflow-x: auto; }
+.calendario-excecoes small { color: #5f6368; }
+.parada-botoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; }
+.parada-form { display: inline-block; margin: 0; }
+.parada-ver summary { cursor: pointer; color: #1a73e8; display: inline; }
+.parada-ver ul, .parada-aviso ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.parada-aviso { background: #fef7e0; border: 1px solid #f9e2a6; border-radius: 8px; padding: 12px 16px; margin: 0 0 16px; }
+.parada-aviso p { margin: 0; }
+.parada-periodo { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.parada-maquinas { border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
+.parada-maquinas[hidden] { display: none; }
+.parada-maquinas legend { font-size: 14px; font-weight: 500; padding: 0 4px; }
+.parada-maquina { display: flex; gap: 8px; align-items: center; min-height: 32px; }
+.parada-maquinas small { color: #5f6368; font-size: 12px; }

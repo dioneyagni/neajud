@@ -38,21 +38,21 @@ runSpec("Turnos, calendário e ritmo E2E Tests", async ({ page, test }) => {
   });
 
   await test("The exception dialog opens centered, Cancel closes it, and saving adds a Calandra day off", async () => {
-    await page.click('button:has-text("New exception")');
+    await page.click('button:has-text("Nova parada")');
     const dialogo = page.locator("dialog.calendario-dialog");
     await dialogo.waitFor({ state: "visible" });
     const caixa = await dialogo.evaluate((d) => { const r = d.getBoundingClientRect(); return { top: r.top, left: r.left, right: window.innerWidth - r.right, vh: window.innerHeight }; });
     if (caixa.top < 0 || caixa.top > caixa.vh * 0.4 || Math.abs(caixa.left - caixa.right) > 4) throw new Error(`Dialog not centered: ${JSON.stringify(caixa)}`);
-    await dialogo.locator('button:has-text("Cancel")').click();
+    await dialogo.locator('button:has-text("Cancelar")').click();
     await dialogo.waitFor({ state: "hidden" });
 
-    await page.click('button:has-text("New exception")');
+    await page.click('button:has-text("Nova parada")');
     await dialogo.locator("#excecao_nome").fill("Calandra parada");
     await dialogo.locator("#excecao_data").fill(`${ano}-12-01`);
     await dialogo.locator("#excecao_turno_uuid").selectOption({ label: "Tarde (14:00–22:00)" });
     await dialogo.locator("#excecao_etapa").selectOption({ label: "Calandra" });
     await dialogo.locator('input[type="submit"]').click();
-    await waitForText(page, `Calandra parada (01/12/${ano}) saved.`);
+    await waitForText(page, `Calandra parada (01/12/${ano}) salva.`);
     const linha = await page.locator('tr[data-excecao="Calandra parada"]').textContent();
     if (!linha.includes("Calandra · Tarde")) throw new Error(`Exception row says "${linha}"`);
   });

@@ -130,13 +130,13 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
     const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
     const [ano, mes, dia] = hoje.split("-");
     await page.goto(`${BASE_URL}/parametros/turnos`);
-    await page.click('button:has-text("New exception")');
+    await page.click('button:has-text("Nova parada")');
     const dialogo = page.locator("dialog.calendario-dialog");
     await dialogo.locator("#excecao_nome").fill("Prensa parada");
     await dialogo.locator("#excecao_data").fill(hoje);
     await dialogo.locator("#excecao_etapa").selectOption({ label: "Estamparia" });
     await dialogo.locator('input[type="submit"]').click();
-    await waitForText(page, `Prensa parada (${dia}/${mes}/${ano}) saved.`);
+    await waitForText(page, `Prensa parada (${dia}/${mes}/${ano}) salva.`);
 
     await page.goto(`${BASE_URL}/painel`);
     await page.locator(".painel-setor[data-setor='estamparia']").click();
@@ -148,7 +148,7 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
     if (sem.length) throw new Error(`A turno of the Calandra's pieces has no hours: ${sem.join(" | ")}`);
 
     await page.goto(`${BASE_URL}/parametros/turnos?ano=${ano}`);
-    await page.locator('tr[data-excecao="Prensa parada"] button:has-text("Remove")').click();
+    await page.locator('tr[data-excecao="Prensa parada"] button:has-text("Remover")').click();
     await waitForText(page, `Prensa parada (${dia}/${mes}/${ano}) removed.`);
     await page.locator('tr[data-excecao="Prensa parada"]').waitFor({ state: "detached" });
   });

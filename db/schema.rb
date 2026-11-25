@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -410,9 +410,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_120000) do
     t.string "origem", default: "manual", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "data_fim", null: false
+    t.json "impacto"
+    t.integer "user_id"
+    t.datetime "voltou_em"
+    t.integer "voltou_por_id"
     t.index ["data"], name: "index_excecoes_calendario_on_data"
+    t.index ["data_fim"], name: "index_excecoes_calendario_on_data_fim"
     t.index ["turno_id"], name: "index_excecoes_calendario_on_turno_id"
+    t.index ["user_id"], name: "index_excecoes_calendario_on_user_id"
     t.index ["uuid"], name: "index_excecoes_calendario_on_uuid", unique: true
+    t.index ["voltou_por_id"], name: "index_excecoes_calendario_on_voltou_por_id"
+  end
+
+  create_table "excecoes_calendario_maquinas", force: :cascade do |t|
+    t.integer "excecao_calendario_id", null: false
+    t.integer "maquina_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["excecao_calendario_id", "maquina_id"], name: "index_excecoes_maquinas_unicas", unique: true
+    t.index ["excecao_calendario_id"], name: "index_excecoes_calendario_maquinas_on_excecao_calendario_id"
+    t.index ["maquina_id"], name: "index_excecoes_calendario_maquinas_on_maquina_id"
   end
 
   create_table "exclusao_logs", force: :cascade do |t|
@@ -1097,6 +1115,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_120000) do
   add_foreign_key "eventos_pedido", "pedidos"
   add_foreign_key "eventos_pedido", "users"
   add_foreign_key "excecoes_calendario", "turnos"
+  add_foreign_key "excecoes_calendario", "users"
+  add_foreign_key "excecoes_calendario", "users", column: "voltou_por_id"
+  add_foreign_key "excecoes_calendario_maquinas", "excecoes_calendario", column: "excecao_calendario_id"
+  add_foreign_key "excecoes_calendario_maquinas", "maquinas"
   add_foreign_key "exclusao_logs", "users"
   add_foreign_key "faixas_de_preco", "moldes"
   add_foreign_key "fotos_da_fila", "turnos"

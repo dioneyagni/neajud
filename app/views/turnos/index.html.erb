@@ -1,6 +1,7 @@
 <% content_for :title, "Turnos e calendário" %>
 <%# Painel 2/4a (decided 05/11/2026): the turnos, the year's exceptions and
-    the national holidays suggested; the queue and the previsão run on them. %>
+    the national holidays suggested; the queue and the previsão run on them.
+    Máquinas 3/5a (canvas "Máquinas", 6–7): the stops, their machines and impact. %>
 <p class="parametros-voltar"><%= link_to "← Production parameters", edit_parametros_path %> · <%= link_to "Production rhythm", edit_parametros_ritmos_path %> · <%= link_to "Máquinas", parametros_maquinas_path %></p>
 <h2>Turnos e calendário</h2>
 <p class="funcoes-intro">The factory's working hours. A turno that ends before it starts crosses midnight and belongs to
@@ -21,33 +22,18 @@
 </section>
 
 <section class="calendario" id="calendario" data-controller="dialog">
+  <%= render "turnos/aviso_da_parada", parada: @parada_salva if @parada_salva %>
   <div class="calendario-topo">
     <h3>Calendar <%= @ano %></h3>
     <nav class="calendario-anos" aria-label="Year">
       <%= link_to "‹ #{@ano - 1}", parametros_turnos_path(ano: @ano - 1, anchor: "calendario") %>
       <%= link_to "#{@ano + 1} ›", parametros_turnos_path(ano: @ano + 1, anchor: "calendario") %>
     </nav>
-    <button type="button" class="btn btn-secondary" data-action="dialog#open">New exception</button>
+    <button type="button" class="btn btn-secondary" data-action="dialog#open">Nova parada</button>
   </div>
-  <p class="funcoes-intro">Days, or turnos, the whole factory or one stage doesn't work. The previsão skips them.</p>
+  <p class="funcoes-intro">Dias ou turnos em que a fábrica, uma etapa ou algumas máquinas não trabalham. A previsão pula esses dias.</p>
 
-  <table class="clients-table calendario-excecoes">
-    <thead><tr><th>Date</th><th>Name</th><th>Applies to</th><th></th></tr></thead>
-    <tbody>
-      <% manuais = @excecoes.reject { |excecao| excecao.origem == "feriado" } %>
-      <% manuais.each do |excecao| %>
-        <tr class="calendario-excecao" data-excecao="<%= excecao.nome %>">
-          <td><%= dia_com_semana(excecao.data) %></td>
-          <td><%= excecao.nome %></td>
-          <td><%= excecao.abrangencia %></td>
-          <td><%= button_to "Remove", parametros_excecao_path(excecao), method: :delete, class: "btn btn-secondary btn-sm", form: { style: "display: inline-block;" } %></td>
-        </tr>
-      <% end %>
-      <% if manuais.empty? %>
-        <tr><td colspan="4" class="calendario-vazio">No exception in <%= @ano %>.</td></tr>
-      <% end %>
-    </tbody>
-  </table>
+  <%= render "turnos/paradas", paradas: @excecoes.reject { |excecao| excecao.origem == "feriado" } %>
 
   <h4>National holidays (suggested)</h4>
   <p class="funcoes-intro">Check the ones the factory stops on. State and city holidays: add them as an exception.</p>
@@ -69,29 +55,5 @@
     <% end %>
   </ul>
 
-  <dialog class="client-dialog calendario-dialog" data-dialog-target="dialog" aria-labelledby="calendario-dialog-titulo">
-    <%= form_with url: parametros_excecoes_path, method: :post, scope: :excecao, class: "client-form" do |form| %>
-      <h4 id="calendario-dialog-titulo">New exception</h4>
-      <div class="client-field">
-        <%= form.label :nome, "Name" %>
-        <%= form.text_field :nome, required: true, placeholder: "e.g. Calandra maintenance, recess" %>
-      </div>
-      <div class="client-field">
-        <%= form.label :data, "Date" %>
-        <%= form.date_field :data, required: true %>
-      </div>
-      <div class="client-field">
-        <%= form.label :turno_uuid, "Turno" %>
-        <%= form.select :turno_uuid, [ [ "The whole day", "" ] ] + @turnos.map { |turno| [ "#{turno.nome} (#{turno.horario})", turno.uuid ] } %>
-      </div>
-      <div class="client-field">
-        <%= form.label :etapa, "Applies to" %>
-        <%= form.select :etapa, [ [ "The whole factory", "" ] ] + ExcecaoCalendario.etapas.map { |chave, nome| [ nome, chave ] } %>
-      </div>
-      <div class="client-dialog-actions">
-        <button type="button" class="btn btn-secondary" data-action="dialog#close">Cancel</button>
-        <%= form.submit "Save exception", class: "btn btn-primary" %>
-      </div>
-    <% end %>
-  </dialog>
+  <%= render "turnos/nova_parada" %>
 </section>

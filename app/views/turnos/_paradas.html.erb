@@ -1,0 +1,41 @@
+<%# The year's stops (Máquinas 3/5a, canvas "Máquinas", 6): the period, who
+    made it, what it stops, what it did to the queue when saved — the late
+    ones under "ver" — and its buttons. "Voltou a funcionar" ends one under
+    way from now on; "Remover" is for one made by mistake; one that ended
+    stays on the record with none. locals: paradas %>
+<div class="calendario-rolagem">
+  <table class="clients-table calendario-excecoes">
+    <thead><tr><th>Período</th><th>Nome</th><th>Vale para</th><th>Impacto ao salvar</th><th></th></tr></thead>
+    <tbody>
+      <% paradas.each do |parada| %>
+        <tr class="calendario-excecao" data-excecao="<%= parada.nome %>">
+          <td><%= periodo_da_parada(parada) %></td>
+          <td><%= parada.nome %><% if (autoria = autoria_da_parada(parada)) %><br><small><%= autoria %></small><% end %></td>
+          <td><%= parada.abrangencia %><% if parada.tambem_para.any? %><br><small data-tambem-para>para também na <%= parada.tambem_para.to_sentence(two_words_connector: " e ", last_word_connector: " e ") %></small><% end %></td>
+          <td data-impacto-da-parada>
+            <%= impacto_da_parada(parada) %>
+            <% if (atrasados = atrasados_do_impacto(parada)).any? %>
+              <details class="parada-ver"><summary>ver</summary>
+                <ul><% atrasados.each do |item| %><li><%= linha_do_impacto(item, @pedidos_do_impacto) %></li><% end %></ul>
+              </details>
+            <% end %>
+          </td>
+          <td class="parada-botoes">
+            <% if parada.voltou_em %>
+              <small data-voltou><%= voltou_da_parada(parada) %></small>
+            <% end %>
+            <% if parada.em_andamento? %>
+              <%= button_to "Voltou a funcionar", voltou_parametros_excecao_path(parada), method: :patch, class: "btn btn-secondary btn-sm", form: { class: "parada-form" } %>
+            <% end %>
+            <% unless parada.encerrada? %>
+              <%= button_to "Remover", parametros_excecao_path(parada), method: :delete, class: "btn btn-secondary btn-sm", form: { class: "parada-form" } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+      <% if paradas.empty? %>
+        <tr><td colspan="5" class="calendario-vazio">Nenhuma parada em <%= @ano %>.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

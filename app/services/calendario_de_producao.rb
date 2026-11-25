@@ -5,6 +5,11 @@
 # none where the whole factory, or that stage, stops (Q8a). The queue and
 # the previsão (2/4b) fill those hours by each stage's rhythm.
 #
+# Máquinas 3/5a (decided 24/11/2026): a stop may take some machines only —
+# each whole, whatever stage it does (Q1a) —, so the hours are asked per
+# machine too (maquina_id); and a stop that came back to work (voltou_em)
+# gives the hours from that moment on.
+#
 # Usage: calendario = CalendarioDeProducao.new
 #        calendario.agora&.rotulo # => "Manhã (06:00–14:00)"
 #        calendario.ocorrencias(de: Time.current, ate: 3.days.from_now).map { |o| [ o.data, o.turno.nome ] }
@@ -52,13 +57,22 @@ class CalendarioDeProducao
         .sort_by(&:inicio)
   end
 
-  # Hours the stage has in the turno: none when it stops there; from the
-  # moment on when the turno is under way.
-  def horas(ocorrencia, chave_da_etapa, desde: nil)
-    return 0.0 if parada?(ocorrencia, chave_da_etapa)
+  # Hours the stage — or its machine — has in the turno: none when it stops
+  # there; from the moment on when the turno is under way, or when a stop
+  # came back to work in it.
+  # Usage: calendario.horas(ocorrencia, "calandra", maquina_id: calandra_2.id) # => 0.0 while it stops
+  def horas(ocorrencia, chave_da_etapa, desde: nil, maquina_id: nil)
+    comeco = comeco(ocorrencia, chave_da_etapa, desde: desde, maquina_id: maquina_id)
+    comeco ? (ocorrencia.fim - comeco) / 3600.0 : 0.0
+  end
 
-    comeco = [ ocorrencia.inicio, desde ].compact.max
-    [ (ocorrencia.fim - comeco) / 3600.0, 0.0 ].max
+  # When the free hours start in the turno (the queue lays its pieces from
+  # there), or nil when it has none.
+  # Usage: calendario.comeco(ocorrencia, "calandra", desde: Time.current) # => 10:15, the stop came back then
+  def comeco(ocorrencia, chave_da_etapa, desde: nil, maquina_id: nil)
+    ate = excecoes_do_dia(ocorrencia.data).filter_map { |excecao| excecao.parada_ate(ocorrencia, chave_da_etapa, maquina_id: maquina_id) }.max
+    comeco = [ ocorrencia.inicio, desde, ate ].compact.max
+    comeco if comeco < ocorrencia.fim
   end
 
   # Hours a sector has in the turno: the most of its stages that have work
@@ -66,14 +80,22 @@ class CalendarioDeProducao
   # tecido's Calandra, different machines that stop apart — read by the
   # sector's own name, a Calandra stop was never seen and an Estamparia one
   # left the Calandra's pieces in "2 h de 0 h" (fixed 19/11/2026; machines,
-  # decision 6a, replace it).
+  # decision 6a, replace it). maquina_id: one machine's (Máquinas 3/5a).
   # Usage: calendario.horas_do_setor(ocorrencia, %w[estamparia calandra], desde: Time.current) # => 8.0
-  def horas_do_setor(ocorrencia, chaves_das_etapas, desde: nil)
-    chaves_das_etapas.map { |chave| horas(ocorrencia, chave, desde: desde) }.max || 0.0
+  def horas_do_setor(ocorrencia, chaves_das_etapas, desde: nil, maquina_id: nil)
+    chaves_das_etapas.map { |chave| horas(ocorrencia, chave, desde: desde, maquina_id: maquina_id) }.max || 0.0
   end
 
-  def parada?(ocorrencia, chave_da_etapa)
-    excecoes_do_dia(ocorrencia.data).any? { |excecao| excecao.para?(ocorrencia, chave_da_etapa) }
+  # The same calendar with one more exception (a stop not saved yet: its
+  # impact, ImpactoDaParada).
+  # Usage: calendario.com(parada).horas(ocorrencia, "calandra", maquina_id: calandra_2.id) # => 0.0
+  def com(excecao)
+    self.class.new(turnos: @turnos, excecoes: (@excecoes || ExcecaoCalendario.includes(:paradas_das_maquinas).to_a) + [ excecao ])
+  end
+
+  # Does the stage (nil: the whole factory) — or its machine — stop for the whole turno?
+  def parada?(ocorrencia, chave_da_etapa, maquina_id: nil)
+    comeco(ocorrencia, chave_da_etapa, maquina_id: maquina_id).nil?
   end
 
   private
@@ -85,8 +107,11 @@ class CalendarioDeProducao
     end
   end
 
+  # A stop of several days (Máquinas 3/5a, Q6a) is on each of them.
   def excecoes_do_dia(data)
-    @por_dia ||= (@excecoes || ExcecaoCalendario.all.to_a).group_by(&:data)
+    @por_dia ||= (@excecoes || ExcecaoCalendario.includes(:paradas_das_maquinas).to_a).each_with_object(Hash.new { |dias, dia| dias[dia] = [] }) do |excecao, dias|
+      (excecao.data..(excecao.data_fim || excecao.data)).each { |dia| dias[dia] << excecao }
+    end
     @por_dia.fetch(data, [])
   end
 end

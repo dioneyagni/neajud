@@ -52,8 +52,9 @@ class RecursosDaFila
 
   # The hours the sector has in the turno: each resource's, summed — three
   # machines in a 4 h turno have 12 h. A resource has the most of its
-  # stages that work there (CalendarioDeProducao#horas_do_setor).
+  # stages that work there (CalendarioDeProducao#horas_do_setor); a stopped
+  # machine none (Máquinas 3/5a).
   def horas(ocorrencia, setor, pares, desde: nil)
-    do_setor(setor, pares).sum { |_, etapas| @calendario.horas_do_setor(ocorrencia, etapas, desde: desde) }
+    do_setor(setor, pares).sum { |recurso, etapas| @calendario.horas_do_setor(ocorrencia, etapas, desde: desde, maquina_id: recurso.maquina&.id) }
   end
 end
