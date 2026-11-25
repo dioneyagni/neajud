@@ -1,6 +1,7 @@
 <%# A machine's page (Máquinas 1/5, canvas "Máquinas", 2): the name, what it
     does — each trabalho checked with its speed — and the Corte do calçado's
-    parameters (Q8a, blank = the default), then its histórico. A machine in
+    parameters (Q8a, blank = the default), then its histórico. Máquinas 4/5b:
+    each trabalho it does says its measure and use, with the fix. A machine in
     the trash opens read only. The trash button is outside the form (a
     button_to is a form of its own). locals: titulo %>
 <% editavel = !@maquina.excluido? %>
@@ -32,6 +33,17 @@
             <input type="text" inputmode="decimal" name="<%= campo %>[por_hora]" value="<%= numero_br(feito&.por_hora, 3) %>"
                    aria-label="Velocidade em <%= trabalho.nome %>" data-velocidade-de="<%= trabalho.chave %>" <%= "disabled" unless feito %>>
             <span class="maquina-unidade"><%= trabalho.unidade %></span>
+          <% end %>
+          <% if feito&.persisted? && @uso_das_maquinas %>
+            <%# Máquinas 4/5b (canvas "Máquinas", 11): its own measure, what it
+                uses and the fix — "usar a informada" when its baixas distort it. %>
+            <% linha = @uso_das_maquinas.do_trabalho(feito) %>
+            <div class="maquina-uso" data-uso-de="<%= trabalho.chave %>">
+              <span data-medida><%= linha.medida ? "medida #{medida_da_maquina(linha)}" : "medida: #{medida_da_maquina(linha)} com baixa" %> · em uso: <%= em_uso_da_maquina(linha) %></span>
+              <input type="hidden" name="<%= campo %>[fixar_informado]" value="0">
+              <label class="maquina-fixar"><input type="checkbox" name="<%= campo %>[fixar_informado]" value="1" <%= "checked" if feito.fixar_informado %>
+                     id="fixar_<%= trabalho.chave %>" data-velocidade-de="<%= trabalho.chave %>"> usar a informada</label>
+            </div>
           <% end %>
         </div>
       <% end %>

@@ -212,7 +212,8 @@ areas:
       - "app/helpers/{turnos,ritmos_producao}_helper.rb"
       - "app/assets/stylesheets/turnos.css"
   # Máquinas 1/5 (21/11/2026): the machines and Ritmos reading them; 2/5a
-  # the queue per machine and the sector's lanes.
+  # the queue per machine and the sector's lanes; 4/5b what each machine
+  # measured and uses.
   maquinas:
     specs: [maquinas, parametros-producao, painel-programacao, painel-maquinas]
     arquivos:
@@ -221,7 +222,8 @@ areas:
       - "app/models/{maquina,trabalho_da_maquina,alteracao_da_maquina,trabalhos_de_maquina}.rb"
       - "app/models/concerns/parametros_do_corte.rb"
       - "app/services/salvar_maquina.rb"
-      - "app/helpers/maquinas_helper.rb"
+      - "app/helpers/{maquinas,uso_das_maquinas}_helper.rb"
+      - "app/services/{ritmo_da_maquina,uso_das_maquinas}.rb"
       - "app/javascript/controllers/{maquina,maquinas_da_fila}_controller.js"
       - "app/services/recursos_da_fila.rb"
       - "app/helpers/maquinas_da_fila_helper.rb"

@@ -10,8 +10,8 @@
 #        recursos.horas(ocorrencia, "estamparia", [ %w[tecido calandra] ], desde: agora) # => 8.0 (two machines, 4 h)
 class RecursosDaFila
   # chave: the agenda's key; maquina, trabalho (its TrabalhoDaMaquina): nil
-  # for the sector; parte: its share of the stage's rhythm.
-  Recurso = Struct.new(:chave, :maquina, :trabalho, :parte, keyword_init: true) do
+  # for the sector.
+  Recurso = Struct.new(:chave, :maquina, :trabalho, keyword_init: true) do
     def maquina?
       !maquina.nil?
     end
@@ -30,10 +30,10 @@ class RecursosDaFila
     @do_ritmo[[ ritmo.tipo, ritmo.etapa, setor ]] ||=
       if ritmo.com_maquinas?
         ritmo.maquinas.sort_by(&:maquina_id).map do |trabalho|
-          Recurso.new(chave: "maquina:#{trabalho.maquina_id}", maquina: trabalho.maquina, trabalho: trabalho, parte: ritmo.parte_da_maquina(trabalho))
+          Recurso.new(chave: "maquina:#{trabalho.maquina_id}", maquina: trabalho.maquina, trabalho: trabalho)
         end
       else
-        [ Recurso.new(chave: setor, parte: 1.0) ]
+        [ Recurso.new(chave: setor) ]
       end
   end
 

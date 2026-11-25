@@ -1,0 +1,11 @@
+<%# Máquinas 4/5b (canvas "Máquinas", 12): a stage with machines sums
+    theirs — the informada, the measured (how many have their own) and the
+    one in use, with what it is made of; the fix is each machine's.
+    locals: ritmo %>
+<%= render "das_maquinas", ritmo: ritmo %>
+<td class="ritmo-medido" data-medido-das-maquinas><%= medido_das_maquinas(ritmo, @uso_das_maquinas) %></td>
+<td class="ritmo-fixar-nas-maquinas" data-fix-das-maquinas><%= fix_das_maquinas(ritmo) %></td>
+<td class="ritmo-em-uso" data-em-uso-das-maquinas>
+  <% valor, composicao = em_uso_das_maquinas(ritmo, @uso_das_maquinas) %>
+  <strong><%= valor %></strong> <small>· <%= composicao %></small>
+</td>

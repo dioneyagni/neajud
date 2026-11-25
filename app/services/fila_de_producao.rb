@@ -112,7 +112,10 @@ class FilaDeProducao
     @recursos = RecursosDaFila.new(@ritmos, calendario)
     @opcoes = {}.compare_by_identity
     @cargas = {}
-    @medidas = RitmoMedido.call(calendario, ate: agora, ritmos: @ritmos.values)
+    medido = RitmoMedido.new(calendario, ate: agora, ritmos: @ritmos.values)
+    @medidas = medido.call
+    # Máquinas 4/5b: each machine's own, read with the stage's.
+    @medidas_das_maquinas = medido.das_maquinas
     @ocorrencias = calendario.ocorrencias(de: agora, ate: agora + HORIZONTE)
     @agenda = Agenda.new(Hash.new(agora), {})
     @filas = Hash.new { |filas, setor| filas[setor] = [] }
@@ -399,11 +402,21 @@ class FilaDeProducao
 
   def opcao_em(vez, ritmo, recurso, agenda)
     carga = carga_em(vez, ritmo, recurso, agenda)
-    horas = ritmo.horas(carga.valor, @medidas[[ vez.pedido.tipo, vez.etapa.chave ]], parte: recurso.parte)
+    horas = horas_em(vez, ritmo, recurso, carga)
     return unless horas
 
     trechos, fim = trechos(vez.etapa.chave, [ agenda.livre[recurso.chave], pronto(vez) ].max, horas)
     Opcao.new(recurso: recurso, carga: carga, horas: horas, trechos: fim ? trechos : [], fim: fim)
+  end
+
+  # The hours there: a machine's at what it uses (RitmoDaMaquina, 4/5b),
+  # the sector's at the stage's rhythm in use; nil without a rhythm.
+  def horas_em(vez, ritmo, recurso, carga)
+    da_etapa = @medidas[[ vez.pedido.tipo, vez.etapa.chave ]]
+    return ritmo.horas(carga.valor, da_etapa) unless recurso.maquina?
+
+    propria = @medidas_das_maquinas[[ recurso.maquina.id, recurso.trabalho.trabalho ]]
+    carga.valor.to_f / RitmoDaMaquina.em_uso(ritmo, recurso.trabalho, propria: propria, da_etapa: da_etapa).valor
   end
 
   # Its load there: the same on every resource, but a cutting machine's

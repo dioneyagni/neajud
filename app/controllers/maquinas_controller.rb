@@ -2,12 +2,15 @@
 # "Máquinas"): the list with each trabalho's machines and informado, a page
 # per machine (name, what it does, the Corte do calçado's parameters,
 # histórico) and the trash. The dono's, like the rest of Parâmetros.
+# Máquinas 4/5b: the list and the page say what each machine measured and
+# uses, and the page fixes a trabalho at its informada.
 class MaquinasController < ApplicationController
   exige_dono
 
   def index
     @maquinas = visiveis(Maquina).ativos.includes(:trabalhos).order(:nome)
     @ritmos = RitmoProducao.da_fabrica(visiveis(RitmoProducao).to_a, trabalhos: visiveis(TrabalhoDaMaquina).ativos)
+    @uso_das_maquinas = uso_das_maquinas(@ritmos)
   end
 
   def new
@@ -55,10 +58,16 @@ class MaquinasController < ApplicationController
 
   def preparar_pagina
     @alteracoes = @maquina.new_record? ? [] : visiveis(AlteracaoDaMaquina).where(maquina: @maquina).recentes.includes(:user)
+    @uso_das_maquinas = uso_das_maquinas(RitmoProducao.da_fabrica(visiveis(RitmoProducao).to_a, trabalhos: visiveis(TrabalhoDaMaquina).ativos)) if @maquina.persisted?
+  end
+
+  # What each machine measured and uses (Máquinas 4/5b).
+  def uso_das_maquinas(ritmos)
+    UsoDasMaquinas.new(ritmos, RitmoMedido.new(calendario_de_producao, ritmos: ritmos.values))
   end
 
   def dados_da_maquina
-    campos = [ :marcado, *SalvarMaquina::CAMPOS ]
+    campos = [ :marcado, :fixar_informado, *SalvarMaquina::CAMPOS ]
     params.require(:maquina).permit(:nome, trabalhos: TrabalhosDeMaquina.chaves.index_with { campos }).to_h
   end
 end

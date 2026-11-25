@@ -16,12 +16,12 @@ RSpec.describe RecursosDaFila do
     described_class.new(RitmoProducao.da_fabrica, calendario)
   end
 
-  it "gives a trabalho's machines, the first registered first, with their share; the sector with none" do
+  it "gives a trabalho's machines, the first registered first, the sector with none" do
     c2 = maquina("Calandra 2", calandra: 40, dublagem: 30)
     c3 = maquina("Calandra 3", calandra: 40)
     lista = recursos.do_ritmo(RitmoProducao.da_fabrica[%w[tecido calandra]], "estamparia")
 
-    expect(lista.map { |r| [ r.chave, r.maquina, r.parte, r.maquina? ] }).to eq([ [ "maquina:#{c2.id}", c2, 0.5, true ], [ "maquina:#{c3.id}", c3, 0.5, true ] ])
+    expect(lista.map { |r| [ r.chave, r.maquina, r.maquina? ] }).to eq([ [ "maquina:#{c2.id}", c2, true ], [ "maquina:#{c3.id}", c3, true ] ])
     expect(recursos.do_ritmo(RitmoProducao.da_fabrica[%w[calcado estamparia]], "estamparia").map { |r| [ r.chave, r.maquina? ] }).to eq([ [ "estamparia", false ] ])
   end
 

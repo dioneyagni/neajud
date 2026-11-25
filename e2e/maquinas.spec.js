@@ -4,7 +4,8 @@
 // shows a row with machines read only, the Painel puts the Calandra on the
 // machine that ends it first (Máquinas 2/5a: a piece goes whole on one
 // machine, Q3a), a trashed machine comes back from the Lixeira and its name
-// stays taken there. Last, every machine goes to the trash: the specs after
+// stays taken there; Máquinas 4/5b: the list's row per trabalho and the
+// fix ("usar a informada") on the machine's page. Last, every machine goes to the trash: the specs after
 // this one type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
@@ -55,8 +56,11 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     const linha = (await linhaDoTrabalho("calandra").innerText()).replace(/\s+/g, " ");
     if (!linha.includes(calandra) || !linha.includes("25 m/h")) throw new Error(`The Calandra's row says "${linha}"`);
     if (!(await linhaDoTrabalho("dublagem").innerText()).includes("30 m/h")) throw new Error("The Dublagem's row lacks 30 m/h");
-    const chips = await page.locator(`tr[data-maquina="${calandra}"] .maquina-chip`).allInnerTexts();
-    if (chips.join(" | ") !== "Calandra · 25 m/h | Dublagem · 30 m/h") throw new Error(`Its chips are ${chips.join(" | ")}`);
+    // Máquinas 4/5b: a row per trabalho, nothing measured yet.
+    const linhas = (await page.locator(`tbody:has(tr[data-maquina="${calandra}"]) tr`).allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
+    if (linhas.length !== 2 || !linhas[0].includes("Calandra 25 m/h faltam 5 turnos informada · 25 m/h") || !linhas[1].includes("Dublagem 30 m/h faltam 5 turnos informada · 30 m/h")) {
+      throw new Error(`Its rows are ${linhas.join(" | ")}`);
+    }
   });
 
   await test("A checked trabalho without speed is refused, the name typed kept", async () => {
@@ -110,13 +114,31 @@ runSpec("Máquinas E2E Tests", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/parametros/maquinas`);
     await page.click(`tr[data-maquina="${calandra}"] a`);
     await page.uncheck("#trabalho_dublagem");
-    if (!(await page.locator('[data-velocidade-de="dublagem"]').isDisabled())) throw new Error("The Dublagem's speed stayed open");
-    await page.fill('[data-velocidade-de="calandra"]', "40");
+    if (!(await page.locator('[data-velocidade-de="dublagem"][name$="[por_hora]"]').isDisabled())) throw new Error("The Dublagem's speed stayed open");
+    // Máquinas 4/5b: its fix goes with it.
+    if (!(await page.locator("#fixar_dublagem").isDisabled())) throw new Error("The Dublagem's fix stayed open");
+    await page.fill('[data-velocidade-de="calandra"][name$="[por_hora]"]', "40");
     await page.click('button[form="maquina-form"]');
     await waitForText(page, `${calandra}: salva.`);
     await page.click(`tr[data-maquina="${calandra}"] a`);
     await waitForText(page, "Calandra 25 m/h → 40 m/h; tirou Dublagem");
     await waitForText(page, "criou com Calandra 25 m/h e Dublagem 30 m/h");
+  });
+
+  // Máquinas 4/5b (Q4a): the fix is each machine's, on its page.
+  await test("Usar a informada on the Calandra: the histórico, the list and Ritmos say it", async () => {
+    await page.check("#fixar_calandra");
+    await page.click('button[form="maquina-form"]');
+    await waitForText(page, `${calandra}: salva.`);
+    const linha = (await page.locator(`tr[data-maquina="${calandra}"] [data-em-uso]`).innerText()).replace(/\s+/g, " ").trim();
+    if (linha !== "informada · 40 m/h fixada") throw new Error(`Its use says "${linha}"`);
+    await page.goto(`${BASE_URL}/parametros/ritmos/edit`);
+    const fix = (await page.locator('tr[data-ritmo="tecido:calandra"] [data-fix-das-maquinas]').innerText()).trim();
+    if (fix !== "fixado em 1 de 2 máquinas") throw new Error(`Ritmos' fix says "${fix}"`);
+    await page.goto(`${BASE_URL}/parametros/maquinas`);
+    await page.click(`tr[data-maquina="${calandra}"] a`);
+    await waitForText(page, "Calandra: passou a usar a informada");
+    if (!(await page.isChecked("#fixar_calandra"))) throw new Error("The fix came back unchecked");
   });
 
   await test("To the trash and back from the Lixeira; its name stays taken there", async () => {

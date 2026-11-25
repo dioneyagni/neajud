@@ -21,7 +21,10 @@ RSpec.describe "Máquinas", type: :request do
     expect(linha.call("impressao_dtf")).to eq("Impressão DTF nenhuma — usa o ritmo de Ritmos 10 m/h")
     expect(linha.call("impressao_papel")).to include("Calçado sem ritmo · Tecido sem ritmo")
     expect(linha.call("corte_calcado")).to include("pelos parâmetros de Ritmos")
-    expect(response.body).to include("Calandra · 40 m/h", "Dublagem · 30 m/h")
+    linhas = Nokogiri::HTML(response.body).css(".maquinas-lista tbody tr").map { |tr| tr.css("td").map { |td| td.text.squish } }
+    expect(linhas).to eq([ [ "Calandra 2", "Calandra", "40 m/h", "faltam 5 turnos", "informada · 40 m/h", "Lixeira" ],
+                           [ "Dublagem", "30 m/h", "faltam 5 turnos", "informada · 30 m/h" ],
+                           [ "Calandra 3", "Calandra", "40 m/h", "faltam 5 turnos", "informada · 40 m/h", "Lixeira" ] ])
   end
 
   it "creates a machine and opens its page with the histórico" do
@@ -73,14 +76,15 @@ RSpec.describe "Máquinas", type: :request do
       criar("Mesa 1", corte_calcado: { velocidade_mm_s: "120" })
       get edit_parametros_ritmos_path
       calandra = response.body[/data-ritmo="tecido:calandra".*?<\/tr>/m]
-      expect(calandra.gsub(/<[^>]+>/, " ").squish).to include("80 m/h · 2 máquinas · ver máquinas", "80 m/h yours")
+      expect(calandra.gsub(/<[^>]+>/, " ").squish).to include("80 m/h · 2 máquinas · ver máquinas", "0 de 2 máquinas", "nas máquinas", "80 m/h · 40 + 40 informadas")
       expect(calandra).not_to include("[por_hora]")
       corte = response.body[/data-ritmo="calcado:corte".*?<\/tr>/m]
       expect(corte.gsub(/<[^>]+>/, " ").squish).to include("pelos parâmetros de 1 máquina · ver máquinas")
       expect(corte).not_to include("[velocidade_mm_s]")
 
       patch parametros_ritmos_path, params: { ritmos: { tecido: { calandra: { por_hora: "99", fixar_informado: "1" } }, calcado: { corte: { velocidade_mm_s: "5" } } } }
-      expect(RitmoProducao.pluck(:etapa, :por_hora, :fixar_informado, :velocidade_mm_s)).to eq([ [ "calandra", 25, true, nil ] ])
+      # Its fix is each machine's now (Máquinas 4/5b): the row's stays as it was.
+      expect(RitmoProducao.pluck(:etapa, :por_hora, :fixar_informado, :velocidade_mm_s)).to eq([ [ "calandra", 25, false, nil ] ])
     end
   end
 end
