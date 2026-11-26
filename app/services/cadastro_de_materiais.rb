@@ -8,11 +8,12 @@
 #
 # Usage: r = CadastroDeMateriais.new(grupos: g, materiais: { "papel" => {…} }).call
 #        r[:criados] # => ["Papel", "Papel-Branco-1.60 m-90g"]; r[:materiais]["papel"] # => the MateriaPrima
+#        r[:recusados] # => { "filme_x" => "Gramatura é obrigatório no grupo Filme" }
 class CadastroDeMateriais
   def initialize(grupos:, materiais:)
     @grupos = grupos
     @materiais = materiais.is_a?(Hash) ? materiais : materiais.each_with_index.to_h { |dados, i| [ i, dados ] }
-    @relatorio = { criados: [], existentes: [], materiais: {} }
+    @relatorio = { criados: [], existentes: [], materiais: {}, recusados: {} }
   end
 
   # The material already registered for these attributes, or nil — without
@@ -36,12 +37,20 @@ class CadastroDeMateriais
   def call
     ActiveRecord::Base.transaction do
       @grupos.each { |dados| semear_grupo(dados) }
-      @materiais.each { |chave, dados| @relatorio[:materiais][chave] = semear_material(dados) }
+      @materiais.each { |chave, dados| guardar(chave, dados) }
     end
     @relatorio
   end
 
   private
+
+  # A material its group's rules refuse (a group already there, asking what
+  # this one doesn't have) is left out, saying why — never changes the group.
+  def guardar(chave, dados)
+    @relatorio[:materiais][chave] = semear_material(dados)
+  rescue ActiveRecord::RecordInvalid => e
+    @relatorio[:recusados][chave] = e.record.errors.full_messages.to_sentence
+  end
 
   def semear_grupo(dados)
     return anotar(:existentes, dados[:nome]) if GrupoMaterial.where("LOWER(nome) = ?", dados[:nome].downcase).exists?

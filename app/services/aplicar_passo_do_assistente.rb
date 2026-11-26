@@ -73,8 +73,9 @@ class AplicarPassoDoAssistente
     return if escolhidos.empty?
 
     nomes = escolhidos.values.map { |m| m[:grupo] }.uniq
-    criados = CadastroDeMateriais.new(grupos: ConteudoDoAssistente.grupos.select { |g| nomes.include?(g[:nome]) }, materiais: escolhidos).call[:materiais]
-    definir_padroes(escolhidos, criados)
+    cadastro = CadastroDeMateriais.new(grupos: ConteudoDoAssistente.grupos.select { |g| nomes.include?(g[:nome]) }, materiais: escolhidos).call
+    cadastro[:recusados].each { |chave, motivo| @avisos << "#{rotulo(escolhidos[chave])} ficou de fora (#{motivo}): cadastre em Materiais" }
+    definir_padroes(escolhidos.slice(*cadastro[:materiais].keys), cadastro[:materiais])
   end
 
   private
@@ -110,6 +111,10 @@ class AplicarPassoDoAssistente
     maquina = Maquina.new
     dados = { nome: nome, trabalhos: { linha[:trabalho].to_s => { marcado: "1", por_hora: linha[:por_hora] } } }
     @erros.concat(maquina.errors.full_messages.map { |erro| "#{nome}: #{erro}" }) unless SalvarMaquina.new(maquina, dados, user: @autoria[:user]).call
+  end
+
+  def rotulo(dados)
+    [ dados[:nome] || dados[:grupo], dados[:cor] ].join(" ")
   end
 
   def definir_padroes(escolhidos, criados)

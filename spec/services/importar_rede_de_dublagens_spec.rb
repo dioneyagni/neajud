@@ -31,6 +31,15 @@ RSpec.describe ImportarRedeDeDublagens do
     expect(ligantes.map { |l| [ l.grupo_material.nome, l.situacao_dublagem&.chave, l.micras_minimo, l.posicao ] }).to eq([ [ "Filme", nil, 35, 1 ], [ "Filme PU", "tecido_molha", nil, 2 ] ])
   end
 
+  # Found 26/11/2026 on a fresh instance: created with the default
+  # (gramatura), the Filme refused its own ligantes in micras — and the
+  # wizard's materials step. A group the wizard knows takes its rules.
+  it "creates a group the wizard knows with what its materials are measured in" do
+    importar(ligacao)
+    expect([ GrupoMaterial.find_by!(nome: "Filme").atributos, GrupoMaterial.find_by!(nome: "Lona").atributos ])
+      .to eq([ { "micras" => true }, { "gramatura" => true } ])
+  end
+
   # Dublagem 5b2a: the file's Cola is counted in kg and asks its consumption.
   it "creates a missing group with the file's unit and attributes" do
     importar(ligacao("ligantes" => [ { "grupo" => "Cola" } ]), grupos: papeis.merge("Cola" => papeis["Filme"].merge("unidade" => "kg", "atributos" => { "consumo_g_m2" => true })))

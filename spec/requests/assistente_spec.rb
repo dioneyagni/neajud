@@ -81,10 +81,22 @@ RSpec.describe "Assistente inicial", type: :request do
     get passo_do_assistente_path("materiais")
     expect(html.css("[data-material]").map { |l| l["data-material"] }).to eq(%w[papel kraft plastico oxford_branco microfibra cetim filme_dtf])
     salvar("materiais", materiais: %w[papel filme_dtf oxford_branco])
-    expect(MateriaPrima.includes(:grupo_material).map { |m| m.grupo_material.nome }).to match_array([ "Papel", "Filme", "Oxford" ])
+    expect(MateriaPrima.includes(:grupo_material).map { |m| m.grupo_material.nome }).to match_array([ "Papel", "Filme DTF", "Oxford" ])
     expect([ empresa.papel_padrao.grupo_material.nome, empresa.filme_dtf_padrao.micras ]).to eq([ "Papel", 75 ])
     get passo_do_assistente_path("materiais")
     expect(html.css("[data-material] .assistente-feito").size).to eq(3)
+  end
+
+  # Found 26/11/2026 on a fresh instance: the network's groups were there
+  # first, and one asking what a typical material doesn't have blocked the
+  # whole step. It is left out, saying why; the DTF film has its own group.
+  it "goes on past a group already there that refuses a material, saying which" do
+    ImportarRedeDeDublagens.new.call
+    GrupoMaterial.create!(nome: "Papel", superficie: false, base: false, estampavel: "nao").tap { |g| g.definir_atributos(pede: [], obrigatorios: %w[espessura_mm]) }.save!
+    salvar("produz", tipos: %w[calcado dtf])
+    salvar("materiais", materiais: %w[papel filme_dtf])
+    expect([ response, flash[:alert] ]).to match([ redirect_to(painel_path), "Papel de sublimação Branco ficou de fora (Espessura (mm) é obrigatório no grupo Papel): cadastre em Materiais" ])
+    expect([ empresa.filme_dtf_padrao.grupo_material.nome, empresa.papel_padrao ]).to eq([ "Filme DTF", nil ])
   end
 
   it "leaves a reminder on the Painel after Fazer depois, from the step he left, until it ends" do

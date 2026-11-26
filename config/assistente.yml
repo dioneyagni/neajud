@@ -57,7 +57,7 @@ materiais:
   cetim: { grupo: "Cetim", cor: "Branco", largura: "1.50 m", gramatura: "90g" }
   telinha: { grupo: "Telinha", cor: "Branco", largura: "1.60 m", gramatura: "90g" }
   tnt: { grupo: "TNT", cor: "Branco", largura: "1.40 m", gramatura: "80g" }
-  filme_dtf: { grupo: "Filme", cor: "Branco", largura: "0.60 m", micras: 75, tipo: filme_dtf, nome: "Filme DTF", padrao: filme_dtf }
+  filme_dtf: { grupo: "Filme DTF", cor: "Branco", largura: "0.60 m", micras: 75, tipo: filme_dtf, padrao: filme_dtf }
   helanca: { grupo: "Helanca", cor: "Branco", largura: "1.60 m", gramatura: "150g" }
   lona: { grupo: "Lona", cor: "Bege", largura: "1.40 m", gramatura: "300g" }
   eva: { grupo: "EVA", cor: "Preto", largura: "1.40 m", espessura_mm: 2 }
@@ -77,6 +77,8 @@ grupos:
   - { nome: "EVA", superficie: false, base: true, estampavel: "nao", obrigatorios: [espessura_mm] }
   - { nome: "Espuma", superficie: false, base: true, estampavel: "nao", obrigatorios: [densidade, espessura_mm] }
   - { nome: "Filme", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
+  # The DTF's own film (the one it prints on), apart from the dublagem's ligante.
+  - { nome: "Filme DTF", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
   - { nome: "Filme PU", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
   - { nome: "Filme TPU", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
   - { nome: "Papel", superficie: false, base: false, estampavel: "nao", obrigatorios: [gramatura] }

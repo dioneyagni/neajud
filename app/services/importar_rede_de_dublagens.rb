@@ -62,7 +62,18 @@ class ImportarRedeDeDublagens
     return existente if existente
 
     dados = papeis[nome] || raise(Invalida, "group #{nome.inspect} is not registered and not in grupos:; expected its roles there (#{LeituraDaRedeInicial::PAPEIS.join(", ")})")
-    anotar(:criados, nome, GrupoMaterial.create!(nome: nome, **dados.symbolize_keys))
+    anotar(:criados, nome, GrupoMaterial.new(nome: nome, **dados.symbolize_keys).tap { |novo| com_as_regras(novo, dados) }.tap(&:save!))
+  end
+
+  # What a group asks of its materials, from the same rules the wizard uses
+  # (config/assistente.yml): created with the default (gramatura), the
+  # Filme of a new instance refused its own ligantes in micras — and the
+  # wizard's DTF film (found 26/11/2026 on a fresh instance).
+  def com_as_regras(grupo, dados)
+    return if dados.key?("atributos") || dados.key?(:atributos)
+
+    regras = ConteudoDoAssistente.grupos.find { |regra| regra[:nome].casecmp?(grupo.nome) }
+    grupo.definir_atributos(pede: regras[:pede], obrigatorios: regras[:obrigatorios]) if regras
   end
 
   def anotar(lista, nome, registro)
