@@ -11,7 +11,8 @@ RSpec.describe "Autenticação", type: :request, sem_login: true do
 
     it "creates the empresa and the dono, signs them in" do
       post configuracao_path, params: { configuracao: { empresa_nome: "Sublimação X", nome: "Ana", email_address: "ana@x.com", password: senha } }
-      expect(response).to redirect_to(root_path)
+      # Primeiros passos 2/6a (Q2a): the wizard comes right after.
+      expect(response).to redirect_to(assistente_path)
       expect(User.last.autorizacao).to be_dono
       get pedidos_path
       expect(response).to have_http_status(:ok)

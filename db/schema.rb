@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_120000) do
   create_table "alteracoes_arte", force: :cascade do |t|
     t.string "uuid", null: false
     t.integer "arte_id", null: false
@@ -383,6 +383,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
     t.integer "filme_dtf_padrao_id"
     t.decimal "preco_servico_dublagem", precision: 10, scale: 2
     t.integer "maximo_de_camadas", default: 8, null: false
+    t.json "tipos_produzidos"
+    t.string "tecido_de"
+    t.string "assistente_passo"
+    t.datetime "assistente_concluido_em"
     t.index ["filme_dtf_padrao_id"], name: "index_empresas_on_filme_dtf_padrao_id"
     t.index ["papel_padrao_id"], name: "index_empresas_on_papel_padrao_id"
     t.index ["uuid"], name: "index_empresas_on_uuid", unique: true

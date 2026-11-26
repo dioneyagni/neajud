@@ -5,6 +5,8 @@
   <%= link_to "Turnos e calendário", parametros_turnos_path, class: "btn btn-secondary" %>
   <%= link_to "Production rhythm", edit_parametros_ritmos_path, class: "btn btn-secondary" %>
   <%= link_to "Máquinas", parametros_maquinas_path, class: "btn btn-secondary" %>
+  <%# Primeiros passos 2/6a: redo the wizard — it only adds. %>
+  <%= link_to "Refazer o assistente", passo_do_assistente_path(PassosDoAssistente.primeiro.chave), class: "btn btn-secondary", data: { refazer_assistente: true } %>
 </nav>
 <p class="funcoes-intro">Used to check each baixa: the expected metragem comes from the files themselves
   (the arte's size on the paper, the DXF's fit on the fabric).</p>

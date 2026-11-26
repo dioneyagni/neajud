@@ -1,0 +1,13 @@
+<%# Primeiros passos 2/6a (Q2a, canvas 13): the wizard left halfway ("Fazer
+    depois") — the dono's only, until it ends; no way to dismiss it. %>
+<% empresa = visiveis(Empresa).first %>
+<% if empresa&.assistente_passo.present? && empresa.assistente_concluido_em.nil? %>
+  <% faltam = PassosDoAssistente.todos.drop(PassosDoAssistente.posicao(empresa.assistente_passo) - 1) %>
+  <section class="assistente-aviso" role="status" aria-label="Assistente pela metade" data-aviso-do-assistente>
+    <div>
+      <b>Termine o assistente</b>
+      <span>Faltam <%= faltam.size %> de <%= PassosDoAssistente.todos.size %> passos: <%= faltam.map(&:rotulo).to_sentence(two_words_connector: " e ", last_word_connector: " e ") %>. Até lá, tudo fica ligado, como antes do assistente.</span>
+    </div>
+    <%= link_to "Continuar de onde parei", assistente_path, class: "btn btn-primary" %>
+  </section>
+<% end %>

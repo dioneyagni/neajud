@@ -1,0 +1,18 @@
+<%# Step "O que produzem" (Q1a, canvas 7): the kinds of work; with a fabric
+    marked, whose it is. locals: form %>
+<p class="assistente-texto">Marque tudo o que a fábrica faz. O que ficar sem marcar some dos menus, dos pedidos e dos Parâmetros; dá para ligar depois em Parâmetros › Empresa.</p>
+<fieldset class="assistente-tipos">
+  <legend class="visually-hidden">Tipos de trabalho</legend>
+  <% ConteudoDoAssistente.tipos.each_value do |tipo| %>
+    <label class="assistente-opcao" data-tipo="<%= tipo.chave %>">
+      <input type="checkbox" name="assistente[tipos][]" value="<%= tipo.chave %>" <%= "checked" if Array(@tipos).include?(tipo.chave) %>>
+      <span><b><%= tipo.nome %></b><small><%= tipo.descricao %></small></span>
+    </label>
+  <% end %>
+</fieldset>
+<fieldset class="assistente-grupo">
+  <legend>De quem é o tecido? <small>(quando há tecido ou dublagem)</small></legend>
+  <% { "fabrica" => "Da fábrica", "cliente" => "Do cliente", "ambos" => "Dos dois" }.each do |valor, rotulo| %>
+    <label class="assistente-radio"><input type="radio" name="assistente[tecido_de]" value="<%= valor %>" <%= "checked" if (@empresa.tecido_de || "ambos") == valor %>> <%= rotulo %></label>
+  <% end %>
+</fieldset>

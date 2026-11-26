@@ -8,23 +8,9 @@
 # (papel, kraft, plástico de sucção; 28/10/2026) are neither. Materials are created with no stock and no price: entries and
 # prices stay the people's.
 module DadosDeDesenvolvimento
-  GRUPOS = [
-    { nome: "Oxford", superficie: true, base: true, estampavel: "sim", pede: %w[densidade], obrigatorios: %w[gramatura] },
-    { nome: "Microfibra", superficie: true, base: true, estampavel: "sim", obrigatorios: %w[gramatura] },
-    { nome: "Cetim", superficie: true, base: true, estampavel: "sim", obrigatorios: %w[gramatura] },
-    { nome: "Telinha", superficie: true, base: false, estampavel: "sim", obrigatorios: %w[gramatura] },
-    { nome: "TNT", superficie: true, base: true, estampavel: "ressalvas", ressalva: "a estampa pode ficar menos nítida", obrigatorios: %w[gramatura] },
-    { nome: "Helanca", superficie: false, base: true, estampavel: "nao", obrigatorios: %w[gramatura] },
-    { nome: "Lona", superficie: false, base: true, estampavel: "nao", obrigatorios: %w[gramatura] },
-    { nome: "EVA", superficie: false, base: true, estampavel: "nao", obrigatorios: %w[espessura_mm] },
-    { nome: "Espuma", superficie: false, base: true, estampavel: "nao", obrigatorios: %w[densidade espessura_mm] },
-    { nome: "Filme", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
-    { nome: "Filme PU", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
-    { nome: "Filme TPU", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] },
-    { nome: "Papel", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[gramatura] },
-    { nome: "Kraft", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[gramatura] },
-    { nome: "Plástico de sucção", superficie: false, base: false, estampavel: "nao", obrigatorios: %w[micras] }
-  ].freeze
+  # The groups' rules live in config/assistente.yml since Primeiros passos
+  # 2/6a: the wizard creates the same groups.
+  GRUPOS = ConteudoDoAssistente.grupos
 
   MATERIAIS = [
     { grupo: "Oxford", cor: "Branco", largura: "1.40 m", gramatura: "120g" },

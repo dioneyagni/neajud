@@ -1,0 +1,21 @@
+<%# Step "Materiais" (Q3a, canvas 11): the typical materials of the kinds
+    marked, checked; the ones there as done. No stock, no price.
+    locals: form %>
+<p class="assistente-texto">Os que costumam aparecer em quem produz o mesmo que vocês. Desmarque o que não usam. Entram sem saldo e sem preço; o saldo vem no primeiro lançamento de estoque.</p>
+<% (@tipos || ConteudoDoAssistente.tipos.keys).each do |chave| %>
+  <% tipo = ConteudoDoAssistente.tipos.fetch(chave) %>
+  <fieldset class="assistente-grupo assistente-materiais" data-tipo="<%= chave %>">
+    <legend><%= tipo.nome %></legend>
+    <% tipo.materiais.each do |id| %>
+      <% dados = ConteudoDoAssistente.materiais.fetch(id) %>
+      <% feito = @existentes[id] %>
+      <label class="assistente-radio" data-material="<%= id %>">
+        <input type="checkbox" name="assistente[materiais][]" value="<%= id %>" checked <%= "disabled" if feito %>>
+        <%= rotulo_do_material_tipico(dados) %>
+        <% if dados[:padrao] %><b class="assistente-selo"><%= dados[:padrao] == "papel" ? "papel padrão" : "filme padrão do DTF" %></b><% end %>
+        <% if feito %><small class="assistente-feito">já cadastrado</small><% end %>
+      </label>
+    <% end %>
+  </fieldset>
+<% end %>
+<p class="assistente-nota">Os grupos e as cores de cada um entram junto.</p>

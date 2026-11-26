@@ -420,7 +420,10 @@ RSpec.describe "Permissões por função", type: :request, sem_login: true do
         -> { patch parametros_turno_path(turno), params: { turno: { nome: "X" } } }, -> { delete parametros_turno_path(turno) },
         -> { delete parametros_excecao_path(excecao) },
         -> { post feriado_parametros_excecoes_path, params: { data: "2026-11-20", confirmado: "1" } },
-        -> { get edit_parametros_ritmos_path }, -> { patch parametros_ritmos_path, params: { ritmos: {} } }
+        -> { get edit_parametros_ritmos_path }, -> { patch parametros_ritmos_path, params: { ritmos: {} } },
+        # Primeiros passos 2/6a (Q2a): the wizard is the dono's.
+        -> { get assistente_path }, -> { get passo_do_assistente_path("produz") },
+        -> { patch passo_do_assistente_path("produz"), params: { assistente: { tipos: %w[dtf] } } }, -> { post assistente_depois_path }
       ]
       expect(pedidos.map { |pedido| instance_exec(&pedido) && response.status }.uniq).to eq([ 403 ])
       expect([ turno.reload.nome, ExcecaoCalendario.count, RitmoProducao.count ]).to eq([ "Manhã", 1, 0 ])

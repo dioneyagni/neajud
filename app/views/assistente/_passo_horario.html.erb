@@ -1,0 +1,29 @@
+<%# Step "Horário" (Q5, canvas 9): the turnos — the proposal when there are
+    none, the ones there as done — and the national holidays. locals: form %>
+<% dias = %w[dom seg ter qua qui sex sáb] %>
+<p class="assistente-texto">É daqui que o Painel sabe o turno de agora e quanto cabe em cada dia. Ajuste a proposta ao horário de vocês.</p>
+<% if @turnos.any? %>
+  <ul class="assistente-feitos" aria-label="Turnos já cadastrados">
+    <% @turnos.each do |turno| %><li data-turno-feito="<%= turno.nome %>">✓ <%= turno.nome %> · <%= turno.horario %></li><% end %>
+  </ul>
+<% end %>
+<% linhas = (@turnos.any? ? [] : ConteudoDoAssistente.turnos) + [ { nome: "", inicio: "", fim: "", dias: [ 1, 2, 3, 4, 5 ] } ] %>
+<div class="assistente-turnos">
+  <% linhas.each_with_index do |turno, i| %>
+    <div class="assistente-turno" data-turno-linha="<%= i %>">
+      <input type="text" name="assistente[turnos][][nome]" value="<%= turno[:nome] %>" placeholder="<%= i.zero? && @turnos.any? ? "Outro turno" : "Nome" %>" aria-label="Nome do turno <%= i + 1 %>">
+      <input type="time" name="assistente[turnos][][inicio]" value="<%= turno[:inicio] %>" aria-label="Começa">
+      <input type="time" name="assistente[turnos][][fim]" value="<%= turno[:fim] %>" aria-label="Termina">
+      <span class="assistente-dias">
+        <% dias.each_with_index do |dia, d| %>
+          <label class="assistente-dia"><input type="checkbox" name="assistente[turnos][][dias][]" value="<%= d %>" <%= "checked" if turno[:dias].include?(d) %>><span><%= dia %></span></label>
+        <% end %>
+      </span>
+    </div>
+  <% end %>
+</div>
+<label class="assistente-opcao assistente-opcao--simples">
+  <input type="hidden" name="assistente[feriados]" value="0">
+  <input type="checkbox" name="assistente[feriados]" value="1" checked>
+  <span><span>A fábrica para nos feriados nacionais</span><small>Marca os feriados deste ano no calendário; os estaduais e municipais você põe depois, como parada.</small></span>
+</label>

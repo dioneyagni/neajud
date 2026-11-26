@@ -198,6 +198,11 @@ Rails.application.routes.draw do
 
   # Painel 1/4 (04/11/2026): pedidos × stages; a pedido's items for the
   # expansion (its row alone went with 2/4b: the page refreshes whole).
+  # Primeiros passos 2/6a: the first-run wizard, a step at a time.
+  get "assistente", to: "assistente#show", as: :assistente
+  post "assistente/depois", to: "assistente#depois", as: :assistente_depois
+  get "assistente/:passo", to: "assistente#passo", as: :passo_do_assistente
+  patch "assistente/:passo", to: "assistente#salvar"
   get "painel", to: "paineis#show", as: :painel
   get "painel/pedidos/:uuid/itens", to: "paineis#itens", as: :itens_do_painel
   get "painel/fila/impacto", to: "movimentos_da_fila#impacto", as: :impacto_na_fila

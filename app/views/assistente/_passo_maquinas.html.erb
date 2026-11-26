@@ -1,0 +1,27 @@
+<%# Step "Máquinas" (Q6a, canvas 10): a machine per row with one trabalho,
+    only the trabalhos of the kinds marked; the ones there as done.
+    locals: form %>
+<% trabalhos = ConteudoDoAssistente.trabalhos_de(@tipos).map { |chave| TrabalhosDeMaquina.trabalho(chave) } %>
+<p class="assistente-texto">Uma linha por máquina, com o que ela faz e quanto faz por hora. A fila põe cada peça na máquina que termina primeiro.</p>
+<% if @maquinas.any? %>
+  <ul class="assistente-feitos" aria-label="Máquinas já cadastradas">
+    <% @maquinas.each do |maquina| %><li data-maquina-feita="<%= maquina.nome %>">✓ <%= maquina.nome %> · <%= maquina.trabalhos.map(&:descricao).to_sentence(two_words_connector: " e ", last_word_connector: " e ") %></li><% end %>
+  </ul>
+<% end %>
+<div class="assistente-rolagem">
+  <table class="assistente-maquinas">
+    <thead><tr><th>Nome</th><th>O que faz</th><th>Velocidade</th></tr></thead>
+    <tbody>
+      <% 3.times do |i| %>
+        <tr data-maquina-linha="<%= i %>">
+          <td><input type="text" name="assistente[maquinas][][nome]" placeholder="ex.: Calandra <%= i + 1 %>" aria-label="Nome da máquina <%= i + 1 %>"></td>
+          <td><select name="assistente[maquinas][][trabalho]" aria-label="O que a máquina <%= i + 1 %> faz">
+            <% trabalhos.each do |trabalho| %><option value="<%= trabalho.chave %>"><%= trabalho.nome %></option><% end %>
+          </select></td>
+          <td><input type="text" inputmode="decimal" name="assistente[maquinas][][por_hora]" aria-label="Velocidade da máquina <%= i + 1 %> (o Corte do calçado vai pelos parâmetros padrão)"></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<p class="assistente-nota">Uma máquina que faz mais de um trabalho ganha os outros na página dela, depois. O Corte do calçado vai pelos parâmetros padrão. Sem máquinas, tudo bem: pule o passo e digite o ritmo de cada etapa em Ritmos. A Conferência fica sempre em Ritmos.</p>

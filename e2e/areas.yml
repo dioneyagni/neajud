@@ -203,8 +203,17 @@ areas:
       - "app/assets/stylesheets/painel_tempo.css"
   # Primeiros passos 1/6 (26/11/2026): the map and the empty screens.
   primeiros-passos:
-    specs: [primeiros-passos]
+    specs: [primeiros-passos, autenticacao, assistente]
     arquivos:
+      - "config/assistente.yml"
+      - "app/services/{passos_do_assistente,aplicar_passo_do_assistente,conteudo_do_assistente,cadastro_de_materiais}.rb"
+      - "app/controllers/{assistente,configuracao}_controller.rb"
+      - "app/views/{assistente,layouts/assistente}*"
+      - "app/views/assistente/**/*"
+      - "app/views/layouts/assistente.html.erb"
+      - "app/views/paineis/_aviso_do_assistente.html.erb"
+      - "app/helpers/assistente_helper.rb"
+      - "app/assets/stylesheets/assistente.css"
       - "config/mapa.yml"
       - "app/services/{mapa_do_sistema,leitor_do_mapa}.rb"
       - "app/helpers/estado_vazio_helper.rb"

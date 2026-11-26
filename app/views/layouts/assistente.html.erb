@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<%# Primeiros passos 2/6a (canvas "Primeiros passos", 7–11): the wizard has
+    its own header — no menu, "Fazer depois" always there. %>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title) || "Configuração inicial · Neajud" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body class="assistente-corpo">
+    <header class="assistente-topo">
+      <strong>Neajud <span>· configuração inicial</span></strong>
+      <%= button_to "Fazer depois", assistente_depois_path(passo: @passo&.chave), method: :post, class: "assistente-depois", form: { class: "assistente-depois-form" } %>
+    </header>
+    <main class="assistente-pagina">
+      <% if notice %><p class="notice flash-notice" data-controller="flash"><%= notice %></p><% end %>
+      <% if (alerta = flash[:alert]) %><p class="alert flash-notice" data-controller="flash"><%= alerta %></p><% end %>
+      <%= yield %>
+    </main>
+  </body>
+</html>

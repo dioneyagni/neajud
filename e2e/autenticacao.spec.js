@@ -23,9 +23,13 @@ runSpec("Autenticação E2E Tests", async ({ page, test }) => {
     await page.fill('input[name="configuracao[email_address]"]', E2E_USUARIO.email);
     await page.fill('input[name="configuracao[password]"]', E2E_USUARIO.senha);
     await page.click('input[type="submit"][value="Create company and account"]');
-    await page.waitForSelector(".header-user");
+    // Primeiros passos 2/6a (Q2a): the wizard comes right after; "Fazer depois"
+    // leaves everything as before (the specs after this one need it so).
+    await page.waitForURL("**/assistente/produz");
     const notice = await page.textContent(".flash-notice");
     if (!notice.includes(E2E_USUARIO.nome) || !notice.includes(E2E_USUARIO.empresa)) throw new Error(`Unexpected welcome: "${notice}"`);
+    await page.click('button:has-text("Fazer depois")');
+    await page.waitForSelector(".header-user");
     const nome = await page.textContent(".header-user-nome");
     if (nome.trim() !== E2E_USUARIO.nome) throw new Error(`Header shows "${nome}", expected "${E2E_USUARIO.nome}"`);
   });

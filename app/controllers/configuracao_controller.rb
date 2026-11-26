@@ -14,7 +14,8 @@ class ConfiguracaoController < ApplicationController
     return render :new, status: :unprocessable_content unless @user.persisted?
 
     start_new_session_for @user
-    redirect_to root_path, notice: "Welcome, #{@user.nome}! #{Empresa.atual.nome} is ready."
+    # Primeiros passos 2/6a (Q2a): the wizard right after the first access.
+    redirect_to assistente_path, notice: "Welcome, #{@user.nome}! #{Empresa.atual.nome} is ready."
   end
 
   private

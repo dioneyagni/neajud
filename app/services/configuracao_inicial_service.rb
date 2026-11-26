@@ -23,6 +23,9 @@ class ConfiguracaoInicialService
     return @user unless valido?
 
     ActiveRecord::Base.transaction do
+      # Primeiros passos 2/6a (Q2a): a new instance starts the wizard; closing
+      # it halfway leaves the Painel's reminder.
+      @empresa.assistente_passo = PassosDoAssistente.primeiro.chave
       @empresa.save!
       @user.save!
       Funcao.criar_padrao!

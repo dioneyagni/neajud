@@ -1,0 +1,24 @@
+<%# Step "Quem trabalha" (Q4a, canvas 8): the default funções kept or sent to
+    the trash; the Cliente final when clients come in. locals: form %>
+<p class="assistente-texto">Cada função é o que um grupo de pessoas pode fazer. Deixe marcadas as que existem na fábrica; as pessoas você convida depois, em Usuários.</p>
+<ul class="assistente-lista">
+  <li class="assistente-opcao assistente-opcao--fixa">
+    <input type="checkbox" checked disabled aria-label="Dono, sempre">
+    <span><b>Dono <small>· você, sempre</small></b><small>Tudo, inclusive Parâmetros, funções e o que cada pessoa pode fazer.</small></span>
+  </li>
+  <% ConteudoDoAssistente.funcoes.each do |nome, frase| %>
+    <% funcao = @funcoes[nome] %>
+    <li><label class="assistente-opcao" data-funcao="<%= nome %>">
+      <input type="checkbox" name="assistente[funcoes][]" value="<%= nome %>" <%= "checked" if funcao.nil? || !funcao.excluido? %>>
+      <span><b><%= nome %></b><small><%= frase %></small></span>
+    </label></li>
+  <% end %>
+</ul>
+<% entram = @empresa.assistente_concluido_em.present? && @funcoes["Cliente final"] && !@funcoes["Cliente final"].excluido? %>
+<fieldset class="assistente-grupo">
+  <legend>Seus clientes vão entrar no sistema?</legend>
+  <small>Para aprovar as artes, mandar arquivos e acompanhar os pedidos deles. Cada um vê só o que é dele.</small>
+  <label class="assistente-radio"><input type="radio" name="assistente[clientes_entram]" value="1" <%= "checked" if entram %>> Sim, com a função Cliente final</label>
+  <label class="assistente-radio"><input type="radio" name="assistente[clientes_entram]" value="0" <%= "checked" unless entram %>> Não, por enquanto</label>
+</fieldset>
+<p class="assistente-nota">Uma função desmarcada vai para a Lixeira, de onde volta; a grade de cada uma continua editável em Funções.</p>

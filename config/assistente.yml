@@ -1,0 +1,84 @@
+# What the first-run wizard offers (Primeiros passos 2/6a, decided 20/11 and
+# 26/11/2026; canvas "Primeiros passos", 7–11). The steps themselves are
+# PassosDoAssistente's list — adding or taking one out is a line there; this
+# file is what each step shows. Read by ConteudoDoAssistente.
+
+# Step "O que produzem" (Q1a). trabalhos: the machine trabalhos it uses
+# (TrabalhosDeMaquina) — the Máquinas step offers only those of the kinds
+# marked; materiais: the typical materials of the last step (below).
+tipos:
+  calcado:
+    nome: "Calçado/Vestuário"
+    descricao: "Artes por numeração, moldes e cortes, o pedido por par."
+    trabalhos: [impressao_papel, corte_calcado, estamparia]
+    materiais: [papel, kraft, plastico, oxford_branco, microfibra, cetim]
+  dtf:
+    nome: "DTF"
+    descricao: "Etiquetas e transfers impressos em filme, o pedido por unidade."
+    trabalhos: [impressao_dtf, corte_dtf]
+    materiais: [filme_dtf]
+  corrida:
+    nome: "Tecido em corrida"
+    descricao: "Estampa contínua no tecido, o pedido em metros."
+    trabalhos: [impressao_papel, calandra]
+    materiais: [papel, oxford_branco, microfibra, cetim, telinha, tnt]
+  cor_lisa:
+    nome: "Tecido em cor lisa"
+    descricao: "O tecido inteiro numa cor, o pedido em metros."
+    trabalhos: [impressao_papel, calandra]
+    materiais: [papel, oxford_branco, microfibra, cetim, telinha, tnt]
+  dublagem:
+    nome: "Dublagem"
+    descricao: "Juntar camadas: a superfície estampada sobre espuma, lona, EVA."
+    trabalhos: [dublagem]
+    materiais: [helanca, lona, eva, espuma_3, espuma_5, filme_pu, filme_tpu]
+
+# Step "Quem trabalha" (Q4a): what each default função does, in a line.
+funcoes:
+  Admin: "Quase tudo: pedidos, clientes, artes, estoque; programa a produção e cuida dos usuários."
+  Atendimento: "Recebe o cliente: pedidos, clientes e artes; aprova as artes."
+  Designer: "Prepara as artes, os moldes e os cortes; vê os pedidos."
+  "Produção": "Dá as baixas nas etapas; vê os pedidos e o estoque."
+
+# Step "Horário" (Q5): the proposal; dias 0 = domingo.
+turnos:
+  - { nome: "Manhã", inicio: "08:00", fim: "12:00", dias: [1, 2, 3, 4, 5] }
+  - { nome: "Tarde", inicio: "13:00", fim: "18:00", dias: [1, 2, 3, 4, 5] }
+
+# Step "Materiais" (Q3a): no stock, no price. padrao: becomes the empresa's
+# papel padrão or filme padrão do DTF when it has none. The groups' rules
+# (superfície, base, estampável, what each one asks) are in grupos.
+materiais:
+  papel: { grupo: "Papel", cor: "Branco", largura: "1.60 m", gramatura: "90g", tipo: papel, nome: "Papel de sublimação", padrao: papel }
+  kraft: { grupo: "Kraft", cor: "Bege", largura: "1.60 m", gramatura: "80g", tipo: kraft }
+  plastico: { grupo: "Plástico de sucção", cor: "Branco", largura: "1.80 m", micras: 50, tipo: plastico_succao }
+  oxford_branco: { grupo: "Oxford", cor: "Branco", largura: "1.40 m", gramatura: "120g" }
+  microfibra: { grupo: "Microfibra", cor: "Branco", largura: "1.40 m", gramatura: "180g" }
+  cetim: { grupo: "Cetim", cor: "Branco", largura: "1.50 m", gramatura: "90g" }
+  telinha: { grupo: "Telinha", cor: "Branco", largura: "1.60 m", gramatura: "90g" }
+  tnt: { grupo: "TNT", cor: "Branco", largura: "1.40 m", gramatura: "80g" }
+  filme_dtf: { grupo: "Filme", cor: "Branco", largura: "0.60 m", micras: 75, tipo: filme_dtf, nome: "Filme DTF", padrao: filme_dtf }
+  helanca: { grupo: "Helanca", cor: "Branco", largura: "1.60 m", gramatura: "150g" }
+  lona: { grupo: "Lona", cor: "Bege", largura: "1.40 m", gramatura: "300g" }
+  eva: { grupo: "EVA", cor: "Preto", largura: "1.40 m", espessura_mm: 2 }
+  espuma_3: { grupo: "Espuma", cor: "Branco", largura: "1.40 m", densidade: "TC4", espessura_mm: 3 }
+  espuma_5: { grupo: "Espuma", cor: "Branco", largura: "1.40 m", densidade: "TC4", espessura_mm: 5 }
+  filme_pu: { grupo: "Filme PU", cor: "Branco", largura: "1.40 m", micras: 100, tipo: filme }
+  filme_tpu: { grupo: "Filme TPU", cor: "Branco", largura: "1.40 m", micras: 100, tipo: filme }
+
+grupos:
+  - { nome: "Oxford", superficie: true, base: true, estampavel: "sim", pede: [densidade], obrigatorios: [gramatura] }
+  - { nome: "Microfibra", superficie: true, base: true, estampavel: "sim", obrigatorios: [gramatura] }
+  - { nome: "Cetim", superficie: true, base: true, estampavel: "sim", obrigatorios: [gramatura] }
+  - { nome: "Telinha", superficie: true, base: false, estampavel: "sim", obrigatorios: [gramatura] }
+  - { nome: "TNT", superficie: true, base: true, estampavel: "ressalvas", ressalva: "a estampa pode ficar menos nítida", obrigatorios: [gramatura] }
+  - { nome: "Helanca", superficie: false, base: true, estampavel: "nao", obrigatorios: [gramatura] }
+  - { nome: "Lona", superficie: false, base: true, estampavel: "nao", obrigatorios: [gramatura] }
+  - { nome: "EVA", superficie: false, base: true, estampavel: "nao", obrigatorios: [espessura_mm] }
+  - { nome: "Espuma", superficie: false, base: true, estampavel: "nao", obrigatorios: [densidade, espessura_mm] }
+  - { nome: "Filme", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
+  - { nome: "Filme PU", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
+  - { nome: "Filme TPU", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }
+  - { nome: "Papel", superficie: false, base: false, estampavel: "nao", obrigatorios: [gramatura] }
+  - { nome: "Kraft", superficie: false, base: false, estampavel: "nao", obrigatorios: [gramatura] }
+  - { nome: "Plástico de sucção", superficie: false, base: false, estampavel: "nao", obrigatorios: [micras] }

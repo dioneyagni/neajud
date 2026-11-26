@@ -1,0 +1,40 @@
+<% content_for :title, "#{@passo.titulo} · Neajud" %>
+<%# One step of the wizard (Primeiros passos 2/6a): the steps' bar from
+    PassosDoAssistente (how many isn't fixed), the step's own fields
+    (assistente/_passo_<chave>), Voltar and Avançar — Concluir on the last. %>
+<% posicao = PassosDoAssistente.posicao(@passo.chave) %>
+<% total = PassosDoAssistente.todos.size %>
+<ol class="assistente-passos" aria-label="Passos">
+  <% PassosDoAssistente.todos.each_with_index do |passo, i| %>
+    <li class="<%= "assistente-passo--feito" if i + 1 < posicao %><%= "assistente-passo--atual" if passo == @passo %>" <%= 'aria-current="step"'.html_safe if passo == @passo %>>
+      <%= i + 1 < posicao ? "✓" : i + 1 %> <%= passo.rotulo %>
+    </li>
+  <% end %>
+</ol>
+<div class="assistente-progresso" role="progressbar" aria-valuemin="1" aria-valuemax="<%= total %>" aria-valuenow="<%= posicao %>" aria-label="Passo <%= posicao %> de <%= total %>">
+  <i style="width: <%= (posicao * 100.0 / total).round %>%"></i>
+</div>
+<%= form_with url: passo_do_assistente_path(@passo.chave), method: :patch, scope: :assistente, class: "assistente-form", data: { passo: @passo.chave } do |form| %>
+  <section class="assistente-cartao">
+    <div class="assistente-cabeca">
+      <h1><%= @passo.titulo %></h1>
+    </div>
+    <% if @erros.present? %>
+      <ul class="assistente-erros" role="alert"><% @erros.each do |erro| %><li><%= erro %></li><% end %></ul>
+    <% end %>
+    <%= render "assistente/passo_#{@passo.chave}", form: form %>
+  </section>
+  <div class="assistente-rodape">
+    <% if (anterior = PassosDoAssistente.anterior(@passo.chave)) %>
+      <%= link_to "Voltar", passo_do_assistente_path(anterior.chave), class: "btn btn-secondary" %>
+    <% else %>
+      <span class="assistente-nota">Só o dono vê o assistente. Dá para refazer depois em Parâmetros › Empresa.</span>
+    <% end %>
+    <span class="assistente-rodape-direita">
+      <% if @passo.chave == "maquinas" && (seguinte = PassosDoAssistente.seguinte(@passo.chave)) %>
+        <%= link_to "Pular este passo", passo_do_assistente_path(seguinte.chave), class: "assistente-pular" %>
+      <% end %>
+      <%= form.submit PassosDoAssistente.seguinte(@passo.chave) ? "Avançar" : "Concluir", class: "btn btn-primary assistente-avancar" %>
+    </span>
+  </div>
+<% end %>
