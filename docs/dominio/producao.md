@@ -619,9 +619,8 @@ mockup in the canvas "Máquinas").
 - **The places** (1º, 2º…) are the order a sector's pieces start in
   (`numerar_pelo_inicio`): one ending first on a free slower machine may
   start before one placed ahead of it (seen on the dev data, 21/11/2026).
-- **Not yet**: the Painel's hover, the
-  Linha do tempo's load per machine and the pedido's timeline naming it
-  (5/5). The turno's photo and the virada stay per sector.
+- The turno's photo and the virada stay per sector (the machines' series
+  ended with the 5/5, below, without changing them).
 
 ## The baixa says the machine (Máquinas 4/5a)
 
@@ -741,3 +740,23 @@ Canvas "Máquinas", artboard 8:
 - Not done (Q1a, 25/11): "ia para a Calandra 2; foi sozinha para a 3" on a
   loose piece — it would take a second queue on every Painel load; the
   lanes and the Máquina column already show where it is.
+
+## The rest of the Painel per machine (Máquinas 5/5)
+
+Decided 25/11/2026 (canvas "Máquinas", artboards 13–15). Only what the
+Painel shows: the turnos, the "now", the photo and the virada don't change.
+
+- **The Linha do tempo's load** (Q1a): a sector with machines has a ▸
+  that opens a row per machine (`CargaDasMaquinas`), closed at first, kept
+  per sector in the tab's sessionStorage (`carga_das_maquinas` Stimulus,
+  back after a refresh). The same rules as the sector's row: the machine's
+  hours in the day's turnos (none where it stops — "parada"), today from
+  now on, every sector's pieces on it (one agenda). No "estourado" on a
+  machine: the photo is the sector's.
+- **The faixa's timeline** (Q2a): a stage on a machine names it after its
+  own, "Calandra · Calandra 2" — the queue's, the held one or the last
+  baixa's.
+- **The grid's hover** (Q3a): a stage cell's detail gains "na Calandra 3",
+  "presa na …" or "começada na …", and "· parada até qui 26/11" while the
+  machine stops (`LinhaDoPainel#dizer_as_maquinas`, `ParadasNaFila`).
+- A cliente final sees no machine (nor the load, as before).

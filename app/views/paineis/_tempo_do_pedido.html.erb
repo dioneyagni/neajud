@@ -6,7 +6,8 @@
     arrow from the turno it was to end in to the one it ends in now — every
     item placed by row and column, so the arrow lies over the cells.
     Painel 3/4b3 (Q16a): "mostrar quem cruzou" shows a lane per pedido that
-    crossed it, orange, below its stages.
+    crossed it, orange, below its stages. Máquinas 5/5 (Q2a): a stage on a
+    machine names it after its own ("Calandra · Calandra 2"), not to a cliente final.
     locals: tempo (TempoDoPedido or nil), linha %>
 <% if tempo %>
   <div class="painel-tdp" role="group" aria-label="Linha do tempo do pedido">
@@ -30,7 +31,7 @@
         <% end %>
         <% tempo.raias.each_with_index do |raia, r| %>
           <% linha_da_raia = r + 2 %>
-          <div class="painel-tdp-nome" style="grid-area: <%= linha_da_raia %> / 1" data-tdp-raia="<%= raia.etapa.chave %>" data-estado="<%= raia.estado %>"><%= raia.etapa.nome %></div>
+          <div class="painel-tdp-nome" style="grid-area: <%= linha_da_raia %> / 1" data-tdp-raia="<%= raia.etapa.chave %>" data-estado="<%= raia.estado %>"><%= raia.etapa.nome %><% if raia.vez&.maquina && !cliente_final? %><span class="painel-tdp-maquina" data-tdp-maquina> · <%= raia.vez.maquina.nome %></span><% end %></div>
           <% if raia.celulas.empty? %>
             <div class="painel-tdp-nota painel-tdp-nota--<%= raia.estado %>" style="grid-area: <%= linha_da_raia %> / 2 / auto / span <%= tempo.colunas.size %>">
               <%= raia.estado == :feita ? "✓ feita" : motivo_da_vez(raia.vez) %></div>

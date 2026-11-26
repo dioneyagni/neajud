@@ -79,17 +79,31 @@
         <% end %>
 
         <% if tempo.cargas.any? %>
-          <section class="painel-tempo-grupo painel-tempo-cargas" data-tempo-cargas>
-            <div class="painel-tempo-grupo-cab"><span class="painel-bloco-nome">Carga por etapa</span> <small>% das horas de turno ocupadas pela fila</small></div>
+          <%# Máquinas 5/5 (Q1a, canvas "Máquinas", 13): a sector with machines
+              has ▸, opening a row per machine (carga_das_maquinas Stimulus). %>
+          <section class="painel-tempo-grupo painel-tempo-cargas" data-tempo-cargas data-controller="carga-das-maquinas">
+            <div class="painel-tempo-grupo-cab"><span class="painel-bloco-nome">Carga por etapa</span> <small>% das horas de turno ocupadas pela fila<%= " · ▸ abre as máquinas" if tempo.cargas.any? { |carga| carga.maquinas.any? } %></small></div>
             <% tempo.cargas.each do |carga| %>
               <div class="painel-tempo-linha" data-tempo-carga="<%= carga.setor %>">
-                <div class="painel-tempo-lado"><%= setores.fetch(carga.setor) %></div>
+                <div class="painel-tempo-lado"><span>
+                  <% if carga.maquinas.any? %><button type="button" class="painel-tempo-abrir" data-carga-abrir data-setor="<%= carga.setor %>" data-action="carga-das-maquinas#alternar"
+                          aria-expanded="false" aria-label="Máquinas da <%= setores.fetch(carga.setor) %>">▸</button><% elsif tempo.cargas.any? { |outra| outra.maquinas.any? } %><span class="painel-tempo-abrir" aria-hidden="true"></span><% end %><%= setores.fetch(carga.setor) %></span></div>
                 <div class="painel-tempo-dias">
                   <% carga.celulas.each do |celula| %>
                     <div class="painel-tempo-carga painel-tempo-carga--<%= celula.estado %>" title="<%= dica_da_carga(setores.fetch(carga.setor), celula) %>"><%= texto_da_carga(celula) %></div>
                   <% end %>
                 </div>
               </div>
+              <% carga.maquinas.each do |linha| %>
+                <div class="painel-tempo-linha painel-tempo-linha--maquina" data-carga-maquinas-de="<%= carga.setor %>" data-tempo-carga-maquina="<%= linha.maquina.nome %>" hidden>
+                  <div class="painel-tempo-lado"><span><%= linha.maquina.nome %> <small><%= trabalhos_na_raia(linha.maquina) %></small></span></div>
+                  <div class="painel-tempo-dias">
+                    <% linha.celulas.each do |celula| %>
+                      <div class="painel-tempo-carga painel-tempo-carga--<%= celula.estado %>" title="<%= dica_da_carga(linha.maquina.nome, celula) %>"><%= texto_da_carga(celula) %></div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
             <% end %>
           </section>
         <% end %>

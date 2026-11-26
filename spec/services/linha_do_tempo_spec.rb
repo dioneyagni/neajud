@@ -23,6 +23,7 @@ RSpec.describe LinhaDoTempo do
       # No machines here: the sector is one agenda (FilaDeProducao's own spec sums machines).
       allow(f).to receive(:horas_do_setor) { |ocorrencia, setor, desde:| calendario.horas_do_setor(ocorrencia, etapas_dos_setores.fetch(setor, [ setor ]), desde: desde) }
       allow(f).to receive(:de_outros_setores).and_return([])
+      allow(f).to receive(:recursos_do_setor).and_return([])
     end
   end
 

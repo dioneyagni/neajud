@@ -36,7 +36,7 @@ module LinhaDoTempoHelper
     detalhe = case celula.estado
     when :passado then "passado: só o registro"
     when :sem_turno then "sem turno"
-    when :parada then "a etapa para neste dia"
+    when :parada then "parada neste dia"
     when :encerrado then "os turnos de hoje acabaram"
     when :estourado then "o programado para hoje não cabe: #{horas_da_fila(celula.programadas)} em #{horas_da_fila(celula.livres)}"
     else "#{celula.percentual}% das horas de turno#{" que restam hoje" if celula.data == Date.current}"
