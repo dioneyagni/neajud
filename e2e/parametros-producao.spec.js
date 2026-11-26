@@ -22,7 +22,7 @@ runSpec("Turnos, calendário e ritmo E2E Tests", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/parametros/edit`);
     await page.click('.parametros-links a:has-text("Turnos e calendário")');
     await page.waitForURL("**/parametros/turnos");
-    await waitForText(page, "No turno yet");
+    await page.locator("[data-estado-vazio='turnos']").waitFor();
   });
 
   await test("Adding Manhã and a Tarde that overlaps it: the second is refused, then saved at 14:00", async () => {

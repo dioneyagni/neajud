@@ -12,7 +12,7 @@
   </p>
 
   <% if @construcoes.empty? %>
-    <p class="grupos-vazio">Nenhuma construção ainda. Uma construção é um dublado: a superfície, as bases em ordem e o ligante entre cada duas.</p>
+    <%= estado_vazio(:construcao) %>
   <% else %>
     <div class="rede-tabela-rolagem">
       <table class="rede-tabela construcoes-tabela">

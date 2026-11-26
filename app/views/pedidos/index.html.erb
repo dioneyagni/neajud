@@ -96,7 +96,8 @@
         </tr>
       <% end %>
       <% if @pedidos.empty? %>
-        <tr><td colspan="8" class="gallery-empty">No pedidos yet.</td></tr>
+        <%# Primeiros passos 1/6: the first one, or a filter that left nothing. %>
+        <tr><td colspan="8"><%= @status || @aguardando ? estado_sem_resultado("Nenhum pedido com esse filtro", limpar: pedidos_path) : estado_vazio(:pedido) %></td></tr>
       <% end %>
     </tbody>
   </table>

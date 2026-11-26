@@ -1,0 +1,321 @@
+# The map of the system (Primeiros passos 1/6, decided 26/11/2026, Q8a: the
+# single source): each part of Neajud, its block, its page, what it needs
+# before it can start (precisa) and what its data feeds (alimenta), who
+# fills it on a new instance (preenche), and the text of its empty screen.
+# MapaDoSistema reads it once and refuses a link to a part that doesn't
+# exist, a page with no route or a contagem with no counter
+# (MapaDoSistema::CONTADORES).
+#
+# The empty screen (Basecamp's rule: a title with "ainda", up to three
+# lines, one action): acao.tipo link (alvo: a route helper), post (a
+# button_to), dialogo (opens the page's own dialog controller) or ancora
+# (alvo: an id on the page); acao.permissao "area:nivel", "acao:<ação>" or
+# "dono". falta lists the contagens shown as "what comes before" — the first
+# one missing becomes the main action.
+#
+# preenche: vem (comes ready), assistente (the 2/6 wizard), pessoa, sistema.
+
+blocos:
+  config: { nome: "Empresa e acesso", cor: config }
+  catalogo: { nome: "Catálogo", cor: catalogo }
+  artes: { nome: "Artes", cor: artes }
+  comercial: { nome: "Comercial", cor: comercial }
+  materiais: { nome: "Materiais e estoque", cor: materiais }
+  producao: { nome: "Produção", cor: producao }
+  programacao: { nome: "Programação", cor: programacao }
+
+partes:
+  empresa:
+    nome: "Empresa"
+    bloco: config
+    pagina: edit_parametros
+    icone: empresa
+    precisa: []
+    alimenta: [funcoes, precos]
+    preenche: assistente
+  funcoes:
+    nome: "Funções"
+    bloco: config
+    pagina: funcoes
+    icone: funcao
+    precisa: [empresa]
+    alimenta: [usuarios]
+    preenche: vem
+  usuarios:
+    nome: "Usuários"
+    bloco: config
+    pagina: usuarios
+    icone: usuarios
+    precisa: [funcoes]
+    alimenta: [clientefinal]
+    preenche: pessoa
+  visibilidade:
+    nome: "Visibilidade"
+    bloco: config
+    pagina: edit_visibilidade
+    icone: visibilidade
+    precisa: []
+    alimenta: [clientefinal]
+    preenche: vem
+  clientefinal:
+    nome: "Cliente final"
+    bloco: config
+    pagina: clients
+    icone: cliente_final
+    precisa: [usuarios, cliente]
+    alimenta: [aprovacao]
+    preenche: pessoa
+
+  modelo:
+    nome: "Modelos"
+    bloco: catalogo
+    pagina: modelos
+    icone: modelo
+    precisa: []
+    alimenta: [molde]
+    preenche: vem
+  peca:
+    nome: "Peças"
+    bloco: catalogo
+    pagina: pecas
+    icone: peca
+    precisa: []
+    alimenta: [molde]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhuma peça ainda"
+      texto: "Peças são as partes que vão para o corte: Lateral, Língua, Palmilha. Elas aparecem nos moldes e nos cortes."
+      acao: { rotulo: "+ Nova peça", tipo: link, alvo: new_peca, permissao: "catalogo:editar" }
+  molde:
+    nome: "Moldes"
+    bloco: catalogo
+    pagina: moldes
+    icone: molde
+    precisa: [cliente, modelo, peca]
+    alimenta: [pedido]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhum molde ainda"
+      texto: "Um molde é a forma de um cliente (002-TNS Furado): o modelo, a grade, as peças e os cortes ligados. Ele é sempre de um cliente."
+      acao: { rotulo: "+ Novo molde", tipo: dialogo, permissao: "catalogo:editar" }
+      falta: [clientes]
+  corte:
+    nome: "Cortes"
+    bloco: catalogo
+    pagina: arquivos
+    icone: corte
+    precisa: []
+    alimenta: [molde]
+    preenche: pessoa
+
+  arte:
+    nome: "Artes"
+    bloco: artes
+    pagina: arquivos
+    icone: arte
+    precisa: [arquivo]
+    alimenta: [aprovacao, pedido]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhuma arte ainda"
+      texto: "Arraste os arquivos da estampa aqui em cima; o sistema agrupa por referência, mede e gera as prévias."
+      acao: { rotulo: "Enviar arquivos", tipo: ancora, alvo: "upload", permissao: "artes:editar" }
+  arquivo:
+    nome: "Arquivos e versões"
+    bloco: artes
+    pagina: arquivos
+    icone: arquivo
+    precisa: []
+    alimenta: [arte]
+    preenche: sistema
+  aprovacao:
+    nome: "Aprovação"
+    bloco: artes
+    pagina: arquivos
+    icone: aprovacao
+    precisa: [arte]
+    alimenta: [pedido]
+    preenche: pessoa
+
+  cliente:
+    nome: "Clientes"
+    bloco: comercial
+    pagina: clients
+    icone: cliente
+    precisa: []
+    alimenta: [molde, arte, pedido, clientefinal]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhum cliente ainda"
+      texto: "Quase tudo começa por um cliente: os moldes, as artes e os pedidos são de alguém. Cadastre o primeiro com o nome; o resto vem depois."
+      acao: { rotulo: "+ Novo cliente", tipo: dialogo, permissao: "clientes:editar" }
+      depois: true
+  pedido:
+    nome: "Pedidos"
+    bloco: comercial
+    pagina: pedidos
+    icone: pedido
+    precisa: [cliente, arte, molde, material]
+    alimenta: [etapas]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhum pedido ainda"
+      texto: "Um pedido junta o cliente e a arte; no calçado, também o molde e o material. Antes do primeiro:"
+      acao: { rotulo: "+ Novo pedido", tipo: post, alvo: pedidos, permissao: "pedidos:editar" }
+      falta: [clientes, artes, moldes, materiais]
+  precos:
+    nome: "Preços"
+    bloco: comercial
+    pagina: edit_parametros
+    icone: precos
+    precisa: [empresa]
+    alimenta: [pedido]
+    preenche: assistente
+
+  grupo:
+    nome: "Grupos e cores"
+    bloco: materiais
+    pagina: grupo_materiais
+    icone: grupo
+    precisa: []
+    alimenta: [material]
+    preenche: vem
+  material:
+    nome: "Materiais"
+    bloco: materiais
+    pagina: materiais
+    icone: material
+    precisa: [grupo]
+    alimenta: [pedido, construcao, estoque]
+    preenche: assistente
+    vazio:
+      titulo: "Nenhum material ainda"
+      texto: "Cada material tem um grupo e uma cor: é o que o pedido gasta e o estoque guarda. Ele nasce no primeiro lançamento de estoque."
+      acao: { rotulo: "+ Lançar a primeira entrada", tipo: link, alvo: new_movimento, permissao: "estoque:editar" }
+  construcao:
+    nome: "Construções"
+    bloco: materiais
+    pagina: construcoes
+    icone: construcao
+    precisa: [material]
+    alimenta: [pedido]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhuma construção ainda"
+      texto: "Uma construção é um dublado: a superfície, as bases e os ligantes, montados pela rede de dublagens."
+      acao: { rotulo: "+ Nova construção", tipo: link, alvo: new_construcao, permissao: "estoque:editar" }
+      falta: [materiais]
+  estoque:
+    nome: "Estoque"
+    bloco: materiais
+    pagina: movimentos
+    icone: estoque
+    precisa: [material]
+    alimenta: [painel]
+    preenche: pessoa
+
+  etapas:
+    nome: "Etapas"
+    bloco: producao
+    icone: etapas
+    precisa: []
+    alimenta: [baixa, painel]
+    preenche: sistema
+  baixa:
+    nome: "Baixas"
+    bloco: producao
+    icone: baixa
+    precisa: [etapas]
+    alimenta: [estoque, entrega, ritmos]
+    preenche: pessoa
+  entrega:
+    nome: "Entrega"
+    bloco: producao
+    icone: entrega
+    precisa: [baixa]
+    alimenta: [reposicao]
+    preenche: pessoa
+  reposicao:
+    nome: "Reposição"
+    bloco: producao
+    icone: reposicao
+    precisa: [entrega]
+    alimenta: []
+    preenche: pessoa
+
+  turnos:
+    nome: "Turnos e calendário"
+    bloco: programacao
+    pagina: parametros_turnos
+    icone: turno
+    precisa: []
+    alimenta: [painel, paradas]
+    preenche: assistente
+    vazio:
+      titulo: "Nenhum turno ainda"
+      texto: "Sem turno o Painel não sabe que horas a fábrica trabalha, e a previsão não tem o que encher. Comece pelo horário de todo dia."
+      acao: { rotulo: "Adicionar o primeiro turno", tipo: ancora, alvo: "turnos", permissao: "dono" }
+  ritmos:
+    nome: "Ritmos"
+    bloco: programacao
+    pagina: edit_parametros_ritmos
+    icone: ritmos
+    precisa: []
+    alimenta: [painel]
+    preenche: assistente
+  maquinas:
+    nome: "Máquinas"
+    bloco: programacao
+    pagina: parametros_maquinas
+    icone: maquina
+    precisa: []
+    alimenta: [ritmos, painel]
+    preenche: assistente
+    vazio:
+      titulo: "Nenhuma máquina ainda"
+      texto: "Cadastre cada máquina e o que ela faz: a fila põe cada peça na que termina primeiro. Até lá, os ritmos seguem os de Ritmos."
+      acao: { rotulo: "+ Nova máquina", tipo: link, alvo: new_parametros_maquina, permissao: "dono" }
+  paradas:
+    nome: "Paradas"
+    bloco: programacao
+    pagina: parametros_turnos
+    icone: paradas
+    precisa: [turnos]
+    alimenta: [painel]
+    preenche: pessoa
+    vazio:
+      titulo: "Nenhuma parada"
+      texto: "A previsão conta com todos os turnos."
+      acao: { rotulo: "Nova parada", tipo: dialogo, permissao: "acao:programar_producao" }
+  painel:
+    nome: "Painel e fila"
+    bloco: programacao
+    pagina: painel
+    icone: painel
+    precisa: [turnos, ritmos]
+    alimenta: [tempo]
+    preenche: sistema
+    vazio:
+      titulo: "O Painel ainda está vazio"
+      texto: "Ele mostra cada pedido confirmado nas etapas, a fila de cada setor e quando cada um fica pronto. Para isso ele precisa de:"
+      falta: [turnos, ritmos, pedidos_confirmados]
+  tempo:
+    nome: "Linha do tempo"
+    bloco: programacao
+    pagina: painel
+    icone: tempo
+    precisa: [painel]
+    alimenta: []
+    preenche: sistema
+
+# What "o que falta antes" counts (MapaDoSistema::CONTADORES does the
+# counting, through Visibilidade): rotulo, the line; nenhum, when none;
+# algum, with %{n} (ritmos: %{n} de %{total}).
+contagens:
+  clientes: { parte: cliente, rotulo: "Um cliente", nenhum: "nenhum ainda", algum: "%{n} cadastrados" }
+  artes: { parte: arte, rotulo: "Uma arte", nenhum: "nenhuma ainda", algum: "%{n} cadastradas" }
+  moldes: { parte: molde, rotulo: "No calçado, um molde", nenhum: "nenhum ainda", algum: "%{n} cadastrados" }
+  materiais: { parte: material, rotulo: "Um material", nenhum: "nenhum ainda", algum: "%{n} cadastrados" }
+  turnos: { parte: turnos, rotulo: "Os turnos da fábrica", nenhum: "nenhum ainda", algum: "%{n} cadastrados" }
+  ritmos: { parte: ritmos, rotulo: "O ritmo de cada etapa", nenhum: "nenhum ainda", algum: "%{n} de %{total} etapas" }
+  pedidos_confirmados: { parte: pedido, rotulo: "Um pedido confirmado", nenhum: "nenhum ainda", algum: "%{n} em produção" }

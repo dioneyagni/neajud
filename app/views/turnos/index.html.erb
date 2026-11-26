@@ -17,7 +17,7 @@
     <%= render "turnos/linha", turno: Turno.new(dias: (1..5).to_a), url: parametros_turnos_path, method: :post, botao: "Add turno" %>
   </div>
   <% if @turnos.empty? %>
-    <p class="turnos-vazio">No turno yet: the Painel can't tell the turno on now, and the previsão has nothing to fill.</p>
+    <%= estado_vazio(:turnos, tamanho: :secao) %>
   <% end %>
 </section>
 

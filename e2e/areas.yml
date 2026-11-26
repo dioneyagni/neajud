@@ -201,6 +201,16 @@ areas:
       - "app/javascript/controllers/painel_controller.js"
       - "app/assets/stylesheets/painel.css"
       - "app/assets/stylesheets/painel_tempo.css"
+  # Primeiros passos 1/6 (26/11/2026): the map and the empty screens.
+  primeiros-passos:
+    specs: [primeiros-passos]
+    arquivos:
+      - "config/mapa.yml"
+      - "app/services/{mapa_do_sistema,leitor_do_mapa}.rb"
+      - "app/helpers/estado_vazio_helper.rb"
+      - "app/views/shared/_estado_vazio.html.erb"
+      - "app/assets/stylesheets/estado_vazio.css"
+      - "app/assets/images/icons/partes/*"
   # Painel 2/4a (05/11/2026): the turnos, the calendar and the rhythm;
   # Máquinas 3/5a the stops of machines (maquinas.spec.js saves one).
   calendario:

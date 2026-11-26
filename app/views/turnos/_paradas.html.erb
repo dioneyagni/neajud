@@ -34,7 +34,7 @@
         </tr>
       <% end %>
       <% if paradas.empty? %>
-        <tr><td colspan="5" class="calendario-vazio">Nenhuma parada em <%= @ano %>.</td></tr>
+        <tr><td colspan="5" class="calendario-vazio"><%= estado_vazio(:paradas, tamanho: :linha) %></td></tr>
       <% end %>
     </tbody>
   </table>

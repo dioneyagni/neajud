@@ -95,7 +95,7 @@ runSpec("Painel E2E Tests", async ({ page, test }) => {
 
   await test("Setup: a turno (when none) and the tecido's rhythms", async () => {
     await page.goto(`${BASE_URL}/parametros/turnos`);
-    if (await page.getByText("No turno yet").count()) {
+    if (await page.locator("[data-estado-vazio='turnos']").count()) {
       const novo = "form.turno-novo";
       await page.fill(`${novo} input[name="turno[nome]"]`, "Painel 24h");
       await page.fill(`${novo} input[name="turno[inicio]"]`, "00:00");

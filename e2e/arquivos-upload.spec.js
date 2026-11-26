@@ -314,7 +314,7 @@ runSpec("Arquivos E2E: upload & gallery basics", async ({ page, test }) => {
     if (hasCard) {
       if (!body.includes("Tracker")) throw new Error("Gallery heading not shown");
     } else {
-      if (!body.includes("No arquivos uploaded yet")) throw new Error("Fallback message not shown");
+      if (!body.includes("Nenhuma arte ainda")) throw new Error("Fallback message not shown");
     }
   });
 });

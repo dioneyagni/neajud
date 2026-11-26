@@ -1,7 +1,7 @@
 <h2>Tracker</h2>
 
 <% if pode?(:artes, :editar) || pode?(:catalogo, :editar) %>
-<section>
+<section id="upload">
   <h3>Upload New File</h3>
   <div class="upload-form-wrapper">
   <% accept_ext = FileCategory.extensions.map { |e| ".#{e}" }.join(",") %>
@@ -112,7 +112,8 @@
       </div>
     <% end %>
   <% else %>
-    <p class="gallery-empty">No arquivos uploaded yet.</p>
+    <%# Primeiros passos 1/6: the first one, or a kind of work with none. %>
+    <%= @tipo ? estado_sem_resultado("Nenhum arquivo deste tipo de trabalho", limpar: arquivos_path(view: @view)) : estado_vazio(:arte) %>
   <% end %>
 </section>
 
