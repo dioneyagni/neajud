@@ -178,6 +178,7 @@ class LinhaDoPainel
     celulas.merge!("arquivos" => celula_dos_arquivos, "comercial" => celula_comercial, "material" => celula_do_material)
     celulas.merge!(celulas_das_etapas)
     avisar_nas_dublagens(celulas)
+    dizer_as_maquinas(celulas)
     celulas.merge!("entrega" => celula_da_entrega(celulas))
   end
 
@@ -197,6 +198,31 @@ class LinhaDoPainel
       texto = avisos.map { |falta| "#{falta.materia_prima.nome_completo} · faltam #{kg(falta.metros)} · não trava" }.join("; ")
       celula.detalhe = [ celula.detalhe, texto ].compact.join(" · ")
     end
+  end
+
+  # Máquinas 5/5 (Q3a, decided 25/11/2026): a stage on a machine says it in
+  # its cell's hover — "na Calandra 3", "presa na …", "começada na …", and
+  # "· parada até qui 26/11" while it stops. Not to a cliente final.
+  def dizer_as_maquinas(celulas)
+    real = previsao unless @cliente_final
+    return if real.nil? || real.se_confirmar
+
+    vezes = real.vezes
+
+    paradas = ParadasNaFila.new(@fila)
+    vezes.select(&:maquina).each do |vez|
+      celula = celulas[coluna_da_etapa(vez.etapa)]
+      celula.detalhe = [ celula.detalhe, maquina_da_vez(vez, paradas.da_maquina(vez.maquina)) ].compact.join(" · ") if celula
+    end
+  end
+
+  def maquina_da_vez(vez, parada)
+    id = vez.maquina.id
+    onde = if vez.maquina_da_baixa == id then "começada na"
+    elsif vez.fixacao&.para_maquina_id == id then "presa na"
+    else "na"
+    end
+    "#{onde} #{vez.maquina.nome}#{" · parada até #{Turno.dia_com_semana(parada.data_fim)}" if parada}"
   end
 
   # A draft's stages are not computed (its lines still follow the artes): "—".

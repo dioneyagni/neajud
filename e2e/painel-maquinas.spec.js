@@ -6,7 +6,8 @@
 // impact window — Cancel changes nothing, Confirm holds it there (its badge,
 // its line in the history) —, and the window takes it back to the
 // automatic. Máquinas 4/5a: the Calandra's baixa names its machine.
-// Máquinas 3/5b: ⏸ on a lane stops its machine, "voltou a funcionar". Last, its machines go to the trash: the specs after this one
+// Máquinas 3/5b: ⏸ on a lane stops its machine, "voltou a funcionar".
+// Máquinas 5/5: the load's ▸ per machine and the grid's hover. Last, its machines go to the trash: the specs after this one
 // type their rhythms in Ritmos.
 const { BASE_URL, runSpec } = require("./support/runner");
 const { prepararCorrida, pedidoDaCorrida, limparCorrida } = require("./support/corrida");
@@ -224,6 +225,29 @@ runSpec("Painel Máquinas E2E Tests", async ({ page, test }) => {
     await waitForText(page, `Feltro ${U}: voltou a funcionar.`);
     await abrir();
     await raiaDela().locator(".painel-raia-parar").waitFor();
+  });
+
+  // Máquinas 5/5 (Q1a, Q3a): the Linha do tempo's ▸ opens the Estamparia's
+  // machines, kept after a reload; the grid cell's hover says the machine.
+  await test("The Linha do tempo's ▸ opens a row per machine, kept on a reload; the grid's hover names the machine", async () => {
+    await page.goto(`${BASE_URL}/painel?visao=tempo`);
+    const cargas = page.locator("[data-tempo-cargas]");
+    const abrir = cargas.locator("[data-tempo-carga='estamparia'] [data-carga-abrir]");
+    await abrir.waitFor();
+    const linha = cargas.locator(`[data-tempo-carga-maquina="${calandras[0]}"]`);
+    if (await linha.isVisible()) throw new Error("The machines' rows show before ▸");
+    await abrir.click();
+    await linha.waitFor({ state: "visible" });
+    if ((await abrir.getAttribute("aria-expanded")) !== "true") throw new Error("▸ doesn't say it is open");
+    await page.reload();
+    await cargas.locator(`[data-tempo-carga-maquina="${calandras[0]}"]`).waitFor({ state: "visible" });
+    await cargas.locator("[data-tempo-carga='estamparia'] [data-carga-abrir]").click();
+    await cargas.locator(`[data-tempo-carga-maquina="${calandras[0]}"]`).waitFor({ state: "hidden" });
+
+    await page.goto(`${BASE_URL}/painel`);
+    // Any stage still ahead on one of this spec's machines (the corrida's may be done by now).
+    const dicas = await page.locator(".painel-cel[title]").evaluateAll((celulas) => celulas.map((c) => c.title));
+    if (!dicas.some((dica) => [ epson, ...calandras ].some((nome) => dica.includes(`na ${nome}`)))) throw new Error(`No hover names one of the machines: ${JSON.stringify(dicas.slice(0, 8))}`);
   });
 
   await test("Cleanup: its machines to the trash", async () => {

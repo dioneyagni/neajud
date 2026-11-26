@@ -18,7 +18,8 @@
 # Painel 3/4b (Q7a): today's is the larger of that and what the day's first
 # photo programmed for today still to do (ProgramadoNaFila) — over the
 # hours left, past 100%: the turno fell behind. A cliente final sees no
-# load (Q4a): it is the factory's capacity.
+# load (Q4a): it is the factory's capacity. Máquinas 5/5 (Q1a): a sector
+# with machines has a row per machine under its ▸ (CargaDasMaquinas).
 #
 # Usage: tempo = LinhaDoTempo.call(painel.linhas, fila: painel.fila, de: Date.current - 2)
 #        tempo.dias.map(&:sem_turno)                    # => [false, true, …] (14)
@@ -37,7 +38,8 @@ class LinhaDoTempo
 
   Dia = Struct.new(:data, :hoje, :sem_turno, keyword_init: true)
   Grupo = Struct.new(:chave, :nome, :barras, keyword_init: true)
-  Carga = Struct.new(:setor, :celulas, keyword_init: true)
+  # maquinas: CargaDasMaquinas::Linha, its ▸ rows (Máquinas 5/5); none without machines.
+  Carga = Struct.new(:setor, :celulas, :maquinas, keyword_init: true)
   # estado: :passado, :sem_turno, :parada, :encerrado (today's turnos are
   # over), :livre, :ok, :alto (85% or more), :cheio, :estourado (what was
   # programmed for today doesn't fit the hours left: programadas of livres).
@@ -86,7 +88,20 @@ class LinhaDoTempo
   def cargas
     return [] if @cliente_final
 
-    @setores.map { |setor| Carga.new(setor: setor, celulas: dias.map { |dia| celula_da_carga(setor, dia.data) }) }
+    das_maquinas = CargaDasMaquinas.new(@fila, @calendario, agora)
+    datas = dias.map(&:data)
+    @setores.map do |setor|
+      Carga.new(setor: setor, celulas: datas.map { |data| celula_da_carga(setor, data) },
+                maquinas: das_maquinas.do_setor(setor, datas) { |data| ocorrencias_do_dia(data) })
+    end
+  end
+
+  # Usage: LinhaDoTempo.estado_da_carga(90) # => :alto
+  def self.estado_da_carga(percentual)
+    return :livre if percentual.zero?
+    return :cheio if percentual >= 100
+
+    percentual >= 85 ? :alto : :ok
   end
 
   # The whole window before today: only the record.
@@ -148,10 +163,7 @@ class LinhaDoTempo
   end
 
   def estado_da_carga(percentual)
-    return :livre if percentual.zero?
-    return :cheio if percentual >= 100
-
-    percentual >= 85 ? :alto : :ok
+    self.class.estado_da_carga(percentual)
   end
 
   # The hours the sector's queue fills that day, with other sectors' pieces
