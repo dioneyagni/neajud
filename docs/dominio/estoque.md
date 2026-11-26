@@ -100,8 +100,11 @@ not listed keeps the usual ones). `a_confirmar` marks what was guessed.
   what was expected). `bin/rails rede:importar` (`ImportarRedeDeDublagens`)
   **only adds** what is missing — a ligação (pair in either order, same
   lado), situação (chave) or group (name) already there is never changed; a
-  missing group is created with the file's `grupos:` roles, asking what a
-  group made in Materiais asks (gramatura). A new instance gets it from `db/seeds.rb`; `bin/e2e` imports it
+  missing group is created with the file's `grupos:` roles, asking what its
+  materials are measured in by the rules in `config/assistente.yml` (Filme
+  and Filme PU in micras, EVA in espessura, Espuma in densidade and
+  espessura; one not there asks gramatura, as Materiais does — fixed
+  26/11/2026: the Filme asked gramatura and refused its own ligantes). A new instance gets it from `db/seeds.rb`; `bin/e2e` imports it
   into the test database; RSpec specs that dub get it from
   `material_de_dublagem` (or call `importar_rede_de_dublagens`).
 - `RedeDeDublagens` reads it once per request or job (`Current`), forgotten

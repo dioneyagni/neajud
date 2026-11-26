@@ -167,7 +167,9 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
   // the 2nd, DUB-D = DUB-A with DUB-C in the 3rd — DUB-A "segue" through
   // the 2nd. Oxford–Espuma dubs after the estampa: DUB-D after the Calandra.
   await test("Builds a chave of four dublagens: columns, letras, the 'segue', the momentos and the prices", async () => {
-    const espuma = await grupo("Espuma");
+    // This run's Espuma by gramatura, so its name is its own: a new
+    // instance's Espuma asks densidade and espessura (26/11/2026).
+    const espuma = await grupo("Espuma", { base: true }, ["gramatura"]);
     const helanca = await grupo("Helanca");
     await page.goto(`${BASE_URL}/materiais`);
     await material(espuma, nomes.espuma, { "movimento_estoque[gramatura]": gramatura }, "tecido", "18", gramatura);

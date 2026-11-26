@@ -46,7 +46,9 @@ runSpec("Dublagem no pedido E2E Tests", async ({ page, test }) => {
   await test("Setup: a construção with a dublagem after the Calandra, a client and his corrida", async () => {
     const dublagem = await prepararDublagem(page, `${U}n`);
     const cor = (await buscarJson(page, "/materiais/cores")).find((c) => c.nome === "Branco").id;
-    const espumaGrupo = await grupo(page, "Espuma");
+    // This run's Espuma by gramatura, so its name is its own: a new
+    // instance's Espuma asks densidade and espessura (26/11/2026).
+    const espumaGrupo = await grupo(page, "Espuma", { base: true }, "gramatura");
     const espuma = await material(page, cor, espumaGrupo, nomes.espuma, { "movimento_estoque[gramatura]": `${U}e` }, "tecido", `${U}e`);
     ids.espuma = espuma;
     // 5b2b: the network's Cola counts in kg and asks its consumption; this
