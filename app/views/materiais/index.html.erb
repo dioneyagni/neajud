@@ -67,7 +67,7 @@
         </tr>
       <% end %>
       <% if @materiais.empty? %>
-        <tr><td colspan="5" class="gallery-empty">No materials registered yet.</td></tr>
+        <tr><td colspan="5"><%= estado_vazio(:material, tamanho: :secao) %></td></tr>
       <% end %>
     </tbody>
   </table>

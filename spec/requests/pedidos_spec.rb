@@ -38,7 +38,7 @@ RSpec.describe "Pedidos", type: :request do
 
     it "shows empty state" do
       get pedidos_path
-      expect(response.body).to include("No pedidos yet")
+      expect(response.body).to include("Nenhum pedido ainda")
     end
   end
 

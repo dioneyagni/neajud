@@ -1,0 +1,46 @@
+/* The empty screens (Primeiros passos 1/6, canvas "Primeiros passos"):
+   one block in three sizes, its icon in the color of the part's block on
+   the map (config/mapa.yml). */
+.estado-vazio--config { --vazio-cor: #5b6573; --vazio-fundo: #eceef1; }
+.estado-vazio--catalogo { --vazio-cor: #0a8fb8; --vazio-fundo: #e2f3f8; }
+.estado-vazio--artes { --vazio-cor: #c2367a; --vazio-fundo: #fbe7f0; }
+.estado-vazio--comercial { --vazio-cor: #b7791f; --vazio-fundo: #fbf1e2; }
+.estado-vazio--materiais { --vazio-cor: #3f8f5a; --vazio-fundo: #e7f3eb; }
+.estado-vazio--producao { --vazio-cor: #7a4fbf; --vazio-fundo: #efe9f9; }
+.estado-vazio--programacao { --vazio-cor: #d2552b; --vazio-fundo: #fdebe4; }
+
+.estado-vazio { display: flex; gap: 14px; }
+.estado-vazio h3 { margin: 0; font-weight: 500; }
+.estado-vazio p { margin: 0; color: #5f6368; }
+.estado-vazio-corpo { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.estado-vazio-icone { color: var(--vazio-cor); background: var(--vazio-fundo); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+.estado-vazio-icone svg { width: 50%; height: 50%; }
+
+.estado-vazio--pagina { flex-direction: column; align-items: center; text-align: center; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 48px 24px; }
+.estado-vazio--pagina .estado-vazio-icone { width: 72px; height: 72px; }
+.estado-vazio--pagina .estado-vazio-corpo { align-items: center; }
+.estado-vazio--pagina h3 { font-size: 20px; }
+.estado-vazio--pagina p { max-width: 48ch; font-size: 15px; }
+
+.estado-vazio--secao { flex-wrap: wrap; align-items: center; border: 1px dashed #dadce0; border-radius: 8px; padding: 16px 18px; background: #fafbfc; }
+.estado-vazio--secao .estado-vazio-icone { width: 52px; height: 52px; }
+.estado-vazio--secao .estado-vazio-corpo { flex: 1 1 320px; gap: 6px; }
+.estado-vazio--secao h3 { font-size: 16px; }
+.estado-vazio--secao p { font-size: 14px; }
+.estado-vazio--secao .btn { align-self: flex-start; }
+
+.estado-vazio-falta { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; min-width: min(360px, 100%); }
+.estado-vazio-falta li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 15px; }
+.estado-vazio-falta small { color: #5f6368; }
+.estado-vazio-marca { width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--vazio-cor); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; }
+.estado-vazio-falta li[data-ok="true"] .estado-vazio-marca { border: 0; background: #e6f4ea; color: #137333; }
+.estado-vazio-ir { margin-left: auto; font-size: 14px; font-weight: 500; }
+.estado-vazio-depois { font-size: 13px; }
+.estado-vazio-form { display: inline-block; margin: 0; }
+
+.estado-vazio-linha { display: inline-flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; color: #5f6368; }
+.estado-vazio-linha .estado-vazio-icone { width: 22px; height: 22px; background: none; }
+.estado-vazio-linha .estado-vazio-icone svg { width: 18px; height: 18px; }
+.estado-sem-resultado { color: #5f6368; }
+.estado-vazio-link { font: inherit; color: #1a73e8; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+.estado-vazio-link:hover { text-decoration: underline; }

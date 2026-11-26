@@ -35,7 +35,7 @@
   <section class="maquinas-secao">
     <h3>As máquinas</h3>
     <% if @maquinas.empty? %>
-      <p class="maquinas-vazio">Nenhuma máquina ainda: os ritmos seguem os de Ritmos.</p>
+      <%= estado_vazio(:maquinas, tamanho: :secao) %>
     <% else %>
       <div class="maquinas-rolagem">
         <%# Máquinas 4/5b (canvas "Máquinas", 10): a row per machine × trabalho

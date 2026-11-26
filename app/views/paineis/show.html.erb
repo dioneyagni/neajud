@@ -89,6 +89,8 @@
     <% end %>
   </div>
 
+  <%# Primeiros passos 1/6: nothing in the Painel yet — what it needs (the team's). %>
+  <% if @painel.linhas.empty? && !cliente_final? %><%= estado_vazio(:painel) %><% end %>
   <div class="painel-quadro" data-painel-target="quadro">
     <div class="painel-grade" data-painel-target="grade" style="--painel-colunas: <%= @painel.colunas.size %>">
       <div class="painel-linha painel-cab">

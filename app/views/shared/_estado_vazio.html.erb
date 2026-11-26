@@ -1,0 +1,45 @@
+<%# A part's empty screen (Primeiros passos 1/6, canvas "Primeiros passos",
+    1–5), from config/mapa.yml: the icon in its block's color, a title with
+    "ainda", up to three lines, one action. "What comes before" (faltas) to
+    the team: each line done or not, and the first missing part becomes the
+    main action. Three sizes: pagina, secao (inside a section, the page's
+    main button elsewhere), linha (a table row: the empty that is normal).
+    locals: parte, tamanho, faltas, primeira (the first missing Falta or nil) %>
+<% vazio = parte.vazio %>
+<% bloco = MapaDoSistema.blocos.fetch(parte.bloco) %>
+<% acao = vazio.acao if pode_a_acao_do_mapa?(vazio.acao) %>
+<% if tamanho == :linha %>
+  <span class="estado-vazio-linha estado-vazio--<%= bloco.cor %>" data-estado-vazio="<%= parte.id %>">
+    <span class="estado-vazio-icone"><%= icone_da_parte(parte.icone) %></span>
+    <span><%= vazio.titulo %>. <%= vazio.texto %></span>
+    <% if acao %><%= acao_do_vazio(acao, classe: "estado-vazio-link") %><% end %>
+  </span>
+<% else %>
+  <section class="estado-vazio estado-vazio--<%= tamanho %> estado-vazio--<%= bloco.cor %>" data-estado-vazio="<%= parte.id %>" aria-labelledby="estado-vazio-<%= parte.id %>">
+    <div class="estado-vazio-icone"><%= icone_da_parte(parte.icone) %></div>
+    <div class="estado-vazio-corpo">
+      <h3 id="estado-vazio-<%= parte.id %>"><%= vazio.titulo %></h3>
+      <p><%= vazio.texto %></p>
+      <% if faltas.any? %>
+        <ul class="estado-vazio-falta" aria-label="O que vem antes">
+          <% faltas.each do |falta| %>
+            <li data-falta="<%= falta.contagem.id %>" data-ok="<%= falta.ok %>">
+              <span class="estado-vazio-marca estado-vazio--<%= MapaDoSistema.blocos.fetch(falta.parte.bloco).cor %>" aria-hidden="true"><%= "✓" if falta.ok %></span>
+              <span><%= falta.contagem.rotulo %> <small>· <%= falta.texto %></small></span>
+              <% if !falta.ok && (caminho = caminho_da_parte(falta.parte)) %><%= link_to "#{falta.parte.nome} →", caminho, class: "estado-vazio-ir" %><% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+      <% if primeira && (caminho = caminho_da_parte(primeira.parte)) %>
+        <%= link_to primeira.parte.vazio&.acao&.rotulo || "Ir para #{primeira.parte.nome}", caminho, class: "btn btn-primary", data: { estado_vazio_acao: true } %>
+      <% elsif acao %>
+        <%= acao_do_vazio(acao, classe: tamanho == :secao ? "btn btn-secondary" : "btn btn-primary") %>
+      <% end %>
+      <% if vazio.depois && parte.alimenta.any? %>
+        <p class="estado-vazio-depois">Depois dele:
+          <%= safe_join(parte.alimenta.map { |id| MapaDoSistema.parte(id) }.select(&:pagina).reject { |outra| outra.pagina == parte.pagina }.uniq(&:pagina).map { |outra| link_to(outra.nome, caminho_da_parte(outra)) }, " · ") %></p>
+      <% end %>
+    </div>
+  </section>
+<% end %>

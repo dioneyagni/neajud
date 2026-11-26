@@ -26,6 +26,7 @@ The docs/ files are in Portuguese for now
 | DTF: etiqueta, pedido, prices, production | `docs/dominio/dtf.md` |
 | tecido (corrida, cor lisa): pedido, prices, production | `docs/dominio/tecido.md` |
 | catalog, moldes, cortes and their sizes | `docs/dominio/catalogo.md` |
+| the map of the system (`config/mapa.yml`), empty screens, the wizard, the example and the tours | `docs/dominio/primeiros-passos.md` |
 
 A new stage documents itself in its area's file (or a new one listed here),
 not in this file; this file only takes rules that hold for every change.

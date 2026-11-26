@@ -45,6 +45,9 @@ E2E_SPECS=(
   # instance to test the first-access setup, which creates the user every
   # later spec signs in as (e2e/support/sessao.js).
   autenticacao
+  # Primeiros passos 1/6: the empty screens of a new instance — right after
+  # autenticacao, while nothing else exists (it creates nothing).
+  primeiros-passos
   # Former arquivos.spec.js, split by area — keep this order: later files reuse
   # data created by earlier ones (arquivos-client-field opens the 29-30 card
   # that arquivos-previews / arquivos-dxf-organization uploaded).

@@ -53,7 +53,7 @@ runSpec("Painel Programação E2E Tests", async ({ page, test }) => {
     if (ids.primeiro === ids.segundo) throw new Error("Both items went into one pedido");
 
     await page.goto(`${BASE_URL}/parametros/turnos`);
-    if (await page.getByText("No turno yet").count()) {
+    if (await page.locator("[data-estado-vazio='turnos']").count()) {
       const novo = "form.turno-novo";
       await page.fill(`${novo} input[name="turno[nome]"]`, "Programação 24h");
       await page.fill(`${novo} input[name="turno[inicio]"]`, "00:00");

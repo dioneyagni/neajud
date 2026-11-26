@@ -113,7 +113,8 @@ runSpec("Construções E2E Tests", async ({ page, test }) => {
     await page.goto(`${BASE_URL}/materiais`);
     await page.locator("a.materiais-construcoes-link").click();
     await page.locator(".construcoes-pagina h2").waitFor();
-    await page.locator('a[href="/construcoes/new"]').click();
+    // The page's own button (an empty list also offers it in its empty screen).
+    await page.locator('a[href="/construcoes/new"]:not([data-estado-vazio-acao])').click();
     await page.locator("#dublagem-0-cima").waitFor();
     // Lona is only a base: never offered on the face.
     if ((await opcoes("#dublagem-0-cima")).includes(nomes.lona)) throw new Error("Lona is offered as superfície");
